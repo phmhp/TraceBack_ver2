@@ -1,0 +1,2114 @@
+TAP version 13
+# Subtest: bmsScenario nominal steps match oracle
+ok 1 - bmsScenario nominal steps match oracle
+  ---
+  duration_ms: 2.646952
+  type: 'test'
+  ...
+# Subtest: bmsScenario ECU output fault is visible
+ok 2 - bmsScenario ECU output fault is visible
+  ---
+  duration_ms: 0.681287
+  type: 'test'
+  ...
+# Subtest: bmsScenario actuator stuck fault is visible
+ok 3 - bmsScenario actuator stuck fault is visible
+  ---
+  duration_ms: 0.454765
+  type: 'test'
+  ...
+# Subtest: bmsScenario broken wire yields safe zero and is detectable
+ok 4 - bmsScenario broken wire yields safe zero and is detectable
+  ---
+  duration_ms: 1.065797
+  type: 'test'
+  ...
+# Subtest: bmsScenario bad port mapping is structurally rejected
+ok 5 - bmsScenario bad port mapping is structurally rejected
+  ---
+  duration_ms: 0.423698
+  type: 'test'
+  ...
+# Subtest: hvReadyScenario nominal steps match oracle
+ok 6 - hvReadyScenario nominal steps match oracle
+  ---
+  duration_ms: 0.255936
+  type: 'test'
+  ...
+# Subtest: hvReadyScenario ECU output fault is visible
+ok 7 - hvReadyScenario ECU output fault is visible
+  ---
+  duration_ms: 0.361595
+  type: 'test'
+  ...
+# Subtest: hvReadyScenario actuator stuck fault is visible
+ok 8 - hvReadyScenario actuator stuck fault is visible
+  ---
+  duration_ms: 0.198739
+  type: 'test'
+  ...
+# Subtest: hvReadyScenario broken wire yields safe zero and is detectable
+ok 9 - hvReadyScenario broken wire yields safe zero and is detectable
+  ---
+  duration_ms: 0.42394
+  type: 'test'
+  ...
+# Subtest: hvReadyScenario bad port mapping is structurally rejected
+ok 10 - hvReadyScenario bad port mapping is structurally rejected
+  ---
+  duration_ms: 0.486954
+  type: 'test'
+  ...
+# Subtest: gearScenario nominal steps match oracle
+ok 11 - gearScenario nominal steps match oracle
+  ---
+  duration_ms: 0.325611
+  type: 'test'
+  ...
+# Subtest: gearScenario ECU output fault is visible
+ok 12 - gearScenario ECU output fault is visible
+  ---
+  duration_ms: 0.245199
+  type: 'test'
+  ...
+# Subtest: gearScenario actuator stuck fault is visible
+ok 13 - gearScenario actuator stuck fault is visible
+  ---
+  duration_ms: 0.200112
+  type: 'test'
+  ...
+# Subtest: gearScenario broken wire yields safe zero and is detectable
+ok 14 - gearScenario broken wire yields safe zero and is detectable
+  ---
+  duration_ms: 0.208454
+  type: 'test'
+  ...
+# Subtest: gearScenario bad port mapping is structurally rejected
+ok 15 - gearScenario bad port mapping is structurally rejected
+  ---
+  duration_ms: 0.170487
+  type: 'test'
+  ...
+# Subtest: steeringScenario nominal steps match oracle
+ok 16 - steeringScenario nominal steps match oracle
+  ---
+  duration_ms: 0.203267
+  type: 'test'
+  ...
+# Subtest: steeringScenario ECU output fault is visible
+ok 17 - steeringScenario ECU output fault is visible
+  ---
+  duration_ms: 0.147452
+  type: 'test'
+  ...
+# Subtest: steeringScenario actuator stuck fault is visible
+ok 18 - steeringScenario actuator stuck fault is visible
+  ---
+  duration_ms: 0.143497
+  type: 'test'
+  ...
+# Subtest: steeringScenario broken wire yields safe zero and is detectable
+ok 19 - steeringScenario broken wire yields safe zero and is detectable
+  ---
+  duration_ms: 0.173231
+  type: 'test'
+  ...
+# Subtest: steeringScenario bad port mapping is structurally rejected
+ok 20 - steeringScenario bad port mapping is structurally rejected
+  ---
+  duration_ms: 0.13907
+  type: 'test'
+  ...
+# Subtest: thermalScenario nominal steps match oracle
+ok 21 - thermalScenario nominal steps match oracle
+  ---
+  duration_ms: 0.163357
+  type: 'test'
+  ...
+# Subtest: thermalScenario ECU output fault is visible
+ok 22 - thermalScenario ECU output fault is visible
+  ---
+  duration_ms: 0.137648
+  type: 'test'
+  ...
+# Subtest: thermalScenario actuator stuck fault is visible
+ok 23 - thermalScenario actuator stuck fault is visible
+  ---
+  duration_ms: 0.214654
+  type: 'test'
+  ...
+# Subtest: thermalScenario broken wire yields safe zero and is detectable
+ok 24 - thermalScenario broken wire yields safe zero and is detectable
+  ---
+  duration_ms: 0.149335
+  type: 'test'
+  ...
+# Subtest: thermalScenario bad port mapping is structurally rejected
+ok 25 - thermalScenario bad port mapping is structurally rejected
+  ---
+  duration_ms: 0.135785
+  type: 'test'
+  ...
+# Subtest: lvSupplyScenario nominal steps match oracle
+ok 26 - lvSupplyScenario nominal steps match oracle
+  ---
+  duration_ms: 0.166791
+  type: 'test'
+  ...
+# Subtest: lvSupplyScenario ECU output fault is visible
+ok 27 - lvSupplyScenario ECU output fault is visible
+  ---
+  duration_ms: 0.146611
+  type: 'test'
+  ...
+# Subtest: lvSupplyScenario actuator stuck fault is visible
+ok 28 - lvSupplyScenario actuator stuck fault is visible
+  ---
+  duration_ms: 0.142996
+  type: 'test'
+  ...
+# Subtest: lvSupplyScenario broken wire yields safe zero and is detectable
+ok 29 - lvSupplyScenario broken wire yields safe zero and is detectable
+  ---
+  duration_ms: 0.190697
+  type: 'test'
+  ...
+# Subtest: lvSupplyScenario bad port mapping is structurally rejected
+ok 30 - lvSupplyScenario bad port mapping is structurally rejected
+  ---
+  duration_ms: 0.206952
+  type: 'test'
+  ...
+# Subtest: registry includes added domains
+ok 31 - registry includes added domains
+  ---
+  duration_ms: 0.215164
+  type: 'test'
+  ...
+# Subtest: test oracle detects altered steering gain
+ok 32 - test oracle detects altered steering gain
+  ---
+  duration_ms: 0.189155
+  type: 'test'
+  ...
+# Subtest: test oracle detects altered thermal threshold
+ok 33 - test oracle detects altered thermal threshold
+  ---
+  duration_ms: 0.207713
+  type: 'test'
+  ...
+# Subtest: propulsionScenario: fault visible then repair passes
+ok 34 - propulsionScenario: fault visible then repair passes
+  ---
+  duration_ms: 4.495869
+  type: 'test'
+  ...
+# Subtest: propulsionScenario: investigation state and wiring gating
+ok 35 - propulsionScenario: investigation state and wiring gating
+  ---
+  duration_ms: 1.156434
+  type: 'test'
+  ...
+# Subtest: brakeScenario: fault visible then repair passes
+ok 36 - brakeScenario: fault visible then repair passes
+  ---
+  duration_ms: 0.595528
+  type: 'test'
+  ...
+# Subtest: brakeScenario: investigation state and wiring gating
+ok 37 - brakeScenario: investigation state and wiring gating
+  ---
+  duration_ms: 0.734207
+  type: 'test'
+  ...
+# Subtest: bmsScenario: fault visible then repair passes
+ok 38 - bmsScenario: fault visible then repair passes
+  ---
+  duration_ms: 1.195092
+  type: 'test'
+  ...
+# Subtest: bmsScenario: investigation state and wiring gating
+ok 39 - bmsScenario: investigation state and wiring gating
+  ---
+  duration_ms: 0.806726
+  type: 'test'
+  ...
+# Subtest: hvReadyScenario: fault visible then repair passes
+ok 40 - hvReadyScenario: fault visible then repair passes
+  ---
+  duration_ms: 0.720656
+  type: 'test'
+  ...
+# Subtest: hvReadyScenario: investigation state and wiring gating
+ok 41 - hvReadyScenario: investigation state and wiring gating
+  ---
+  duration_ms: 0.784663
+  type: 'test'
+  ...
+# Subtest: gearScenario: fault visible then repair passes
+ok 42 - gearScenario: fault visible then repair passes
+  ---
+  duration_ms: 1.568134
+  type: 'test'
+  ...
+# Subtest: gearScenario: investigation state and wiring gating
+ok 43 - gearScenario: investigation state and wiring gating
+  ---
+  duration_ms: 1.27922
+  type: 'test'
+  ...
+# Subtest: steeringScenario: fault visible then repair passes
+ok 44 - steeringScenario: fault visible then repair passes
+  ---
+  duration_ms: 0.588878
+  type: 'test'
+  ...
+# Subtest: steeringScenario: investigation state and wiring gating
+ok 45 - steeringScenario: investigation state and wiring gating
+  ---
+  duration_ms: 0.635909
+  type: 'test'
+  ...
+# Subtest: thermalScenario: fault visible then repair passes
+ok 46 - thermalScenario: fault visible then repair passes
+  ---
+  duration_ms: 0.494526
+  type: 'test'
+  ...
+# Subtest: thermalScenario: investigation state and wiring gating
+ok 47 - thermalScenario: investigation state and wiring gating
+  ---
+  duration_ms: 0.611262
+  type: 'test'
+  ...
+# Subtest: lvSupplyScenario: fault visible then repair passes
+ok 48 - lvSupplyScenario: fault visible then repair passes
+  ---
+  duration_ms: 0.705804
+  type: 'test'
+  ...
+# Subtest: lvSupplyScenario: investigation state and wiring gating
+ok 49 - lvSupplyScenario: investigation state and wiring gating
+  ---
+  duration_ms: 0.758463
+  type: 'test'
+  ...
+# Subtest: catalog has stable unique system/domain/function identities
+ok 50 - catalog has stable unique system/domain/function identities
+  ---
+  duration_ms: 0.226501
+  type: 'test'
+  ...
+# Subtest: injected hardware fault remains failing after software repair
+ok 51 - injected hardware fault remains failing after software repair
+  ---
+  duration_ms: 0.452803
+  type: 'test'
+  ...
+# Subtest: unknown case and invalid repair rejected
+ok 52 - unknown case and invalid repair rejected
+  ---
+  duration_ms: 0.466584
+  type: 'test'
+  ...
+# Subtest: powertrain and propulsion are correctly nested
+ok 53 - powertrain and propulsion are correctly nested
+  ---
+  duration_ms: 0.871995
+  type: 'test'
+  ...
+# Subtest: propulsion nominal and protective limit
+ok 54 - propulsion nominal and protective limit
+  ---
+  duration_ms: 1.583167
+  type: 'test'
+  ...
+# Subtest: brake commands
+ok 55 - brake commands
+  ---
+  duration_ms: 0.296057
+  type: 'test'
+  ...
+# Subtest: bad connection type rejected
+ok 56 - bad connection type rejected
+  ---
+  duration_ms: 0.261685
+  type: 'test'
+  ...
+# Subtest: disconnected required input rejected
+ok 57 - disconnected required input rejected
+  ---
+  duration_ms: 0.645934
+  type: 'test'
+  ...
+# Subtest: cycle rejected
+ok 58 - cycle rejected
+  ---
+  duration_ms: 0.175465
+  type: 'test'
+  ...
+# Subtest: fault changes actuator and produces failure
+ok 59 - fault changes actuator and produces failure
+  ---
+  duration_ms: 0.422457
+  type: 'test'
+  ...
+# Subtest: wrong software gain changes outputs
+ok 60 - wrong software gain changes outputs
+  ---
+  duration_ms: 0.191389
+  type: 'test'
+  ...
+# Subtest: actuator stuck diagnosed by output mismatch
+ok 61 - actuator stuck diagnosed by output mismatch
+  ---
+  duration_ms: 0.295565
+  type: 'test'
+  ...
+# Subtest: broken signal gives safe zero and mismatch
+ok 62 - broken signal gives safe zero and mismatch
+  ---
+  duration_ms: 1.305529
+  type: 'test'
+  ...
+# Subtest: unknown fault rejected
+ok 63 - unknown fault rejected
+  ---
+  duration_ms: 0.161644
+  type: 'test'
+  ...
+# (node:3505) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: normal: independent charge and discharge power limits
+ok 64 - normal: independent charge and discharge power limits
+  ---
+  duration_ms: 5.869691
+  type: 'test'
+  ...
+# Subtest: low SOC reduces discharge capacity
+ok 65 - low SOC reduces discharge capacity
+  ---
+  duration_ms: 0.401785
+  type: 'test'
+  ...
+# Subtest: high SOC limits regenerative charge without necessarily limiting discharge
+ok 66 - high SOC limits regenerative charge without necessarily limiting discharge
+  ---
+  duration_ms: 0.296807
+  type: 'test'
+  ...
+# Subtest: low temperature restricts charging and discharge
+ok 67 - low temperature restricts charging and discharge
+  ---
+  duration_ms: 0.230337
+  type: 'test'
+  ...
+# Subtest: high temperature reduces discharge limit
+ok 68 - high temperature reduces discharge limit
+  ---
+  duration_ms: 0.215204
+  type: 'test'
+  ...
+# Subtest: invalid stale signal prevents use and recovers only after stable inputs
+ok 69 - invalid stale signal prevents use and recovers only after stable inputs
+  ---
+  duration_ms: 0.217488
+  type: 'test'
+  ...
+# Subtest: NaN and malformed cell ordering never produce power permission
+ok 70 - NaN and malformed cell ordering never produce power permission
+  ---
+  duration_ms: 0.388867
+  type: 'test'
+  ...
+# Subtest: critical insulation violation requests latched shutdown
+ok 71 - critical insulation violation requests latched shutdown
+  ---
+  duration_ms: 0.172841
+  type: 'test'
+  ...
+# Subtest: cell voltage constraints restrict and critical faults shut down
+ok 72 - cell voltage constraints restrict and critical faults shut down
+  ---
+  duration_ms: 0.372822
+  type: 'test'
+  ...
+# Subtest: reported power is not falsely called actuator response
+ok 73 - reported power is not falsely called actuator response
+  ---
+  duration_ms: 0.614707
+  type: 'test'
+  ...
+# Subtest: dt validity
+ok 74 - dt validity
+  ---
+  duration_ms: 0.427925
+  type: 'test'
+  ...
+# Subtest: bridge preserves explicit source limitations
+ok 75 - bridge preserves explicit source limitations
+  ---
+  duration_ms: 0.162735
+  type: 'test'
+  ...
+# Subtest: opt-in vehicle BMS limits torque and regen but preserves default API
+ok 76 - opt-in vehicle BMS limits torque and regen but preserves default API
+  ---
+  duration_ms: 0.707757
+  type: 'test'
+  ...
+# (node:3511) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: driver demand splits into regen and friction without missing requested force
+ok 77 - driver demand splits into regen and friction without missing requested force
+  ---
+  duration_ms: 9.846738
+  type: 'test'
+  ...
+# Subtest: BMS charge ceiling is not the discharge ceiling and limits regeneration
+ok 78 - BMS charge ceiling is not the discharge ceiling and limits regeneration
+  ---
+  duration_ms: 0.262255
+  type: 'test'
+  ...
+# Subtest: zero charge permission transfers all brake demand to friction
+ok 79 - zero charge permission transfers all brake demand to friction
+  ---
+  duration_ms: 0.246561
+  type: 'test'
+  ...
+# Subtest: low speed tapers regeneration and standstill never divides by zero
+ok 80 - low speed tapers regeneration and standstill never divides by zero
+  ---
+  duration_ms: 0.214022
+  type: 'test'
+  ...
+# Subtest: low speed exact boundaries
+ok 81 - low speed exact boundaries
+  ---
+  duration_ms: 0.352952
+  type: 'test'
+  ...
+# Subtest: ABS intervention disables regeneration without erasing friction demand
+ok 82 - ABS intervention disables regeneration without erasing friction demand
+  ---
+  duration_ms: 0.193021
+  type: 'test'
+  ...
+# Subtest: missing HV, BMS or confirmed D disables regen but not friction
+ok 83 - missing HV, BMS or confirmed D disables regen but not friction
+  ---
+  duration_ms: 0.235035
+  type: 'test'
+  ...
+# Subtest: invalid or stale pedal signal cannot silently issue regenerative force
+ok 84 - invalid or stale pedal signal cannot silently issue regenerative force
+  ---
+  duration_ms: 0.225069
+  type: 'test'
+  ...
+# Subtest: pedal and feedback freshness boundary of 100ms is inclusive
+ok 85 - pedal and feedback freshness boundary of 100ms is inclusive
+  ---
+  duration_ms: 0.505823
+  type: 'test'
+  ...
+# Subtest: independent plant response lags, and either actuator may stick
+ok 86 - independent plant response lags, and either actuator may stick
+  ---
+  duration_ms: 0.630491
+  type: 'test'
+  ...
+# Subtest: command does not masquerade as measured feedback
+ok 87 - command does not masquerade as measured feedback
+  ---
+  duration_ms: 0.219471
+  type: 'test'
+  ...
+# Subtest: sustained force deficit triggers latched diagnostic after debounce
+ok 88 - sustained force deficit triggers latched diagnostic after debounce
+  ---
+  duration_ms: 0.260793
+  type: 'test'
+  ...
+# Subtest: normal independent plant follow-up does not trigger false brake deficit
+ok 89 - normal independent plant follow-up does not trigger false brake deficit
+  ---
+  duration_ms: 0.680747
+  type: 'test'
+  ...
+# Subtest: stale brake feedback latches fault; only safe explicit reset clears it
+ok 90 - stale brake feedback latches fault; only safe explicit reset clears it
+  ---
+  duration_ms: 0.29185
+  type: 'test'
+  ...
+# Subtest: no fault reset while vehicle moves or brake demand persists
+ok 91 - no fault reset while vehicle moves or brake demand persists
+  ---
+  duration_ms: 0.32475
+  type: 'test'
+  ...
+# Subtest: invalid timestep rejected and repeated inputs are deterministic
+ok 92 - invalid timestep rejected and repeated inputs are deterministic
+  ---
+  duration_ms: 5.39827
+  type: 'test'
+  ...
+# Subtest: BMS adapter copies charging power limit, not discharge limit
+ok 93 - BMS adapter copies charging power limit, not discharge limit
+  ---
+  duration_ms: 0.210027
+  type: 'test'
+  ...
+# Subtest: vehicle adapter opt-in; baseline signature and propulsion results unaffected
+ok 94 - vehicle adapter opt-in; baseline signature and propulsion results unaffected
+  ---
+  duration_ms: 0.696029
+  type: 'test'
+  ...
+# (node:3513) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: normal signals pass and no protective requests
+ok 95 - normal signals pass and no protective requests
+  ---
+  duration_ms: 1.607244
+  type: 'test'
+  ...
+# Subtest: boundary 0 and 100 acceptable
+ok 96 - boundary 0 and 100 acceptable
+  ---
+  duration_ms: 0.225259
+  type: 'test'
+  ...
+# Subtest: exact time age 100 is accepted
+ok 97 - exact time age 100 is accepted
+  ---
+  duration_ms: 0.378511
+  type: 'test'
+  ...
+# Subtest: stale > threshold invalid immediately, fault debounced
+ok 98 - stale > threshold invalid immediately, fault debounced
+  ---
+  duration_ms: 0.441596
+  type: 'test'
+  ...
+# Subtest: out of range
+ok 99 - out of range
+  ---
+  duration_ms: 0.23903
+  type: 'test'
+  ...
+# Subtest: message invalid
+ok 100 - message invalid
+  ---
+  duration_ms: 0.137998
+  type: 'test'
+  ...
+# Subtest: NaN invalid not silently clamped
+ok 101 - NaN invalid not silently clamped
+  ---
+  duration_ms: 0.23844
+  type: 'test'
+  ...
+# Subtest: plausibility mismatch debounced
+ok 102 - plausibility mismatch debounced
+  ---
+  duration_ms: 0.164638
+  type: 'test'
+  ...
+# Subtest: momentary plausibility mismatch does not latch
+ok 103 - momentary plausibility mismatch does not latch
+  ---
+  duration_ms: 0.340503
+  type: 'test'
+  ...
+# Subtest: feedback mismatch needs settling then debounce
+ok 104 - feedback mismatch needs settling then debounce
+  ---
+  duration_ms: 0.480014
+  type: 'test'
+  ...
+# Subtest: temporary mismatch during actuator settling not fault
+ok 105 - temporary mismatch during actuator settling not fault
+  ---
+  duration_ms: 0.197328
+  type: 'test'
+  ...
+# Subtest: tracking recovers after healthy duration
+ok 106 - tracking recovers after healthy duration
+  ---
+  duration_ms: 0.189405
+  type: 'test'
+  ...
+# Subtest: latched block requires reset and permission
+ok 107 - latched block requires reset and permission
+  ---
+  duration_ms: 0.37802
+  type: 'test'
+  ...
+# Subtest: fault count persists after recovery
+ok 108 - fault count persists after recovery
+  ---
+  duration_ms: 0.213592
+  type: 'test'
+  ...
+# Subtest: function-specific fallback does not affect unrelated function
+ok 109 - function-specific fallback does not affect unrelated function
+  ---
+  duration_ms: 0.168484
+  type: 'test'
+  ...
+# Subtest: invalid dt and config rejected
+ok 110 - invalid dt and config rejected
+  ---
+  duration_ms: 0.525903
+  type: 'test'
+  ...
+# Subtest: duplicate observations rejected
+ok 111 - duplicate observations rejected
+  ---
+  duration_ms: 0.180271
+  type: 'test'
+  ...
+# Subtest: deterministic results for identical input and state
+ok 112 - deterministic results for identical input and state
+  ---
+  duration_ms: 0.98806
+  type: 'test'
+  ...
+# Subtest: missing sensor does not create a value
+ok 113 - missing sensor does not create a value
+  ---
+  duration_ms: 0.17219
+  type: 'test'
+  ...
+# Subtest: block list is concise and user-displayable
+ok 114 - block list is concise and user-displayable
+  ---
+  duration_ms: 0.180021
+  type: 'test'
+  ...
+# Subtest: opt-in vehicle diagnostics projects faults without hijacking existing drive command
+ok 115 - opt-in vehicle diagnostics projects faults without hijacking existing drive command
+  ---
+  duration_ms: 0.829752
+  type: 'test'
+  ...
+# node:internal/modules/esm/resolve:275
+#     throw new ERR_MODULE_NOT_FOUND(
+#           ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/mnt/data/TraceBack_v15_work/TraceBack-develop/src/content/ready.ts' imported from /mnt/data/TraceBack_v15_work/TraceBack-develop/tests/engineering.test.mjs
+#     at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+#     at moduleResolve (node:internal/modules/esm/resolve:860:10)
+#     at defaultResolve (node:internal/modules/esm/resolve:984:11)
+#     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:780:12)
+#     at \#cachedDefaultResolve (node:internal/modules/esm/loader:704:25)
+#     at ModuleLoader.resolve (node:internal/modules/esm/loader:687:38)
+#     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:305:38)
+#     at ModuleJob._link (node:internal/modules/esm/module_job:137:49) {
+#   code: 'ERR_MODULE_NOT_FOUND',
+#   url: 'file:///mnt/data/TraceBack_v15_work/TraceBack-develop/src/content/ready.ts'
+# }
+# Node.js v22.16.0
+# Subtest: tests/engineering.test.mjs
+not ok 7 - tests/engineering.test.mjs
+  ---
+  duration_ms: 54.055992
+  type: 'test'
+  location: '/mnt/data/TraceBack_v15_work/TraceBack-develop/tests/engineering.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# (node:3544) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: fixed-step repeatability and dt contract
+ok 117 - fixed-step repeatability and dt contract
+  ---
+  duration_ms: 1.944252
+  type: 'test'
+  ...
+# Subtest: speed interpolation is monotonic and clamped
+ok 118 - speed interpolation is monotonic and clamped
+  ---
+  duration_ms: 0.277118
+  type: 'test'
+  ...
+# Subtest: low speed asks more assist torque than high speed after slew settling
+ok 119 - low speed asks more assist torque than high speed after slew settling
+  ---
+  duration_ms: 5.164674
+  type: 'test'
+  ...
+# Subtest: left and right torque requests reverse motor assist direction
+ok 120 - left and right torque requests reverse motor assist direction
+  ---
+  duration_ms: 0.146951
+  type: 'test'
+  ...
+# Subtest: neutral and torque deadband produce no assist
+ok 121 - neutral and torque deadband produce no assist
+  ---
+  duration_ms: 0.255565
+  type: 'test'
+  ...
+# Subtest: thermal limit gradually reduces assist, overheating becomes fault
+ok 122 - thermal limit gradually reduces assist, overheating becomes fault
+  ---
+  duration_ms: 0.27881
+  type: 'test'
+  ...
+# Subtest: motor current capacity reduces torque ceiling
+ok 123 - motor current capacity reduces torque ceiling
+  ---
+  duration_ms: 0.162105
+  type: 'test'
+  ...
+# Subtest: normal assist slew rate respects acceleration and reduction
+ok 124 - normal assist slew rate respects acceleration and reduction
+  ---
+  duration_ms: 0.123517
+  type: 'test'
+  ...
+# Subtest: invalid and stale signals inhibit and latch failure
+ok 125 - invalid and stale signals inhibit and latch failure
+  ---
+  duration_ms: 0.329537
+  type: 'test'
+  ...
+# Subtest: age threshold is inclusive
+ok 126 - age threshold is inclusive
+  ---
+  duration_ms: 0.344439
+  type: 'test'
+  ...
+# Subtest: power loss inhibits motor assist but steering geometry stays separate
+ok 127 - power loss inhibits motor assist but steering geometry stays separate
+  ---
+  duration_ms: 0.527866
+  type: 'test'
+  ...
+# Subtest: independent plant responds gradually, not instantly
+ok 128 - independent plant responds gradually, not instantly
+  ---
+  duration_ms: 0.163216
+  type: 'test'
+  ...
+# Subtest: faulty plant effectiveness produces reduced actual response
+ok 129 - faulty plant effectiveness produces reduced actual response
+  ---
+  duration_ms: 0.094563
+  type: 'test'
+  ...
+# Subtest: command is not mistaken for actual observed motor torque
+ok 130 - command is not mistaken for actual observed motor torque
+  ---
+  duration_ms: 0.077086
+  type: 'test'
+  ...
+# Subtest: stale feedback latches failure and drops assist on same step
+ok 131 - stale feedback latches failure and drops assist on same step
+  ---
+  duration_ms: 0.079169
+  type: 'test'
+  ...
+# Subtest: sustained mismatch after stable command confirms tracking fault
+ok 132 - sustained mismatch after stable command confirms tracking fault
+  ---
+  duration_ms: 0.310228
+  type: 'test'
+  ...
+# Subtest: independent response followed in loop avoids tracking false positive
+ok 133 - independent response followed in loop avoids tracking false positive
+  ---
+  duration_ms: 0.559393
+  type: 'test'
+  ...
+# Subtest: recovery requires explicit reset, near standstill, neutral demand, stable time
+ok 134 - recovery requires explicit reset, near standstill, neutral demand, stable time
+  ---
+  duration_ms: 0.805204
+  type: 'test'
+  ...
+# Subtest: moving reset is refused, and reset does not resume assist while fault remains
+ok 135 - moving reset is refused, and reset does not resume assist while fault remains
+  ---
+  duration_ms: 0.174122
+  type: 'test'
+  ...
+# Subtest: legacy vehicle steering remains identical when opt-in adapter not used
+ok 136 - legacy vehicle steering remains identical when opt-in adapter not used
+  ---
+  duration_ms: 0.154183
+  type: 'test'
+  ...
+# Subtest: EPS diagnostic is reflected in opt-in vehicle trace
+ok 137 - EPS diagnostic is reflected in opt-in vehicle trace
+  ---
+  duration_ms: 0.102144
+  type: 'test'
+  ...
+# Subtest: plant rejects impossible simulation inputs
+ok 138 - plant rejects impossible simulation inputs
+  ---
+  duration_ms: 0.116075
+  type: 'test'
+  ...
+# Subtest: inconsistent measured assist torque and motor current is invalid feedback
+ok 139 - inconsistent measured assist torque and motor current is invalid feedback
+  ---
+  duration_ms: 0.065949
+  type: 'test'
+  ...
+# (node:3560) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: P -> D requires command then independently observed feedback
+ok 140 - P -> D requires command then independently observed feedback
+  ---
+  duration_ms: 1.473001
+  type: 'test'
+  ...
+# Subtest: request signal at validity boundary is accepted, beyond boundary latches fault
+ok 141 - request signal at validity boundary is accepted, beyond boundary latches fault
+  ---
+  duration_ms: 3.275489
+  type: 'test'
+  ...
+# Subtest: stale or impossible gear feedback inhibits drive
+ok 142 - stale or impossible gear feedback inhibits drive
+  ---
+  duration_ms: 0.414515
+  type: 'test'
+  ...
+# Subtest: P -> D refused without brake or while moving; exactly 5% and 1 km/h allowed
+ok 143 - P -> D refused without brake or while moving; exactly 5% and 1 km/h allowed
+  ---
+  duration_ms: 0.229947
+  type: 'test'
+  ...
+# Subtest: READY, power, safety and blocking fault gate entry into drive
+ok 144 - READY, power, safety and blocking fault gate entry into drive
+  ---
+  duration_ms: 0.229717
+  type: 'test'
+  ...
+# Subtest: neutral can be requested while moving, but has no drive permission
+ok 145 - neutral can be requested while moving, but has no drive permission
+  ---
+  duration_ms: 0.163697
+  type: 'test'
+  ...
+# Subtest: D -> R while moving refused; stopped with brake requests reverse and confirms direction
+ok 146 - D -> R while moving refused; stopped with brake requests reverse and confirms direction
+  ---
+  duration_ms: 0.146781
+  type: 'test'
+  ...
+# Subtest: P -> N without HV, but N -> D requires READY
+ok 147 - P -> N without HV, but N -> D requires READY
+  ---
+  duration_ms: 0.135294
+  type: 'test'
+  ...
+# Subtest: pending shift times out when feedback does not move; fault is latched
+ok 148 - pending shift times out when feedback does not move; fault is latched
+  ---
+  duration_ms: 0.456518
+  type: 'test'
+  ...
+# Subtest: uncommanded gear movement triggers diagnostic without drive
+ok 149 - uncommanded gear movement triggers diagnostic without drive
+  ---
+  duration_ms: 0.429788
+  type: 'test'
+  ...
+# Subtest: reset requires P feedback and stopped state, not just a reset click
+ok 150 - reset requires P feedback and stopped state, not just a reset click
+  ---
+  duration_ms: 0.253653
+  type: 'test'
+  ...
+# Subtest: driver request during shifting is ignored until previous shift confirms
+ok 151 - driver request during shifting is ignored until previous shift confirms
+  ---
+  duration_ms: 0.113902
+  type: 'test'
+  ...
+# Subtest: independent plant: command does not imply physical feedback and stuck actuator remains P
+ok 152 - independent plant: command does not imply physical feedback and stuck actuator remains P
+  ---
+  duration_ms: 0.191018
+  type: 'test'
+  ...
+# Subtest: plant invalid tick rejects erroneous input
+ok 153 - plant invalid tick rejects erroneous input
+  ---
+  duration_ms: 1.832603
+  type: 'test'
+  ...
+# Subtest: adapter: confirmed D allows torque, unconfirmed D inhibits it, legacy API unchanged
+ok 154 - adapter: confirmed D allows torque, unconfirmed D inhibits it, legacy API unchanged
+  ---
+  duration_ms: 2.42092
+  type: 'test'
+  ...
+# Subtest: adapter: R feedback is recognized but legacy RWD plant does not invent reverse torque
+ok 155 - adapter: R feedback is recognized but legacy RWD plant does not invent reverse torque
+  ---
+  duration_ms: 0.273021
+  type: 'test'
+  ...
+# Subtest: adapter: brake override remains a separate existing vehicle-domain policy
+ok 156 - adapter: brake override remains a separate existing vehicle-domain policy
+  ---
+  duration_ms: 0.181874
+  type: 'test'
+  ...
+# Subtest: mode and gear adapter derives VCU gear from confirmed feedback, not unconfirmed command
+ok 157 - mode and gear adapter derives VCU gear from confirmed feedback, not unconfirmed command
+  ---
+  duration_ms: 0.758404
+  type: 'test'
+  ...
+# Subtest: game scene is not read by the control model: repeated inputs give repeated outputs
+ok 158 - game scene is not read by the control model: repeated inputs give repeated outputs
+  ---
+  duration_ms: 1.038125
+  type: 'test'
+  ...
+# (node:3567) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: one input case records actual dependency order, wire values and output
+ok 159 - one input case records actual dependency order, wire values and output
+  ---
+  duration_ms: 26.951972
+  type: 'test'
+  ...
+# Subtest: nested subsystem steps retain a navigable relative scope
+ok 160 - nested subsystem steps retain a navigable relative scope
+  ---
+  duration_ms: 0.6899
+  type: 'test'
+  ...
+# Subtest: a disconnected graph records the missing boundary without inventing a passing output
+ok 161 - a disconnected graph records the missing boundary without inventing a passing output
+  ---
+  duration_ms: 0.224208
+  type: 'test'
+  ...
+# (node:3582) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: normal startup requires real precharge then main feedback before READY
+ok 162 - normal startup requires real precharge then main feedback before READY
+  ---
+  duration_ms: 1.470828
+  type: 'test'
+  ...
+# Subtest: precharge voltage cannot authorize READY before main contactor feedback
+ok 163 - precharge voltage cannot authorize READY before main contactor feedback
+  ---
+  duration_ms: 0.11991
+  type: 'test'
+  ...
+# Subtest: slow voltage rise stays PRECHARGE then becomes fault on timeout
+ok 164 - slow voltage rise stays PRECHARGE then becomes fault on timeout
+  ---
+  duration_ms: 0.421406
+  type: 'test'
+  ...
+# Subtest: precharge feedback missing faults before voltage timeout
+ok 165 - precharge feedback missing faults before voltage timeout
+  ---
+  duration_ms: 0.531381
+  type: 'test'
+  ...
+# Subtest: main feedback timeout inhibits ready and opens both commands
+ok 166 - main feedback timeout inhibits ready and opens both commands
+  ---
+  duration_ms: 0.501276
+  type: 'test'
+  ...
+# Subtest: welded main contactor detected when OFF
+ok 167 - welded main contactor detected when OFF
+  ---
+  duration_ms: 0.104568
+  type: 'test'
+  ...
+# Subtest: HVIL or insulation faults during READY clear power permission
+ok 168 - HVIL or insulation faults during READY clear power permission
+  ---
+  duration_ms: 0.200502
+  type: 'test'
+  ...
+# Subtest: signal age exact limit accepted, over limit and NaN rejected
+ok 169 - signal age exact limit accepted, over limit and NaN rejected
+  ---
+  duration_ms: 0.137317
+  type: 'test'
+  ...
+# Subtest: precharge completion 90 percent boundary and just below
+ok 170 - precharge completion 90 percent boundary and just below
+  ---
+  duration_ms: 0.303578
+  type: 'test'
+  ...
+# Subtest: fault latch requires stopped, open feedback, stop and explicit reset for stable time
+ok 171 - fault latch requires stopped, open feedback, stop and explicit reset for stable time
+  ---
+  duration_ms: 0.388986
+  type: 'test'
+  ...
+# Subtest: lost main feedback during READY triggers fault
+ok 172 - lost main feedback during READY triggers fault
+  ---
+  duration_ms: 0.146831
+  type: 'test'
+  ...
+# Subtest: stop request opens contactor commands without pretending observed feedback is open
+ok 173 - stop request opens contactor commands without pretending observed feedback is open
+  ---
+  duration_ms: 4.212613
+  type: 'test'
+  ...
+# Subtest: vehicle integration blocks drive until HV feedback confirmed and leaves legacy API intact
+ok 174 - vehicle integration blocks drive until HV feedback confirmed and leaves legacy API intact
+  ---
+  duration_ms: 0.616831
+  type: 'test'
+  ...
+# Subtest: invalid integration time rejected
+ok 175 - invalid integration time rejected
+  ---
+  duration_ms: 0.364439
+  type: 'test'
+  ...
+# Subtest: combined BMS shutdown request interrupts HV and drive, without fake contactor feedback
+ok 176 - combined BMS shutdown request interrupts HV and drive, without fake contactor feedback
+  ---
+  duration_ms: 1.112558
+  type: 'test'
+  ...
+# (node:3593) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: determinism and input/state immutability
+ok 177 - determinism and input/state immutability
+  ---
+  duration_ms: 7.380539
+  type: 'test'
+  ...
+# Subtest: explicit time step; rejects zero and excessive dt
+ok 178 - explicit time step; rejects zero and excessive dt
+  ---
+  duration_ms: 0.852516
+  type: 'test'
+  ...
+# Subtest: out-of-range speed and malformed time values are rejected
+ok 179 - out-of-range speed and malformed time values are rejected
+  ---
+  duration_ms: 0.322977
+  type: 'test'
+  ...
+# Subtest: tick and time advance exactly once
+ok 180 - tick and time advance exactly once
+  ---
+  duration_ms: 0.68332
+  type: 'test'
+  ...
+# Subtest: initial OFF: no HV ready and propulsion inhibited
+ok 181 - initial OFF: no HV ready and propulsion inhibited
+  ---
+  duration_ms: 0.565242
+  type: 'test'
+  ...
+# Subtest: START is not the same as HV ready; independent precharge plant is observed
+ok 182 - START is not the same as HV ready; independent precharge plant is observed
+  ---
+  duration_ms: 0.655709
+  type: 'test'
+  ...
+# Subtest: valid start reaches HV_READY and VCU READY without false LV brownout during converter ramp
+ok 183 - valid start reaches HV_READY and VCU READY without false LV brownout during converter ramp
+  ---
+  duration_ms: 7.158575
+  type: 'test'
+  ...
+# Subtest: D request first changes command, then plant feedback, then VCU DRIVE
+ok 184 - D request first changes command, then plant feedback, then VCU DRIVE
+  ---
+  duration_ms: 4.602781
+  type: 'test'
+  ...
+# Subtest: gear request at speed is refused even with READY
+ok 185 - gear request at speed is refused even with READY
+  ---
+  duration_ms: 3.569824
+  type: 'test'
+  ...
+# Subtest: normal propulsion uses confirmed D and separate motor plant response
+ok 186 - normal propulsion uses confirmed D and separate motor plant response
+  ---
+  duration_ms: 4.269949
+  type: 'test'
+  ...
+# Subtest: BMS discharge power kW feeds motor torque limit Nm
+ok 187 - BMS discharge power kW feeds motor torque limit Nm
+  ---
+  duration_ms: 3.86694
+  type: 'test'
+  ...
+# Subtest: high SOC limits charge power: regen request zero and friction covers demand
+ok 188 - high SOC limits charge power: regen request zero and friction covers demand
+  ---
+  duration_ms: 3.81299
+  type: 'test'
+  ...
+# Subtest: regen/friction split: force sum equals total requested force, not actual feedback
+ok 189 - regen/friction split: force sum equals total requested force, not actual feedback
+  ---
+  duration_ms: 3.159289
+  type: 'test'
+  ...
+# Subtest: ABS intervention rejects regen and requests friction
+ok 190 - ABS intervention rejects regen and requests friction
+  ---
+  duration_ms: 2.198676
+  type: 'test'
+  ...
+# Subtest: brake override cuts drive command immediately rather than slew
+ok 191 - brake override cuts drive command immediately rather than slew
+  ---
+  duration_ms: 3.108157
+  type: 'test'
+  ...
+# Subtest: invalid brake signal prohibits propulsion, independently faults brake control
+ok 192 - invalid brake signal prohibits propulsion, independently faults brake control
+  ---
+  duration_ms: 2.658219
+  type: 'test'
+  ...
+# Subtest: stale pedal signal commands zero torque
+ok 193 - stale pedal signal commands zero torque
+  ---
+  duration_ms: 2.238436
+  type: 'test'
+  ...
+# Subtest: BMS insulation fault requests HV shutdown and blocks propulsion immediately
+ok 194 - BMS insulation fault requests HV shutdown and blocks propulsion immediately
+  ---
+  duration_ms: 8.336591
+  type: 'test'
+  ...
+# Subtest: HV contactor hardware feedback failure during precharge is diagnosed
+ok 195 - HV contactor hardware feedback failure during precharge is diagnosed
+  ---
+  duration_ms: 1.283405
+  type: 'test'
+  ...
+# Subtest: friction actuator stuck causes actual brake deficit despite correct ECU command
+ok 196 - friction actuator stuck causes actual brake deficit despite correct ECU command
+  ---
+  duration_ms: 3.927082
+  type: 'test'
+  ...
+# Subtest: hot system causes thermal request and VCU DEGRADED, never full-torque permission
+ok 197 - hot system causes thermal request and VCU DEGRADED, never full-torque permission
+  ---
+  duration_ms: 2.450886
+  type: 'test'
+  ...
+# Subtest: fan stuck-off diagnosed from actual response rather than ON command
+ok 198 - fan stuck-off diagnosed from actual response rather than ON command
+  ---
+  duration_ms: 3.337213
+  type: 'test'
+  ...
+# Subtest: LV power loss inhibits motor even if HV and gear remain ready
+ok 199 - LV power loss inhibits motor even if HV and gear remain ready
+  ---
+  duration_ms: 2.483705
+  type: 'test'
+  ...
+# Subtest: EPS assist is computed independently of steering angle and has separate actual feedback
+ok 200 - EPS assist is computed independently of steering angle and has separate actual feedback
+  ---
+  duration_ms: 2.47396
+  type: 'test'
+  ...
+# Subtest: domain diagnostic LIMIT is applied only when explicitly mapped to propulsion
+ok 201 - domain diagnostic LIMIT is applied only when explicitly mapped to propulsion
+  ---
+  duration_ms: 2.675364
+  type: 'test'
+  ...
+# Subtest: unmapped diagnostic does not arbitrarily disable drive
+ok 202 - unmapped diagnostic does not arbitrarily disable drive
+  ---
+  duration_ms: 2.387601
+  type: 'test'
+  ...
+# Subtest: explicit mapped diagnostic BLOCK immediately inhibits propulsion command
+ok 203 - explicit mapped diagnostic BLOCK immediately inhibits propulsion command
+  ---
+  duration_ms: 2.106216
+  type: 'test'
+  ...
+# Subtest: controller and plant are different time layers
+ok 204 - controller and plant are different time layers
+  ---
+  duration_ms: 2.584598
+  type: 'test'
+  ...
+# Subtest: educational blocks are defined without UI state or gameplay mutation
+ok 205 - educational blocks are defined without UI state or gameplay mutation
+  ---
+  duration_ms: 0.133191
+  type: 'test'
+  ...
+# Subtest: longitudinal estimate uses ACTUAL motor and brake plant forces, never ECU requests
+ok 206 - longitudinal estimate uses ACTUAL motor and brake plant forces, never ECU requests
+  ---
+  duration_ms: 3.844918
+  type: 'test'
+  ...
+# Subtest: stuck brake changes acceleration estimate despite equal brake request
+ok 207 - stuck brake changes acceleration estimate despite equal brake request
+  ---
+  duration_ms: 2.292788
+  type: 'test'
+  ...
+# node:internal/modules/esm/resolve:275
+#     throw new ERR_MODULE_NOT_FOUND(
+#           ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/mnt/data/TraceBack_v15_work/TraceBack-develop/src/content/ready.ts' imported from /mnt/data/TraceBack_v15_work/TraceBack-develop/tests/logic.test.mjs
+#     at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+#     at moduleResolve (node:internal/modules/esm/resolve:860:10)
+#     at defaultResolve (node:internal/modules/esm/resolve:984:11)
+#     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:780:12)
+#     at \#cachedDefaultResolve (node:internal/modules/esm/loader:704:25)
+#     at ModuleLoader.resolve (node:internal/modules/esm/loader:687:38)
+#     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:305:38)
+#     at ModuleJob._link (node:internal/modules/esm/module_job:137:49) {
+#   code: 'ERR_MODULE_NOT_FOUND',
+#   url: 'file:///mnt/data/TraceBack_v15_work/TraceBack-develop/src/content/ready.ts'
+# }
+# Node.js v22.16.0
+# Subtest: tests/logic.test.mjs
+not ok 13 - tests/logic.test.mjs
+  ---
+  duration_ms: 114.020314
+  type: 'test'
+  location: '/mnt/data/TraceBack_v15_work/TraceBack-develop/tests/logic.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# (node:3615) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: deterministic baseline
+ok 209 - deterministic baseline
+  ---
+  duration_ms: 6.211866
+  type: 'test'
+  ...
+# Subtest: dt zero and too large rejected
+ok 210 - dt zero and too large rejected
+  ---
+  duration_ms: 0.488347
+  type: 'test'
+  ...
+# Subtest: HV absence uses battery power; DC/DC off does not imply total LV bus loss
+ok 211 - HV absence uses battery power; DC/DC off does not imply total LV bus loss
+  ---
+  duration_ms: 0.223577
+  type: 'test'
+  ...
+# Subtest: HV available but DCDC unavailable is a reason and remains battery-backed
+ok 212 - HV available but DCDC unavailable is a reason and remains battery-backed
+  ---
+  duration_ms: 0.219301
+  type: 'test'
+  ...
+# Subtest: normal load does not shed
+ok 213 - normal load does not shed
+  ---
+  duration_ms: 0.232731
+  type: 'test'
+  ...
+# Subtest: load overflow preserves critical priority
+ok 214 - load overflow preserves critical priority
+  ---
+  duration_ms: 0.149765
+  type: 'test'
+  ...
+# Subtest: low SOC sheds noncritical while preserving critical
+ok 215 - low SOC sheds noncritical while preserving critical
+  ---
+  duration_ms: 0.227543
+  type: 'test'
+  ...
+# Subtest: critical load above supply leaves partial unmet rather than inventing supply
+ok 216 - critical load above supply leaves partial unmet rather than inventing supply
+  ---
+  duration_ms: 0.167732
+  type: 'test'
+  ...
+# Subtest: signals exactly at allowed age boundary accepted
+ok 217 - signals exactly at allowed age boundary accepted
+  ---
+  duration_ms: 0.415287
+  type: 'test'
+  ...
+# Subtest: stale sensor rejects input and command
+ok 218 - stale sensor rejects input and command
+  ---
+  duration_ms: 0.552884
+  type: 'test'
+  ...
+# Subtest: NaN invalid is not interpreted as available supply
+ok 219 - NaN invalid is not interpreted as available supply
+  ---
+  duration_ms: 0.221755
+  type: 'test'
+  ...
+# Subtest: stale feedback reports fault separately
+ok 220 - stale feedback reports fault separately
+  ---
+  duration_ms: 0.124358
+  type: 'test'
+  ...
+# Subtest: voltage reaches critical threshold immediately
+ok 221 - voltage reaches critical threshold immediately
+  ---
+  duration_ms: 0.121403
+  type: 'test'
+  ...
+# Subtest: undervoltage threshold is time-debounced
+ok 222 - undervoltage threshold is time-debounced
+  ---
+  duration_ms: 0.253052
+  type: 'test'
+  ...
+# Subtest: momentary sag does not trigger debounced undervoltage
+ok 223 - momentary sag does not trigger debounced undervoltage
+  ---
+  duration_ms: 0.161514
+  type: 'test'
+  ...
+# Subtest: DCDC no response is debounced
+ok 224 - DCDC no response is debounced
+  ---
+  duration_ms: 0.211819
+  type: 'test'
+  ...
+# Subtest: DCDC output voltage out of range is debounced
+ok 225 - DCDC output voltage out of range is debounced
+  ---
+  duration_ms: 0.204498
+  type: 'test'
+  ...
+# Subtest: no false DCDC tracking fault when HV off
+ok 226 - no false DCDC tracking fault when HV off
+  ---
+  duration_ms: 0.459673
+  type: 'test'
+  ...
+# Subtest: fault latches even if signal recovers
+ok 227 - fault latches even if signal recovers
+  ---
+  duration_ms: 0.141824
+  type: 'test'
+  ...
+# Subtest: fault recovery requires stationary explicit reset and stable voltage
+ok 228 - fault recovery requires stationary explicit reset and stable voltage
+  ---
+  duration_ms: 0.24541
+  type: 'test'
+  ...
+# Subtest: fault does not clear while driving or without reset
+ok 229 - fault does not clear while driving or without reset
+  ---
+  duration_ms: 4.554667
+  type: 'test'
+  ...
+# Subtest: plant DC/DC rises progressively rather than instantaneously
+ok 230 - plant DC/DC rises progressively rather than instantaneously
+  ---
+  duration_ms: 0.342446
+  type: 'test'
+  ...
+# Subtest: plant stuck-off creates command-feedback mismatch
+ok 231 - plant stuck-off creates command-feedback mismatch
+  ---
+  duration_ms: 0.152059
+  type: 'test'
+  ...
+# Subtest: plant overload reduces observed voltage
+ok 232 - plant overload reduces observed voltage
+  ---
+  duration_ms: 0.761218
+  type: 'test'
+  ...
+# Subtest: plant invalid power inputs are rejected
+ok 233 - plant invalid power inputs are rejected
+  ---
+  duration_ms: 0.195364
+  type: 'test'
+  ...
+# Subtest: vehicle adapter preserves legacy API output while replacing only LV projection
+ok 234 - vehicle adapter preserves legacy API output while replacing only LV projection
+  ---
+  duration_ms: 0.792105
+  type: 'test'
+  ...
+# Subtest: adapter does not fake HV READY from LV observations
+ok 235 - adapter does not fake HV READY from LV observations
+  ---
+  duration_ms: 0.181083
+  type: 'test'
+  ...
+# Subtest: adapter collects LV fault without hijacking brake and gear
+ok 236 - adapter collects LV fault without hijacking brake and gear
+  ---
+  duration_ms: 0.257539
+  type: 'test'
+  ...
+# Subtest: input adapter uses observed values and not inferred HV
+ok 237 - input adapter uses observed values and not inferred HV
+  ---
+  duration_ms: 0.149946
+  type: 'test'
+  ...
+# (node:3626) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: deterministic step; no state mutation
+ok 238 - deterministic step; no state mutation
+  ---
+  duration_ms: 6.63841
+  type: 'test'
+  ...
+# Subtest: invalid unit/range and dt rejected
+ok 239 - invalid unit/range and dt rejected
+  ---
+  duration_ms: 0.504611
+  type: 'test'
+  ...
+# Subtest: braking wheel slip causes ABS release without automatic application at normal slip
+ok 240 - braking wheel slip causes ABS release without automatic application at normal slip
+  ---
+  duration_ms: 0.316878
+  type: 'test'
+  ...
+# Subtest: TCS limits drive only when driven wheels spin faster than the vehicle
+ok 241 - TCS limits drive only when driven wheels spin faster than the vehicle
+  ---
+  duration_ms: 0.291199
+  type: 'test'
+  ...
+# Subtest: ESC compares requested and actual yaw, requests differential braking
+ok 242 - ESC compares requested and actual yaw, requests differential braking
+  ---
+  duration_ms: 0.158159
+  type: 'test'
+  ...
+# Subtest: stale wheel sensor blocks stability corrections and reports diagnostic
+ok 243 - stale wheel sensor blocks stability corrections and reports diagnostic
+  ---
+  duration_ms: 4.34388
+  type: 'test'
+  ...
+# Subtest: low friction limits tire force even when requested drive is excessive
+ok 244 - low friction limits tire force even when requested drive is excessive
+  ---
+  duration_ms: 0.350138
+  type: 'test'
+  ...
+# Subtest: no drive at standstill should not magically accelerate
+ok 245 - no drive at standstill should not magically accelerate
+  ---
+  duration_ms: 0.714908
+  type: 'test'
+  ...
+# Subtest: steering at speed produces yaw response; zero steer at speed has no yaw
+ok 246 - steering at speed produces yaw response; zero steer at speed has no yaw
+  ---
+  duration_ms: 0.399021
+  type: 'test'
+  ...
+# Subtest: integrated adapter shares ECU, feedback, chassis and validates normal initial tick
+ok 247 - integrated adapter shares ECU, feedback, chassis and validates normal initial tick
+  ---
+  duration_ms: 29.429487
+  type: 'test'
+  ...
+# Subtest: integrated adapter uses its own speed sensor rather than caller supplied speed
+ok 248 - integrated adapter uses its own speed sensor rather than caller supplied speed
+  ---
+  duration_ms: 0.678564
+  type: 'test'
+  ...
+# Subtest: ABS command reduces actual applied brake demand in a locked-wheel scenario
+ok 249 - ABS command reduces actual applied brake demand in a locked-wheel scenario
+  ---
+  duration_ms: 4.311782
+  type: 'test'
+  ...
+# Subtest: traction supervisor reduces commanded force in wheelspin case
+ok 250 - traction supervisor reduces commanded force in wheelspin case
+  ---
+  duration_ms: 0.180102
+  type: 'test'
+  ...
+# Subtest: ESC braking changes actual chassis yaw response rather than only status text
+ok 251 - ESC braking changes actual chassis yaw response rather than only status text
+  ---
+  duration_ms: 0.140592
+  type: 'test'
+  ...
+# Subtest: integration from OFF through HV_READY, gear D, actual acceleration and steering
+ok 252 - integration from OFF through HV_READY, gear D, actual acceleration and steering
+  ---
+  duration_ms: 27.84663
+  type: 'test'
+  ...
+# (node:3637) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: drive command rises with rate limit, not instantaneous maximum
+ok 253 - drive command rises with rate limit, not instantaneous maximum
+  ---
+  duration_ms: 6.009041
+  type: 'test'
+  ...
+# Subtest: pedal range, correlation and freshness inhibit torque immediately
+ok 254 - pedal range, correlation and freshness inhibit torque immediately
+  ---
+  duration_ms: 0.302457
+  type: 'test'
+  ...
+# Subtest: 100ms pedal freshness passes, 100.001ms fails
+ok 255 - 100ms pedal freshness passes, 100.001ms fails
+  ---
+  duration_ms: 0.291269
+  type: 'test'
+  ...
+# Subtest: BMS power ceiling affects torque at speed using kW = Nm * rad/s / 1000
+ok 256 - BMS power ceiling affects torque at speed using kW = Nm * rad/s / 1000
+  ---
+  duration_ms: 0.189165
+  type: 'test'
+  ...
+# Subtest: zero RPM never divides by zero and allows limited launch torque
+ok 257 - zero RPM never divides by zero and allows limited launch torque
+  ---
+  duration_ms: 0.190407
+  type: 'test'
+  ...
+# Subtest: zero BMS discharge ceiling prevents positive motor torque
+ok 258 - zero BMS discharge ceiling prevents positive motor torque
+  ---
+  duration_ms: 0.11266
+  type: 'test'
+  ...
+# Subtest: speed driver map lowers demand at high speed
+ok 259 - speed driver map lowers demand at high speed
+  ---
+  duration_ms: 0.250868
+  type: 'test'
+  ...
+# Subtest: temperature derate and VCU degraded limit constrain final target
+ok 260 - temperature derate and VCU degraded limit constrain final target
+  ---
+  duration_ms: 0.161123
+  type: 'test'
+  ...
+# Subtest: READY, confirmed D, gear authority, BMS and brake override immediately inhibit torque
+ok 261 - READY, confirmed D, gear authority, BMS and brake override immediately inhibit torque
+  ---
+  duration_ms: 0.299852
+  type: 'test'
+  ...
+# Subtest: brake priority boundary is exact
+ok 262 - brake priority boundary is exact
+  ---
+  duration_ms: 4.516842
+  type: 'test'
+  ...
+# Subtest: falling torque honors falling slew; safety inhibit bypasses it
+ok 263 - falling torque honors falling slew; safety inhibit bypasses it
+  ---
+  duration_ms: 0.257478
+  type: 'test'
+  ...
+# Subtest: motor plant is independent, can lag or stick
+ok 264 - motor plant is independent, can lag or stick
+  ---
+  duration_ms: 0.138779
+  type: 'test'
+  ...
+# Subtest: feedback stale invalid leads to fault, which remains latched until stopped reset
+ok 265 - feedback stale invalid leads to fault, which remains latched until stopped reset
+  ---
+  duration_ms: 0.295466
+  type: 'test'
+  ...
+# Subtest: sustained motor response mismatch faults only after stable-command grace and debounce
+ok 266 - sustained motor response mismatch faults only after stable-command grace and debounce
+  ---
+  duration_ms: 0.359892
+  type: 'test'
+  ...
+# Subtest: feedback tracking with independent measured actuator avoids false mismatch
+ok 267 - feedback tracking with independent measured actuator avoids false mismatch
+  ---
+  duration_ms: 0.200262
+  type: 'test'
+  ...
+# Subtest: NaN, infinite and invalid fraction cannot silently authorize torque
+ok 268 - NaN, infinite and invalid fraction cannot silently authorize torque
+  ---
+  duration_ms: 0.229646
+  type: 'test'
+  ...
+# Subtest: invalid dt throws; deterministic state and inputs reproduce same trace
+ok 269 - invalid dt throws; deterministic state and inputs reproduce same trace
+  ---
+  duration_ms: 2.28424
+  type: 'test'
+  ...
+# Subtest: domain adapter uses BMS, VCU, gear observed status, not gear request
+ok 270 - domain adapter uses BMS, VCU, gear observed status, not gear request
+  ---
+  duration_ms: 0.273542
+  type: 'test'
+  ...
+# Subtest: opt-in vehicle integration does not change legacy API and respects model authority
+ok 271 - opt-in vehicle integration does not change legacy API and respects model authority
+  ---
+  duration_ms: 0.634406
+  type: 'test'
+  ...
+# (node:3648) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: the full reference palette has unique executable block kinds
+ok 272 - the full reference palette has unique executable block kinds
+  ---
+  duration_ms: 1.146129
+  type: 'test'
+  ...
+# Subtest: numeric, logical, conversion and switching blocks calculate their configured behavior
+ok 273 - numeric, logical, conversion and switching blocks calculate their configured behavior
+  ---
+  duration_ms: 0.462738
+  type: 'test'
+  ...
+# Subtest: lookup, direct indexing, bus and vector operations retain their signal values
+ok 274 - lookup, direct indexing, bus and vector operations retain their signal values
+  ---
+  duration_ms: 1.075993
+  type: 'test'
+  ...
+# Subtest: stateful blocks advance one sample per execution
+ok 275 - stateful blocks advance one sample per execution
+  ---
+  duration_ms: 0.387354
+  type: 'test'
+  ...
+# Subtest: tagged and stored signals, nested subsystem, and directed graph execute
+ok 276 - tagged and stored signals, nested subsystem, and directed graph execute
+  ---
+  duration_ms: 0.695449
+  type: 'test'
+  ...
+# Subtest: a library block added to the playable graph uses the same evaluator and saved settings
+ok 277 - a library block added to the playable graph uses the same evaluator and saved settings
+  ---
+  duration_ms: 1.468835
+  type: 'test'
+  ...
+# Subtest: a unit delay closes a valid state-feedback loop while an algebraic loop is rejected
+ok 278 - a unit delay closes a valid state-feedback loop while an algebraic loop is rejected
+  ---
+  duration_ms: 0.691112
+  type: 'test'
+  ...
+# Subtest: nested subsystem instances keep their delay state separate
+ok 279 - nested subsystem instances keep their delay state separate
+  ---
+  duration_ms: 0.296226
+  type: 'test'
+  ...
+# Subtest: unconnected Scope sinks still record each sample and nested programs advance one global tick
+ok 280 - unconnected Scope sinks still record each sample and nested programs advance one global tick
+  ---
+  duration_ms: 0.522207
+  type: 'test'
+  ...
+# Subtest: From and Goto tags are local to a Subsystem unless global visibility is requested
+ok 281 - From and Goto tags are local to a Subsystem unless global visibility is requested
+  ---
+  duration_ms: 0.473443
+  type: 'test'
+  ...
+# (node:3659) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: deterministic and fixed dt contract
+ok 282 - deterministic and fixed dt contract
+  ---
+  duration_ms: 1.791271
+  type: 'test'
+  ...
+# Subtest: cold baseline does not command cooling
+ok 283 - cold baseline does not command cooling
+  ---
+  duration_ms: 4.316509
+  type: 'test'
+  ...
+# Subtest: pump engages at 40C and latches until 35C
+ok 284 - pump engages at 40C and latches until 35C
+  ---
+  duration_ms: 0.218379
+  type: 'test'
+  ...
+# Subtest: fan starts at 50C, stays on in deadband, switches off at 45C
+ok 285 - fan starts at 50C, stays on in deadband, switches off at 45C
+  ---
+  duration_ms: 0.217949
+  type: 'test'
+  ...
+# Subtest: max of motor/inverter/battery is thermal control signal
+ok 286 - max of motor/inverter/battery is thermal control signal
+  ---
+  duration_ms: 0.137838
+  type: 'test'
+  ...
+# Subtest: staged pump demand and temp-based derating
+ok 287 - staged pump demand and temp-based derating
+  ---
+  duration_ms: 0.21217
+  type: 'test'
+  ...
+# Subtest: critical temp sets shutdown request and latches fault
+ok 288 - critical temp sets shutdown request and latches fault
+  ---
+  duration_ms: 0.108033
+  type: 'test'
+  ...
+# Subtest: sensor invalid and stale cause inhibition, no false safe readings
+ok 289 - sensor invalid and stale cause inhibition, no false safe readings
+  ---
+  duration_ms: 0.162795
+  type: 'test'
+  ...
+# Subtest: sensor age boundary inclusive
+ok 290 - sensor age boundary inclusive
+  ---
+  duration_ms: 0.241364
+  type: 'test'
+  ...
+# Subtest: feedback invalid catches negative pump and stale data
+ok 291 - feedback invalid catches negative pump and stale data
+  ---
+  duration_ms: 0.363127
+  type: 'test'
+  ...
+# Subtest: momentary fan response lag is not diagnosed as persistent failure
+ok 292 - momentary fan response lag is not diagnosed as persistent failure
+  ---
+  duration_ms: 0.179571
+  type: 'test'
+  ...
+# Subtest: stuck fan is diagnosed after debounce
+ok 293 - stuck fan is diagnosed after debounce
+  ---
+  duration_ms: 0.146731
+  type: 'test'
+  ...
+# Subtest: stuck pump is diagnosed after debounce
+ok 294 - stuck pump is diagnosed after debounce
+  ---
+  duration_ms: 0.128153
+  type: 'test'
+  ...
+# Subtest: healthy plant loop prevents tracking false positives
+ok 295 - healthy plant loop prevents tracking false positives
+  ---
+  duration_ms: 1.036383
+  type: 'test'
+  ...
+# Subtest: stuck fan plant does not follow on command
+ok 296 - stuck fan plant does not follow on command
+  ---
+  duration_ms: 4.200004
+  type: 'test'
+  ...
+# Subtest: real cooling changes thermal rate compared to cooling off
+ok 297 - real cooling changes thermal rate compared to cooling off
+  ---
+  duration_ms: 1.433702
+  type: 'test'
+  ...
+# Subtest: plant rejects malformed command, dt and faults
+ok 298 - plant rejects malformed command, dt and faults
+  ---
+  duration_ms: 0.174994
+  type: 'test'
+  ...
+# Subtest: reset without standstill is rejected
+ok 299 - reset without standstill is rejected
+  ---
+  duration_ms: 0.145299
+  type: 'test'
+  ...
+# Subtest: reset requires stable healthy input and cooldown
+ok 300 - reset requires stable healthy input and cooldown
+  ---
+  duration_ms: 0.174603
+  type: 'test'
+  ...
+# Subtest: reset timer clears on interrupted reset
+ok 301 - reset timer clears on interrupted reset
+  ---
+  duration_ms: 0.13949
+  type: 'test'
+  ...
+# Subtest: adapter preserves legacy API when not opted in
+ok 302 - adapter preserves legacy API when not opted in
+  ---
+  duration_ms: 0.612323
+  type: 'test'
+  ...
+# Subtest: adapter limits torque and publishes actual fan/pump commands
+ok 303 - adapter limits torque and publishes actual fan/pump commands
+  ---
+  duration_ms: 0.193652
+  type: 'test'
+  ...
+# Subtest: critical fault gates command but does not pretend measured torque instantly zero
+ok 304 - critical fault gates command but does not pretend measured torque instantly zero
+  ---
+  duration_ms: 0.127993
+  type: 'test'
+  ...
+# Subtest: vehicle input adapter uses measured temperatures and feedback, not fabricated output
+ok 305 - vehicle input adapter uses measured temperatures and feedback, not fabricated output
+  ---
+  duration_ms: 0.106611
+  type: 'test'
+  ...
+# Subtest: disabled system inhibits cooling commands
+ok 306 - disabled system inhibits cooling commands
+  ---
+  duration_ms: 0.065829
+  type: 'test'
+  ...
+# (node:3670) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: behaviorally correct drive has no false first boundary difference
+ok 307 - behaviorally correct drive has no false first boundary difference
+  ---
+  duration_ms: 9.624594
+  type: 'test'
+  ...
+# Subtest: first difference names the upstream functional boundary, not a block shape
+ok 308 - first difference names the upstream functional boundary, not a block shape
+  ---
+  duration_ms: 1.21986
+  type: 'test'
+  ...
+# Subtest: START permission is the first boundary when the authored precharge request is missing
+ok 309 - START permission is the first boundary when the authored precharge request is missing
+  ---
+  duration_ms: 5.293102
+  type: 'test'
+  ...
+# Subtest: brake and steering differences remain observable when drive is inhibited
+ok 310 - brake and steering differences remain observable when drive is inhibited
+  ---
+  duration_ms: 1.406811
+  type: 'test'
+  ...
+# (node:3676) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: start request: OFF -> INIT -> HV_PREPARING -> READY only after independent HV ready
+ok 311 - start request: OFF -> INIT -> HV_PREPARING -> READY only after independent HV ready
+  ---
+  duration_ms: 1.529466
+  type: 'test'
+  ...
+# Subtest: start edge not level; repeated pulse in INIT and HV_PREPARING cannot restart elapsed timer
+ok 312 - start edge not level; repeated pulse in INIT and HV_PREPARING cannot restart elapsed timer
+  ---
+  duration_ms: 0.197999
+  type: 'test'
+  ...
+# Subtest: START interlocks: gear P, brake boundary, unplugged, pack available, HV OFF, no recoverable fault
+ok 313 - START interlocks: gear P, brake boundary, unplugged, pack available, HV OFF, no recoverable fault
+  ---
+  duration_ms: 0.340344
+  type: 'test'
+  ...
+# Subtest: INIT waits for checks; times out instead of silently enabling READY
+ok 314 - INIT waits for checks; times out instead of silently enabling READY
+  ---
+  duration_ms: 0.187522
+  type: 'test'
+  ...
+# Subtest: HV_PREPARING timeout latches FAULT, HV_READY never inferred from time
+ok 315 - HV_PREPARING timeout latches FAULT, HV_READY never inferred from time
+  ---
+  duration_ms: 0.178229
+  type: 'test'
+  ...
+# Subtest: READY only moves to DRIVE on valid drive gear; P/N remain READY
+ok 316 - READY only moves to DRIVE on valid drive gear; P/N remain READY
+  ---
+  duration_ms: 0.13325
+  type: 'test'
+  ...
+# Subtest: DRIVE to READY requires near-zero speed and P/N, speed boundary
+ok 317 - DRIVE to READY requires near-zero speed and P/N, speed boundary
+  ---
+  duration_ms: 0.181073
+  type: 'test'
+  ...
+# Subtest: stop event while moving is rejected, stopped stop transitions to OFF
+ok 318 - stop event while moving is rejected, stopped stop transitions to OFF
+  ---
+  duration_ms: 0.117817
+  type: 'test'
+  ...
+# Subtest: recoverable fault enters DEGRADED with limited command and does not auto return to DRIVE
+ok 319 - recoverable fault enters DEGRADED with limited command and does not auto return to DRIVE
+  ---
+  duration_ms: 0.411681
+  type: 'test'
+  ...
+# Subtest: DEGRADED recovery must be stable, P, stopped, explicit reset and returns to READY (not DRIVE)
+ok 320 - DEGRADED recovery must be stable, P, stopped, explicit reset and returns to READY (not DRIVE)
+  ---
+  duration_ms: 0.701508
+  type: 'test'
+  ...
+# Subtest: DEGRADED stable recovery resets after fault recurs
+ok 321 - DEGRADED stable recovery resets after fault recurs
+  ---
+  duration_ms: 0.352301
+  type: 'test'
+  ...
+# Subtest: invalid input and stale signal trigger latched FAULT and inhibit drive
+ok 322 - invalid input and stale signal trigger latched FAULT and inhibit drive
+  ---
+  duration_ms: 0.211378
+  type: 'test'
+  ...
+# Subtest: critical fault, BMS shutdown, HV fault and unexpected HV loss have explicit response
+ok 323 - critical fault, BMS shutdown, HV fault and unexpected HV loss have explicit response
+  ---
+  duration_ms: 0.216266
+  type: 'test'
+  ...
+# Subtest: latched FAULT must not clear without P, stop, reset, HV OFF and stable safe period
+ok 324 - latched FAULT must not clear without P, stop, reset, HV OFF and stable safe period
+  ---
+  duration_ms: 0.333022
+  type: 'test'
+  ...
+# Subtest: reset cannot bypass active severe fault
+ok 325 - reset cannot bypass active severe fault
+  ---
+  duration_ms: 0.125019
+  type: 'test'
+  ...
+# Subtest: exact signal age boundary passes and dt bounds reject invalid execution
+ok 326 - exact signal age boundary passes and dt bounds reject invalid execution
+  ---
+  duration_ms: 0.464741
+  type: 'test'
+  ...
+# Subtest: UI screen state is not an input to VehicleMode; identical sensor inputs yield identical results
+ok 327 - UI screen state is not an input to VehicleMode; identical sensor inputs yield identical results
+  ---
+  duration_ms: 0.27189
+  type: 'test'
+  ...
+# Subtest: mode adapter gates torque and leaves original vehicle-system API unchanged
+ok 328 - mode adapter gates torque and leaves original vehicle-system API unchanged
+  ---
+  duration_ms: 1.323436
+  type: 'test'
+  ...
+# Subtest: DEGRADED mode adapter applies restricted torque and actual response separately
+ok 329 - DEGRADED mode adapter applies restricted torque and actual response separately
+  ---
+  duration_ms: 0.150167
+  type: 'test'
+  ...
+# Subtest: no reverse motor response is invented for R while VCU recognizes reverse operating mode
+ok 330 - no reverse motor response is invented for R while VCU recognizes reverse operating mode
+  ---
+  duration_ms: 0.618483
+  type: 'test'
+  ...
+# Subtest: combined BMS/HV/VCU adapter keeps startup and independent contactor feedback causality
+ok 331 - combined BMS/HV/VCU adapter keeps startup and independent contactor feedback causality
+  ---
+  duration_ms: 3.917197
+  type: 'test'
+  ...
+# Subtest: new VCU permission cannot override a legacy critical signal or insulation fault
+ok 332 - new VCU permission cannot override a legacy critical signal or insulation fault
+  ---
+  duration_ms: 0.166
+  type: 'test'
+  ...
+# (node:3692) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: high-voltage path precharges before main contactor closes and rejects isolation fault
+ok 333 - high-voltage path precharges before main contactor closes and rejects isolation fault
+  ---
+  duration_ms: 2.309042
+  type: 'test'
+  ...
+# Subtest: precharge timeout does not authorize propulsion
+ok 334 - precharge timeout does not authorize propulsion
+  ---
+  duration_ms: 0.489178
+  type: 'test'
+  ...
+# Subtest: motor torque reaches only rear wheels with brake and gear interlocks
+ok 335 - motor torque reaches only rear wheels with brake and gear interlocks
+  ---
+  duration_ms: 0.822991
+  type: 'test'
+  ...
+# Subtest: charging, DC/DC and thermal derating are state-dependent
+ok 336 - charging, DC/DC and thermal derating are state-dependent
+  ---
+  duration_ms: 0.229466
+  type: 'test'
+  ...
+# Subtest: regen/friction blend, ABS, ESC and front-wheel EPS are observable
+ok 337 - regen/friction blend, ABS, ESC and front-wheel EPS are observable
+  ---
+  duration_ms: 0.36457
+  type: 'test'
+  ...
+# Subtest: stale signal and low state of charge create explicit diagnostic/inhibit outputs
+ok 338 - stale signal and low state of charge create explicit diagnostic/inhibit outputs
+  ---
+  duration_ms: 0.313883
+  type: 'test'
+  ...
+1..338
+# tests 338
+# suites 0
+# pass 336
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2271.114231

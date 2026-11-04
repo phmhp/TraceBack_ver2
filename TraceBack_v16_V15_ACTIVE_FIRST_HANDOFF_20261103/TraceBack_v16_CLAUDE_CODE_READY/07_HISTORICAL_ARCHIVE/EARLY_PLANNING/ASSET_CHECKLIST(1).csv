@@ -1,0 +1,46 @@
+﻿asset_id,folder,asset_name,request_detail,preferred_format,priority,use_screen,acceptance_check,status
+CH01,02_CHARACTERS,Driver cat turnaround,전/3-4좌/3-4우/좌측면/우측면/후면/상단·얼굴/몸통 일관,PNG transparent 2048px and GLB/FBX if available,P0,프롤로그·차고·레이싱·엔딩,기존 얼굴 보존; 점눈·목·전신 비율 동일,TO_CREATE
+CH02,02_CHARACTERS,Engineer cat turnaround,"CH01과 동일 각도, 고글/정비복/스패너는 레이어 분리",PNG transparent + GLB/FBX,P0,차고·추리·실험,"기본 얼굴 동일 계열, 드라이버와 실루엣 구별",TO_CREATE
+CH03,02_CHARACTERS,Character faces expression sheet,중립·당황·의심·번뜩임·기쁨·실망; 눈 형태 최대한 유지,PNG transparent/SVG layers,P0,말풍선·연출,눈동자/하이라이트 추가 금지; 귀·입·자세 중심,TO_CREATE
+CH04,02_CHARACTERS,Cat motions,idle·steer L/R·brake brace·inspect·pin link·point·high-five,GLB/FBX animations or sequence refs,P0,전 게임,"리깅 skeleton 통일, 애니메이션 중 발/장비 관통 없음",TO_CREATE
+CH05,02_CHARACTERS,Costume kit,드라이버 헬멧·장갑/엔지니어 고글·작업복·공구; 탈부착,PNG layered/GLB,P1,스토리·구별,고양이 얼굴 가리지 않음,TO_CREATE
+VH01,03_VEHICLES,Hero EV red exterior,"전·후·좌·우·3/4 전·3/4 후·상면+실내, 빨간색 버전",GLB/FBX with separate wheel pivots; PNG turnarounds,P0,모든 3D 씬,"문짝·유리·휠 분리, 원본 청록 레퍼런스는 빨강으로 변경",TO_CREATE
+VH02,03_VEHICLES,Hero EV interior cockpit,운전자/동승자 시점·계기판·대시보드·센터 콘솔·보관함,GLB/FBX or layered 2.5D,P0,돋보기 조사·차량 탑승,hotspot별 별도 layer/hit region,TO_CREATE
+VH03,03_VEHICLES,Police pursuer,전·후·3/4·사이렌 켜짐/꺼짐,GLB/FBX,P0,추격/프롤로그,원본 차량과 스케일 일관,TO_CREATE
+VH04,03_VEHICLES,Rich owner pursuer,"고급차 스타일 추격 차량, 후면 인지 가능",GLB/FBX,P1,추격/프롤로그,경찰차와 외형 확실히 구분,TO_CREATE
+VH05,03_VEHICLES,EV chassis separated version,차체 shell·배터리팩·인버터·모터·감속기·ECU·하네스 분리,GLB/FBX separate meshes + pivots,P0,3D 도메인 탐색,투명/폭발도 구현 가능한 구조,TO_CREATE
+VH06,03_VEHICLES,Vehicle material pack,"빨강 도장, 크림/검정 실내, 타이어, 유리, 금속",PBR textures or procedural material tokens,P0,전 씬,공통 톤·거칠기·색상 준수,TO_CREATE
+WD01,04_WORLD,Mansion exterior,도난 프롤로그 3D/2.5D 저택 외관·금고·경비등,GLB or separate layered PNG,P0,프롤로그,짧은 카메라 컷 재사용,TO_CREATE
+WD02,04_WORLD,F1 memory garage,"F1 정비 차고 세트, 리프트·정비대·LED/설계도·공구",GLB/FBX or layered scene,P0,사전 학습·기억·멘탈 실험,실제 F1 로고/팀 상표 복제 금지,TO_CREATE
+WD03,04_WORLD,Coastal harbor race kit,도로 직선·완만 코너·급커브·가드레일·콘테이너·표지·크레인,modular GLB/FBX,P0,레이싱,도로 스플라인과 충돌 메시 별도,TO_CREATE
+WD04,04_WORLD,Port dressing set,등대·해안 주택·식물·바다·구름·풍차·안전구역,GLB or layered assets,P1,맵 배경,"반복 배치 가능, 원근감 일관",TO_CREATE
+WD05,04_WORLD,Pirate ship and ramp,"선박 전·후·측면, 입구 램프, 돛/깃발 분리",GLB/FBX,P0,도착 목표·프롤로그·엔딩,차량 주행 경로/충돌 공간 확인,TO_CREATE
+WD06,04_WORLD,Driving obstacle kit,콘·상자·차단봉·물웅덩이·안내 화살표·경고표지,GLB/FBX,P0,레이싱,각 hazard/cosmetic 구분,TO_CREATE
+WD07,04_WORLD,Sky/water lighting,화창한 낮/노을/야간 연구실 조명 프리셋,HDRI license safe or scene textures,P1,월드 조명,P0에는 한 시간대 고정도 허용,TO_CREATE
+EV01,05_VEHICLE_SYSTEM,Battery pack,차체 내 위치/선택 강조/분해 버전,GLB or transparent PNG orthographic,P0,구동계 탐색,배터리 팩 단위; 셀 상세는 금지,TO_CREATE
+EV02,05_VEHICLE_SYSTEM,Inverter,입출력/차량 위치/전력선 포트,GLB or transparent PNG,P0,구동계·추리,실제 모델 수준 이상 내부 회로 추측 금지,TO_CREATE
+EV03,05_VEHICLE_SYSTEM,Motor and reduction gear,모터/감속기 분리+회전 표현,GLB or transparent PNG,P0,구동계·주행,모터와 감속기 관계 정확,TO_CREATE
+EV04,05_VEHICLE_SYSTEM,Vehicle controller ECU,차량 제어기 외함·PCB 추상 컷아웃·입출력 커넥터,GLB or PNG layered,P0,HW-SW 탐색,"ECU가 SW 로직 자체는 아님, 실제 모델 경로 표기",TO_CREATE
+EV05,05_VEHICLE_SYSTEM,Driver inputs and sensors,가속 페달/페달 위치 센서/제동 페달/차속 센서,GLB / transparent PNG,P0,사전 학습·단서,첫 고장과 관계된 센서만 활성,TO_CREATE
+EV06,05_VEHICLE_SYSTEM,Electric vs control traces,고전압 전력=주황 굵은 선 / SW 신호=하늘색 점선 / 기계동력=회전 화살표,SVG+animation path refs,P0,도메인·추리,물리·신호 경로 혼동 금지,TO_CREATE
+EV07,05_VEHICLE_SYSTEM,Powertrain block tokens,SENSOR / INPUT / VCU / LIMIT / COMMAND / ACTUATOR 컴포넌트,SVG transparent,P0,조립 퍼즐,모델에 없는 블록은 educational abstraction 표기,TO_CREATE
+EV08,05_VEHICLE_SYSTEM,Non-propulsion domain preview,제동·조향·열관리·BMS 선택 아이콘,SVG/PNG,P1,도메인 선택,미구현 상태 LOCKED 표기,TO_CREATE
+MY01,06_MYSTERY_PROPS,Cork evidence board,빈 보드 16:9/사선 조명/테두리/클립 위치,PNG 4k clean or 3D flat mesh,P0,증거 보드,텍스트·카드·선은 배경에 굽지 말 것,TO_CREATE
+MY02,06_MYSTERY_PROPS,Evidence papers pack,찢어진 메모 3종·정비 노트·F1 기억 사진·로그지·계기 캡처 틀,transparent PNG/SVG per element,P0,보드,내용은 런타임 텍스트/그래프로 얹기,TO_CREATE
+MY03,06_MYSTERY_PROPS,Pushpins and red string,빨간 핀·금색 핀·실 시작/연결/오류·그림자,SVG/PNG layered,P0,보드 연결,연결선은 런타임 벡터로 그리기,TO_CREATE
+MY04,06_MYSTERY_PROPS,Magnifying glass + beam,돋보기 프레임·유리·원형 손전등 마스크·핫스팟 링,SVG/PNG transparent,P0,어두운 조사,실제 cursor 및 lightmask 인터랙션,TO_CREATE
+MY05,06_MYSTERY_PROPS,Puzzle torn pieces,기억 퍼즐 조각·찢어진 경계·조립 glow,PNG layers / SVG,P1,메멘토 기억,조각 맞추기 피드백,TO_CREATE
+MY06,06_MYSTERY_PROPS,Investigation desk,탐정 램프/폴더/클립보드/루페/카메라 사진,layered PNG or GLB,P1,추리 UI,UI 카드가 공중에 뜬 느낌 방지,TO_CREATE
+UI01,07_UI_VFX,Speech bubbles,일반·속삭임·경고·고함·해골 코믹·번뜩임·?·!,SVG transparent variants,P0,대사 전반,유명 TV 예능의 실제 그래픽 복제 금지,TO_CREATE
+UI02,07_UI_VFX,HUD elements,속도계·D 기어·페달 입력/제동·추격 압박·미니맵 프레임,SVG layered,P0,레이싱,레이싱 viewport 가림 최소,TO_CREATE
+UI03,07_UI_VFX,Buttons and panels,cream paper·red CTA·wood plaque·garage tab; hover/pressed/disabled/focus,SVG or 9-slice PNG,P0,전 화면,경고창처럼 보이는 기본 modal 금지,TO_CREATE
+UI04,07_UI_VFX,Mission and domain icons,구동/배터리/제동/조향/열관리/안전·별/잠금,SVG icon set,P0,도메인 선택,서로 동일한 선 두께,TO_CREATE
+UI05,07_UI_VFX,Clue and experiment cards,관측 vs 해석 vs 기억 표면; 실험 카드 A/B/C,SVG/layered PNG,P0,추리·실험,답은 카드 그림에 baked-in 금지,TO_CREATE
+UI06,07_UI_VFX,VFX sprites,고장 깜빡임·red string snap·획득 sparkle·기억 전환·추격 경보,PNG sprite / particle settings,P0,상호작용,취소·reduced motion 포함,TO_CREATE
+UI07,07_UI_VFX,Results stamps,PASS/FAIL/보류/모델 오류 · 별점·메달,SVG transparent,P1,결과,게임 결과와 기술 verdict 구분,TO_CREATE
+UI08,07_UI_VFX,Font spec,"Pretendard Regular Medium SemiBold Bold, local license compliant",font links/source only,P0,전체,font file chat 전달 불필요; 로컬에서 합법적 소싱,TO_CREATE
+AU01,08_AUDIO,Driving sounds,EV whine·tire·skid·collision·brake·siren·boost,WAV/OGG,P0,레이싱,저작권/라이선스 확인,TO_CREATE
+AU02,08_AUDIO,Mystery sounds,paper shuffling·pushpin·string twang·light sweep·clue collected,WAV/OGG,P0,조사,시각 피드백과 동기화,TO_CREATE
+AU03,08_AUDIO,Music beds,garage cozy·chase upbeat·investigation tense·memory shimmer·victory,OGG/WAV loop,P1,전 구간,비저작권 및 출처 기록,TO_CREATE
+DATA01,09_SIMULATION_DATA,Model export package,manifest/signals/events/tests + units + source model paths,CSV/JSON,P0,실험,진짜 MathWorks 신호는 검증 전 UNKNOWN,TO_CREATE
+DATA02,09_SIMULATION_DATA,Sample scenario pack,incident/hypothesis/evidence/test/requiredAssets linked ids,JSON,P0,게임 상태,가정 데이터라면 EDUCATIONAL_ABSTRACT 명시,TO_CREATE

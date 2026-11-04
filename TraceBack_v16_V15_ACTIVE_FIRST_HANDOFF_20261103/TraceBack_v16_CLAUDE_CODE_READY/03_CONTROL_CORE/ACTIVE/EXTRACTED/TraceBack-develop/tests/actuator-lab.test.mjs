@@ -1,0 +1,15 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {REGISTRY,validateNetwork,runScenario} from '../src/engineering/actuator-lab/engine.mjs';
+import {propulsionScenario,brakeScenario} from '../src/engineering/actuator-lab/examples.mjs';
+const clone=x=>structuredClone(x);
+test('powertrain and propulsion are correctly nested',()=>assert.ok(REGISTRY.systems.find(x=>x.id==='SYS-POWERTRAIN').domains.includes('DOM-PROPULSION')));
+test('propulsion nominal and protective limit',()=>{let r=runScenario(propulsionScenario);assert.equal(r.verdict,'PASS');assert.deepEqual(r.trace.map(x=>x.actuators.inverter_motor),[0.8,0.4,0]);});
+test('brake commands',()=>assert.equal(runScenario(brakeScenario).verdict,'PASS'));
+test('bad connection type rejected',()=>{const s=clone(propulsionScenario);s.network.wires[0].in='ready';assert.ok(validateNetwork(s.network).length);});
+test('disconnected required input rejected',()=>{const s=clone(propulsionScenario);s.network.wires.pop();assert.equal(runScenario(s).status,'STRUCTURE_ERROR');});
+test('cycle rejected',()=>{const s=clone(brakeScenario);s.network.wires.push({from:'brake_actuator',out:'response',to:'brake_ecu',in:'demand'});assert.ok(validateNetwork(s.network).some(x=>x.startsWith('CYCLE:')));});
+test('fault changes actuator and produces failure',()=>{const r=runScenario(propulsionScenario,{faults:[{type:'sensor_stuck',componentId:'pedal',value:0}]});assert.equal(r.verdict,'FAIL');assert.equal(r.trace[0].actuators.inverter_motor,0);});
+test('wrong software gain changes outputs',()=>assert.equal(runScenario(propulsionScenario,{logic:{kind:'propulsion',gain:0.5}}).verdict,'FAIL'));
+test('actuator stuck diagnosed by output mismatch',()=>assert.equal(runScenario(brakeScenario,{faults:[{type:'actuator_stuck',componentId:'brake_actuator',value:0}]}).verdict,'FAIL'));
+test('broken signal gives safe zero and mismatch',()=>{const r=runScenario(propulsionScenario,{faults:[{type:'wire_open',componentId:'pedal',port:'value'}]});assert.equal(r.verdict,'FAIL');assert.equal(r.trace[0].actuators.inverter_motor,0);});
+test('unknown fault rejected',()=>assert.equal(runScenario(propulsionScenario,{faults:[{type:'arbitrary',componentId:'pedal'}]}).status,'DATA_ERROR'));

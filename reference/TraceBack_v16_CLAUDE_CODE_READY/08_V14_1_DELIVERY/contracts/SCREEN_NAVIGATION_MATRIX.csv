@@ -1,0 +1,23 @@
+screen_id,scene_family,next_screen,previous_screen,interactive_actions,visible_information,exception_and_persistence
+TITLE,TITLE,garage,none,newGame;resume,"title art, start, continue",save if existing; no silent auto start
+PROLOGUE,TITLE,garage,title,advance;skip,character introduction; police pursuit premise,advance cannot skip initialization data
+GARAGE,GARAGE,garage_l1,title,chooseDomain;startRace,3D vehicle inspection; 11 system entrances,restore saved garage selection
+GARAGE_L1,GARAGE,garage_l2,garage,chooseDomain,requirements and purpose,unavailable domain explain pending
+GARAGE_L2,GARAGE,garage_l3,selectDomain,clickSensorEcuActuator,"E/E mapping, interfaces",missing mapping display unavailable
+GARAGE_L3,GARAGE,garage_l4,garage_l2,inspectSwComponent,ECU software modules/ports,no invented interface id
+GARAGE_L4,GARAGE,chase_normal,garage_l3,assembleIntroBlocks;finishTutorial,input-condition-command example,only propulsion L4 mandatory
+CHASE_NORMAL,CHASE,fault_1_cue,pause,drive;steer;brake;avoid,"speed, road, chase risk",checkpoint retry after arrest
+FAULT_1_CUE,CHASE,assist_chase,chase_normal,inspectSymptom;continue,"acceleration symptom, no cause revealed",log cue only if reproducible
+ASSIST_CHASE,CHASE,board,fault_1_cue,steer;escapeToGarage,"reduced power, chase distance",accessible checkpoint even with low torque
+BOARD,BOARD,wiring,chase_resume,selectHypothesis;linkEvidence;inspectSignals,observation and rival hypotheses,wrong answer => disconfirming signals
+WIRING,WIRING,twin_bench,board,connectBlocks;compile,HW/signal/SW decision blocks,typed invalid connections blocked
+TWIN_BENCH,BENCH,repair_or_safe_limit,wiring,selectTest;predict;run;compare,"oracle, traces, distinctions",UNKNOWN/INCONCLUSIVE/MODEL_ERROR explicit
+VERIFY_FAIL,BENCH,board|wiring|twin_bench,twin_bench,returnToFault;retry,failed requirement and signal evidence,no automatic unlocked outcome
+REPAIR_OR_SAFE_LIMIT,REPAIR,chase_resume,twin_bench,park;repair;restart,correct repair and safe-limit choice,hardware replacement parked only
+CHASE_RESUME,CHASE,fault_2_cue,pause,drive,retested gameplay,persist clean repaired program
+FAULT_2_CUE,CHASE,board,chase_resume,inspectThermalEvidence,fan command vs response,new case board state reset only
+OPTIONAL_FAULT_3,BOARD,ship_escape,chase_resume,accept;skip,optional brake puzzle,decline must not block ending
+SHIP_ESCAPE,CHASE,ending,chase_resume,driveOntoRamp,"harbor ramp, chase finish",checkpoint on collision/capture
+ENDING,END,title|garage,ship_escape,replay;review,separate driving and verification score,no fake MIL/HIL badge
+PAUSE,SYSTEM,previous,previous,resume;options;quit,audio/controls/abort,freeze fixed tick accumulator
+MODEL_ERROR,SYSTEM,previous,previous,retry;report,validation details in friendly language,never mark player failure

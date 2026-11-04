@@ -1,0 +1,68 @@
+{
+  "status": "PROVISIONAL_GAMEPLAY_VALUES",
+  "platform": "PC_WEB_16_9",
+  "controlDtSec": 0.02,
+  "renderTargetFps": 60,
+  "renderFrameClampSec": 0.1,
+  "maxControlCatchupTicks": 5,
+  "sceneScale": "1 unit = 1 meter",
+  "vehicle": {
+    "massKg": 1500,
+    "wheelbaseM": 2.7,
+    "maxGameSpeedMs": 45,
+    "steerMaxRad": 0.38,
+    "roadDragModel": "120+0.38*v^2 newtons",
+    "collisionSpeedFactor": 0.45
+  },
+  "keys": {
+    "W": "throttle",
+    "S": "brake",
+    "A": "steerLeft",
+    "D": "steerRight",
+    "Escape": "pause"
+  },
+  "chase": {
+    "arrestDistanceM": 5,
+    "arrestHoldSec": 2,
+    "copCatchupMs": 2,
+    "checkpointIntervalM": 350,
+    "status": "PROVISIONAL_UNTESTED"
+  },
+  "checkpoint": {
+    "onArrest": "restartDriveFromLastCheckpoint",
+    "preserve": [
+      "caseEvidence",
+      "completedTutorial",
+      "selectedProgram",
+      "passedRequirements"
+    ],
+    "reset": [
+      "racePosition",
+      "raceVelocity",
+      "policeDistance"
+    ],
+    "noSoftLock": true
+  },
+  "story": {
+    "requiredCases": [
+      "PROPULSION_GATEWAY",
+      "THERMAL_FAN"
+    ],
+    "optionalCases": [
+      "BRAKE_ACTUATOR"
+    ]
+  },
+  "worldSections": [
+    "shopping_street",
+    "container_warehouses",
+    "coastal_road",
+    "port_cranes",
+    "ship_ramp"
+  ],
+  "camera": {
+    "distanceM": 7,
+    "heightM": 3,
+    "cockpitForegroundFraction": 0.333
+  },
+  "safety": "values fictional arcade game; not physical/safety tuning"
+}

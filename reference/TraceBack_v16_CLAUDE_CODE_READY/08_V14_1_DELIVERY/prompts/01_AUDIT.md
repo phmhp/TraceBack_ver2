@@ -1,0 +1,2 @@
+# Claude pass 1 — read-only validation and scope lock
+Read root CLAUDE.md, v14.1 START_HERE, decision registry and v14 precedence. Inspect code without modifying originals. Verify files, imports, node tests, scenario oracles and provenance. Identify gaps separating library code, web gameplay, R3F 3D art and all 11 garage L1-L4. Produce `REPORTS/AUDIT.md` with source references, no unsupported statements. On completion, continue with pass 2 only if model tests pass; do not solve by replacing integrated core.

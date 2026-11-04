@@ -1,0 +1,12 @@
+# 3D art implementation contract
+
+Target is cozy pastel, friendly rounded **original** 3D character art, reminiscent of casual stylized console games; do not clone proprietary Animal Crossing geometry, character silhouettes, textures or branding. No dark cyber HUD, torn-paper collage, tilted vintage cards or flat admin dashboard.
+
+- PC browser canvas 16:9, 1920×1080 reference, responsive down to 1280×720 without hidden controls; Pretendard with fallback and verify font license before redistribution. 3D vehicle/cats/roads/props + spatial UI where suitable; 2D DOM overlays only when readable/high contrast needed.
+- Camera third person chase at ~7m distance/3m above (PROVISIONAL); road cockpit option with approximately 1/3 foreground cockpit and 2/3 world. Stable smoothing delta-time independent; impact shake brief and optional; no motion sickness-inducing constant rocking.
+- Car is 3D mesh with four separate wheel pivots, steering/front axle rotation, tail/stop lamps state, light suspension bob, collision bounds, driver input animations. Min art progression primitive -> stylized mesh -> owner-approved glTF, preserving pivot transforms.
+- Cats have rounded big heads and small limbs, dot eyes, defined neck and distinctive identity; rig minimum idle/blink/look/anticipation/steer/reaction; no need expensive full skeletal system in slice if key-frame/transform anim is readable.
+- Five connected districts: (1) pastel shopping street (shopfronts, plants, traffic props), (2) warehouses/stacked containers, (3) curved coast road (sea/guardrails), (4) port cranes/cargo, (5) pirate-ship boarding ramp. Distinct silhouettes; LOD/culling and instancing for props; collider-vs-mesh separation.
+- Set dressing: foreground near-road signs/lamps/parked cars, midground buildings/container stacks, background distant skyline/ship/ocean; avoid empty straight road, but no unsustainably dense unique 3D assets.
+- Animation states: `IDLE`, `ACCELERATE`, `BRAKE`, `TURN`, `IMPACT`, `FAULT_CUE`, `REPAIR`, `CHASE_RESUME`, `VICTORY`; define transitions, blend durations, audio cues; no actual authored 3D rigs/animation delivered in this package.
+- Asset acceptance: supported format `.glb/.gltf` with texture linkage, normalized scale/orientation + documented license; PNG files are reference/sprites only. Validate origin, UV, collider, draw calls and 60fps target on reference desktop hardware (hardware TBD); no claim 60fps test until runtime exists.

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TraceBack - 코르크 수사 보드 &amp; 인과 추리 허브</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&amp;family=Nanum+Pen+Script&amp;family=Plus+Jakarta+Sans:wght@600;700;800;900&amp;family=Pretendard:wght@500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#006b5b",
+          "primary-container": "#36b39c",
+          "secondary": "#b52234",
+          "secondary-container": "#ff5964",
+          "cork-base": "#cb9861",
+          "cork-deep": "#8d5927"
+        },
+        fontFamily: {
+          sans: ["Pretendard", "Plus Jakarta Sans", "sans-serif"],
+          brand: ["Plus Jakarta Sans", "sans-serif"],
+          hand: ["Gaegu", "Nanum Pen Script", "cursive"]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    user-select: none;
+    font-family: 'Pretendard', 'Plus Jakarta Sans', sans-serif;
+  }
+  ::-webkit-scrollbar { display: none; }
+
+  /* 코르크 보드 질감 */
+  .cork-texture {
+    background-color: #c99359;
+    background-image: 
+      radial-gradient(#ab753a 14%, transparent 16%), 
+      radial-gradient(#dfb079 12%, transparent 15%),
+      radial-gradient(rgba(125, 74, 27, 0.45) 12%, transparent 18%);
+    background-size: 24px 24px, 18px 18px, 32px 32px;
+    background-position: 0 0, 9px 9px, 16px 16px;
+  }
+
+  /* 2x2 분할 목재 디바이더 라인 */
+  .quadrant-grid {
+    background-image: 
+      linear-gradient(to right, transparent calc(50% - 2px), rgba(90, 48, 16, 0.35) calc(50% - 2px), rgba(90, 48, 16, 0.35) calc(50% + 2px), transparent calc(50% + 2px)),
+      linear-gradient(to bottom, transparent calc(50% - 2px), rgba(90, 48, 16, 0.35) calc(50% - 2px), rgba(90, 48, 16, 0.35) calc(50% + 2px), transparent calc(50% + 2px));
+  }
+
+  /* 사실적인 원목 프레임 */
+  .wood-frame {
+    box-shadow: 
+      inset 0 4px 10px rgba(255, 235, 205, 0.35),
+      inset 0 -6px 14px rgba(45, 20, 5, 0.75),
+      0 18px 36px rgba(0, 0, 0, 0.55);
+  }
+
+  /* 클래식 1:1 폴라로이드 사진 카드 */
+  .classic-polaroid {
+    background: #ffffff;
+    box-shadow: 0 8px 18px -2px rgba(40, 20, 10, 0.38), 0 3px 6px -1px rgba(0, 0, 0, 0.15);
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
+  }
+  .classic-polaroid:hover {
+    transform: translateY(-5px) scale(1.06) rotate(0deg) !important;
+    box-shadow: 0 16px 30px -4px rgba(35, 15, 5, 0.55);
+    z-index: 40;
+  }
+
+  /* 하단 트레이 폴라로이드 인터랙션 */
+  .tray-polaroid {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  }
+  .tray-polaroid:hover {
+    transform: translateY(-20px) scale(1.08) !important;
+    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.7);
+    z-index: 50;
+  }
+
+  /* 반투명 마스킹 테이프 */
+  .masking-tape {
+    background: rgba(255, 245, 210, 0.75);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    border-left: 1px dashed rgba(180, 160, 120, 0.6);
+    border-right: 1px dashed rgba(180, 160, 120, 0.6);
+  }
+
+  /* 핀 그림자 */
+  .pin-shadow {
+    filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.45));
+  }
+
+  /* 붉은 실 드롭 섀도우 */
+  .yarn-shadow {
+    filter: drop-shadow(0 3px 5px rgba(130, 15, 15, 0.5));
+  }
+
+  /* 가설 카드 점선 포커스 펄스 */
+  @keyframes suspect-pulse {
+    0%, 100% { border-color: rgba(225, 29, 72, 0.7); box-shadow: 0 0 15px rgba(225, 29, 72, 0.25); }
+    50% { border-color: rgba(245, 158, 11, 0.9); box-shadow: 0 0 24px rgba(245, 158, 11, 0.4); }
+  }
+  .suspect-target-box {
+    animation: suspect-pulse 2.8s infinite ease-in-out;
+  }
+</style>
+</head>
+<body class="bg-[#1a140f] text-[#2c221a] flex items-center justify-center p-0 m-0 overflow-hidden w-screen h-screen">
+<!-- 16:9 와이드 PC 게임 디스플레이 래퍼 (1920x1080 비율 타깃) -->
+<div class="relative w-full h-full max-w-[1920px] max-h-[1080px] aspect-video flex flex-col justify-between overflow-hidden bg-[#241a13]">
+<!-- 0. 아늑한 클레이 작업실 & 창가 배경 -->
+<div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-[#744521] via-[#422614] to-[#1e1107]"></div>
+<div class="absolute top-0 left-12 w-[30rem] h-[30rem] bg-amber-200/12 rounded-full blur-3xl"></div>
+<div class="absolute bottom-0 right-16 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl"></div>
+</div>
+<!-- ========================================================================= -->
+<!-- 1. 상단 HUD: 브랜드 로고 / 추격 게이지 (경찰차 vs 루) / STEP 토글러 -->
+<!-- ========================================================================= -->
+<header class="relative z-40 px-6 pt-3 pb-1 flex items-center justify-between w-full pointer-events-none"><!-- 좌측: 브랜드 로고 & STEP 토글 -->
+<div class="pointer-events-auto flex items-center gap-3">
+<div class="flex items-center gap-1.5 bg-black/45 backdrop-blur-md px-4 py-1.5 rounded-2xl border border-white/15 shadow-lg">
+<span class="font-brand italic font-black text-[22px] tracking-tight text-white drop-shadow">Trace<span class="text-amber-400">Back</span></span>
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 ml-1 animate-pulse"></span>
+</div>
+<div class="flex items-center bg-[#3a2212]/90 p-1 rounded-2xl border border-amber-900/60 shadow-md">
+<button class="step-btn px-3 py-1 rounded-xl text-[12px] font-extrabold flex items-center gap-1.5 transition-all text-amber-200 hover:text-white" id="btn-step-1" onclick="setStep(1)">
+<span class="w-4 h-4 rounded-full bg-amber-400/30 text-amber-300 text-[10px] flex items-center justify-center font-bold">1</span>
+<span>STEP 1: 단서 탐색</span>
+</button>
+<button class="step-btn px-3 py-1 rounded-xl text-[12px] font-extrabold flex items-center gap-1.5 transition-all bg-amber-500 text-stone-950 shadow-md" id="btn-step-2" onclick="setStep(2)">
+<span class="w-4 h-4 rounded-full bg-stone-900 text-amber-300 text-[10px] flex items-center justify-center font-bold">2</span>
+<span>STEP 2: 인과관계 연결</span>
+</button>
+</div>
+</div>
+<!-- 중앙: 추격 순찰차 긴박 HUD 게이지 (240m) -->
+<div class="pointer-events-auto flex-1 max-w-xl mx-4">
+<div class="bg-[#351e11]/90 backdrop-blur-md px-4 py-1.5 rounded-full border border-amber-800/80 shadow-[0_8px_24px_rgba(0,0,0,0.6)] flex items-center gap-3 relative">
+<div class="flex items-center gap-2 shrink-0">
+<div class="w-7 h-7 rounded-full bg-blue-600 border border-blue-300 flex items-center justify-center text-white shadow-sm animate-pulse">
+<span class="material-symbols-outlined text-[16px]">local_police</span>
+</div>
+<span class="text-[11px] font-black text-rose-400 tracking-wide animate-pulse">추격 중! 240m</span>
+</div>
+<div class="flex-1 relative flex flex-col justify-center">
+<div class="flex justify-between items-center text-[10px] font-bold text-amber-200/90 mb-0.5">
+<span>경찰 포위망 접근 중</span>
+<span class="text-rose-300 font-extrabold">ECU 토크 컷 30% 발동 중!</span>
+</div>
+<div class="relative w-full h-3 bg-[#180d07] rounded-full overflow-hidden border border-amber-950 shadow-inner">
+<div class="h-full bg-gradient-to-r from-blue-500 via-rose-500 to-amber-400 rounded-full w-[78%] relative">
+<div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1.5 shrink-0 pl-2 border-l border-amber-800/60">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-rose-500 border-2 border-amber-300 shadow-md">
+<img alt="드라이버 루" class="w-full h-full object-cover scale-110 object-top" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnQFsESUgjUrygYYX5qyUQdXeZMMbCfsG5j6BaWj-G8kQa1Oji3S4igSzVftuLJgu8QTte8GgwvlDckC9s4Qmz-FJb-YjeN0Ijt2RzViVgW5VS_JUrfnEPjeP6ElZCGdJ9bribwuL0WPk65X44TT6EpmlxqxRYI5Fxe9blM0v0ZKPLyVPsktKVM_msCUoGVunWS9rSSig0WyetMm68Apbay4mKWouWe2uzr2qyAQTv8HNQe1UJei-uyA"/>
+</div>
+<span class="text-[11px] font-black text-amber-100">루 (EV)</span>
+</div>
+</div>
+</div>
+<!-- 우측: 배치 완료 카운터 (6/6) -->
+<div class="pointer-events-auto flex items-center gap-2">
+<div class="bg-[#351e11]/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-amber-800/80 shadow-md flex items-center gap-2 text-[11px] text-amber-100 font-bold">
+<span class="material-symbols-outlined text-amber-400 text-[18px]">verified</span>
+<span>배치 완료: <strong class="text-amber-300 font-extrabold" id="placed-count">6/6</strong></span>
+</div>
+</div></header>
+<!-- ========================================================================= -->
+<!-- 2. 메인 무대: 2x2 분할 코르크 수사 보드 (1:1 클래식 폴라로이드 & 붉은 실) -->
+<!-- ========================================================================= -->
+<main class="relative z-20 flex-1 px-7 py-1 flex flex-col justify-between overflow-hidden"><!-- 거대한 원목 프레임 보드 본체 (3-Column 보드 구조) -->
+<div class="relative w-full h-[76%] bg-[#6e401b] rounded-[26px] p-2.5 wood-frame border-[6px] border-[#4c270d] flex flex-col justify-between overflow-hidden">
+<!-- 코르크 배경 + 3열 파티션 라인 -->
+<div class="relative w-full h-full cork-texture rounded-[18px] p-3 shadow-[inset_0_8px_25px_rgba(0,0,0,0.55),inset_0_-8px_20px_rgba(0,0,0,0.45)] border border-[#a2723f] overflow-hidden">
+<!-- 3열 분할 수직 가이드라인 오버레이 -->
+<div class="absolute inset-0 grid grid-cols-3 pointer-events-none z-10">
+<div class="border-r-2 border-[#6f421e]/30"></div>
+<div class="border-r-2 border-[#6f421e]/30"></div>
+<div></div>
+</div>
+<!-- 3열 보드 래퍼 -->
+<div class="relative w-full h-full grid grid-cols-3 gap-4 z-20">
+<!-- ============================================================ -->
+<!-- [COLUMN 1] [주행 기록 (DRIVING DATA)] -->
+<!-- ============================================================ -->
+<div class="relative flex flex-col justify-between p-2 rounded-xl bg-amber-950/15 border border-amber-900/30 overflow-hidden">
+<!-- 헤더 탭 (마스킹 테이프/포스트잇) -->
+<div class="flex items-center justify-between mb-1 z-20">
+<div class="bg-[#feeaa7] text-[#553603] px-3.5 py-0.5 rounded-sm shadow-md border-b-2 border-[#d9ba65] rotate-[-1deg] font-black text-[12px] flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-amber-500 border border-white pin-shadow"></span>
+<span>[주행 기록 (DRIVING DATA)]</span>
+</div>
+<span class="text-[9.5px] font-bold text-amber-950/80 bg-amber-200/50 px-2 py-0.5 rounded">발생 구간: 코너 7</span>
+</div>
+<!-- 3개 수직 스택 폴라로이드 카드 -->
+<div class="flex-1 flex flex-col justify-around py-0.5">
+<!-- Col 1 - Card 1: 코너 7 탈출 레이싱 뷰 -->
+<div class="classic-polaroid mx-auto w-[240px] px-2 py-1.5 rounded-sm rotate-[-1deg] flex items-center gap-2.5 relative group cursor-pointer" id="card-col1-1">
+<div class="absolute -top-1.5 left-6 w-8 h-3 masking-tape rotate-[1.5deg] z-20"></div>
+<div class="absolute top-2 right-2 w-3 h-3 rounded-full bg-rose-600 border border-white pin-shadow z-30"></div>
+<div class="w-16 h-16 shrink-0 bg-[#1a1c20] rounded-[2px] overflow-hidden relative border border-stone-300/80 shadow-inner flex items-center justify-center">
+<img alt="코너 7 주행 뷰" class="w-full h-full object-cover contrast-115 opacity-90" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjuNHy-HLV11Fwx9zUys5c5PztzzezsuQ7VQcz8e12zzAVJrCkzc9OxFno9XB_K0kFVQ0DDpvobfJd7mNTarF1HKSQKDQwncTHc6fmgx7I_nVQCW86CQHjLQjrrQGhpu5Njg5X9yG6wlGEI9oy7y5YlKA_3dUs0cp1BviJnBv11yiuSsdL_hwfY0o1xRZozOJ8h3P-cAIOGZDfbx18VUBnHbYeIhyVdDduKo0ffGjJ"/>
+<span class="material-symbols-outlined absolute text-white text-[20px] drop-shadow">play_circle</span>
+</div>
+<div class="flex-1 min-w-0 pr-4">
+<span class="text-[8px] font-mono font-bold text-amber-800 bg-amber-100 px-1 py-0.2 rounded">REC 00:42</span>
+<p class="mt-0.5 font-hand text-[14px] font-bold text-stone-800 leading-tight truncate">코너 7 탈출 가속 영상</p>
+<span class="text-[8px] text-stone-500 font-mono block">클리핑 순간 급감속 기록</span>
+</div>
+</div>
+<!-- Col 1 - Card 2: 가속 페달 APS 100% 입력 파형 -->
+<div class="classic-polaroid mx-auto w-[240px] px-2 py-1.5 rounded-sm rotate-[1deg] flex items-center gap-2.5 relative group cursor-pointer" id="card-col1-2">
+<div class="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-sky-500 border border-white pin-shadow z-20"></div>
+<div class="absolute top-2 right-2 w-3 h-3 rounded-full bg-rose-600 border border-white pin-shadow z-30"></div>
+<div class="w-16 h-16 shrink-0 bg-[#0c1412] rounded-[2px] overflow-hidden relative border border-emerald-950 p-1 flex flex-col justify-between shadow-inner">
+<div class="text-[7px] font-mono text-emerald-400 flex justify-between">
+<span>APS</span>
+<span class="text-amber-300 font-bold">4.8V</span>
+</div>
+<svg class="w-full h-7 stroke-emerald-400 fill-none my-auto" viewbox="0 0 100 35">
+<path d="M0 28 L25 28 L30 6 L70 6 L75 28 L100 28" stroke-linecap="round" stroke-width="2.5"></path>
+</svg>
+<div class="text-[6.5px] font-mono text-stone-400 text-right">노이즈 0%</div>
+</div>
+<div class="flex-1 min-w-0 pr-4">
+<span class="text-[8px] font-mono font-bold text-emerald-800 bg-emerald-100 px-1 py-0.2 rounded">DRIVER INPUT 100%</span>
+<p class="mt-0.5 font-hand text-[14px] font-bold text-stone-800 leading-tight truncate">가속 페달 APS 100% 전압</p>
+<span class="text-[8px] text-stone-500 font-mono block">운전자 가속 의지 명확</span>
+</div>
+</div>
+<!-- Col 1 - Card 3: 주행 속도/출력 제한 텔레메트리 -->
+<div class="classic-polaroid mx-auto w-[240px] px-2 py-1.5 rounded-sm rotate-[-0.5deg] flex items-center gap-2.5 relative group cursor-pointer" id="card-col1-3">
+<div class="absolute -top-1.5 left-6 w-8 h-3 masking-tape rotate-[-1deg] z-20"></div>
+<div class="absolute top-2 right-2 w-3 h-3 rounded-full bg-rose-600 border border-white pin-shadow z-30"></div>
+<div class="w-16 h-16 shrink-0 bg-[#221c17] rounded-[2px] overflow-hidden relative border border-amber-900/60 flex flex-col items-center justify-center p-1 shadow-inner">
+<span class="material-symbols-outlined text-amber-500 text-[24px]">speed</span>
+<span class="text-rose-400 font-mono font-black text-[10px]">30 km/h 락</span>
+</div>
+<div class="flex-1 min-w-0 pr-4">
+<span class="text-[8px] font-mono font-bold text-rose-800 bg-rose-100 px-1 py-0.2 rounded">TORQUE CUT 70%</span>
+<p class="mt-0.5 font-hand text-[14px] font-bold text-stone-800 leading-tight truncate">출력 제한 (Limp-Home)</p>
+<span class="text-[8px] text-stone-500 font-mono block">모터 회전수 강제 차단됨</span>
+</div>
+</div>
+</div>
+</div>
+<!-- ============================================================ -->
+<!-- [COLUMN 2] [관찰된 증상 (OBSERVED SYMPTOMS)] -->
+<!-- ============================================================ -->
+<div class="relative flex flex-col justify-between p-2 rounded-xl bg-rose-950/15 border border-rose-900/30 overflow-hidden">
+<!-- 헤더 탭 -->
+<div class="flex items-center justify-between mb-1 z-20">
+<div class="bg-[#ffd2d8] text-[#741627] px-3.5 py-0.5 rounded-sm shadow-md border-b-2 border-[#e8a2ad] rotate-[1deg] font-black text-[12px] flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-rose-500 border border-white pin-shadow"></span>
+<span>[관찰된 증상 (OBSERVED SYMPTOMS)]</span>
+</div>
+<span class="text-[9.5px] font-bold text-rose-900/80 bg-rose-200/60 px-2 py-0.5 rounded">3대 이상 징후</span>
+</div>
+<!-- 3개 수직 스택 폴라로이드 카드 -->
+<div class="flex-1 flex flex-col justify-around py-0.5">
+<!-- Col 2 - Card 1: 가속 응답 지연 1.2s -->
+<div class="classic-polaroid mx-auto w-[240px] px-2 py-1.5 rounded-sm rotate-[1deg] flex items-center gap-2.5 relative group cursor-pointer" id="card-col2-1">
+<div class="absolute top-2 left-2 w-3 h-3 rounded-full bg-rose-600 border border-white pin-shadow z-30"></div>
+<div class="absolute top-2 right-2 w-3 h-3 rounded-full bg-rose-600 border border-white pin-shadow z-30"></div>
+<div class="w-16 h-16 shrink-0 bg-[#1a1722] rounded-[2px] overflow-hidden relative border border-stone-700 flex flex-col items-center justify-center shadow-inner">
+<span class="material-symbols-outlined text-amber-400 text-[24px]">hourglass_empty</span>
+<span class="text-[7.5px] font-mono font-black text-rose-400 mt-0.5">지연 &gt; 1.2s</span>
+</div>
+<div class="flex-1 min-w-0 pr-4 pl-2">
+<span class="text-[8px] font-mono font-bold text-amber-800 bg-amber-100 px-1 py-0.2 rounded">RESPONSE LAG</span>
+<p class="mt-0.5 font-hand text-[14px] font-bold text-rose-950 leading-tight truncate">가속 응답 먹통 현상</p>
+<span class="text-[8px] text-stone-500 font-mono block">입력 대비 구동 지연 초과</span>
+</div>
+</div>
+<!-- Col 2 - Card 2: 파워팩/배터리 온도 68°C 급상승 -->
+<div class="classic-polaroid mx-auto w-[240px] px-2 py-1.5 rounded-sm rotate-[-1.5deg] flex items-center gap-2.5 relative group cursor-pointer" id="card-col2-2">
+<div class="absolute top-2 left-2 w-3 h-3 rounded-full bg-rose-600 border border-white pin-shadow z-30"></div>
+<div class="absolute top-2 right-2 w-3 h-3 rounded-full bg-rose-600 border border-white pin-shadow z-30"></div>
+<div class="w-16 h-16 shrink-0 bg-[#221316] rounded-[2px] overflow-hidden relative border border-rose-900/60 flex flex-col items-center justify-center shadow-inner">
+<span class="material-symbols-outlined text-rose-500 text-[26px] animate-pulse">device_thermostat</span>
+<span class="text-amber-300 font-mono font-black text-[9px]">68°C 급상승</span>
+</div>
+<div class="flex-1 min-w-0 pr-4 pl-2">
+<span class="text-[8px] font-mono font-bold text-rose-800 bg-rose-100 px-1 py-0.2 rounded">OVERHEAT ALERT</span>
+<p class="mt-0.5 font-hand text-[14px] font-bold text-rose-950 leading-tight truncate">파워팩 온도 68°C 급상승</p>
+<span class="text-[8px] text-stone-500 font-mono block">임계온도 65°C 돌파</span>
+</div>
+</div>
+<!-- Col 2 - Card 3: 냉각팬 미작동/팬 RPM 0 -->
+<div class="classic-polaroid mx-auto w-[240px] px-2 py-1.5 rounded-sm rotate-[0.5deg] flex items-center gap-2.5 relative group cursor-pointer" id="card-col2-3">
+<div class="absolute top-2 left-2 w-3 h-3 rounded-full bg-rose-600 border border-white pin-shadow z-30"></div>
+<div class="absolute top-2 right-2 w-3 h-3 rounded-full bg-rose-600 border border-white pin-shadow z-30"></div>
+<div class="w-16 h-16 shrink-0 bg-[#141b24] rounded-[2px] overflow-hidden relative border border-stone-700 flex flex-col items-center justify-center shadow-inner">
+<div class="relative flex items-center justify-center">
+<span class="material-symbols-outlined text-cyan-400 text-[22px]">mode_fan</span>
+<span class="material-symbols-outlined text-rose-600 text-[18px] absolute font-black">cancel</span>
+</div>
+<span class="text-[7.5px] font-mono font-bold text-rose-300 mt-0.5">FAN: 0 RPM</span>
+</div>
+<div class="flex-1 min-w-0 pr-4 pl-2">
+<span class="text-[8px] font-mono font-bold text-stone-700 bg-stone-200 px-1 py-0.2 rounded">COOLING FAIL</span>
+<p class="mt-0.5 font-hand text-[14px] font-bold text-rose-950 leading-tight truncate">냉각팬 회전 멈춤</p>
+<span class="text-[8px] text-stone-500 font-mono block">방열 기류 발생하지 않음</span>
+</div>
+</div>
+</div>
+</div>
+<!-- ============================================================ -->
+<!-- [COLUMN 3] [진단 단서 (DIAGNOSTIC CLUES)] -->
+<!-- ============================================================ -->
+<div class="relative flex flex-col justify-between p-2 rounded-xl bg-sky-950/15 border border-sky-900/30 overflow-hidden">
+<!-- 헤더 탭 -->
+<div class="flex items-center justify-between mb-1 z-20">
+<div class="bg-[#d0e8ff] text-[#124168] px-3.5 py-0.5 rounded-sm shadow-md border-b-2 border-[#9fcaf0] rotate-[-1deg] font-black text-[12px] flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-sky-500 border border-white pin-shadow"></span>
+<span>[진단 단서 (DIAGNOSTIC CLUES)]</span>
+</div>
+<span class="text-[9.5px] font-bold text-sky-950/80 bg-sky-200/60 px-2 py-0.5 rounded">하드웨어 / SW 로직</span>
+</div>
+<!-- 3개 수직 스택 폴라로이드 카드 -->
+<div class="flex-1 flex flex-col justify-around py-0.5">
+<!-- Col 3 - Card 1: 냉각 밸브 단선 여부/정상 코일 -->
+<div class="classic-polaroid mx-auto w-[240px] px-2 py-1.5 rounded-sm rotate-[-1deg] flex items-center gap-2.5 relative group cursor-pointer" id="card-col3-1">
+<div class="absolute top-2 left-2 w-3 h-3 rounded-full bg-rose-600 border border-white pin-shadow z-30"></div>
+<div class="w-16 h-16 shrink-0 bg-[#182226] rounded-[2px] overflow-hidden relative border border-sky-900/50 flex flex-col items-center justify-center p-1 shadow-inner">
+<span class="material-symbols-outlined text-amber-300 text-[24px]">electrical_services</span>
+<span class="text-[7px] font-mono text-emerald-400 font-bold bg-emerald-950/80 px-1 rounded mt-0.5">12Ω NORMAL</span>
+</div>
+<div class="flex-1 min-w-0 pr-2 pl-2">
+<span class="text-[8px] font-mono font-bold text-emerald-800 bg-emerald-100 px-1 py-0.2 rounded">HARDWARE OK</span>
+<p class="mt-0.5 font-hand text-[14px] font-bold text-sky-950 leading-tight truncate">냉각 밸브 코일 정상</p>
+<span class="text-[8px] text-stone-500 font-mono block">물리적 단선/단락 없음</span>
+</div>
+</div>
+<!-- Col 3 - Card 2: ECU 안전 보호 로직 신호 0x12F_LIMP_ACTIVE (핵심) -->
+<div class="classic-polaroid mx-auto w-[240px] px-2 py-1.5 rounded-sm rotate-[1.5deg] flex items-center gap-2.5 relative group cursor-pointer ring-2 ring-amber-400" id="card-col3-2">
+<div class="absolute -top-1.5 right-6 w-8 h-3 masking-tape rotate-[2deg] z-20"></div>
+<div class="absolute top-2 left-2 w-3.5 h-3.5 rounded-full bg-rose-600 border border-white pin-shadow z-30"></div>
+<div class="w-16 h-16 shrink-0 bg-[#1a2332] rounded-[2px] overflow-hidden relative border border-rose-300/60 flex flex-col items-center justify-center p-1 shadow-inner">
+<span class="font-mono font-black text-amber-300 text-[11px]">ECU SW</span>
+<span class="text-[6.5px] font-mono font-bold text-rose-300 bg-rose-950/80 px-1 rounded mt-0.5">LIMP_ACTIVE</span>
+</div>
+<div class="flex-1 min-w-0 pr-2 pl-2">
+<span class="text-[8px] font-mono font-bold text-rose-800 bg-rose-100 px-1 py-0.2 rounded">SAFEGUARD LOGIC</span>
+<p class="mt-0.5 font-hand text-[14px] font-bold text-rose-950 leading-tight truncate">ECU 보호 로직 개입</p>
+<span class="text-[8px] text-stone-500 font-mono block">과열 방지 강제 토크 차단</span>
+</div>
+</div>
+<!-- Col 3 - Card 3: CAN 버스 통신 패킷 정상 -->
+<div class="classic-polaroid mx-auto w-[240px] px-2 py-1.5 rounded-sm rotate-[-0.5deg] flex items-center gap-2.5 relative group cursor-pointer" id="card-col3-3">
+<div class="absolute top-2 left-2 w-3 h-3 rounded-full bg-rose-600 border border-white pin-shadow z-30"></div>
+<div class="w-16 h-16 shrink-0 bg-[#121c21] rounded-[2px] overflow-hidden relative border border-sky-900/60 p-1 flex flex-col justify-between shadow-inner">
+<div class="text-[6.5px] font-mono text-cyan-300 flex justify-between">
+<span>CAN-BUS</span>
+<span class="text-emerald-400">NORMAL</span>
+</div>
+<svg class="w-full h-6 stroke-cyan-400 fill-none my-auto" viewbox="0 0 100 30">
+<path d="M0 15 L20 15 L25 5 L35 25 L45 5 L55 25 L60 15 L100 15" stroke-linecap="round" stroke-width="2"></path>
+</svg>
+<div class="text-[6px] font-mono text-stone-400 text-right truncate">0x12F_PACKET</div>
+</div>
+<div class="flex-1 min-w-0 pr-2 pl-2">
+<span class="text-[8px] font-mono font-bold text-cyan-800 bg-cyan-100 px-1 py-0.2 rounded">BUS TELEMETRY</span>
+<p class="mt-0.5 font-hand text-[14px] font-bold text-sky-950 leading-tight truncate">통신 패킷 정상 전송</p>
+<span class="text-[8px] text-stone-500 font-mono block">제어 모듈 간 연결 건전</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- =================================================================== -->
+<!-- SVG 유기적인 붉은 털실 (Red Yarn Strings) Col 1 -> Col 2 -> Col 3 -->
+<!-- =================================================================== -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none yarn-shadow z-10" id="yarn-canvas">
+<!-- 1. [Col1 Card1 영상] -> [Col2 Card1 가속지연] -->
+<path d="M 310 95 Q 400 80, 420 95" fill="none" stroke="#dc2626" stroke-linecap="round" stroke-width="4.5"></path>
+<path d="M 310 95 Q 400 80, 420 95" fill="none" stroke="#fca5a5" stroke-dasharray="4 2" stroke-width="1.5"></path>
+<!-- 2. [Col1 Card2 APS 100%] -> [Col2 Card2 파워팩 68도] -->
+<path d="M 310 195 Q 360 210, 420 195" fill="none" stroke="#dc2626" stroke-linecap="round" stroke-width="4.5"></path>
+<path d="M 310 195 Q 360 210, 420 195" fill="none" stroke="#fca5a5" stroke-dasharray="4 2" stroke-width="1.5"></path>
+<!-- 3. [Col1 Card3 속도 30km/h] -> [Col2 Card3 팬 0 RPM] -->
+<path d="M 310 295 Q 370 280, 420 295" fill="none" stroke="#dc2626" stroke-linecap="round" stroke-width="4.5"></path>
+<path d="M 310 295 Q 370 280, 420 295" fill="none" stroke="#fca5a5" stroke-dasharray="4 2" stroke-width="1.5"></path>
+<!-- 4. [Col2 Card2 파워팩 68도] -> [Col3 Card2 ECU 보호로직] (핵심 추리선) -->
+<path d="M 630 195 Q 670 170, 715 195" fill="none" stroke="#dc2626" stroke-linecap="round" stroke-width="5.5"></path>
+<path d="M 630 195 Q 670 170, 715 195" fill="none" stroke="#fca5a5" stroke-dasharray="5 3" stroke-width="2"></path>
+<!-- 5. [Col2 Card3 팬 0 RPM] -> [Col3 Card1 밸브 정상] (단선 없음 교차 검증) -->
+<path d="M 630 295 Q 680 180, 715 95" fill="none" stroke="#dc2626" stroke-linecap="round" stroke-width="4"></path>
+<!-- 6. [Col2 Card1 응답 지연] -> [Col3 Card2 ECU 보호로직] -->
+<path d="M 630 95 Q 680 150, 715 195" fill="none" stroke="#dc2626" stroke-linecap="round" stroke-width="4"></path>
+<!-- 7. [Col3 Card2 ECU 보호로직] -> [Col3 Card3 CAN 정상] -->
+<path d="M 715 195 Q 700 240, 715 295" fill="none" stroke="#dc2626" stroke-linecap="round" stroke-width="3.5"></path>
+<!-- 실 매듭 핀 포인트 원들 (Knot Pins) -->
+<circle cx="310" cy="95" fill="#881337" r="5" stroke="#ffffff" stroke-width="1.2"></circle>
+<circle cx="310" cy="195" fill="#881337" r="5" stroke="#ffffff" stroke-width="1.2"></circle>
+<circle cx="310" cy="295" fill="#881337" r="5" stroke="#ffffff" stroke-width="1.2"></circle>
+<circle cx="420" cy="95" fill="#881337" r="5" stroke="#ffffff" stroke-width="1.2"></circle>
+<circle cx="420" cy="195" fill="#881337" r="5" stroke="#ffffff" stroke-width="1.2"></circle>
+<circle cx="420" cy="295" fill="#881337" r="5" stroke="#ffffff" stroke-width="1.2"></circle>
+<circle cx="630" cy="95" fill="#881337" r="5" stroke="#ffffff" stroke-width="1.2"></circle>
+<circle cx="630" cy="195" fill="#881337" r="5.5" stroke="#ffffff" stroke-width="1.5"></circle>
+<circle cx="630" cy="295" fill="#881337" r="5" stroke="#ffffff" stroke-width="1.2"></circle>
+<circle cx="715" cy="95" fill="#881337" r="5" stroke="#ffffff" stroke-width="1.2"></circle>
+<circle cx="715" cy="195" fill="#881337" r="6" stroke="#ffffff" stroke-width="1.8"></circle>
+<circle cx="715" cy="295" fill="#881337" r="5" stroke="#ffffff" stroke-width="1.2"></circle>
+</svg>
+</div>
+</div>
+<!-- ========================================================================= -->
+<!-- 하단 작업대: 엔지니어 밍 (IMAGE_20) 코칭 말풍선 & 액션 바 -->
+<!-- ========================================================================= -->
+<div class="relative w-full h-[22%] flex items-end justify-between px-2 pt-0.5">
+<!-- 좌측: 엔지니어 밍 캐릭터 & 도자기 머그컵, 마커펜, 말풍선 -->
+<div class="relative flex items-end gap-3 z-30">
+<div class="relative w-36 h-36 shrink-0 flex items-end justify-center">
+<div class="absolute bottom-0 w-28 h-5 bg-black/55 rounded-full blur-sm"></div>
+<img alt="엔지니어 밍" class="relative z-10 w-full h-full object-contain filter drop-shadow-[0_10px_16px_rgba(0,0,0,0.5)] transform hover:scale-105 transition-transform duration-200 cursor-pointer" onclick="mingSpeak()" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrcOig_eY54j4FrPHVxAjHByGnc3BXDSszM2-uknnl0SxtaHg_VEBbFsDej679Y0sYAZaTnlXR1ju5d6kJq6Dm6WV36k4Swae4rZD-Pv3PSWw4trb_kXICCjmyToevoPM2NxtQGf3CPz11WZ2swHdR6UQmoxL-namDaEBGug-T4RLfwY0-q2fZI1Gqsv-MSdRbHJUc_nBfHeTo00Xdlriv9GxRwo5VMynqi2B1rgQuPfUy-XvJQxEHkA"/>
+</div>
+<div class="flex items-end gap-1.5 pb-2">
+<div class="w-10 h-11 bg-[#fff8eb] rounded-b-xl rounded-t-sm border-2 border-[#d9caa9] shadow-md flex flex-col items-center justify-center relative">
+<div class="absolute -left-2 top-2 w-2.5 h-5 border-2 border-[#d9caa9] rounded-l-full bg-transparent"></div>
+<span class="material-symbols-outlined text-amber-800 text-[16px]">pets</span>
+<div class="w-5 h-1 bg-amber-900/20 rounded-full mt-0.5"></div>
+</div>
+<div class="w-11 h-3 bg-stone-800 rounded-full border border-stone-600 shadow relative rotate-[-8deg] mb-1">
+<div class="w-2.5 h-full bg-rose-600 rounded-l-full"></div>
+</div>
+</div>
+<!-- 밍의 코칭 말풍선 -->
+<div class="bg-[#fffdf8] px-4 py-2.5 rounded-2xl shadow-xl border-2 border-amber-300 relative max-w-md mb-2 cursor-pointer hover:border-amber-400 transition-colors" onclick="mingSpeak()">
+<div class="absolute -bottom-2 left-6 w-3.5 h-3.5 bg-[#fffdf8] rotate-45 border-r-2 border-b-2 border-amber-300"></div>
+<div class="flex items-center gap-1 mb-0.5">
+<span class="material-symbols-outlined text-amber-700 text-[14px]">psychology</span>
+<span class="text-[11px] font-black text-amber-950">엔지니어 밍</span>
+</div>
+<p class="text-[11.5px] font-extrabold text-stone-800 leading-snug" id="ming-bubble-text">
+        "주행 기록에서 관찰된 이상 증상과 원인이 되는 진단 단서를 붉은 실로 1:1 연결해보라냥!"
+      </p>
+</div>
+</div>
+<!-- 우측: 수사 정리 현황 안내 배너 -->
+<div class="bg-[#321f13]/95 px-5 py-2.5 rounded-2xl border-2 border-[#6f421e] shadow-[0_12px_28px_rgba(0,0,0,0.65)] flex items-center gap-4 mb-2">
+<div class="flex items-center gap-2 border-r border-amber-900/60 pr-4">
+<span class="material-symbols-outlined text-amber-400 text-[20px]">account_tree</span>
+<div>
+<span class="text-[9px] font-bold text-amber-300 block">3분면 인과 추리 체인</span>
+<strong class="text-[12px] text-amber-100 font-black">주행기록 ➔ 증상 ➔ 진단단서</strong>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+<span class="text-[11px] font-extrabold text-stone-200">핵심 용의: <strong class="text-rose-400 font-black">ECU 안전 보호 로직 개입 (과열 차단)</strong></span>
+</div>
+</div>
+</div></main>
+<!-- ========================================================================= -->
+<!-- 4. 하단 HUD 키 가이드 바 -->
+<!-- ========================================================================= -->
+<footer class="relative z-40 px-6 py-2 w-full flex items-center justify-between bg-black/75 backdrop-blur-md border-t border-amber-900/40 pointer-events-none"><!-- 키 가이드 -->
+<div class="pointer-events-auto flex items-center gap-4 text-amber-100/90">
+<div class="flex items-center gap-1.5 cursor-pointer" onclick="confirmSuspect()">
+<kbd class="px-2.5 py-0.5 bg-amber-400 text-stone-950 rounded text-[11px] font-mono font-black shadow">SPACE</kbd>
+<span class="text-[11px] font-extrabold text-amber-300">인과 추리 확정</span>
+</div>
+<div class="w-px h-3.5 bg-white/20"></div>
+<div class="flex items-center gap-1.5 cursor-pointer" onclick="resetThreads()">
+<kbd class="px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[11px] font-mono font-bold text-white border border-white/20">TAB</kbd>
+<span class="text-[11px] font-bold">실 연결 초기화</span>
+</div>
+</div>
+<!-- 우측 액션 버튼: 다음 08-D 로직 복원 퍼즐 & ESC -->
+<div class="pointer-events-auto flex items-center gap-3">
+<button class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-black text-[12px] px-5 py-2 rounded-full shadow-lg border-b-2 border-amber-700 flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer" onclick="confirmSuspect()">
+<span class="material-symbols-outlined text-[16px]">extension</span>
+<span>다음: 08-D 로직 복원 퍼즐 ➔</span>
+</button>
+<button class="bg-stone-800/90 hover:bg-stone-700 text-stone-200 px-3 py-1.5 rounded-full border border-stone-600 text-[11px] font-bold flex items-center gap-1 cursor-pointer" onclick="alert('현실 콕핏 화면으로 복귀합니다.')">
+<kbd class="px-1.5 bg-white/10 rounded text-[9px] font-mono">ESC</kbd>
+<span>현실 콕핏 복귀</span>
+</button>
+</div></footer>
+</div>
+<!-- ========================================================================= -->
+<!-- 인터랙션 스크립트: STEP 전환, 가설 선택, 트레이 단서 핀 배치 -->
+<!-- ========================================================================= -->
+<script>
+  let currentStep = 2;
+  let selectedHypothesisId = 2;
+  const mingPhrases = [
+    "\"증상과 단서를 붉은 실로 엮어보니... 어느 가설이 가장 의심스럽냥?\"",
+    "\"페달은 100% 정상인데 모터가 30%만 돈 건, 차가 스스로를 지키려 한 거다냥!\"",
+    "\"단서들을 살펴보면 모터 하드웨어 고장이 아니라, ECU 안전 로직이 개입한 게 확실하다냥!\"",
+    "\"경찰 포위망이 320m까지 좁혀졌어냥! [가설 2]를 채택하고 [SPACE]를 눌러줘냥!\""
+  ];
+  let phraseIdx = 0;
+
+  function setStep(step) {
+    currentStep = step;
+    const btn1 = document.getElementById('btn-step-1');
+    const btn2 = document.getElementById('btn-step-2');
+    const yarnCanvas = document.getElementById('yarn-canvas');
+
+    if (step === 1) {
+      btn1.className = "step-btn px-3 py-1 rounded-xl text-[12px] font-extrabold flex items-center gap-1.5 transition-all bg-amber-500 text-stone-950 shadow-md";
+      btn2.className = "step-btn px-3 py-1 rounded-xl text-[12px] font-extrabold flex items-center gap-1.5 transition-all text-amber-200 hover:text-white";
+      yarnCanvas.style.opacity = '0.2';
+      document.getElementById('ming-bubble-text').textContent = "\"트레이의 폴라로이드 단서들을 클릭해서 사분면 보드에 배치해보자냥!\"";
+    } else {
+      btn1.className = "step-btn px-3 py-1 rounded-xl text-[12px] font-extrabold flex items-center gap-1.5 transition-all text-amber-200 hover:text-white";
+      btn2.className = "step-btn px-3 py-1 rounded-xl text-[12px] font-extrabold flex items-center gap-1.5 transition-all bg-amber-500 text-stone-950 shadow-md";
+      yarnCanvas.style.opacity = '1';
+      document.getElementById('ming-bubble-text').textContent = mingPhrases[0];
+    }
+  }
+
+  function mingSpeak() {
+    phraseIdx = (phraseIdx + 1) % mingPhrases.length;
+    document.getElementById('ming-bubble-text').textContent = mingPhrases[phraseIdx];
+  }
+
+  function selectHypothesis(id) {
+    selectedHypothesisId = id;
+    const h1 = document.getElementById('hypo-card-1');
+    const h2 = document.getElementById('hypo-card-2');
+
+    if (id === 1) {
+      h1.className = "bg-[#fff2f2] rounded-xl p-2 border-2 border-stone-800 shadow-xl flex flex-col justify-between items-center text-center relative group cursor-pointer transition-all scale-102";
+      h2.className = "bg-[#faf6ee] rounded-xl p-2 border-2 border-stone-300 opacity-60 flex flex-col justify-between items-center text-center relative group cursor-pointer transition-all";
+      document.getElementById('ming-bubble-text').textContent = "\"하드웨어 결함설은 냉각 밸브와 센서가 정상이어서 앞뒤가 안 맞는다냥... 다시 생각해봐냥!\"";
+    } else {
+      h2.className = "bg-[#fff9f6] rounded-xl p-2 border-2 border-rose-400 shadow-xl flex flex-col justify-between items-center text-center relative group cursor-pointer suspect-target-box transition-all scale-102";
+      h1.className = "bg-[#faf6ee] rounded-xl p-2 border-2 border-stone-300 opacity-60 flex flex-col justify-between items-center text-center relative group cursor-pointer transition-all";
+      document.getElementById('ming-bubble-text').textContent = "\"날카롭다냥! 온도 급상승에 반응한 ECU의 과열 보호 토크컷이 확실하다냥! [SPACE]로 확정해줘!\"";
+    }
+  }
+
+  function trayItemClick(idx) {
+    alert(`📌 단서 [${idx}] 폴라로이드 사진이 코르크 보드에 핀으로 고정되었습니다!\n사분면 간 붉은 실 추리 인과관계가 연결됩니다.`);
+    const count = document.getElementById('placed-count');
+    if (count) count.textContent = "7/8";
+    setStep(2);
+  }
+
+  function confirmSuspect() {
+    if (selectedHypothesisId === 2) {
+      alert("🎯 [추리 성공! 가설 2 채택: ECU 안전 보호 로직 개입]\n\n" +
+            "• 원인 규명: 인버터 68°C 급상승에 따른 ECU 강제 토크 차단(Limp-Home 30%)\n" +
+            "• 긴급 조치: 냉각 밸브 강제 개방 및 토크 제한 100% 해제 완료!\n" +
+            "• 결과: 드라이버 루, 시속 180km/h 급가속 탈출 개시!");
+    } else {
+      alert("⚠️ [가설 1 검증 실패]\n모터 하드웨어 결함이 아닙니다! 계측 데이터(코일 정상, CAN 정상)를 재확인하세요.");
+    }
+  }
+
+  function resetThreads() {
+    const yarnCanvas = document.getElementById('yarn-canvas');
+    yarnCanvas.style.transition = "opacity 0.4s";
+    yarnCanvas.style.opacity = "0.2";
+    setTimeout(() => { yarnCanvas.style.opacity = "1"; }, 400);
+    document.getElementById('ming-bubble-text').textContent = "\"실 매듭을 다시 팽팽하게 당겨 정렬했다냥!\"";
+  }
+
+  // 키보드 이벤트
+  window.addEventListener('keydown', (e) => {
+    if (e.key === '1') setStep(1);
+    if (e.key === '2') setStep(2);
+    if (e.code === 'Space') {
+      e.preventDefault();
+      confirmSuspect();
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      resetThreads();
+    }
+  });
+</script>
+</body></html>

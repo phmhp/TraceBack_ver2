@@ -1,0 +1,5 @@
+.investigationBoard{bottom:auto;width:auto;height:calc(100% - 122px);max-width:calc(100% - 70px);max-height:none}
+.eePuzzle{bottom:auto;width:auto;height:calc(100% - 186px);max-width:calc(100% - 42px);max-height:none;grid-template-columns:170px minmax(0,1fr) 180px}
+.pinArea .polaroidCard{width:78px;min-height:102px;padding:5px}.pinArea .polaroidGraphic{height:48px}.pinArea .miniScope{height:28px;right:22px}.pinArea .polaroidGraphic>b{font-size:19px}.pinArea .polaroidCaption b,.pinArea .polaroidCaption span{font-size:6px}
+.eePuzzle{top:124px;height:calc(100% - 136px);grid-template-columns:125px minmax(0,1fr) 135px}.verticalRequirement,.componentTray{padding:8px}.verticalRequirement>div{padding:5px}.verticalRequirement>i{height:10px;font-size:9px}.componentTray button{padding:5px 5px 5px 31px;margin-bottom:4px}.componentTray button i{width:21px;height:21px;top:5px}.logicNode{width:112px;height:57px;padding:8px 9px}.wirePort{top:20px;width:16px;height:16px}.logicNode span{font-size:6px}
+.polaroidGraphic.hypothesisArt{background:linear-gradient(145deg,#b77b51,#704a3d)}.polaroidGraphic.hypothesisArt .miniScope i{border-radius:50%;background:#f0d59a}

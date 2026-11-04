@@ -1,0 +1,524 @@
+<!DOCTYPE html><html class="w-full h-full overflow-hidden" lang="ko"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>TraceBack - EV 워크숍 DIY 제작대</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800;900&amp;family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#006b5b",
+            "primary-container": "#36b39c",
+            "primary-fixed": "#82f7dd",
+            "secondary": "#b52234",
+            "tertiary": "#5952af",
+            "wood-light": "#ecd1ac",
+            "wood-base": "#c89b65",
+            "wood-dark": "#7c552b"
+          },
+          fontFamily: {
+            sans: ["Plus Jakarta Sans", "system-ui", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    @layer base {
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        user-select: none;
+      }
+    }
+    @keyframes gentleBob {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-7px) rotate(0.8deg); }
+    }
+    @keyframes pulseEnergy {
+      0% { stroke-dashoffset: 60; filter: drop-shadow(0 0 3px #fef08a); }
+      100% { stroke-dashoffset: 0; filter: drop-shadow(0 0 10px #f59e0b); }
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes glowSuccess {
+      0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.4), inset 0 0 15px rgba(254, 240, 138, 0.3); }
+      50% { box-shadow: 0 0 35px rgba(245, 158, 11, 0.8), inset 0 0 25px rgba(254, 240, 138, 0.6); }
+    }
+    .ming-engineer {
+      animation: gentleBob 3.6s ease-in-out infinite;
+      transform-origin: bottom center;
+    }
+    .wire-flow-anim {
+      stroke-dasharray: 8 8;
+      animation: pulseEnergy 0.9s linear infinite;
+    }
+    .active-complete {
+      animation: glowSuccess 2s infinite ease-in-out;
+    }
+    /* Jigsaw puzzle connector styling */
+    .jigsaw-tab-right {
+      position: absolute;
+      right: -13px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 22px;
+      border-radius: 0 12px 12px 0;
+      z-index: 20;
+    }
+    .jigsaw-slot-left {
+      position: absolute;
+      left: -2px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 22px;
+      border-radius: 0 12px 12px 0;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body class="w-full h-full bg-[#3d2716] font-sans antialiased overflow-hidden select-none text-amber-950">
+<!-- 3D WORKSHOP & DIY CRAFTING DESK FULLSCREEN CANVAS -->
+<div class="relative w-full h-full flex flex-col justify-between overflow-hidden bg-radial from-[#93663a] via-[#5c3c1e] to-[#2c190a]">
+<!-- 1. WARM WORKSHOP ENVIRONMENT (Wood Panels + Warm Overhead Hanging Lamps) -->
+<div class="absolute inset-0 pointer-events-none z-0">
+<!-- Felt / Wood Texture Overlays -->
+<div class="absolute inset-0 opacity-25 bg-[radial-gradient(#fed7aa_1px,transparent_1px)] [background-size:24px_24px]"></div>
+<!-- Warm Hanging Lamps Lights -->
+<div class="absolute -top-32 left-1/5 w-[500px] h-[500px] bg-amber-200/20 rounded-full blur-[100px]"></div>
+<div class="absolute -top-32 right-1/4 w-[520px] h-[520px] bg-orange-300/15 rounded-full blur-[110px]"></div>
+<!-- Desk Wooden Surface Horizon Shadow -->
+<div class="absolute top-[38%] inset-x-0 h-4 bg-gradient-to-b from-black/40 to-transparent"></div>
+</div>
+<!-- 2. GAME HUD: ULTRA-SLIM DIEGETIC PIN BADGES (NO Bulky Bars) -->
+<div class="relative z-30 w-full px-6 pt-4 flex items-center justify-between pointer-events-none"><!-- Top Left: DIY Crafting Recipe Pin with Success state -->
+<div class="pointer-events-auto flex items-center gap-2 bg-[#fdf8ee] text-[#5c3e21] px-4 py-1.5 rounded-full border-2 border-[#b58b53] shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+<span class="font-extrabold text-xs tracking-wider">🌿 TRACEBACK DIY 제작대</span>
+<span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold border border-emerald-300">RECIPE #03 완료!</span>
+</div>
+<!-- Top Right: Celebratory Success Banner & Hotkey -->
+<div class="pointer-events-auto flex items-center gap-2.5">
+<div class="flex items-center gap-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white px-4 py-1.5 rounded-full border-2 border-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.5)] animate-pulse">
+<span class="material-symbols-outlined text-[18px] text-amber-300 animate-bounce">celebration</span>
+<span class="text-xs font-black tracking-wide">🎉 맞았습니다! 신호 체인 체결 성공! 모터 정상 구동 중 (8,500 RPM)</span>
+</div>
+<button class="w-8 h-8 rounded-full bg-[#fdf8ee] hover:bg-[#fff0db] border-2 border-[#b58b53] text-[#7c552b] flex items-center justify-center transition-all shadow-md active:scale-95" id="btn-reset" title="다시 맞추기 [R]">
+<span class="material-symbols-outlined text-[18px]">restart_alt</span>
+</button>
+</div></div>
+<!-- 3. MAIN WORKBENCH: EV ANATOMY BLUEPRINT & INTERLOCKING PUZZLE CHAIN -->
+<main class="relative z-20 flex-1 flex flex-col justify-between px-6 pb-4 max-w-[1300px] mx-auto w-full">
+<!-- UPPER DECK: 동물의 숲 DIY 설계도 & 빨간 EV 스포츠카 해부도 (EV Anatomy Map) -->
+<div class="relative w-full h-[46%] mt-1 flex items-center justify-center"><!-- Blueprint Mat (Felt Paper Mat with stitching and grid) -->
+<div class="relative w-full h-full max-w-4xl bg-[#316879] rounded-3xl p-3 border-4 border-[#204a57] shadow-[0_16px_35px_rgba(0,0,0,0.45),inset_0_2px_8px_rgba(255,255,255,0.2)] flex items-center justify-between overflow-hidden">
+<!-- Blueprint Grid Lines -->
+<div class="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none"></div>
+<!-- Mat Deco Title -->
+<div class="absolute top-2.5 left-4 flex items-center gap-1.5 opacity-80 pointer-events-none">
+<span class="material-symbols-outlined text-cyan-200 text-sm">architecture</span>
+<span class="text-[11px] font-extrabold text-cyan-100 tracking-wider">APEX GT • EV 회로 통전 완료 (CIRCUIT ENERGIZED 8,500 RPM)</span>
+</div>
+<!-- Left Blueprint Callout: HW 01 Pedal Input Node -->
+<div class="relative z-10 w-44 bg-[#1e4854]/90 backdrop-blur-sm border-2 border-emerald-400 rounded-2xl p-2.5 text-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+<div class="flex items-center justify-between mb-1">
+<span class="text-[9px] font-black uppercase text-emerald-200 bg-emerald-900/80 px-1.5 py-0.5 rounded">01 HW INPUT</span>
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+</div>
+<p class="text-xs font-extrabold text-white">가속 페달 모듈 (APS)</p>
+<p class="text-[10px] text-emerald-300 font-mono mt-0.5 font-bold">3.82V 전진 신호 송출</p>
+</div>
+<!-- Center: 3D Red EV Sports Car Clay/Toy Cutaway on Blueprint -->
+<div class="relative z-10 flex flex-col items-center justify-center -my-2 flex-1 px-2">
+<div class="relative group">
+<img alt="빨간 스포츠카" class="w-[330px] md:w-[380px] object-contain drop-shadow-[0_16px_22px_rgba(0,0,0,0.65)] filter contrast-105 transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLsd6doZtMh51HjRmJpW-E3m47nr4Ue5epK2ru3738a6wgOLXEHjQUDNDFS7m3ye_9H8AEDLWXgHYFsc0SSRp5UH-G289PmINUjdVd0IfDcG5Qr-iiy-uDg2y97aVzqHnaT5iYRjlsdJ4Oum9bMbC2Hm2AZoIR7DWTJOHqiXzcqyVKpeJ0vt95K6AtBMzrZSQzBTXAF36yNtUljf1UjGJ0QrQzGEFj0dDK5fLE7PeyHtvuXTJjvXHL5A">
+<!-- Energetic Holographic Glowing Points -->
+<div class="absolute top-1/2 left-[28%] w-4 h-4 rounded-full bg-emerald-400 shadow-[0_0_12px_#10b981] animate-ping pointer-events-none"></div>
+<div class="absolute top-1/2 right-[28%] w-4 h-4 rounded-full bg-amber-400 shadow-[0_0_15px_#f59e0b] animate-ping pointer-events-none"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-10 bg-amber-400/20 blur-md rounded-full pointer-events-none"></div>
+</div>
+<div class="mt-1 bg-black/60 backdrop-blur-md px-3 py-0.5 rounded-full border border-emerald-400/40 text-[10px] font-mono font-bold text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+      ⚡ 3.82V 입력 ➔ 420 Nm 연산 ➔ PMSM 8,500 RPM 구동 통전 성공!
+    </div>
+</div>
+<!-- Right Blueprint Callout: HW 03 Motor Output Node -->
+<div class="relative z-10 w-44 bg-[#1e4854]/90 backdrop-blur-sm border-2 border-amber-300 rounded-2xl p-2.5 text-center shadow-[0_0_18px_rgba(245,158,11,0.4)] animate-pulse">
+<div class="flex items-center justify-between mb-1">
+<span class="text-[9px] font-black uppercase text-amber-200 bg-amber-950/80 px-1.5 py-0.5 rounded">03 HW OUTPUT</span>
+<span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b]"></span>
+</div>
+<p class="text-xs font-extrabold text-white">PMSM 영구자석 모터</p>
+<p class="text-[10px] text-amber-300 font-mono mt-0.5 font-bold">8,500 RPM 회전 중 (420 Nm)</p>
+</div>
+</div></div>
+<!-- MIDDLE DECK: 핵심 퍼즐 체인 (HW 페달 ➔ 3조각 인터로킹 JIGSAW 퍼즐 ➔ HW 모터) -->
+<div class="relative w-full max-w-5xl mx-auto my-auto flex items-center justify-center"><!-- SVG Signal Wire Golden Energy Pulse Layer -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible" preserveAspectRatio="none">
+<!-- Continuous Electric Pulse lines -->
+<path d="M 125 58 L 220 58" stroke="#785028" stroke-linecap="round" stroke-width="8"></path>
+<path class="wire-flow-anim" d="M 125 58 L 220 58" stroke="#10b981" stroke-linecap="round" stroke-width="5"></path>
+<path d="M 780 58 L 875 58" stroke="#785028" stroke-linecap="round" stroke-width="8"></path>
+<path class="wire-flow-anim" d="M 780 58 L 875 58" stroke="#f59e0b" stroke-linecap="round" stroke-width="5"></path>
+</svg>
+<div class="relative z-10 w-full flex items-center justify-between gap-3">
+<!-- 01 HW 가속 페달 단자 (실제 부품 이미지 장착) -->
+<div class="w-44 bg-[#fef5e7] border-4 border-[#b5874c] rounded-2xl p-2.5 shadow-[0_8px_16px_rgba(0,0,0,0.3)] flex flex-col items-center justify-center text-center">
+<span class="text-[10px] font-black uppercase bg-emerald-700 text-white px-2 py-0.5 rounded-full mb-1">01 HW 입력 (APS)</span>
+<div class="w-14 h-14 rounded-xl bg-amber-100/80 border-2 border-amber-300 overflow-hidden flex items-center justify-center my-0.5 shadow-inner">
+<img alt="가속 페달 모듈" class="w-full h-full object-cover scale-150" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOCwCCP_2tjfDnPnVcZZ8UlCZMo2zVuw1CO2KLiiTFKXpJN_Q_2DtjP6ynVSlKKkEZS8B_i9fShDTRRefF8j7kKH0mQ8NQWxcjy6oaOKHGvkSkVKDmzxOPBa4dxioTQLVQ1FaqSJV2vXvvxjKh5IXyWKHIagBeg5Sd_ZqoRq0Rd4JQRmjQm_YqihdDtk_-CPcOnx9gaabFNVzILRjUsJJGj9Byy7VdmiDiOCZQb4TTWMAVwIZJUDYEZA" style="object-position: 28% 28%;">
+</div>
+<h4 class="text-xs font-black text-[#503417]">가속 페달 모듈</h4>
+<span class="text-[10px] font-bold text-emerald-700 mt-0.5">⚡ 3.82V 전진 신호 정상</span>
+</div>
+<!-- 02 ECU SW 3조각 완전 체결 인터로킹 직소 퍼즐 체인 -->
+<div class="flex-1 max-w-2xl bg-[#523317]/85 backdrop-blur-sm border-4 border-[#c28e4e] rounded-3xl p-3 shadow-[0_0_25px_rgba(245,158,11,0.35),inset_0_4px_12px_rgba(0,0,0,0.5)]">
+<div class="flex items-center justify-between px-2 mb-2">
+<span class="text-[11px] font-black tracking-wide text-amber-200 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-amber-300">check_circle</span>
+        02 ECU SW 인터로킹 직소 체인
+      </span>
+<span class="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-600 text-white border border-emerald-300 shadow-[0_0_10px_#10b981]">
+        🎉 3 / 3 전체 체결 완료 (PASS!)
+      </span>
+</div>
+<!-- 3연속 완벽 결합 직소 퍼즐 슬롯들 -->
+<div class="grid grid-cols-3 gap-2 relative">
+<!-- PIECE 1: 신호 노이즈 필터 (체결 상태 + 실제 릴레이 컨택터 연계) -->
+<div class="relative bg-[#fdf3e0] border-3 border-[#c28e4e] rounded-xl p-2 h-28 flex flex-col justify-between shadow-md">
+<div class="jigsaw-tab-right bg-[#fdf3e0] border-y-2 border-r-2 border-[#c28e4e]"></div>
+<div class="flex items-center justify-between">
+<span class="text-[9px] font-black text-white bg-amber-700 px-1.5 py-0.2 rounded">SW 01</span>
+<span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+</div>
+<div class="my-auto flex items-center gap-2 justify-center">
+<div class="w-9 h-9 rounded-lg overflow-hidden border border-amber-300 bg-amber-50 flex-shrink-0">
+<img alt="릴레이 필터" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQZcfvguehsip8dJkiBrL2Z40Dpt7J3mPzxr8tQs6rjZejnRoy9M59cSlTLXR4LzQnWfh8F05TBgJonOOqbBAgoT7cHWWC4_6X-kwmd7nSVWh5tS8OoNxUGEjJj2FvorRDH70QCXmvn_jTdEb1Sl1SuL9D7X4K5V1kgCEGmUJqsNFUuH4A-5kvzMix72cp4kaVJYS1aCA8k0s-A7A8El8_rLUy-FYfrGrvcF-Qqo0U_aTaoKirb3mCkQ">
+</div>
+<div class="text-left">
+<p class="text-xs font-black text-[#45280d]">신호 노이즈 필터</p>
+<p class="text-[8px] text-[#735028]">아날로그 ➔ 디지털 정류</p>
+</div>
+</div>
+<div class="w-full text-center text-[8px] font-bold text-emerald-800 bg-emerald-100 rounded py-0.5">● 필터 보정 통과</div>
+</div>
+<!-- PIECE 2: 토크 맵 계산기 (체결 상태 + 실제 DC 인버터 모듈) -->
+<div class="relative bg-[#fdf3e0] border-3 border-amber-400 rounded-xl p-2 h-28 flex flex-col justify-between shadow-md">
+<div class="jigsaw-slot-left bg-[#fdf3e0] border-y-2 border-l-2 border-[#c28e4e]"></div>
+<div class="jigsaw-tab-right bg-[#fdf3e0] border-y-2 border-r-2 border-[#c28e4e]"></div>
+<div class="flex items-center justify-between">
+<span class="text-[9px] font-black text-white bg-amber-700 px-1.5 py-0.2 rounded">SW 02</span>
+<span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+</div>
+<div class="my-auto flex items-center gap-2 justify-center">
+<div class="w-9 h-9 rounded-lg overflow-hidden border border-amber-300 bg-amber-50 flex-shrink-0">
+<img alt="토크 연산 모듈" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuALUoW_Fbf1P5SfkS_cBZVh5AtR22rW-8WkHjrakv4RqK8lRjSNx9zergc7XwjC2aNJl_HvgzniDjNCz41SRGsmg7c1xEDkFEXA9rmDADhkoqHhRiCX1OlbMZ-GqhkSr5mHM-LG63TtOA0G6J_siGmoHyRgaBrQUL99gM4gFpK3X38_NQa9qhMHV0WsBU94EQqj62q0tPw46vKOYukCFri50pN8ws18sI2yzM1OBlKhHqoFymJ35JHWdQ">
+</div>
+<div class="text-left">
+<p class="text-xs font-black text-[#45280d]">토크 맵 계산기</p>
+<p class="text-[8px] text-emerald-800 font-bold">420 Nm 연산 완료</p>
+</div>
+</div>
+<div class="w-full text-center text-[8px] font-bold text-emerald-800 bg-emerald-100 rounded py-0.5">● 연산 토크 확정</div>
+</div>
+<!-- PIECE 3: CAN 모터 명령 (체결 상태) -->
+<div class="relative bg-[#fdf3e0] border-3 border-amber-400 rounded-xl p-2 h-28 flex flex-col justify-between shadow-md">
+<div class="jigsaw-slot-left bg-[#fdf3e0] border-y-2 border-l-2 border-[#c28e4e]"></div>
+<div class="flex items-center justify-between">
+<span class="text-[9px] font-black text-white bg-amber-700 px-1.5 py-0.2 rounded">SW 03</span>
+<span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+</div>
+<div class="my-auto text-center">
+<span class="material-symbols-outlined text-2xl text-amber-800">podcasts</span>
+<p class="text-xs font-black text-[#45280d] mt-0.5">CAN 모터 명령</p>
+<p class="text-[8px] text-emerald-800 font-bold">3상 인버터 고속 송출</p>
+</div>
+<div class="w-full text-center text-[8px] font-bold text-emerald-800 bg-emerald-100 rounded py-0.5">● 고속 버스 동기화</div>
+</div>
+</div>
+</div>
+<!-- 03 HW PMSM 구동 모터 단자 (실제 구동 모터 이미지 + 회전 에너지 헤일로) -->
+<div class="w-44 bg-[#fef5e7] border-4 border-amber-400 rounded-2xl p-2.5 shadow-[0_0_25px_rgba(245,158,11,0.5)] flex flex-col items-center justify-center text-center relative active-complete">
+<span class="text-[10px] font-black uppercase bg-amber-700 text-white px-2 py-0.5 rounded-full mb-1">03 HW 구동 모터</span>
+<div class="relative w-14 h-14 rounded-xl bg-amber-100/90 border-2 border-amber-400 overflow-hidden flex items-center justify-center my-0.5 shadow-[0_0_15px_#f59e0b]">
+<!-- Spinning Electric Halo Effect -->
+<div class="absolute inset-0 rounded-full border-2 border-dashed border-amber-500 animate-spin pointer-events-none"></div>
+<img alt="PMSM 모터 구동축" class="w-full h-full object-cover scale-150 animate-pulse" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUv3tCR-hLZg7r9XHObj0vN8G3vpZIZVXThU3f-4-CaU6_Ojkf90aCThxKmg1Ge6h4_ddh-QV8cSw4buy7daC90A4X_l3DzqH9C0gykQ_-cAp89LXD5MnAmpliQDKa_hD-HoaxxZ_FzSJ-1JhsSRntoHqQOIxC5m9VKlBS8oobH4AA32fssf2WSPWkU923rFK_O2T-7SDCiUGmI_HlQtv8tk0hqFFKnjSEuP7sdNHWf6k1-YXHd_RqIw" style="object-position: 50% 36%;">
+</div>
+<h4 class="text-xs font-black text-[#503417]">PMSM 구동축 회전</h4>
+<span class="text-[10px] font-black text-amber-800 mt-0.5">🔥 8,500 RPM (420 Nm)</span>
+</div>
+</div></div>
+<!-- LOWER DECK: 원본 3D 고양이 '밍' + 수제 목재 부품 트레이 + PC 컨트롤러 CTA -->
+<div class="relative w-full flex items-end justify-between gap-4 mt-2"><!-- 원본 엔지니어 고양이 캐릭터 '밍' (스패너와 태블릿 든 신난 밍) -->
+<div class="relative flex items-end select-none pointer-events-auto">
+<!-- 밍 머리 위 활기찬 성공 축하 말풍선 -->
+<div class="absolute -top-14 left-16 sm:left-24 z-30 min-w-[260px] max-w-[320px] bg-[#fffbf2] text-[#4d2f0d] px-4 py-2 rounded-2xl rounded-bl-none shadow-2xl border-2 border-amber-400 text-xs font-black leading-snug animate-bounce">
+<div class="flex items-center gap-1 text-emerald-700 mb-0.5">
+<span class="material-symbols-outlined text-[15px]">sentiment_very_satisfied</span>
+<span class="text-[10px] font-black">수석 엔지니어 밍 (대성공!)</span>
+</div>
+<p id="ming-speech" class="">"와아! 퍼즐 요철이 딱 들어맞아서 전기가 통했다냥! ⚡ 모터가 8,500 RPM으로 신나게 돈다냥!"</p>
+</div>
+<!-- 3D 밍 캐릭터 (DATA:IMAGE:IMAGE_199) -->
+<div class="ming-engineer w-28 sm:w-36 md:w-44 flex-shrink-0 cursor-pointer drop-shadow-[0_16px_20px_rgba(0,0,0,0.85)]" id="cat-ming" title="수석 엔지니어 밍">
+<img alt="엔지니어 고양이 밍" class="w-full h-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAr0zLe1HZteMrQpNxjYo86eXEyMMnqdNP1RHkFhQNyeH8Yh-zmzBvbf3ITBZ8xb9d8f4d8lspxVSHoIvAWo45AgSeMcEMQE7ensXS0C9pK-QxOkGp9wm2SBXLG1XbIU3AV8SHWJj8POHx7i8gr75km8Yv2Ckth3fxJa7-DQYpmIsLDzElYSh2h_bqiFxr9YPqVA1y1E7ktxv8z-yn_LSxnzrpE0ko-oysPSC6JxuduBsIcHwJR1Y1vtw">
+</div>
+<!-- 바닥 그림자 -->
+<div class="absolute -bottom-2 left-6 w-28 h-4 bg-black/60 rounded-full blur-md"></div>
+</div>
+<!-- 하단 부품 트레이: 완성 상태 안내 표시 -->
+<div class="flex-1 max-w-xl bg-[#59391a] border-4 border-[#8f5d2c] rounded-2xl p-2.5 shadow-[0_12px_24px_rgba(0,0,0,0.5)]">
+<div class="flex items-center justify-between mb-2 px-1">
+<span class="text-[10px] font-black uppercase tracking-wider text-amber-200 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-emerald-400">task_alt</span>
+      목재 부품 트레이 (조립 완료 상태)
+    </span>
+<span class="text-[9px] text-emerald-300 font-bold">체결 정상 확인됨</span>
+</div>
+<!-- 3개의 조각 카드: 전체 체결 완료 피드백 표시 -->
+<div class="grid grid-cols-3 gap-2">
+<div class="bg-[#fdf5e7]/80 border-2 border-emerald-500/80 rounded-xl p-2 flex flex-col items-center justify-center text-center shadow">
+<span class="text-[9px] font-black text-emerald-900 bg-emerald-200 px-1.5 py-0.2 rounded mb-1">체결 완료</span>
+<span class="material-symbols-outlined text-xl text-emerald-700">check</span>
+<span class="text-xs font-black text-[#4d2f0d]">토크 맵 계산</span>
+<span class="text-[8px] font-bold text-emerald-800">420 Nm 연산 활성화</span>
+</div>
+<div class="bg-[#fdf5e7]/80 border-2 border-emerald-500/80 rounded-xl p-2 flex flex-col items-center justify-center text-center shadow">
+<span class="text-[9px] font-black text-emerald-900 bg-emerald-200 px-1.5 py-0.2 rounded mb-1">체결 완료</span>
+<span class="material-symbols-outlined text-xl text-emerald-700">check</span>
+<span class="text-xs font-black text-[#4d2f0d]">CAN 모터 명령</span>
+<span class="text-[8px] font-bold text-emerald-800">고속 버스 신호 전달 중</span>
+</div>
+<div class="bg-emerald-100 border-2 border-emerald-400 rounded-xl p-2 flex flex-col items-center justify-center text-center shadow">
+<span class="text-[9px] font-black text-emerald-900 bg-emerald-200 px-1.5 py-0.2 rounded mb-1">통전 점검</span>
+<span class="material-symbols-outlined text-xl text-emerald-700">bolt</span>
+<span class="text-xs font-black text-[#4d2f0d]">신호 체인 100%</span>
+<span class="text-[8px] font-bold text-emerald-800">8,500 RPM 회전 중</span>
+</div>
+</div>
+</div>
+<!-- 우하단: 테스트 드라이브 출격 CTA -->
+<div class="flex-shrink-0">
+<button class="px-6 py-3.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-amber-500 hover:from-emerald-400 hover:to-amber-400 text-white rounded-2xl border-2 border-amber-200 shadow-[0_0_25px_rgba(16,185,129,0.7)] flex items-center gap-2.5 font-black text-xs sm:text-sm cursor-pointer transition-all duration-300 active:scale-95 scale-105" id="btn-action-test">
+<span class="px-2 py-0.5 bg-black/40 border border-white/20 rounded text-[10px] text-amber-200 font-mono">SPACE</span>
+<span id="btn-action-label" class="">다음: 테스트 드라이브 출격! 🏁</span>
+<span class="material-symbols-outlined text-lg animate-pulse">sports_motorsports</span>
+</button>
+</div></div>
+</main><div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-all duration-300 select-none" id="success-modal-overlay"><div class="relative w-full max-w-2xl bg-[#fffef9] border-4 border-[#e6c587] rounded-3xl p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.55),0_0_40px_rgba(245,158,11,0.25)] flex flex-col items-center text-center"><div class="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full bg-gradient-to-tr from-amber-400 via-emerald-400 to-teal-500 p-1 shadow-[0_10px_25px_rgba(16,185,129,0.5)] flex items-center justify-center animate-bounce"><div class="w-full h-full rounded-full bg-[#fffef9] flex items-center justify-center border-2 border-amber-300"><span class="material-symbols-outlined text-4xl text-amber-500">celebration</span></div></div><div class="mt-8 flex flex-col items-center gap-1.5"><div class="flex items-center gap-2"><span class="text-[11px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-0.5 rounded-full">CIRCUIT CONNECTED • MISSION CLEAR</span></div><h2 class="text-3xl sm:text-4xl font-black text-[#1e7e58] tracking-tight mt-1 flex items-center gap-2"><span class="">🎉 맞았습니다!</span></h2><p class="text-xs sm:text-sm font-bold text-[#5c3e21] mt-1 max-w-lg leading-relaxed">SW 신호 체인 체결 성공! 페달 전압이 토크 연산과 인버터를 거쳐 PMSM 구동 모터로 직통합니다!</p></div><div class="grid grid-cols-3 gap-3 w-full my-5"><div class="bg-[#fef5e7] border-2 border-amber-300/80 rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm"><span class="text-[10px] font-extrabold text-[#7c552b] mb-0.5">연산 토크</span><span class="text-xl sm:text-2xl font-black text-amber-800 font-mono">420 <span class="text-xs font-bold">Nm</span></span><span class="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded mt-1">토크맵 확정</span></div><div class="bg-[#fef5e7] border-2 border-emerald-400/80 rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm"><span class="text-[10px] font-extrabold text-[#7c552b] mb-0.5">3상 인버터</span><span class="text-xl sm:text-2xl font-black text-emerald-700 font-mono">100%</span><span class="text-[9px] font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mt-1 font-black">PASS 동기화</span></div><div class="bg-[#fef5e7] border-2 border-amber-400 rounded-2xl p-3 flex flex-col items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.2)]"><span class="text-[10px] font-extrabold text-[#7c552b] mb-0.5">구동 모터</span><span class="text-xl sm:text-2xl font-black text-amber-600 font-mono animate-pulse">8,500 <span class="text-xs font-bold">RPM</span></span><span class="text-[9px] font-bold text-amber-900 bg-amber-200 px-1.5 py-0.5 rounded mt-1">🔥 고속 통전 회전</span></div></div><div class="flex flex-col sm:flex-row items-center justify-center gap-3 w-full mt-1"><button class="w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-amber-500 hover:from-emerald-500 hover:to-amber-400 text-white font-black text-sm sm:text-base border-2 border-amber-200 shadow-[0_8px_20px_rgba(16,185,129,0.5)] flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"><span class="px-2 py-0.5 bg-black/40 border border-white/30 rounded text-[11px] text-amber-200 font-mono">SPACE</span><span class="">테스트 드라이브 출격! 🏁</span><span class="material-symbols-outlined text-lg animate-pulse">sports_motorsports</span></button><button class="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-[#fdf8ee] hover:bg-[#fff0db] text-[#7c552b] border-2 border-[#b58b53] font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all active:scale-95" onclick="document.getElementById('success-modal-overlay').remove()"><span class="px-1.5 py-0.5 bg-amber-100 rounded text-[10px] text-amber-900 font-mono border border-amber-300">R</span><span class="">퍼즐 다시 확인</span></button></div></div></div>
+</div>
+<!-- INTERACTIVE PUZZLE ENGINE & SOUND EFFECTS SCRIPT -->
+<script>
+    (function() {
+      const state = {
+        p2Attached: false,
+        p3Attached: false,
+      };
+
+      const mingSpeech = document.getElementById('ming-speech');
+      const chainStatus = document.getElementById('puzzle-chain-status');
+      const flowWireRight = document.getElementById('flow-wire-right');
+      const motorStatusDot = document.getElementById('motor-status-dot');
+      const hudMotorVal = document.getElementById('hud-motor-val');
+      const hwMotorCard = document.getElementById('hw-motor-card');
+      const hwMotorIconBox = document.getElementById('hw-motor-icon-box');
+      const hwMotorBadge = document.getElementById('hw-motor-badge');
+      const btnAction = document.getElementById('btn-action-test');
+      const btnActionLabel = document.getElementById('btn-action-label');
+
+      // Slot 2: 토크 맵 체결
+      function attachPiece2() {
+        if (state.p2Attached) return;
+        state.p2Attached = true;
+
+        const slot = document.getElementById('slot-piece-2');
+        const content = document.getElementById('p2-content');
+        const dot = document.getElementById('p2-dot');
+        const spec = document.getElementById('p2-spec');
+        const trayBtn = document.getElementById('tray-btn-p2');
+
+        slot.className = "relative bg-[#fdf3e0] border-3 border-[#c28e4e] rounded-xl p-2.5 h-28 flex flex-col justify-between shadow-md transition-all";
+        dot.className = "w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]";
+        
+        content.innerHTML = `
+          <span class="material-symbols-outlined text-2xl text-amber-800 animate-bounce">calculate</span>
+          <p class="text-xs font-black text-[#45280d] mt-0.5">토크 맵 계산기</p>
+          <p class="text-[9px] text-emerald-800 font-bold">● 420 Nm 연산 완료</p>
+        `;
+        spec.className = "w-full text-center text-[9px] font-bold text-emerald-700 bg-emerald-100/80 rounded py-0.5";
+        spec.textContent = "찰칵! 체결 완료";
+
+        trayBtn.classList.add('opacity-40', 'pointer-events-none');
+        mingSpeech.textContent = '"오예! 토크 계산 퍼즐이 착 맞물렸다냥! 이제 CAN 통신 명령을 끼워줘!"';
+        
+        updateChain();
+      }
+
+      // Slot 3: CAN 모터 명령 체결
+      function attachPiece3() {
+        if (!state.p2Attached) {
+          attachPiece2();
+        }
+        if (state.p3Attached) return;
+        state.p3Attached = true;
+
+        const slot = document.getElementById('slot-piece-3');
+        const content = document.getElementById('p3-content');
+        const dot = document.getElementById('p3-dot');
+        const spec = document.getElementById('p3-spec');
+        const trayBtn = document.getElementById('tray-btn-p3');
+
+        slot.className = "relative bg-[#fdf3e0] border-3 border-[#c28e4e] rounded-xl p-2.5 h-28 flex flex-col justify-between shadow-md transition-all";
+        dot.className = "w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]";
+        
+        content.innerHTML = `
+          <span class="material-symbols-outlined text-2xl text-amber-800 animate-bounce">podcasts</span>
+          <p class="text-xs font-black text-[#45280d] mt-0.5">CAN 모터 명령</p>
+          <p class="text-[9px] text-emerald-800 font-bold">● 3상 인버터 동기화</p>
+        `;
+        spec.className = "w-full text-center text-[9px] font-bold text-emerald-700 bg-emerald-100/80 rounded py-0.5";
+        spec.textContent = "찰칵! 체결 완료";
+
+        trayBtn.classList.add('opacity-40', 'pointer-events-none');
+        
+        updateChain();
+      }
+
+      function updateChain() {
+        let count = 1 + (state.p2Attached ? 1 : 0) + (state.p3Attached ? 1 : 0);
+        chainStatus.textContent = `${count} / 3 체결 완료`;
+
+        if (state.p2Attached && state.p3Attached) {
+          chainStatus.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-700 text-white shadow-[0_0_8px_#10b981]";
+          chainStatus.textContent = "3 / 3 전체 체결 완료! ⚡";
+
+          // Wire golden flow
+          flowWireRight.setAttribute('stroke', '#f59e0b');
+          flowWireRight.setAttribute('opacity', '1');
+          flowWireRight.setAttribute('stroke-width', '5');
+
+          // Motor HW Activation
+          motorStatusDot.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]";
+          hudMotorVal.textContent = "출력 대기: 15,000 RPM";
+          hudMotorVal.className = "text-[10px] text-emerald-300 font-mono mt-0.5 font-bold";
+
+          hwMotorCard.classList.add('active-complete', 'border-amber-400');
+          hwMotorIconBox.className = "w-12 h-12 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center my-1 shadow-[0_0_12px_#f59e0b]";
+          hwMotorBadge.className = "text-[10px] font-black text-amber-800 mt-0.5";
+          hwMotorBadge.textContent = "● 구동 샤프트 연결 준비 완료";
+
+          mingSpeech.textContent = '"신호 통전 준비 100%! [SPACE]를 눌러 시동을 걸어보자냥!"';
+
+          btnAction.className = "px-6 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white rounded-2xl border-2 border-amber-200 shadow-[0_0_25px_rgba(245,158,11,0.6)] flex items-center gap-2.5 font-black text-xs sm:text-sm cursor-pointer transition-all duration-300 active:scale-95 scale-105";
+          btnActionLabel.textContent = "회로 통전 & 시동 테스트! 🏁";
+        }
+      }
+
+      function resetAll() {
+        state.p2Attached = false;
+        state.p3Attached = false;
+
+        // Reset Slot 2
+        const s2 = document.getElementById('slot-piece-2');
+        s2.className = "slot-drop relative bg-[#361e0b]/80 border-3 border-dashed border-[#b88549] rounded-xl p-2.5 h-28 flex flex-col justify-between items-center text-center cursor-pointer transition-all hover:border-amber-300 group";
+        document.getElementById('p2-dot').className = "w-2 h-2 rounded-full bg-amber-500/50";
+        document.getElementById('p2-content').innerHTML = `
+          <span class="material-symbols-outlined text-2xl text-amber-400/60 group-hover:scale-110 transition-transform">calculate</span>
+          <p class="text-xs font-black text-amber-200">토크 맵 계산기</p>
+          <p class="text-[9px] text-amber-400/70">클릭하여 퍼즐 체결</p>
+        `;
+        document.getElementById('p2-spec').className = "w-full text-[9px] font-bold text-amber-300/80 bg-black/30 rounded py-0.5 z-10";
+        document.getElementById('p2-spec').textContent = "비어 있음 (슬롯 2)";
+        document.getElementById('tray-btn-p2').classList.remove('opacity-40', 'pointer-events-none');
+
+        // Reset Slot 3
+        const s3 = document.getElementById('slot-piece-3');
+        s3.className = "slot-drop relative bg-[#361e0b]/80 border-3 border-dashed border-[#b88549] rounded-xl p-2.5 h-28 flex flex-col justify-between items-center text-center cursor-pointer transition-all hover:border-amber-300 group";
+        document.getElementById('p3-dot').className = "w-2 h-2 rounded-full bg-amber-500/50";
+        document.getElementById('p3-content').innerHTML = `
+          <span class="material-symbols-outlined text-2xl text-amber-400/60 group-hover:scale-110 transition-transform">podcasts</span>
+          <p class="text-xs font-black text-amber-200">CAN 모터 명령</p>
+          <p class="text-[9px] text-amber-400/70">클릭하여 퍼즐 체결</p>
+        `;
+        document.getElementById('p3-spec').className = "w-full text-[9px] font-bold text-amber-300/80 bg-black/30 rounded py-0.5 z-10";
+        document.getElementById('p3-spec').textContent = "비어 있음 (슬롯 3)";
+        document.getElementById('tray-btn-p3').classList.remove('opacity-40', 'pointer-events-none');
+
+        // Reset status & motor
+        chainStatus.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-600/40";
+        chainStatus.textContent = "1 / 3 체결 완료";
+
+        flowWireRight.setAttribute('stroke', '#fbbf24');
+        flowWireRight.setAttribute('opacity', '0.3');
+        flowWireRight.setAttribute('stroke-width', '4');
+
+        motorStatusDot.className = "w-2 h-2 rounded-full bg-zinc-500 transition-colors";
+        hudMotorVal.className = "text-[10px] text-amber-200/90 font-mono mt-0.5";
+        hudMotorVal.textContent = "대기 중 (0 RPM)";
+
+        hwMotorCard.classList.remove('active-complete', 'border-amber-400');
+        hwMotorIconBox.className = "w-12 h-12 rounded-xl bg-zinc-200 border-2 border-zinc-300 flex items-center justify-center text-zinc-500 my-1 transition-colors";
+        hwMotorBadge.className = "text-[10px] font-bold text-zinc-500 mt-0.5";
+        hwMotorBadge.textContent = "○ 신호 입력 대기 중";
+
+        mingSpeech.textContent = '"퍼즐 조각을 홈에 착! 끼워서 신호 체인을 이어보자냥!"';
+
+        btnAction.className = "px-5 py-3.5 bg-[#422a16] text-amber-300/60 rounded-2xl border-2 border-[#734d28] shadow-[0_8px_18px_rgba(0,0,0,0.5)] flex items-center gap-2.5 font-black text-xs sm:text-sm cursor-pointer transition-all duration-300 active:scale-95";
+        btnActionLabel.textContent = "퍼즐 체결 대기 중...";
+      }
+
+      // Event handlers
+      document.getElementById('tray-btn-p2').addEventListener('click', attachPiece2);
+      document.getElementById('tray-btn-p3').addEventListener('click', attachPiece3);
+      document.getElementById('slot-piece-2').addEventListener('click', attachPiece2);
+      document.getElementById('slot-piece-3').addEventListener('click', attachPiece3);
+
+      document.getElementById('btn-auto-fit').addEventListener('click', () => {
+        attachPiece2();
+        setTimeout(attachPiece3, 200);
+      });
+
+      document.getElementById('btn-reset').addEventListener('click', resetAll);
+
+      // Primary Action Trigger
+      btnAction.addEventListener('click', () => {
+        if (state.p2Attached && state.p3Attached) {
+          mingSpeech.textContent = '"부르르릉! 모터 구동 신호가 정상 통전되었다냥! 출격 준비 완료!"';
+          alert("⚡ [통전 성공] 페달 신호가 ECU 직소 체인을 통과하여 PMSM 모터 15,000 RPM 구동에 성공했습니다!");
+        } else {
+          attachPiece2();
+          setTimeout(attachPiece3, 200);
+        }
+      });
+
+      // Keyboard Controls (SPACE & R)
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          btnAction.click();
+        } else if (e.code === 'KeyR') {
+          e.preventDefault();
+          resetAll();
+        }
+      });
+
+      // Cat interaction
+      document.getElementById('cat-ming').addEventListener('click', () => {
+        mingSpeech.textContent = '"요철이 딱 맞물려야 황금빛 신호 펄스가 흐른다냥! 꼼꼼히 확인해줘!"';
+      });
+
+    })();
+  </script>
+
+
+</body></html>

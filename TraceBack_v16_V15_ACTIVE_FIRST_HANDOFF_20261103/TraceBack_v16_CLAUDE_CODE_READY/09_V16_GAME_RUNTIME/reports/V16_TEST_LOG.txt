@@ -1,0 +1,114 @@
+TAP version 13
+# (node:3629) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: end-to-end two mandatory faults, physical-vs-SW repair, optional skip and ending
+ok 1 - end-to-end two mandatory faults, physical-vs-SW repair, optional skip and ending
+  ---
+  duration_ms: 47.076672
+  type: 'test'
+  ...
+# Subtest: wrong SW program fails bench even if virtual comparator bench is valid
+ok 2 - wrong SW program fails bench even if virtual comparator bench is valid
+  ---
+  duration_ms: 15.415292
+  type: 'test'
+  ...
+# Subtest: wrong hardware repair cannot masquerade as software patch
+ok 3 - wrong hardware repair cannot masquerade as software patch
+  ---
+  duration_ms: 22.93837
+  type: 'test'
+  ...
+# Subtest: manual fabricated pass without true checks is rejected
+ok 4 - manual fabricated pass without true checks is rejected
+  ---
+  duration_ms: 0.763041
+  type: 'test'
+  ...
+# Subtest: all 22 scene ids are unique, nonrace cats are static
+ok 5 - all 22 scene ids are unique, nonrace cats are static
+  ---
+  duration_ms: 0.691212
+  type: 'test'
+  ...
+# Subtest: tutorial gating is enforced, no race shortcut
+ok 6 - tutorial gating is enforced, no race shortcut
+  ---
+  duration_ms: 1.26591
+  type: 'test'
+  ...
+# Subtest: evidence and hypothesis gates block premature wiring
+ok 7 - evidence and hypothesis gates block premature wiring
+  ---
+  duration_ms: 0.618152
+  type: 'test'
+  ...
+# Subtest: typed wiring cannot be bypassed by invalid graph, unsafe HW repair not allowed
+ok 8 - typed wiring cannot be bypassed by invalid graph, unsafe HW repair not allowed
+  ---
+  duration_ms: 0.822521
+  type: 'test'
+  ...
+# Subtest: fake unsupported bench verdict rejected and no early repair
+ok 9 - fake unsupported bench verdict rejected and no early repair
+  ---
+  duration_ms: 1.096584
+  type: 'test'
+  ...
+# Subtest: progress, clues and revision survive JSON save/restore
+ok 10 - progress, clues and revision survive JSON save/restore
+  ---
+  duration_ms: 1.462316
+  type: 'test'
+  ...
+# Subtest: race arrest retries at checkpoint preserving investigation
+ok 11 - race arrest retries at checkpoint preserving investigation
+  ---
+  duration_ms: 0.337509
+  type: 'test'
+  ...
+# Subtest: pause does not change campaign or race simulation state
+ok 12 - pause does not change campaign or race simulation state
+  ---
+  duration_ms: 0.29834
+  type: 'test'
+  ...
+# Subtest: game rejects unknown events, unknown evidence and unsupported model cases
+ok 13 - game rejects unknown events, unknown evidence and unsupported model cases
+  ---
+  duration_ms: 0.631542
+  type: 'test'
+  ...
+# Subtest: chase uses injected actual vehicle frame, not fabricated animation speed
+ok 14 - chase uses injected actual vehicle frame, not fabricated animation speed
+  ---
+  duration_ms: 1.361964
+  type: 'test'
+  ...
+# Subtest: pausing, tab blur freeze state and collision raises threat
+ok 15 - pausing, tab blur freeze state and collision raises threat
+  ---
+  duration_ms: 0.901009
+  type: 'test'
+  ...
+# Subtest: capture cannot auto-finish and retry resets risk at checkpoint
+ok 16 - capture cannot auto-finish and retry resets risk at checkpoint
+  ---
+  duration_ms: 1.42558
+  type: 'test'
+  ...
+# Subtest: route position never moves backwards by accident
+ok 17 - route position never moves backwards by accident
+  ---
+  duration_ms: 0.229566
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 269.597635

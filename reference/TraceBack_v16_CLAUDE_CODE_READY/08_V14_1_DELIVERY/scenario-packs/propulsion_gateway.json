@@ -1,0 +1,63 @@
+{
+  "id": "PROPULSION_GATEWAY",
+  "priority": "REQUIRED",
+  "domain": "PROPULSION",
+  "faultType": "SW_GATEWAY_EDUCATIONAL",
+  "fault": "pedal_gateway_underreport",
+  "hook": "gatewayProcess; both pedal signals scaled to 45%",
+  "repair": "choose nominal program after validated wiring",
+  "requirement": "REQ-PROP-GW-01",
+  "learning": [
+    "driver demand gateway vs VCU command",
+    "disambiguate from BMS limitation",
+    "actual motor response"
+  ],
+  "hypotheses": [
+    {
+      "id": "H-GW",
+      "label": "Pedal gateway underreports demand",
+      "discriminatingSignals": [
+        "rawPedalPct",
+        "processedPedalPct"
+      ]
+    },
+    {
+      "id": "H-BMS",
+      "label": "BMS discharge limit caps torque",
+      "discriminatingSignals": [
+        "bms.limits.dischargeKw",
+        "ecu.propulsion.command.motorTorqueNm"
+      ]
+    },
+    {
+      "id": "H-MOTOR",
+      "label": "Motor actuator fails to track command",
+      "discriminatingSignals": [
+        "ecu.propulsion.command.motorTorqueNm",
+        "actual.motorTorqueNm"
+      ]
+    }
+  ],
+  "bench": {
+    "steps": 70,
+    "pedalPct": 60,
+    "dtSec": 0.02
+  },
+  "schemaVersion": "v14.1-demo-1",
+  "status": "EDUCATIONAL_DEMO_TRACE_TESTED",
+  "realWorldValidation": "NONE",
+  "traceOrigin": "runtime output, not static invented CSV",
+  "tests": [
+    "nominal",
+    "fault",
+    "repaired"
+  ],
+  "oracleStatus": "PROVISIONAL_EDUCATIONAL_SPEC",
+  "initialization": "same fresh READY + D state for each variant",
+  "uiRules": {
+    "revealCauseAtStart": false,
+    "failedHypothesis": "explain conflicting signals and offer further observation",
+    "modelError": "not player failure",
+    "repair": "at parked checkpoint only"
+  }
+}
