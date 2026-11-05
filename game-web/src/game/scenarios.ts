@@ -18,10 +18,10 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
     root: "gateway",
     repair: "페달 신호 변환 비율을 정상 값으로 복원",
     evidence: [
-      { id: "pedal_raw", label: "운전자가 페달을 깊게 밟음", value: "페달 입력 60%", kind: "OBSERVATION" },
-      { id: "pedal_processed", label: "차량은 약한 가속으로 해석함", value: "해석된 입력 27%", kind: "SW SIGNAL" },
-      { id: "torque_cmd", label: "모터에 작은 힘만 요청됨", value: "요청 토크 92 Nm", kind: "SW COMMAND" },
-      { id: "motor_actual", label: "모터는 받은 명령대로 동작함", value: "실제 토크 91 Nm", kind: "HW RESPONSE" },
+      { id: "pedal_raw", label: "페달 60% 입력에도 차량 가속이 둔함", value: "주행 중 체감한 출력 부족", kind: "주행 현상" },
+      { id: "pedal_processed", label: "VCU 입력값이 27%로 기록됨", value: "APS 원신호 60% → 처리값 27%", kind: "입력 계측" },
+      { id: "torque_cmd", label: "CAN 토크 명령이 92 Nm로 기록됨", value: "정상 기준 204 Nm", kind: "제어 명령" },
+      { id: "motor_actual", label: "모터 실제 토크가 91 Nm로 측정됨", value: "명령값과의 차이 1 Nm", kind: "물리 응답" },
     ],
     hypotheses: [
       { id: "gateway", label: "페달 신호를 잘못 줄여서 전달했다", desc: "입력 변환 비율 설정 오류" },
@@ -36,10 +36,10 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
     root: "fan_actuator",
     repair: "냉각 팬 액추에이터 응답 복원",
     evidence: [
-      { id: "motor_temp", label: "모터 온도가 빠르게 상승함", value: "78.4°C", kind: "OBSERVATION" },
-      { id: "thermal_protection", label: "차량이 스스로 출력을 줄임", value: "보호 모드 작동", kind: "OBSERVATION" },
-      { id: "fan_command", label: "제어기는 팬을 최대로 돌리라고 지시함", value: "팬 명령 100%", kind: "SW COMMAND" },
-      { id: "fan_actual", label: "실제 팬은 전혀 회전하지 않음", value: "실제 속도 0 RPM", kind: "HW RESPONSE" },
+      { id: "motor_temp", label: "온도 경고와 가속력 저하가 함께 발생함", value: "모터 온도 78.4°C", kind: "주행 현상" },
+      { id: "thermal_protection", label: "구동 토크 제한 상태가 기록됨", value: "Derate flag ON", kind: "상태 계측" },
+      { id: "fan_command", label: "Fan PWM 명령이 100%로 기록됨", value: "ECU 출력 명령 100%", kind: "제어 명령" },
+      { id: "fan_actual", label: "팬 회전 피드백이 0 RPM으로 측정됨", value: "명령 100% · 실제 0 RPM", kind: "물리 응답" },
     ],
     hypotheses: [
       { id: "sensor", label: "온도 센서가 틀린 값을 보냈다", desc: "센서 측정 오류 가능성" },
@@ -54,9 +54,9 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
     root: "brake_actuator",
     repair: "마찰제동 액추에이터 응답 복원",
     evidence: [
-      { id: "brake_request", label: "운전자가 강하게 제동을 요청함", value: "페달 입력 55%", kind: "OBSERVATION" },
-      { id: "regen_request", label: "모터 회생제동은 정상 작동함", value: "회생 제동 22%", kind: "SW COMMAND" },
-      { id: "brake_actual", label: "캘리퍼의 실제 제동력이 부족함", value: "마찰 제동 8%", kind: "HW RESPONSE" },
+      { id: "brake_request", label: "페달 55% 입력에도 감속이 부족함", value: "정지거리 증가를 주행 중 관찰", kind: "주행 현상" },
+      { id: "regen_request", label: "회생제동 명령이 22%로 기록됨", value: "인버터 회생 명령 정상", kind: "제어 명령" },
+      { id: "brake_actual", label: "캘리퍼 압력이 기대값보다 낮게 측정됨", value: "마찰 제동 응답 8%", kind: "물리 응답" },
     ],
     hypotheses: [
       { id: "brake_actuator", label: "브레이크 캘리퍼가 제대로 움직이지 않았다", desc: "마찰제동 기구 고착" },

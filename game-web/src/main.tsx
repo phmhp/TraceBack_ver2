@@ -7,16 +7,18 @@ import { dispatch, hydrateCampaign, initialCampaign, type Campaign } from "./gam
 import { SCENARIOS } from "./game/scenarios";
 import {
   FaultDialogue,
-  DriveBriefing,
   FailureAnalysis,
   GarageExperience,
   InvestigationBoard,
   RaceExperience,
-  RepairSequence,
-  ShipBoardingSequence,
-  TwinBenchExperience,
   WiringPuzzle,
 } from "./experiences";
+import {
+  DriveBriefing,
+  RepairSequence,
+  ShipBoardingSequence,
+} from "./features/cutscenes/StaticCutscenes";
+import { TwinBenchExperience } from "./features/verification/VerificationLab";
 import {
   ActionButton,
   CommandBar,
@@ -42,6 +44,9 @@ import "./v12.css";
 import "./v13.css";
 import "./v14.css";
 import "./v15.css";
+import "./v16.css";
+import "./v17.css";
+import "./v18.css";
 const A = "/assets/";
 type Sim = {
   speed: number;
@@ -68,6 +73,8 @@ function useCampaign() {
     if (import.meta.env.DEV && qaScene && ["PROLOGUE", "GARAGE_L1", "DRIVE_BRIEFING", "CHASE_NORMAL", "FAULT_CUE", "BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR", "CHASE_RESUME", "SHIP_ESCAPE", "SHIP_BOARDING", "CAUGHT", "ENDING", "PAUSE"].includes(qaScene)) {
       const isFinale = qaScene.startsWith("SHIP") || qaScene === "ENDING";
       const isResume = qaScene === "CHASE_RESUME";
+      const requestedDistance = Number(params.get("distance"));
+      const qaDistance = Number.isFinite(requestedDistance) && requestedDistance >= 0 ? requestedDistance : undefined;
       return hydrateCampaign({
         scene: qaScene,
         caseId: "propulsion",
@@ -76,7 +83,7 @@ function useCampaign() {
         evidence: { propulsion: ["pedal_raw", "pedal_processed", "torque_cmd"], thermal: [], brake: [] },
         hypothesis: { propulsion: "gateway", thermal: "", brake: "" },
         program: { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake" },
-        raceDistance: qaScene === "CHASE_NORMAL" ? 0 : qaScene === "SHIP_ESCAPE" ? 1035 : isResume ? 545 : 260,
+        raceDistance: qaDistance ?? (qaScene === "CHASE_NORMAL" ? 0 : qaScene === "SHIP_ESCAPE" ? 1165 : isResume ? 545 : 260),
         raceElapsedSeconds: 52,
         policeGapMeters: 72,
         checkpoint: qaScene.startsWith("SHIP") || qaScene === "ENDING" ? "dock_approach" : "propulsion_fault",

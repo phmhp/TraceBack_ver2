@@ -190,11 +190,12 @@ function Tire({ position, steer = false, spin = 0 }: { position: [number, number
   );
 }
 
-function PartLabel({ children, position }: { children: React.ReactNode; position: [number, number, number] }) {
-  return <Html center position={position} distanceFactor={6}><span className="garage3dLabel">{children}</span></Html>;
+function PartLabel({ children, position, className = "" }: { children: React.ReactNode; position: [number, number, number]; className?: string }) {
+  return <Html center position={position} distanceFactor={6}><span className={`garage3dLabel ${className}`.trim()}>{children}</span></Html>;
 }
 
 function SignalCable({ from, to, color = "#ef8c58", via = [] }: { from: [number, number, number]; to: [number, number, number]; color?: string; via?: [number, number, number][] }) {
+  const pulses = useRef<THREE.Mesh[]>([]);
   const curve = useMemo(() => {
     const a = new THREE.Vector3(...from), b = new THREE.Vector3(...to);
     const points = via.length
@@ -202,7 +203,30 @@ function SignalCable({ from, to, color = "#ef8c58", via = [] }: { from: [number,
       : [a, a.clone().add(new THREE.Vector3(.3, .55, 0)), b.clone().add(new THREE.Vector3(-.3, .55, 0)), b];
     return new THREE.CatmullRomCurve3(points);
   }, [from.join(","), to.join(","), via.flat().join(",")]);
-  return <mesh><tubeGeometry args={[curve, 42, .035, 10, false]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={.38} /></mesh>;
+  useFrame(({ clock }) => {
+    pulses.current.forEach((pulse, index) => {
+      if (!pulse) return;
+      const point = curve.getPointAt((clock.elapsedTime * .22 + index / 3) % 1);
+      pulse.position.copy(point);
+    });
+  });
+  return <group>
+    <mesh><tubeGeometry args={[curve, 64, .032, 10, false]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={.24} transparent opacity={.82} /></mesh>
+    {[0, 1, 2].map(index => <mesh key={index} ref={element => { if (element) pulses.current[index] = element; }}><sphereGeometry args={[.075, 16, 12]} /><meshStandardMaterial color="#fff7b7" emissive={color} emissiveIntensity={2.4} /></mesh>)}
+  </group>;
+}
+
+function GarageFlowPart({ label, position, kind, active, running, role }: { label: string; position: [number, number, number]; kind: HardwareKind; active: boolean; running: boolean; role: string }) {
+  const [hovered, setHovered] = useState(false);
+  return <group
+    position={position}
+    scale={active ? 1.08 : .82}
+    onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = "help"; }}
+    onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; }}
+  >
+    <HardwarePart kind={kind} active={active} running={running} />
+    {hovered && <PartLabel position={[0, 1.16, 0]}>{role} · {label}</PartLabel>}
+  </group>;
 }
 
 function GarageWheel({ position, active }: { position: [number, number, number]; active: boolean }) {
@@ -333,10 +357,7 @@ function DomainFlowRig({ domain, feature, activeStep = 0, compact = false, runni
   });
   return <group scale={compact ? .58 : labels.length > 5 ? .68 : .76}>
     <DomainSignature domain={domain} activeStep={activeStep} />
-    {labels.map((label, index) => { const position = positions[index]; const kind = hardwareKindFor(domain, label, index, last); return <group key={`${label}-${index}`} position={position} scale={activeStep === index ? 1.08 : .82}>
-      <HardwarePart kind={kind} active={activeStep === index} running={running} />
-      <PartLabel position={[0, 1.16, 0]}>{index === 0 ? "INPUT · " : index === last ? "OUTPUT · " : /ECU|VCU|BMS|CAN/.test(label) ? "CONTROL · " : "PLANT · "}{label}</PartLabel>
-    </group>; })}
+    {labels.map((label, index) => { const position = positions[index]; const kind = hardwareKindFor(domain, label, index, last); const role = index === 0 ? "INPUT" : index === last ? "OUTPUT" : /ECU|VCU|BMS|CAN/.test(label) ? "CONTROL" : "PLANT"; return <GarageFlowPart key={`${label}-${index}`} label={label} position={position} kind={kind} active={activeStep === index} running={running} role={role} />; })}
     {positions.slice(0, -1).map((position, index) => { const next = positions[index + 1]; return <SignalCable key={`${position.join("-")}`} from={[position[0] + .32, position[1] + .04, position[2]]} to={[next[0] - .32, next[1] + .04, next[2]]} color={index < activeStep ? "#f2c653" : index === activeStep ? "#ff7b49" : domain === "brake" ? "#4b9dc1" : domain === "steer" ? "#8d75b6" : domain === "power" ? "#4a9a82" : "#7ca8b3"} />; })}
     {!compact && <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0,-.04,0]}><ringGeometry args={[3.45,3.55,96]} /><meshStandardMaterial color="#c3d2cb" transparent opacity={.42} /></mesh>}
   </group>;
@@ -382,7 +403,7 @@ function VehiclePlatformShell({ active }: { active: boolean }) {
       <group position={[x,.7,z]} scale={.34}><HardwarePart kind="ecu" active={index===1} running /></group>
     </React.Fragment>)}
     {[[-.72,-.58],[.72,-.58]].map(([x,z])=><group key={x} position={[x,.78,z]}><RoundedBox args={[.54,.72,.5]} radius={.14}><meshStandardMaterial color="#c6b89d" roughness={.72} /></RoundedBox><RoundedBox args={[.54,.18,.5]} radius={.1} position={[-.14,.4,0]}><meshStandardMaterial color="#9e917b" /></RoundedBox></group>)}
-    <PartLabel position={[0,2.82,0]}>세단 패키지 4.70m × 1.85m × 1.45m · 하부 배터리/HV·LV 분기 하니스</PartLabel>
+    <PartLabel className="garageStaticLabel" position={[0,2.82,0]}>세단 패키지 4.70m × 1.85m × 1.45m · 하부 배터리/HV·LV 분기 하니스</PartLabel>
   </group>;
 }
 
@@ -390,7 +411,7 @@ function FullVehicleSystem({ domain, feature, activeStep }: { domain: DomainId; 
   return <group rotation={[0, -.18, 0]}>
     <VehiclePlatformShell active />
     <DomainFlowRig domain={domain} feature={feature} activeStep={activeStep} />
-    <PartLabel position={[0, 2.12, 0]}>{domainContent[domain].functions[feature]} · 운전자 입력에서 차량 거동까지</PartLabel>
+    <PartLabel className="garageStaticLabel" position={[0, 2.12, 0]}>{domainContent[domain].functions[feature]} · 운전자 입력에서 차량 거동까지</PartLabel>
   </group>;
 }
 
@@ -398,7 +419,7 @@ function EeArchitectureRig({ domain, feature, activeStep }: { domain: DomainId; 
   return <group rotation={[0, -.18, 0]}>
     <VehiclePlatformShell active={false} />
     <DomainFlowRig domain={domain} feature={feature} activeStep={activeStep} />
-    <PartLabel position={[0, 2.12, 0]}>차체를 벗겨도 센서·ECU·액추에이터 위치는 그대로</PartLabel>
+    <PartLabel className="garageStaticLabel" position={[0, 2.12, 0]}>차체를 벗겨도 센서·ECU·액추에이터 위치는 그대로</PartLabel>
   </group>;
 }
 
@@ -412,7 +433,7 @@ function EcuSoftwareRig({ domain, feature, detailed }: { domain: DomainId; featu
     {blocks.map((block, index) => { const x = -1.45 + index * .96; return <group key={block} position={[x, .62, 0]}><RoundedBox args={[.75, .38, 1.25]} radius={.09} castShadow><meshStandardMaterial color={index % 2 ? "#8b73ad" : "#4d90a7"} emissive={index % 2 ? "#4b2d68" : "#27566a"} emissiveIntensity={.18} /></RoundedBox>{Array.from({ length: 6 }, (_, pin) => <mesh key={pin} position={[-.31 + (pin % 3) * .31, -.22, pin < 3 ? -.48 : .48]}><boxGeometry args={[.06, .16, .12]} /><meshStandardMaterial color="#d9c987" metalness={.7} /></mesh>)}<PartLabel position={[0, .48, 0]}>{block}</PartLabel></group>; })}
     {blocks.slice(0, -1).map((_, index) => <SignalCable key={index} from={[-1.05 + index * .96, .68, 0]} to={[-.57 + index * .96, .68, 0]} color={detailed ? "#f2c454" : "#e78755"} />)}
     <group ref={pulse} position={[-1.55, 1.02, 0]}><mesh><sphereGeometry args={[.09, 16, 12]} /><meshStandardMaterial color="#fff1a6" emissive="#ffe05e" emissiveIntensity={2.2} /></mesh></group>
-    <PartLabel position={[0, 1.42, -1.1]}>{detailed ? "SW Detailed Design · 조건과 상태" : "ECU SW Architecture · SWC와 포트"}</PartLabel>
+    <PartLabel className="garageStaticLabel" position={[0, 1.42, -1.1]}>{detailed ? "SW Detailed Design · 조건과 상태" : "ECU SW Architecture · SWC와 포트"}</PartLabel>
   </group>;
 }
 
@@ -461,15 +482,27 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const [feature, setFeature] = useState(Number.isInteger(requestedFeature) ? Math.max(0, requestedFeature) : 0);
   const [activeStep, setActiveStep] = useState(0);
   const [lessonHits, setLessonHits] = useState<Set<string>>(() => new Set());
+  const [prediction, setPrediction] = useState("");
+  const [predictionResult, setPredictionResult] = useState<"idle" | "correct" | "wrong">("idle");
   const content = domainContent[domain];
   const selectedFeature = featureFlows[domain][feature];
+  const correctPhysicalOutput = getFeatureLayer(domain, feature, 1).at(-1)!;
+  const predictionOptions = useMemo(() => {
+    const alternatives = featureFlows[domain]
+      .map((_, index) => getFeatureLayer(domain, index, 1).at(-1)!)
+      .filter(item => item !== correctPhysicalOutput);
+    const options = [correctPhysicalOutput, ...alternatives.slice(0, 2)];
+    const shift = feature % options.length;
+    return [...options.slice(shift), ...options.slice(0, shift)];
+  }, [correctPhysicalOutput, domain, feature]);
+  const predictionDisplay = (option: string) => option.replace("전륜 PMSM·감속기", "전륜 모터·감속기");
   const selectLevel = (level: number) => { setRouteLevel(level); setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-layer-${level}`)); };
   const inspectStep = (index: number, step: number) => {
     setActiveStep(step);
     setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-${routeLevel}-${index}`));
   };
-  useEffect(() => { setFeature(0); setActiveStep(0); }, [domain]);
-  useEffect(() => setActiveStep(0), [feature, routeLevel]);
+  useEffect(() => { setFeature(0); setActiveStep(0); setPrediction(""); setPredictionResult("idle"); }, [domain]);
+  useEffect(() => { setActiveStep(0); setPrediction(""); setPredictionResult("idle"); }, [feature, routeLevel]);
   useEffect(() => {
     const flowLength = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
     const timer = window.setInterval(() => setActiveStep(value => (value + 1) % flowLength), 1450);
@@ -490,7 +523,19 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
         <MechanismViewer domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
-        <div className="garageLearningMission"><span><small>LEARNING MISSION</small><b>입력 → 판단 → 출력 경계를 직접 눌러 추적</b></span><div><i style={{ width: `${Math.min(100, lessonHits.size / 6 * 100)}%` }} /></div><em>{Math.min(6, lessonHits.size)}/6 관찰</em></div>
+        <div className={`garageLearningMission prediction-${predictionResult}`}>
+          <span><small>LEARNING MISSION · 먼저 예측하고 관찰</small><b>“{content.functions[feature]}”의 최종 물리 출력은?</b></span>
+          <div className="garagePredictionChoices">{predictionOptions.map(option => <button key={option} className={prediction === option ? "selected" : ""} onClick={() => {
+            const correct = option === correctPhysicalOutput;
+            setPrediction(option);
+            setPredictionResult(correct ? "correct" : "wrong");
+            if (correct) {
+              setActiveStep(getFeatureLayer(domain, feature, garageLayerSource[routeLevel]).length - 1);
+              setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-prediction`));
+            }
+          }}>{predictionDisplay(option)}</button>)}</div>
+          <em>{predictionResult === "correct" ? "✓ 흐름에서 출력 위치가 켜졌습니다" : predictionResult === "wrong" ? "입력 장치가 아니라 차량이 실제로 만드는 결과를 찾아보세요" : `${Math.min(6, lessonHits.size)}/6 관찰`}</em>
+        </div>
       </section>
       <aside className="domainFunctionShelf">
         <small>CORE CONTROL FUNCTIONS</small><h2>{content.label}의 주요 기능</h2>
@@ -632,6 +677,7 @@ function PursuitRouteBar({ distance, gap, compact = false }: { distance: number;
 
 function CatRider({ color, x }: { color: string; x: number }) {
   return <group position={[x, 1.16, .08]}>
+    <mesh position={[0, -.29, .03]} scale={[.82, 1.05, .72]} castShadow><sphereGeometry args={[.22, 20, 15]} /><meshStandardMaterial color={color} roughness={.82} /></mesh>
     <mesh castShadow><sphereGeometry args={[.25, 22, 16]} /><meshStandardMaterial color={color} roughness={.8} /></mesh>
     {[-.14, .14].map((dx, i) => <mesh key={dx} position={[dx, .22, 0]} rotation={[0, 0, i ? -.32 : .32]}><coneGeometry args={[.11, .25, 4]} /><meshStandardMaterial color={color} /></mesh>)}
     {[-.08, .08].map(dx => <mesh key={dx} position={[dx, .03, -.23]}><sphereGeometry args={[.024, 12, 8]} /><meshStandardMaterial color="#243135" /></mesh>)}
@@ -653,8 +699,16 @@ function Convertible({ police = false, steer = 0, spin = 0 }: { police?: boolean
   const color = police ? "#315d91" : "#ef5649";
   return <group>
     <RoundedBox args={[1.9, .48, 3.55]} radius={.25} smoothness={5} position={[0, .48, 0]} castShadow><meshStandardMaterial color={color} roughness={.24} metalness={.18} /></RoundedBox>
+    <RoundedBox args={[1.82, .22, 1.2]} radius={.18} smoothness={5} position={[0, .73, 1.22]} castShadow><meshPhysicalMaterial color={color} roughness={.2} metalness={.18} clearcoat={.72} /></RoundedBox>
+    <RoundedBox args={[1.7, .16, .34]} radius={.08} position={[0, .42, 1.74]}><meshStandardMaterial color="#2b3332" metalness={.42} roughness={.3} /></RoundedBox>
+    {[-.59, .59].map(x => <RoundedBox key={`tail-${x}`} args={[.46, .18, .08]} radius={.06} position={[x, .65, 1.81]}><meshStandardMaterial color="#e83f46" emissive="#ff293d" emissiveIntensity={1.7} /></RoundedBox>)}
+    <RoundedBox args={[.5, .18, .055]} radius={.035} position={[0, .58, 1.84]}><meshStandardMaterial color="#f4ead1" /></RoundedBox>
+    <mesh position={[0, .58, 1.875]}><planeGeometry args={[.32, .11]} /><meshStandardMaterial color="#3c615b" emissive="#24443f" emissiveIntensity={.2} /></mesh>
     <RoundedBox args={[1.58, .25, 1.15]} radius={.18} position={[0, .83, .42]}><meshStandardMaterial color="#2b3d43" /></RoundedBox>
+    {[-.43, .43].map(x => <group key={`seat-${x}`} position={[x, .99, .42]}><RoundedBox args={[.52, .55, .46]} radius={.13}><meshStandardMaterial color="#c4936d" roughness={.72} /></RoundedBox><RoundedBox args={[.46, .28, .36]} radius={.11} position={[0, .38, .02]}><meshStandardMaterial color="#d4a67c" roughness={.74} /></RoundedBox></group>)}
     <RoundedBox args={[1.48, .1, .12]} radius={.04} position={[0, 1.25, -.23]} rotation={[-.24, 0, 0]}><meshStandardMaterial color="#bfe5eb" transparent opacity={.7} /></RoundedBox>
+    {[-.76, .76].map(x => <mesh key={`wind-frame-${x}`} position={[x, 1.03, -.18]} rotation={[-.24, 0, 0]}><boxGeometry args={[.055, .55, .055]} /><meshStandardMaterial color="#263b3c" metalness={.65} /></mesh>)}
+    {[-1.02, 1.02].map(x => <group key={`mirror-${x}`} position={[x, .92, -.42]}><RoundedBox args={[.24, .16, .32]} radius={.08}><meshPhysicalMaterial color={color} clearcoat={.8} roughness={.18} /></RoundedBox><mesh position={[-Math.sign(x) * .14, -.06, .04]} rotation={[0, 0, Math.sign(x) * .35]}><cylinderGeometry args={[.035, .045, .24, 12]} /><meshStandardMaterial color="#253231" metalness={.6} /></mesh></group>)}
     <RoundedBox args={[1.55, .34, 1.25]} radius={.18} position={[0, .74, -1.05]}><meshStandardMaterial color={color} /></RoundedBox>
     <RoundedBox args={[1.72, .16, .72]} radius={.12} position={[0, .82, -1.52]}><meshStandardMaterial color={police ? "#234a78" : "#f36d5b"} metalness={.24} /></RoundedBox>
     <mesh position={[0, .88, -1.83]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[.34, .05, 10, 28, Math.PI]} /><meshStandardMaterial color="#1c292c" metalness={.5} /></mesh>
@@ -679,7 +733,15 @@ function PoliceInterceptor({ spin = 0 }: { spin?: number }) {
   </group>;
 }
 
-const TRACK_LENGTH = 1200;
+// The final escape starts at 1,050 m. Keep a full road approach after that
+// hand-off so the player sees the existing chase continue toward the dock
+// instead of spawning halfway up the ramp.
+const TRACK_LENGTH = 1380;
+const RAMP_START = TRACK_LENGTH - 170;
+const RAMP_END = RAMP_START + 52;
+const RAMP_RISE = 3.55;
+const DECK_TOUCH = RAMP_END + 18;
+const DECK_STOP = DECK_TOUCH + 12;
 const trackFrame = (distance: number, lane = 0) => {
   const s = THREE.MathUtils.clamp(distance, -40, TRACK_LENGTH + 80);
   const centerX = Math.sin(s / 74) * 5.4 + Math.sin(s / 181) * 3.2;
@@ -692,7 +754,21 @@ const trackFrame = (distance: number, lane = 0) => {
   };
 };
 
-const trackSamples = Array.from({ length: 61 }, (_, index) => index * 20);
+const boardingPose = (distance: number) => {
+  if (distance < RAMP_START) return { y: .02, pitch: 0, airborne: false };
+  if (distance <= RAMP_END) {
+    const t = THREE.MathUtils.clamp((distance - RAMP_START) / (RAMP_END - RAMP_START), 0, 1);
+    const eased = THREE.MathUtils.smoothstep(t, 0, 1);
+    return { y: .02 + eased * RAMP_RISE, pitch: .035 + Math.sin(t * Math.PI) * .11, airborne: false };
+  }
+  if (distance < DECK_TOUCH) {
+    const t = THREE.MathUtils.clamp((distance - RAMP_END) / (DECK_TOUCH - RAMP_END), 0, 1);
+    return { y: RAMP_RISE + .02 + Math.sin(t * Math.PI) * 1.5 + t * .03, pitch: .12 - t * .2, airborne: true };
+  }
+  return { y: 3.6, pitch: 0, airborne: false };
+};
+
+const trackSamples = Array.from({ length: Math.ceil(TRACK_LENGTH / 20) + 1 }, (_, index) => index * 20);
 
 function StylizedRoadTree({ tone = "#5d956b" }: { tone?: string }) {
   return <group>
@@ -777,36 +853,42 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
   const player = useRef<THREE.Group>(null!);
   const police = useRef<THREE.Group>(null!);
   const lookTarget = useRef(new THREE.Vector3());
-  // Place the visible dock/ship where the playable road actually commits to
-  // the finale.  Keeping it at the mathematical end of the track made the
-  // player drive through an apparently unrelated water/ship area before the
-  // boarding cinematic could start.
-  const shipFrame = trackFrame(TRACK_LENGTH - 108);
-  useFrame(({ camera }) => {
+  const deckFrame = trackFrame(DECK_TOUCH + 28);
+  const harborFrame = trackFrame((RAMP_START + DECK_STOP) / 2);
+  useFrame(({ camera }, delta) => {
     const roadLane = 3.35 + sim.lane;
     const playerFrame = trackFrame(sim.distance, roadLane);
+    const boarding = ship ? boardingPose(sim.distance) : { y: .02, pitch: 0, airborne: false };
     // Keep the chase car physically behind the player model.  A zero gap is
     // handled by the state machine before the meshes are allowed to overlap.
-    const policeDistance = Math.max(0, sim.distance - Math.max(5.8, sim.gap));
+    const freePoliceDistance = Math.max(0, sim.distance - Math.max(5.8, sim.gap));
+    const policeDistance = ship && sim.distance >= RAMP_START ? Math.min(RAMP_START - 12, freePoliceDistance) : freePoliceDistance;
     const policeFrame = trackFrame(policeDistance, 3.35 + sim.lane * .42);
-    player.current.position.lerp(new THREE.Vector3(playerFrame.x, waterFall ? -2.2 : .02, playerFrame.z), waterFall ? .045 : .16);
+    player.current.position.x = THREE.MathUtils.damp(player.current.position.x, playerFrame.x, waterFall ? 2.2 : 10, delta);
+    player.current.position.y = THREE.MathUtils.damp(player.current.position.y, waterFall ? -2.2 : boarding.y, waterFall ? 2.2 : 11, delta);
+    player.current.position.z = THREE.MathUtils.damp(player.current.position.z, playerFrame.z, waterFall ? 2.2 : 10, delta);
     // Front-wheel steering: the front axle turns first and the body follows a
     // smaller bicycle-model yaw.  Rear wheels never receive a steering angle.
-    player.current.rotation.y = THREE.MathUtils.lerp(player.current.rotation.y, playerFrame.yaw - sim.steer * .34, .12);
-    player.current.rotation.z = THREE.MathUtils.lerp(player.current.rotation.z, -sim.steer * .08, .12);
-    player.current.rotation.x = THREE.MathUtils.lerp(player.current.rotation.x, waterFall ? .72 : 0, waterFall ? .06 : .12);
-    police.current.position.lerp(new THREE.Vector3(policeFrame.x, .02, policeFrame.z), .1);
-    police.current.rotation.y = THREE.MathUtils.lerp(police.current.rotation.y, policeFrame.yaw, .1);
-    const chaseCam = trackFrame(sim.distance - 10.5, 3.35 + sim.lane * .58);
+    player.current.rotation.y = THREE.MathUtils.damp(player.current.rotation.y, playerFrame.yaw - sim.steer * .34, 9, delta);
+    player.current.rotation.z = THREE.MathUtils.damp(player.current.rotation.z, -sim.steer * .08, 10, delta);
+    player.current.rotation.x = THREE.MathUtils.damp(player.current.rotation.x, waterFall ? .72 : boarding.pitch, waterFall ? 2.3 : 9, delta);
+    police.current.position.x = THREE.MathUtils.damp(police.current.position.x, policeFrame.x, 8, delta);
+    police.current.position.y = THREE.MathUtils.damp(police.current.position.y, .02, 8, delta);
+    police.current.position.z = THREE.MathUtils.damp(police.current.position.z, policeFrame.z, 8, delta);
+    police.current.rotation.y = THREE.MathUtils.damp(police.current.rotation.y, policeFrame.yaw, 8, delta);
+    const sideView = ship && boarding.airborne;
+    const chaseCam = trackFrame(sim.distance - (sideView ? 2 : 10.5), sideView ? -11.5 : 3.35 + sim.lane * .58);
     const look = trackFrame(sim.distance + 17, 3.35 + sim.lane * .2);
-    camera.position.x = THREE.MathUtils.lerp(camera.position.x, chaseCam.x, .075);
-    camera.position.y = THREE.MathUtils.lerp(camera.position.y, 3.92, .075);
-    camera.position.z = THREE.MathUtils.lerp(camera.position.z, chaseCam.z, .075);
-    lookTarget.current.lerp(new THREE.Vector3(look.x, .78, look.z), .09);
+    camera.position.x = THREE.MathUtils.damp(camera.position.x, chaseCam.x, 5.2, delta);
+    camera.position.y = THREE.MathUtils.damp(camera.position.y, (sideView ? 4.35 : 3.92) + boarding.y * .45, 5.2, delta);
+    camera.position.z = THREE.MathUtils.damp(camera.position.z, chaseCam.z, 5.2, delta);
+    lookTarget.current.x = THREE.MathUtils.damp(lookTarget.current.x, look.x, 6.5, delta);
+    lookTarget.current.y = THREE.MathUtils.damp(lookTarget.current.y, .78 + boarding.y, 6.5, delta);
+    lookTarget.current.z = THREE.MathUtils.damp(lookTarget.current.z, look.z, 6.5, delta);
     camera.lookAt(lookTarget.current);
   });
   return <>
-    <fog attach="fog" args={[ship ? "#efb17f" : "#b8e1e4", 58, 210]} />
+    <fog attach="fog" args={["#b8e1e4", 58, 210]} />
     <hemisphereLight intensity={1.8} color="#fff5dc" groundColor="#4c735d" />
     <directionalLight castShadow position={[-12, 22, 10]} intensity={2.8} />
     <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -.12, -TRACK_LENGTH / 2]}><planeGeometry args={[110, TRACK_LENGTH + 220]} /><meshStandardMaterial color="#76b47d" roughness={1} /></mesh>
@@ -815,7 +897,7 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
       <mesh position={[0, 3.2 + (index % 3), 0]} castShadow><coneGeometry args={[5.5 + (index % 2) * 2, 7 + (index % 3) * 2, 9]} /><meshStandardMaterial color={index % 2 ? "#668c73" : "#7d9d78"} roughness={1} /></mesh>
       <mesh position={[0, 6.4 + (index % 3), 0]}><coneGeometry args={[2.1, 2.2, 9]} /><meshStandardMaterial color="#d8e2d5" roughness={1} /></mesh>
     </group>)}
-    {trackSamples.map((s, i) => { const frame = trackFrame(s); return <group key={s} position={[frame.x, 0, frame.z]} rotation={[0, frame.yaw, 0]}>
+    {trackSamples.map((s, i) => { if (ship && s >= RAMP_START) return null; const frame = trackFrame(s); return <group key={s} position={[frame.x, 0, frame.z]} rotation={[0, frame.yaw, 0]}>
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[14.8, 20.35]} /><meshStandardMaterial color={i % 2 ? "#48545b" : "#4b575e"} roughness={.96} /></mesh>
       {[-3.7, 3.7].map(x => <mesh key={x} rotation={[-Math.PI / 2, 0, 0]} position={[x, .012, 0]}><planeGeometry args={[.08, 3.5]} /><meshStandardMaterial color="#ece7d9" /></mesh>)}
       {[-.16, .16].map(x => <mesh key={x} rotation={[-Math.PI / 2, 0, 0]} position={[x, .014, 0]}><planeGeometry args={[.07, 20.2]} /><meshStandardMaterial color="#f2c95f" /></mesh>)}
@@ -825,28 +907,40 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
         {i % 10 === 0 && <RoundedBox args={[2.5, 1.1 + (i % 3) * .35, 3.1]} radius={.3} position={[x + Math.sign(x) * 4.3, .65, 0]} castShadow><meshStandardMaterial color={["#e98970", "#76b2aa", "#e6bf67", "#8da8c7"][i % 4]} roughness={.72} /></RoundedBox>}
       </React.Fragment>)}
     </group>})}
-    {[300, 620, 920].map(s => { const f = trackFrame(s); return <group key={`junction-${s}`} position={[f.x, .025, f.z]} rotation={[0, f.yaw, 0]}>
+    {[300, 620, 920].map(s => { const f = trackFrame(s); const missionSignalRed = s === 620 && sim.distance >= 540 && sim.distance <= 612.5; return <group key={`junction-${s}`} position={[f.x, .025, f.z]} rotation={[0, f.yaw, 0]}>
       {Array.from({ length: 9 }, (_, index) => <mesh key={index} rotation={[-Math.PI / 2, 0, 0]} position={[-6.4 + index * 1.6, .015, 0]}><planeGeometry args={[.72, 4.2]} /><meshStandardMaterial color="#f5efe2" /></mesh>)}
-      {[-7.1, 7.1].map(x => <group key={x} position={[x, 2.25, -2.8]}><mesh><boxGeometry args={[.15, 4.5, .15]} /><meshStandardMaterial color="#303b39" metalness={.65} /></mesh><RoundedBox args={[.6, 1.45, .35]} radius={.12} position={[0, 1.7, 0]}><meshStandardMaterial color="#25302e" /></RoundedBox>{[-.42, 0, .42].map((y, n) => <mesh key={y} position={[0, 1.7 + y, -.2]}><sphereGeometry args={[.14, 18, 12]} /><meshStandardMaterial color={n === 2 ? "#50d47a" : "#473f3b"} emissive={n === 2 ? "#2cff70" : "#000"} emissiveIntensity={1.8} /></mesh>)}</group>)}
+      {[-7.1, 7.1].map(x => <group key={x} position={[x, 2.25, -2.8]}><mesh><boxGeometry args={[.15, 4.5, .15]} /><meshStandardMaterial color="#303b39" metalness={.65} /></mesh><RoundedBox args={[.6, 1.45, .35]} radius={.12} position={[0, 1.7, 0]}><meshStandardMaterial color="#25302e" /></RoundedBox>{[-.42, 0, .42].map((y, n) => { const lit = missionSignalRed ? n === 0 : n === 2; const lamp = missionSignalRed ? "#ff554d" : "#50d47a"; return <mesh key={y} position={[0, 1.7 + y, -.2]}><sphereGeometry args={[.14, 18, 12]} /><meshStandardMaterial color={lit ? lamp : "#473f3b"} emissive={lit ? lamp : "#000"} emissiveIntensity={lit ? 2.4 : 0} /></mesh>; })}</group>)}
     </group>; })}
     <RoadsideEnvironment />
     <TrafficFleet sim={sim} />
-    {ship && <group position={[shipFrame.x,0,shipFrame.z]} rotation={[0,shipFrame.yaw,0]}>
-      <mesh receiveShadow rotation={[-Math.PI/2,0,0]} position={[0,-.07,-17]}><planeGeometry args={[30,38]} /><meshPhysicalMaterial color="#3f91a8" roughness={.25} clearcoat={.8} /></mesh>
-      <RoundedBox args={[15.4,.45,5.8]} radius={.18} position={[-5.3,.05,-7]}><meshStandardMaterial color="#78614e" roughness={.82} /></RoundedBox>
-      <group position={[0,.08,-8]} rotation={[Math.max(-.08, .18 - Math.max(0, sim.distance - 1080) / 680),0,0]}>
-        <RoundedBox args={[6.8,.34,18]} radius={.18} position={[0,.15,0]} castShadow><meshStandardMaterial color="#9a714f" roughness={.74} /></RoundedBox>
-        {[-2.8,2.8].map(x => <mesh key={x} position={[x,.5,0]}><boxGeometry args={[.12,.78,17.4]} /><meshStandardMaterial color="#d2b17d" /></mesh>)}
-        {Array.from({length:11},(_,i)=><mesh key={i} position={[0,.35,-7.8+i*1.55]}><boxGeometry args={[6.5,.08,.08]} /><meshStandardMaterial color="#6f4d37" /></mesh>)}
+    {ship && <>
+      {/* A continuous harbor basin sits above the green terrain plane from the
+          final road approach through the far end of the ship. */}
+      <mesh receiveShadow rotation={[-Math.PI/2,0,0]} position={[harborFrame.x,-.075,harborFrame.z]}><planeGeometry args={[120,320]} /><meshPhysicalMaterial color="#3f91a8" roughness={.24} clearcoat={.82} /></mesh>
+      {Array.from({ length: 11 }, (_, index) => {
+        const start = RAMP_START + index * ((RAMP_END - RAMP_START) / 11);
+        const end = RAMP_START + (index + 1) * ((RAMP_END - RAMP_START) / 11);
+        const mid = (start + end) / 2;
+        const frame = trackFrame(mid);
+        const y = ((mid - RAMP_START) / (RAMP_END - RAMP_START)) * RAMP_RISE;
+        const pitch = Math.atan2(RAMP_RISE, RAMP_END - RAMP_START);
+        return <group key={`ramp-${index}`} position={[frame.x,y,frame.z]} rotation={[pitch,frame.yaw,0]}>
+          <RoundedBox args={[7.25,.3,end-start+.18]} radius={.08} castShadow receiveShadow><meshStandardMaterial color={index%2?"#9a714f":"#a9825c"} roughness={.78} /></RoundedBox>
+          {[-3.2,3.2].map(x => <mesh key={x} position={[x,.42,0]}><boxGeometry args={[.13,.72,end-start]} /><meshStandardMaterial color="#d4b17c" /></mesh>)}
+        </group>;
+      })}
+      <group position={[deckFrame.x,1.22,deckFrame.z]} rotation={[0,deckFrame.yaw,0]}>
+        <RoundedBox args={[12.4,4.35,70]} radius={1.05} position={[0,.08,0]} castShadow><meshPhysicalMaterial color="#352725" roughness={.4} metalness={.2} clearcoat={.32} /></RoundedBox>
+        <RoundedBox args={[11.5,.32,69]} radius={.16} position={[0,2.32,0]} castShadow receiveShadow><meshStandardMaterial color="#8e6849" roughness={.78} /></RoundedBox>
+        {Array.from({length:26},(_,index)=><mesh key={index} position={[0,2.5,-32+index*2.55]}><boxGeometry args={[11.2,.07,.1]} /><meshStandardMaterial color="#5f422f" /></mesh>)}
+        {/* Keep the landing lane open. The cabin and mast are placed beyond
+            the automatic stop point instead of intersecting the car path. */}
+        <RoundedBox args={[8.2,2.2,10]} radius={.45} position={[0,3.55,-22]}><meshStandardMaterial color="#604532" roughness={.67} /></RoundedBox>
+        <mesh position={[0,8.7,-24]}><cylinderGeometry args={[.18,.28,10,18]} /><meshStandardMaterial color="#332823" /></mesh>
+        <mesh position={[2.5,8.1,-24]} rotation={[0,0,-.22]}><planeGeometry args={[6.2,5]} /><meshStandardMaterial color="#bd4945" side={THREE.DoubleSide} /></mesh>
+        <PartLabel position={[0,5.35,-14]}>FINAL · THE RED WHISKER · PHYSICAL DECK</PartLabel>
       </group>
-      <group position={[0,2.25,-22]}>
-        <RoundedBox args={[10.8,3.2,19]} radius={.8} castShadow><meshPhysicalMaterial color="#3b2927" roughness={.44} metalness={.18} clearcoat={.35} /></RoundedBox>
-        <RoundedBox args={[7.8,.7,8]} radius={.28} position={[0,2.05,1]}><meshStandardMaterial color="#6d4934" /></RoundedBox>
-        <mesh position={[0,7.3,1]}><cylinderGeometry args={[.18,.28,10,18]} /><meshStandardMaterial color="#332823" /></mesh>
-        <mesh position={[2.4,7.1,1]} rotation={[0,0,-.22]}><planeGeometry args={[6.2,5]} /><meshStandardMaterial color="#bd4945" side={THREE.DoubleSide} /></mesh>
-        <PartLabel position={[0,5.2,6.2]}>FINAL · THE RED WHISKER</PartLabel>
-      </group>
-    </group>}
+    </>}
     <group ref={player}><Convertible steer={sim.steer} spin={sim.distance * .11} /></group>
     <group ref={police} visible={policeVisible}><PoliceInterceptor spin={sim.distance * .11} /></group>
   </>;
@@ -885,11 +979,16 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const [parking, setParking] = useState(false);
   const [driveMission, setDriveMission] = useState<"idle" | "red" | "restart" | "done">("idle");
   const [waterFall, setWaterFall] = useState(false);
+  const [deckSettled, setDeckSettled] = useState(false);
   const assistTarget = state.raceDistance + 42;
   const keys = useRef(new Set<string>());
   const collisionCooldown = useRef(0);
   const simRef = useRef(sim);
   useEffect(() => { simRef.current = sim; }, [sim]);
+  useEffect(() => {
+    if (mode !== "ship") return;
+    ["/assets/cutscene-ship-jump-v1.png", "/assets/cutscene-ship-land-v1.png"].forEach(src => { const image = new Image(); image.src = src; });
+  }, [mode]);
   useEffect(() => {
     if (!countdown) return;
     const timer = window.setTimeout(() => {
@@ -938,17 +1037,27 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         // Bicycle-model inspired lateral movement: the body yaws into the
         // turn and follows a shallow arc instead of translating like a crab.
         let lane = previous.lane + Math.sin(steer) * (speed / 3.6) * .62 * dt;
-        const dockCommitted = mode === "ship" && previous.distance >= TRACK_LENGTH - 170;
+        const dockApproach = mode === "ship" && previous.distance >= RAMP_START - 80;
+        const dockCommitted = mode === "ship" && previous.distance >= RAMP_START;
         // The final dock is a constrained ramp, not another free-lane road
         // segment.  Once committed, guide the car onto the physical centre of
         // the timber ramp and keep enough momentum for the jump cinematic.
+        if (dockApproach) {
+          lane = THREE.MathUtils.damp(lane, -3.35, dockCommitted ? 7.2 : 3.4, dt);
+        }
         if (dockCommitted) {
-          lane = THREE.MathUtils.damp(lane, -3.35, 4.8, dt);
           speed = THREE.MathUtils.damp(speed, Math.max(64, speed), 3.2, dt);
+        }
+        // Once all four wheels reach the deck the player no longer has to
+        // fight the throttle. The car visibly rolls out, settles and stops on
+        // the physical deck before the ending report is opened.
+        if (mode === "ship" && previous.distance >= DECK_TOUCH) {
+          speed = THREE.MathUtils.damp(speed, 0, 2.25, dt);
+          lane = THREE.MathUtils.damp(lane, -3.35, 8.5, dt);
         }
         const roadOffset = 3.35 + lane;
         const pushingOutward = steerInput !== 0 && Math.sign(steerInput) === Math.sign(roadOffset);
-        const hitRail = Math.abs(roadOffset) > 6.92 && pushingOutward;
+        const hitRail = !dockApproach && Math.abs(roadOffset) > 6.92 && pushingOutward;
         if (hitRail) {
           lane = Math.sign(roadOffset) * 6.78 - 3.35;
           speed *= .72;
@@ -961,12 +1070,13 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
           }
         }
         let distance = previous.distance + speed * dt / 3.6;
-        if (driveMission === "red" && distance >= 566) {
-          distance = 566;
+        if (mode === "ship" && distance > DECK_STOP) distance = DECK_STOP;
+        if (driveMission === "red" && distance >= 612) {
+          distance = 612;
           speed = THREE.MathUtils.damp(speed, 0, 8.5, dt);
         }
         const playerRoadLane = 3.35 + lane;
-        const trafficHit = Array.from({ length: 7 }, (_, index) => trafficStateFor({ ...previous, lane, steer, distance, speed }, index)).find(traffic => !traffic.opposite && Math.abs(traffic.distance - distance) < 3.35 && Math.abs(traffic.lane - playerRoadLane) < 1.18);
+        const trafficHit = dockApproach ? undefined : Array.from({ length: 7 }, (_, index) => trafficStateFor({ ...previous, lane, steer, distance, speed }, index)).find(traffic => !traffic.opposite && Math.abs(traffic.distance - distance) < 3.35 && Math.abs(traffic.lane - playerRoadLane) < 1.18);
         if (trafficHit) {
           speed = Math.min(speed, trafficHit.speedKph) * .42;
           distance = Math.max(previous.distance, distance - .45);
@@ -982,7 +1092,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         const floor = state.completedCases.length < 2 ? 10 : 0;
         const policeHasJoined = mode !== "normal" || (previous.elapsed >= 3 && previous.distance >= 45);
         const policeSpeed = speed < 4 ? 24 : THREE.MathUtils.clamp(68 + speed * .12, 68, 88);
-        const finalBoardingZone = mode === "ship" && distance >= TRACK_LENGTH - 170;
+        const finalBoardingZone = mode === "ship" && distance >= RAMP_START;
         const gap = finalBoardingZone
           ? Math.max(10, previous.gap)
           : allowed && policeHasJoined
@@ -998,14 +1108,14 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     return () => { cancelAnimationFrame(frame); removeEventListener("keydown", down); removeEventListener("keyup", up); };
   }, [countdown, driveMission, gear, mode, parking, send, state.caseId, state.completedCases, state.lastRepairDistance, state.lastRepairElapsedSeconds, waterFall]);
   useEffect(() => {
-    if (mode !== "resume" || state.caseId !== "propulsion" || driveMission !== "idle" || sim.distance < 520) return;
+    if (mode !== "resume" || state.caseId !== "propulsion" || driveMission !== "idle" || sim.distance < 550) return;
     setDriveMission("red");
   }, [driveMission, mode, sim.distance, state.caseId]);
   useEffect(() => {
-    if (driveMission === "red" && sim.distance >= 565.8 && sim.speed < 3) setDriveMission("restart");
+    if (driveMission === "red" && sim.distance >= 611.8 && sim.speed < 3) setDriveMission("restart");
   }, [driveMission, sim.distance, sim.speed]);
   useEffect(() => {
-    if (mode !== "ship" || waterFall || sim.distance < TRACK_LENGTH - 230 || sim.distance >= TRACK_LENGTH - 170) return;
+    if (mode !== "ship" || waterFall || sim.distance < TRACK_LENGTH - 230 || sim.distance >= RAMP_START) return;
     const roadOffset = 3.35 + sim.lane;
     if (Math.abs(roadOffset) < 8.35) return;
     setWaterFall(true);
@@ -1014,7 +1124,18 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     const timer = window.setTimeout(() => send({ type: "CAUGHT" }), 1800);
     return () => window.clearTimeout(timer);
   }, [mode, send, sim.distance, sim.lane, waterFall]);
+  const hasTouchedDeck = mode === "ship" && sim.distance >= DECK_TOUCH;
+  useEffect(() => {
+    if (!hasTouchedDeck) { setDeckSettled(false); return; }
+    const timer = window.setTimeout(() => setDeckSettled(true), 2100);
+    return () => window.clearTimeout(timer);
+  }, [hasTouchedDeck]);
   const fired = useRef(false);
+  // CHASE_RESUME and SHIP_ESCAPE intentionally reuse the same RaceExperience
+  // instance so speed/camera continuity is preserved. Reset only the segment
+  // gate when the mode changes; otherwise the resume fault event permanently
+  // blocks the later deck-arrival event.
+  useEffect(() => { fired.current = false; }, [mode]);
   useEffect(() => {
     if (fired.current) return;
     if (sim.gap <= 0) {
@@ -1025,13 +1146,13 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       fired.current = true; send({ type: "FAULT_CUE", caseId: "thermal", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
     } else if (mode === "resume" && state.caseId === "thermal" && sim.distance >= 1050) {
       fired.current = true; send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "START_FINAL_ESCAPE" });
-    } else if (mode === "ship" && sim.distance >= TRACK_LENGTH - 115) {
+    } else if (mode === "ship" && deckSettled) {
       fired.current = true;
       // A single reducer event commits the car to the ramp and prevents stale
       // distance, water fall or a 0 m pursuit tick from stealing the ending.
       send({ type: "FINISH_ESCAPE", distance: sim.distance, gap: Math.max(10, sim.gap), elapsed: sim.elapsed });
     }
-  }, [mode, send, sim.distance, sim.elapsed, sim.gap, state.caseId, state.lastRepairDistance, state.lastRepairElapsedSeconds]);
+  }, [deckSettled, mode, send, sim.distance, sim.elapsed, sim.gap, state.caseId, state.lastRepairDistance, state.lastRepairElapsedSeconds]);
   const symptom = (mode === "normal" && sim.distance >= 210) || (mode === "resume" && state.caseId === "propulsion" && sim.distance >= 780);
   useEffect(() => {
     if (mode !== "assist" || parking || sim.distance < assistTarget) return;
@@ -1051,7 +1172,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const mapPolice = mapPoint(policeProgress);
   const policeJoined = mode !== "normal" || (sim.elapsed >= 3 && sim.distance >= 45);
   const policeInWorld = policeJoined && !(mode === "ship" && sim.distance >= TRACK_LENGTH - 82);
-  return <div className={`raceV2 ${impact ? "raceImpact" : ""} ${waterFall ? "waterFall" : ""}`}>
+  return <div className={`raceV2 raceMode-${mode} ${impact ? "raceImpact" : ""} ${waterFall ? "waterFall" : ""}`} data-race-mode={mode} data-race-distance={sim.distance.toFixed(2)} data-race-speed={sim.speed.toFixed(2)} data-race-gap={sim.gap.toFixed(2)}>
     <RaceWorld sim={sim} ship={mode === "ship"} policeVisible={policeInWorld} waterFall={waterFall} />
     <JourneyProgress scene={mode === "ship" ? "SHIP_ESCAPE" : "CHASE_NORMAL"} />
     <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button><div><small>{mode === "ship" ? "FINAL RUN" : "CHAPTER 04"}</small><b>{mode === "assist" ? "LIMITED DRIVE" : "ESCAPE RUN"}</b></div></div>
@@ -1065,8 +1186,8 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     {(countdown > 0 || goFlash) && <div className="startCountdown"><small>GET READY</small><b>{goFlash ? "GO!" : countdown}</b></div>}
     {symptom && <div className="faultBeacon" role="alert"><span /><div><small>VEHICLE WARNING</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "온도 상승 · 보호 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
     {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
-    {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>DRIVING MISSION · 제동/전원</small><b>{driveMission === "red" ? "적색 신호 · 정지선에서 완전히 정차" : "정차 후 READY 해제 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(566-sim.distance))}m · S로 제동` : "시동 입력과 전원 허용 경계를 확인하세요"}</span></div>}
-    {mode === "ship" && sim.distance >= TRACK_LENGTH - 230 && <div className="finalRampCommit"><small>FINAL DOCK</small><b>{sim.distance >= TRACK_LENGTH - 170 ? "중앙 오르막 램프 자동 진입" : "해적선 연결 램프 접근"}</b><span>차선 중앙 유도 · 점프 시네마틱 자동 연결</span></div>}
+    {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>DRIVING MISSION · 다음 검증용 주행 로그</small><b>{driveMission === "red" ? "적색 신호 정지 · 제동 시퀀스 기록" : "정차 후 READY 재인가 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(612-sim.distance))}m · S로 부드럽게 제동 · 정지선 이탈 금지` : "이 재출발 기록이 열관리 고장 재현 미션의 초기조건이 됩니다"}</span></div>}
+    {mode === "ship" && sim.distance >= TRACK_LENGTH - 230 && <div className="finalRampCommit"><small>FINAL DOCK</small><b>{deckSettled ? "갑판 정차 완료 · 탈출 성공" : sim.distance >= DECK_TOUCH ? "해적선 갑판 착지 · 자동 감속" : sim.distance >= RAMP_START ? "실물 오르막 램프 진입" : "해적선 연결 램프 접근"}</b><span>{sim.distance >= RAMP_END && sim.distance < DECK_TOUCH ? "차량 도약 중 · 측면 카메라" : sim.distance >= DECK_TOUCH ? "네 바퀴 착지 확인 · 엔딩 전환 준비" : "중앙 유도 · 램프와 갑판 충돌면 활성"}</span></div>}
   </div>;
 }
 
@@ -1109,9 +1230,12 @@ export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) 
 }
 
 const evidenceAtlasCell: Record<string, number> = {
-  pedal_raw: 0, pedal_processed: 1, torque_cmd: 2, motor_actual: 3, gateway: 1, bms: 4, motor: 3,
-  motor_temp: 4, fan_command: 5, fan_actual: 6, thermal_protection: 4, sensor: 4, software_command: 5, fan_actuator: 6,
-  brake_request: 0, regen_request: 2, brake_actual: 7, brake_actuator: 7, regen_limit: 2, pedal: 0,
+  // diagnostic-evidence-sheet-v1 contains eight single, situation-specific
+  // photographs (4 × 2). Reuse them by meaning instead of substituting a
+  // generic component thumbnail or showing a four-image collage per card.
+  pedal_raw: 0, pedal_processed: 1, torque_cmd: 2, motor_actual: 3, gateway: 2, bms: 4, motor: 3,
+  motor_temp: 4, fan_command: 5, fan_actual: 6, thermal_protection: 5, sensor: 4, software_command: 5, fan_actuator: 6,
+  brake_request: 0, regen_request: 4, brake_actual: 7, brake_actuator: 7, regen_limit: 4, pedal: 0,
 };
 
 const componentCutoutCell: Record<string, number> = {
@@ -1123,11 +1247,6 @@ const componentCutoutCell: Record<string, number> = {
 function CardGraphic({ id, kind, masked = false }: { id: string; kind: string; masked?: boolean }) {
   const cell = evidenceAtlasCell[id] ?? 1;
   const column = cell % 4, row = Math.floor(cell / 4);
-  const mechanical = kind === "HYPOTHESIS" || ["motor_actual", "fan_actual", "brake_actual"].includes(id);
-  if (mechanical) {
-    const cutout = componentCutoutCell[id] ?? 1;
-    return <div className="polaroidGraphic mechanicalCutout" style={{ "--cutout-x": `${(cutout % 4) * 33.333}%`, "--cutout-y": `${Math.floor(cutout / 4) * 100}%` } as React.CSSProperties}><span>{masked ? "미분류 단서" : kind === "HYPOTHESIS" ? "원인 후보" : kind}</span><i /></div>;
-  }
   return <div className="polaroidGraphic evidenceAssetPhoto" style={{ "--evidence-x": `${column * 33.333}%`, "--evidence-y": `${row * 100}%` } as React.CSSProperties}>
     <span>{masked ? "미분류 단서" : kind === "HYPOTHESIS" ? "원인 후보" : kind}</span>
   </div>;
@@ -1170,6 +1289,7 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
   const boardRef = useRef<HTMLDivElement>(null);
   const [cardPositions, setCardPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [linkedEvidence, setLinkedEvidence] = useState<string[]>([]);
+  const [threadPaths, setThreadPaths] = useState<Record<string, { x: number; y: number }[]>>({});
   const [boardTool, setBoardTool] = useState<"move" | "thread" | "erase">("move");
   const [threadDraft, setThreadDraft] = useState<{ from: string; points: { x: number; y: number }[] } | null>(null);
   const hintKey = `${state.caseId}:board`;
@@ -1195,24 +1315,26 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
       const id = data.slice(9);
       if (!selectedEvidence.includes(id)) send({ type: "RECORD_EVIDENCE", id });
       setCardPositions(previous => ({ ...previous, [id]: { x: THREE.MathUtils.clamp(point.x - 9, 1, 70), y: THREE.MathUtils.clamp(point.y - 14, 8, 66) } }));
-      setFeedback("증거를 코르크판에 놓았습니다. 연필로 이 증거와 원인 후보를 이어 보세요.");
+      setFeedback("관찰·계측 단서를 놓았습니다. 이 단서가 지지하는 가능 원인 가설과 이어 보세요.");
     }
     if (data.startsWith("cause:")) {
       const id = data.slice(6);
       if (selectedHypothesis !== id) send({ type: "SELECT_HYPOTHESIS", id });
-      setFeedback("원인 후보를 보드에 놓았습니다. 관련 증거 두 장 이상에서 실을 이어야 합니다.");
+      setCardPositions(previous => ({ ...previous, [`cause:${id}`]: { x: THREE.MathUtils.clamp(point.x - 9, 1, 78), y: THREE.MathUtils.clamp(point.y - 14, 8, 67) } }));
+      setFeedback("가능 원인 가설을 놓았습니다. 관련 단서 두 장 이상으로 지지한 뒤 다음 단계에서 검증합니다.");
     }
   };
   const selectedCards = scenario.evidence.filter(item => selectedEvidence.includes(item.id));
   const cause = scenario.hypotheses.find(item => item.id === selectedHypothesis);
-  const threadPath = (x: number, y: number, index: number) => {
-    const targetX = 91, targetY = 52;
-    const points = Array.from({ length: 13 }, (_, step) => {
-      const t = step / 12;
-      const wave = Math.sin(t * Math.PI * 5 + index * 1.7) * (1.8 + Math.sin(t * Math.PI) * 1.7);
-      return [x + (targetX - x) * t, y + (targetY - y) * t + wave] as const;
-    });
-    return points.map((point, step) => `${step ? "L" : "M"} ${point[0].toFixed(2)} ${point[1].toFixed(2)}`).join(" ");
+  const freehandPath = (points: { x: number; y: number }[]) => {
+    if (points.length < 2) return "";
+    let path = `M ${points[0].x} ${points[0].y}`;
+    for (let index = 1; index < points.length - 1; index += 1) {
+      const point = points[index], next = points[index + 1];
+      path += ` Q ${point.x} ${point.y} ${(point.x + next.x) / 2} ${(point.y + next.y) / 2}`;
+    }
+    const last = points.at(-1)!;
+    return `${path} L ${last.x} ${last.y}`;
   };
   const beginThread = (id: string, event: React.PointerEvent) => {
     if (boardTool !== "thread") return;
@@ -1223,30 +1345,37 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
   const finishThread = (event: React.PointerEvent) => {
     if (!threadDraft || !cause) return;
     event.stopPropagation();
+    const completedPath = [...threadDraft.points, boardPoint(event.clientX, event.clientY)];
     setLinkedEvidence(previous => previous.includes(threadDraft.from) ? previous : [...previous, threadDraft.from]);
-    setFeedback("증거와 원인 후보를 붉은 실로 연결했습니다.");
+    setThreadPaths(previous => ({ ...previous, [threadDraft.from]: completedPath }));
+    setFeedback("관찰·계측 단서와 가능 원인 가설을 붉은 실로 연결했습니다.");
     setThreadDraft(null);
+  };
+  const eraseThread = (id: string) => {
+    if (boardTool !== "erase") return;
+    setLinkedEvidence(previous => previous.filter(item => item !== id));
+    setThreadPaths(previous => { const next = { ...previous }; delete next[id]; return next; });
   };
   return <div className="boardV2 boardV3">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
     <GameHeader chapter="INCIDENT INVESTIGATION" title="증거 메모판" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main className="investigationBoard detectiveLayout">
-      <header><div><small>DRAG · PIN · DRAW A HYPOTHESIS</small><h1>{scenario.title}</h1></div><div className="boardToolbox"><button className={boardTool === "move" ? "active" : ""} onClick={() => setBoardTool("move")}><img src={`${A}cursor-hand-open-v1.png`} alt="" /><span>손</span></button><button className={boardTool === "thread" ? "active" : ""} onClick={() => setBoardTool("thread")}><img src={`${A}detective-pencil-v1.png`} alt="" /><span>연필</span></button><button className={boardTool === "erase" ? "active" : ""} onClick={() => setBoardTool("erase")}><img src={`${A}detective-eraser-v1.png`} alt="" /><span>지우개</span></button></div><button onClick={() => setRulesOpen(value => !value)}>규칙</button><button onClick={() => setReplay(true)}>▶ QUICK REPLAY</button><button className="hintButton" disabled={seconds < 60 || hintUsed} onClick={() => { send({ type: "HINT", key: hintKey }); setFeedback(`힌트: ${scenario.hypotheses.find(item => item.id === scenario.root)?.label} 주변에서 명령과 실제 반응이 갈라지는 지점을 비교하세요. (-5m)`); }}>{hintUsed ? "힌트 사용됨" : seconds < 60 ? `힌트 ${60 - seconds}초` : "힌트 보기 · -5m"}</button></header>
-      {rulesOpen && <aside className="boardRules"><b>목표 · 관찰 경계가 갈라진 증거를 골라 원인 후보 한 장을 입증하세요</b><ol><li>QUICK REPLAY에서 운전자가 겪은 증상을 확인합니다.</li><li>왼쪽 증거 중 입력·명령·실제 반응을 비교할 수 있는 카드만 중앙으로 끌어옵니다. 모든 카드를 쓸 필요는 없습니다.</li><li>오른쪽 원인 후보는 한 장만 보드에 놓습니다.</li><li>연필로 “이 증거가 이 원인을 지지한다”는 관계를 직접 연결합니다.</li><li>관련 증거 2장 이상이 같은 원인을 지지하면 확정할 수 있습니다. 잘못 이은 선은 지우개로 삭제합니다.</li></ol></aside>}
-      <aside className="evidenceInventory"><h2>주행·진단 증거</h2><p>손 도구로 드래그 · 더블클릭 확대</p><div>{scenario.evidence.map(card => <div key={card.id} className={selectedEvidence.includes(card.id) ? "used" : ""}><Polaroid id={card.id} title={card.label} value={card.value} kind={card.kind} selected={false} tool={boardTool} dragData={boardTool === "move" ? `evidence:${card.id}` : undefined} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>)}</div></aside>
-      <section className={`caseCorkCanvas tool-${boardTool}`} ref={boardRef} onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={dropOnBoard} onPointerMove={event => { if (!threadDraft) return; const point = boardPoint(event.clientX, event.clientY); setThreadDraft(previous => previous ? { ...previous, points: [...previous.points, point] } : previous); }} onPointerUp={() => threadDraft && setThreadDraft(null)}>
-        <div className="caseBoardTitle"><b>가설 연결 보드</b><span>증거와 원인을 끌어놓고, 연필로 압정 사이를 직접 이으세요</span><em>{linkedEvidence.length} LINKED</em></div>
-        <svg className={`evidenceThreads ${boardTool === "erase" ? "erasing" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none">{cause && selectedCards.filter(card => linkedEvidence.includes(card.id)).map((card, index) => { const pos = cardPositions[card.id] ?? { x: 12 + (index % 3) * 27, y: 12 + Math.floor(index / 3) * 42 }; return <path key={card.id} d={threadPath(pos.x + 10, pos.y + 14, index)} onPointerEnter={() => boardTool === "erase" && setLinkedEvidence(previous => previous.filter(id => id !== card.id))} onClick={() => boardTool === "erase" && setLinkedEvidence(previous => previous.filter(id => id !== card.id))} />; })}{threadDraft && <path className="threadDraft" d={threadDraft.points.map((point, index) => `${index ? "L" : "M"} ${point.x} ${point.y}`).join(" ")} />}</svg>
+      <header><div><small>OBSERVE · MEASURE · HYPOTHESIZE</small><h1>{scenario.title}</h1><div className="reasoningMicroRail"><span>현상 확인</span><i>→</i><span>계측 단서</span><i>→</i><span>가능 원인 가설</span><i>→</i><span>후속 검증</span></div></div><div className="boardToolbox"><button className={boardTool === "move" ? "active" : ""} onClick={() => setBoardTool("move")}><img src={`${A}cursor-hand-open-v1.png`} alt="" /><span>손</span></button><button className={boardTool === "thread" ? "active" : ""} onClick={() => setBoardTool("thread")}><img src={`${A}detective-pencil-v1.png`} alt="" /><span>연필</span></button><button className={boardTool === "erase" ? "active" : ""} onClick={() => setBoardTool("erase")}><img src={`${A}detective-eraser-v1.png`} alt="" /><span>지우개</span></button></div><button onClick={() => setRulesOpen(value => !value)}>규칙</button><button onClick={() => setReplay(true)}>▶ QUICK REPLAY</button><button className="hintButton" disabled={seconds < 60 || hintUsed} onClick={() => { send({ type: "HINT", key: hintKey }); setFeedback(`힌트: ${scenario.hypotheses.find(item => item.id === scenario.root)?.label} 가설을 명령값과 실제 반응으로 검토해 보세요. (-5m)`); }}>{hintUsed ? "힌트 사용됨" : seconds < 60 ? `힌트 ${60 - seconds}초` : "힌트 보기 · -5m"}</button></header>
+      {rulesOpen && <aside className="boardRules"><b>목표 · 사실 단서로 가장 설명력 높은 원인 가설을 세우세요</b><ol><li>QUICK REPLAY에서 운전자가 겪은 <b>주행 현상</b>을 먼저 확인합니다.</li><li>입력값·제어 명령·실제 물리 응답처럼 직접 측정된 카드만 중앙으로 끌어옵니다.</li><li>오른쪽의 <b>가능 원인 가설</b> 한 장을 선택합니다. 이 단계에서는 아직 확정 원인이 아닙니다.</li><li>연필로 “이 단서가 이 가설을 지지한다”는 관계를 직접 연결합니다.</li><li>단서 두 장 이상이 가설을 지지하면 채택하고, 다음 제어 경로·추적 실험에서 입증하거나 기각합니다.</li></ol></aside>}
+      <aside className="evidenceInventory"><h2>관찰된 현상 · 계측 단서</h2><p>주행 현상과 입력·명령·실제 반응을 구분</p><div>{scenario.evidence.map(card => <div key={card.id} className={selectedEvidence.includes(card.id) ? "used" : ""}><Polaroid id={card.id} title={card.label} value={card.value} kind={card.kind} selected={false} tool={boardTool} dragData={boardTool === "move" ? `evidence:${card.id}` : undefined} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>)}</div></aside>
+      <section className={`caseCorkCanvas tool-${boardTool}`} ref={boardRef} onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={dropOnBoard} onPointerMove={event => { if (!threadDraft) return; const point = boardPoint(event.clientX, event.clientY); setThreadDraft(previous => { if (!previous) return previous; const last = previous.points.at(-1)!; return Math.hypot(point.x - last.x, point.y - last.y) < .45 ? previous : { ...previous, points: [...previous.points, point] }; }); }} onPointerUp={() => threadDraft && setThreadDraft(null)}>
+        <div className="caseBoardTitle"><b>원인 가설 검토 보드</b><span>사실 단서와 가능 원인 가설을 놓고 지지 관계를 이으세요</span><em>{linkedEvidence.length} LINKED</em></div>
+        <svg className={`evidenceThreads ${boardTool === "erase" ? "erasing" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none">{cause && selectedCards.filter(card => linkedEvidence.includes(card.id)).map(card => <path key={card.id} d={freehandPath(threadPaths[card.id] ?? [])} onPointerEnter={() => eraseThread(card.id)} onClick={() => eraseThread(card.id)} />)}{threadDraft && <path className="threadDraft" d={freehandPath(threadDraft.points)} />}</svg>
         {selectedCards.map((card, index) => { const pos = cardPositions[card.id] ?? { x: 12 + (index % 3) * 27, y: 12 + Math.floor(index / 3) * 42 }; const linked = linkedEvidence.includes(card.id); return <div className={`boardPinnedCard ${linked ? "threaded" : ""}`} draggable={boardTool === "move"} key={card.id} style={{ left: `${pos.x}%`, top: `${pos.y}%` }} onDragEnd={event => boardTool === "move" && movePinned(card.id, event)} onPointerDown={event => beginThread(card.id, event)}><Polaroid id={card.id} title={card.label} value={card.value} kind={card.kind} selected tool={boardTool} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>; })}
-        {cause && <div className="boardCausePin" onPointerUp={finishThread}><Polaroid id={cause.id} title={cause.label} value={cause.desc} kind="HYPOTHESIS" selected tool={boardTool} onZoom={() => setZoomCard({ id: cause.id, label: cause.label, value: cause.desc, kind: "HYPOTHESIS" })} /></div>}
+        {cause && (() => { const pos = cardPositions[`cause:${cause.id}`] ?? { x: 76, y: 34 }; return <div className="boardCausePin freePosition" draggable={boardTool === "move"} style={{ left: `${pos.x}%`, top: `${pos.y}%` }} onDragEnd={event => boardTool === "move" && movePinned(`cause:${cause.id}`, event)} onPointerUp={finishThread}><Polaroid id={cause.id} title={cause.label} value={cause.desc} kind="HYPOTHESIS" selected tool={boardTool} onZoom={() => setZoomCard({ id: cause.id, label: cause.label, value: cause.desc, kind: "HYPOTHESIS" })} /></div>; })()}
         {!selectedCards.length && <div className="emptyCaseBoard"><b>① 증거 사진을 이곳으로 끌어오세요</b><span>② 원인 후보도 끌어온 뒤 ③ 연필로 압정 사이를 잇습니다</span></div>}
       </section>
-      <aside className="causeCandidates"><h2>고장 원인 후보</h2><p>손 도구로 한 장을 보드에 배치</p>{scenario.hypotheses.map(item => <div key={item.id} className={selectedHypothesis === item.id ? "selected" : ""}><Polaroid id={item.id} title={item.label} value={item.desc} kind="HYPOTHESIS" selected={false} tool={boardTool} dragData={boardTool === "move" ? `cause:${item.id}` : undefined} onZoom={() => setZoomCard({ id: item.id, label: item.label, value: item.desc, kind: "HYPOTHESIS" })} /></div>)}</aside>
-      <footer className="boardDecisionBar"><span className="boardFeedback">{feedback || "성공 조건: 원인 후보 1장 + 이를 지지하는 관련 증거 2장 이상의 직접 연결"}</span><button className="primary" disabled={linkedEvidence.length < 2 || !selectedHypothesis} onClick={() => send({ type: "OPEN_WIRING" })}>{linkedEvidence.length < 2 ? `증거 연결 ${linkedEvidence.length}/2` : "가설 확정 · 다음 단계 →"}</button></footer>
+      <aside className="causeCandidates"><h2>가능 원인 가설</h2><p>검증할 가설 한 장을 보드에 배치</p>{scenario.hypotheses.map(item => <div key={item.id} className={selectedHypothesis === item.id ? "selected" : ""}><Polaroid id={item.id} title={item.label} value={item.desc} kind="원인 가설" selected={false} tool={boardTool} dragData={boardTool === "move" ? `cause:${item.id}` : undefined} onZoom={() => setZoomCard({ id: item.id, label: item.label, value: item.desc, kind: "원인 가설" })} /></div>)}</aside>
+      <footer className="boardDecisionBar"><span className="boardFeedback">{feedback || "성공 조건: 가능 원인 가설 1장 + 이를 지지하는 사실 단서 2장 이상의 직접 연결"}</span><button className="primary" disabled={linkedEvidence.length < 2 || !selectedHypothesis} onClick={() => send({ type: "OPEN_WIRING" })}>{linkedEvidence.length < 2 ? `단서 연결 ${linkedEvidence.length}/2` : "가설 채택 · 제어 경로 검증 →"}</button></footer>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={() => { send({ type: "SOLVE_BOARD" }); setLinkedEvidence(state.caseId === "propulsion" ? ["pedal_raw", "pedal_processed", "torque_cmd"] : state.caseId === "thermal" ? ["motor_temp", "fan_command", "fan_actual"] : ["brake_request", "regen_request", "brake_actual"]); }}>정답 보기</button>
-    {zoomCard && <div className="evidenceZoom" onClick={() => setZoomCard(null)}><article onClick={event => event.stopPropagation()}><button onClick={() => setZoomCard(null)}>×</button><CardGraphic id={zoomCard.id} kind={zoomCard.kind} /><small>{zoomCard.kind}</small><h2>{zoomCard.label}</h2><p>{zoomCard.value}</p></article></div>}
+    {zoomCard && <div className="evidenceZoom" onClick={() => setZoomCard(null)}><article onClick={event => event.stopPropagation()}><button onClick={() => setZoomCard(null)} aria-label="확대 카드 닫기">×</button><CardGraphic id={zoomCard.id} kind={zoomCard.kind} /><div className="zoomPolaroidCaption"><small>{zoomCard.kind}</small><h2>{zoomCard.label}</h2><p>{zoomCard.value}</p></div></article></div>}
     {replay && <div className="replayModal" onClick={() => setReplay(false)}><div onClick={event => event.stopPropagation()}><button onClick={() => setReplay(false)}>×</button><small>QUICK REPLAY · LAST 8.0 SEC</small><h2>고장 직전 실제 주행 재생</h2><ReplayRaceView caseId={state.caseId} /><div className="replaySignals"><span>운전자 입력<b>{state.caseId === "propulsion" ? "60%" : "주행 유지"}</b></span><span>차량 명령<b>{state.caseId === "propulsion" ? "27%" : "FAN ON"}</b></span><span>실제 반응<b>{state.caseId === "propulsion" ? "출력 저하" : "0 RPM"}</b></span></div><p>레이싱 당시 카메라·오픈카·추격차를 그대로 재생합니다. 원인명은 표시하지 않습니다.</p></div></div>}
   </div>;
 }
@@ -1300,24 +1429,66 @@ const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNo
   },
 };
 
+const puzzleEdgeClass = (index: number, total: number) => {
+  if (index === 0) return "edge-flat-tab";
+  if (index === total - 1) return "edge-notch-flat";
+  return index % 2 === 1 ? "edge-notch-notch" : "edge-tab-tab";
+};
+
+export function RestoredPuzzleVisual({ caseId, running, works, reference }: { caseId: CaseId; running: boolean; works: boolean; reference: boolean }) {
+  const config = puzzleConfig[caseId];
+  const wrongId = caseId === "propulsion" ? "map45" : caseId === "thermal" ? "forceoff" : "regenonly";
+  const path = config.correct.map((id, index) => !reference && !works && index === 2 ? wrongId : id);
+  return <section className={`restoredPuzzleVisual ${running ? "running" : ""} ${works ? "works" : "broken"}`}>
+    <header><small>RESTORED CONTROL PATH</small><b>{reference ? "정상 기준 경로" : "앞 단계에서 복원한 경로"}</b><em>{running ? "신호 흐름 추적 중" : works ? "홈·순서 일치" : "불일치 홈 감지"}</em></header>
+    <div className="restoredPuzzleTrack">
+      {path.map((id, index) => {
+        const block = config.blocks.find(item => item.id === id)!;
+        return <div className="restoredPuzzleWrap" key={`${id}-${index}`} title={`${block.label} · ${block.detail}`}>
+          <article className={`restoredPuzzlePiece ${puzzleEdgeClass(index, path.length)} ${block.kind.toLowerCase()} ${!reference && !works && index === 2 ? "mismatch" : ""}`}>
+            {block.kind === "HW" ? <i className={`restoredPiecePhoto componentAssetPhoto asset-${componentAtlasCell[id] ?? 2}`} /> : <i className="restoredPiecePhoto restoredLogicGlyph"><b>f(u)</b><span>→</span></i>}
+            <span><small>{block.kind}</small><b>{block.label}</b></span>
+          </article>
+        </div>;
+      })}
+      <i className="restoredSignal" />
+    </div>
+    <footer><span>INPUT</span><i /> <span>VALIDATE</span><i /> <span>CONTROL</span><i /> <span>COMMAND</span><i /> <span>ECU / I·O</span><i /> <span>PLANT</span></footer>
+  </section>;
+}
+
 export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const config = puzzleConfig[state.caseId];
   const perspective = puzzlePerspective[state.caseId];
   const mission = puzzleMission[state.caseId];
-  const spreadSlots = [[48, 420], [360, 72], [720, 390], [92, 92], [535, 250], [910, 92], [300, 365], [805, 205]];
-  const spreadNodes = () => config.blocks.map((block, index) => ({ ...block, x: spreadSlots[index][0], y: spreadSlots[index][1] }));
+  const flowSlots = config.correct.map((_, index) => ({ x: 38 + index * 116, y: 105 }));
+  const gapIndexes = [2, 3];
+  const gapIds = gapIndexes.map(index => config.correct[index]);
+  const spreadNodes = () => {
+    let looseIndex = 0;
+    return config.blocks.map(block => {
+      const correctIndex = config.correct.indexOf(block.id);
+      if (correctIndex >= 0 && !gapIndexes.includes(correctIndex)) return { ...block, ...flowSlots[correctIndex] };
+      const position = { x: 80 + looseIndex * 195, y: 360 + (looseIndex % 2) * 8 };
+      looseIndex += 1;
+      return { ...block, ...position };
+    });
+  };
+  const starterEdges = () => config.correct.slice(0, -1).map((id, index) => ({ from: id, to: config.correct[index + 1] })).filter((_, index) => !gapIndexes.includes(index) && !gapIndexes.includes(index + 1));
   const [nodes, setNodes] = useState<LogicNode[]>(spreadNodes);
-  const [edges, setEdges] = useState<LogicEdge[]>([]);
+  const [edges, setEdges] = useState<LogicEdge[]>(starterEdges);
   const [source, setSource] = useState("");
   const [wireDraft, setWireDraft] = useState<{ points: WirePoint[] } | null>(null);
   const [dragging, setDragging] = useState<{ id: string; dx: number; dy: number } | null>(null);
-  const [view, setView] = useState({ x: 0, y: 0, scale: .82 });
+  const initialWireScale = () => window.innerWidth < 1100 ? .72 : .9;
+  const [view, setView] = useState({ x: 0, y: 0, scale: initialWireScale() });
   const [panning, setPanning] = useState<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const [wireTool, setWireTool] = useState<"move" | "pencil" | "erase">("move");
   const eraser = wireTool === "erase";
   const [rulesOpen, setRulesOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [zoomNode, setZoomNode] = useState<LogicNode | null>(null);
+  const [puzzleFeedback, setPuzzleFeedback] = useState("연결되는 조각은 홈 모양과 제어 순서가 함께 맞습니다.");
   const [seconds, setSeconds] = useState(0);
   const canvasRef = useRef<HTMLDivElement>(null);
   const hintKey = `${state.caseId}:wiring`;
@@ -1329,16 +1500,28 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
   };
   const connect = (to: string) => {
     if (!source || source === to) return;
+    const sourceIndex = config.correct.indexOf(source);
+    const targetIndex = config.correct.indexOf(to);
+    if (sourceIndex < 0 || targetIndex !== sourceIndex + 1) {
+      setPuzzleFeedback("이 두 조각은 홈 방향 또는 제어 순서가 맞지 않습니다.");
+      setSource(""); setWireDraft(null);
+      return;
+    }
     const target = nodes.find(node => node.id === to);
-    const points = wireDraft && target ? [...wireDraft.points, { x: target.x, y: target.y + 49 }] : undefined;
+    const points = wireDraft && target ? [...wireDraft.points, { x: target.x + 12, y: target.y + 70 }] : undefined;
     setEdges(previous => [...previous.filter(edge => edge.to !== to), { from: source, to, points }]);
+    setPuzzleFeedback("홈과 순서가 맞았습니다. 다음 끊긴 경로를 이어 보세요.");
     setSource(""); setWireDraft(null);
   };
   const chooseWireNode = (node: LogicNode) => {
     if (wireTool !== "pencil") return;
     if (source) { connect(node.id); return; }
+    if (config.correct.indexOf(node.id) < 0) {
+      setPuzzleFeedback("오류 후보와 기록 블록은 정상 경로에 연결되지 않습니다.");
+      return;
+    }
     setSource(node.id);
-    setWireDraft({ points: [{ x: node.x + 110, y: node.y + 49 }] });
+    setWireDraft({ points: [{ x: node.x + 128, y: node.y + 70 }] });
   };
   const curveFromPoints = (points: WirePoint[]) => {
     if (points.length < 2) return "";
@@ -1348,40 +1531,63 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
       return `${path} Q ${previous.x} ${previous.y} ${midX} ${midY}`;
     }, `M ${points[0].x} ${points[0].y}`) + ` T ${points.at(-1)!.x} ${points.at(-1)!.y}`;
   };
+  const snapDraggedNode = (clientX?: number, clientY?: number) => {
+    if (!dragging) return;
+    const gapIndex = config.correct.indexOf(dragging.id);
+    const storedNode = nodes.find(node => node.id === dragging.id);
+    if (!storedNode) return;
+    const pointer = clientX !== undefined && clientY !== undefined ? localPoint(clientX, clientY) : null;
+    const draggedNode = pointer ? { ...storedNode, x: THREE.MathUtils.clamp(pointer.x - dragging.dx / view.scale, 5, 1075), y: THREE.MathUtils.clamp(pointer.y - dragging.dy / view.scale, 5, 525) } : storedNode;
+    if (!gapIndexes.includes(gapIndex)) {
+      if (gapIndexes.some(index => Math.hypot(draggedNode.x - flowSlots[index].x, draggedNode.y - flowSlots[index].y) < 130)) setPuzzleFeedback("이 조각의 홈은 빈 경로와 맞지 않습니다.");
+      return;
+    }
+    const slot = flowSlots[gapIndex];
+    if (Math.hypot(draggedNode.x - slot.x, draggedNode.y - slot.y) >= 130) return;
+    setNodes(previous => previous.map(node => node.id === dragging.id ? { ...node, ...slot } : node));
+    setPuzzleFeedback(`${draggedNode.label} 조각이 맞는 홈에 끼워졌습니다.`);
+  };
   const solvePuzzle = () => {
-    const solved = spreadNodes();
+    const solved = spreadNodes().map(node => { const index = config.correct.indexOf(node.id); return index >= 0 ? { ...node, ...flowSlots[index] } : node; });
     setNodes(solved);
     setEdges(config.correct.slice(0, -1).map((id, index) => ({ from: id, to: config.correct[index + 1] })));
+    setPuzzleFeedback("정상 제어 경로가 완성되었습니다.");
     setSource(""); setWireDraft(null); setWireTool("move");
   };
   const isCorrect = config.correct.every((id, index) => index === config.correct.length - 1 || edges.some(edge => edge.from === id && edge.to === config.correct[index + 1]));
-  const ready = config.correct.every(id => nodes.some(node => node.id === id)) && edges.length >= config.correct.length - 1;
+  const slotsFilled = gapIndexes.every(index => {
+    const node = nodes.find(item => item.id === config.correct[index]);
+    const slot = flowSlots[index];
+    return Boolean(node && Math.hypot(node.x - slot.x, node.y - slot.y) < 8);
+  });
+  const ready = slotsFilled && isCorrect;
   return <div className="wiringV2">
     <SceneBackdrop image={`${A}stitch23/prologue-plan.png`} position="center" shade="soft" />
     <GameHeader chapter="CONTROL PATH RESTORATION" title="제어 경로 복원" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
-    <div className="wiringTitle"><div><small>CONTROL PATH RESTORATION · FUNCTION SLICE</small><h1><em className="puzzlePerspectiveTag" onMouseEnter={() => setHelpOpen(true)} onMouseLeave={() => setHelpOpen(false)} onFocus={() => setHelpOpen(true)}>{perspective.active} 수준의 로직 퍼즐</em><span>{mission.domain} 도메인 · {mission.feature}</span></h1><p><b>관찰 입력</b> {mission.input}<i>→</i><b>관찰 출력</b> {mission.output}</p></div><span>{source ? `${nodes.find(node => node.id === source)?.label} 선택 · 다음 폴라로이드 클릭` : `확대 ${Math.round(view.scale * 100)}%`}</span><div className="wiringToolbox"><button className={wireTool === "move" ? "active" : ""} onClick={() => { setWireTool("move"); setSource(""); setWireDraft(null); }}><img src={`${A}cursor-hand-open-v1.png`} alt="" /><small>이동</small></button><button className={wireTool === "pencil" ? "active" : ""} onClick={() => setWireTool("pencil")}><img src={`${A}detective-pencil-v1.png`} alt="" /><small>배선</small></button><button className={wireTool === "erase" ? "active" : ""} onClick={() => { setWireTool("erase"); setSource(""); setWireDraft(null); }}><img src={`${A}detective-eraser-v1.png`} alt="" /><small>지우개</small></button></div><button onClick={() => setHelpOpen(value => !value)}>관점 도움말</button><button onClick={() => setRulesOpen(value => !value)}>규칙</button><button className="wiringHint" disabled={seconds < 60 || hintUsed} onClick={() => send({ type: "HINT", key: hintKey })}>{hintUsed ? `힌트: ${config.correct[0]} → ${config.correct[1]}부터 시작` : seconds < 60 ? `힌트 ${60 - seconds}초` : "힌트 보기 · -5m"}</button><button onClick={() => { setNodes(spreadNodes()); setEdges([]); setSource(""); setWireDraft(null); setView({ x: 0, y: 0, scale: .82 }); }}>초기화</button></div>
-    {helpOpen && <aside className="perspectiveHelp"><button onClick={() => setHelpOpen(false)}>×</button><b>이 퍼즐의 입력·출력은 부품 종류가 아니라 관찰 경계입니다</b><p><strong>차량 시스템</strong> 운전자 요구·환경 → 차량 기능 → 실제 거동</p><p><strong>E/E 아키텍처</strong> 센서/ECU 신호 → 네트워크·I/O → 전기 액추에이터 명령</p><p><strong>SW 로직</strong> 변수·상태 → 검증·계산·중재 → 다른 신호 또는 HW 명령값</p><p><strong>물리 플랜트</strong> 힘·토크·압력 → 기계 전달계 → 실제 움직임. 깊이 단계라기보다 SW 밖의 경계 모델입니다.</p></aside>}
-      {rulesOpen && <aside className="wiringRules"><b>배선 퍼즐 규칙</b><ol><li>필요한 블록은 모두 작업대에 있으며 추가 트레이는 없습니다.</li><li>정상 경로에는 요구사항에 대응하는 6개 요소만 사용합니다. 오류 후보와 기록용 블록은 남겨둡니다.</li><li>연필을 고르고 첫 폴라로이드, 다음 폴라로이드를 차례로 누르면 선이 연결됩니다.</li><li>두 카드를 고르는 동안 움직인 손 경로가 흐물렁한 케이블 모양으로 남습니다.</li><li>손 도구에서만 카드를 이동·확대할 수 있고, 우클릭 드래그/휠은 작업대 이동·확대입니다.</li><li>지우개는 선만 삭제합니다.</li></ol></aside>}
+    <div className="wiringTitle"><div><small>CONTROL PATH RESTORATION · GUIDED FUNCTION SLICE</small><h1><em className="puzzlePerspectiveTag" onMouseEnter={() => setHelpOpen(true)} onMouseLeave={() => setHelpOpen(false)} onFocus={() => setHelpOpen(true)}>{perspective.active} 수준</em><span>{mission.domain} 도메인 · {mission.feature}</span></h1><p><b>관찰 입력</b> {mission.input}<i>→</i><b>관찰 출력</b> {mission.output}</p></div><span>{source ? `${nodes.find(node => node.id === source)?.label} → 다음 카드` : `빈칸 ${gapIds.length}개 · 확대 ${Math.round(view.scale * 100)}%`}</span><div className="wiringToolbox"><button className={wireTool === "move" ? "active" : ""} onClick={() => { setWireTool("move"); setSource(""); setWireDraft(null); }}><img src={`${A}cursor-hand-open-v1.png`} alt="" /><small>이동</small></button><button className={wireTool === "pencil" ? "active" : ""} onClick={() => setWireTool("pencil")}><img src={`${A}detective-pencil-v1.png`} alt="" /><small>배선</small></button><button className={wireTool === "erase" ? "active" : ""} onClick={() => { setWireTool("erase"); setSource(""); setWireDraft(null); }}><img src={`${A}detective-eraser-v1.png`} alt="" /><small>지우개</small></button></div><button onClick={() => setHelpOpen(value => !value)}>도움말</button><button onClick={() => setRulesOpen(value => !value)}>규칙</button><button className="wiringHint" disabled={seconds < 60 || hintUsed} onClick={() => send({ type: "HINT", key: hintKey })}>{hintUsed ? `힌트: ${gapIds.join(" → ")}` : seconds < 60 ? `힌트 ${60 - seconds}초` : "힌트 · -5m"}</button><button onClick={() => { setNodes(spreadNodes()); setEdges(starterEdges()); setSource(""); setWireDraft(null); setView({ x: 0, y: 0, scale: initialWireScale() }); }}>초기화</button></div>
+    {helpOpen && <aside className="perspectiveHelp"><button onClick={() => setHelpOpen(false)}>×</button><b>완성된 핵심 흐름의 빈칸 두 곳만 복원합니다</b><p><strong>현재 관점</strong> {perspective.active} · {perspective.depth}</p><p><strong>경계</strong> {perspective.input} → {perspective.middle} → {perspective.output}</p><p><strong>주의</strong> HW가 반드시 양끝일 필요는 없습니다. 이번 고장과 직접 연결된 기능 경계만 봅니다.</p></aside>}
+      {rulesOpen && <aside className="wiringRules"><button className="wiringRulesClose" onClick={() => setRulesOpen(false)} aria-label="규칙 닫기">×</button><b>배선 퍼즐 규칙</b><ol><li>이미 고정된 흐름 사이의 빈칸 두 곳을 채웁니다.</li><li>아래 느슨한 카드 중 맞는 두 장만 빈칸 가까이 끌면 자리에 붙습니다.</li><li>연필로 끊긴 구간을 직접 그어 연결합니다.</li><li>오류 후보와 기록 블록은 사용하지 않아도 됩니다.</li><li>손은 이동·확대, 지우개는 선 삭제만 담당합니다.</li></ol></aside>}
     <main className="eePuzzle">
-      <aside className="verticalRequirement"><small>REQUIREMENT FLOW</small><section className="puzzleDepth"><b>{perspective.depth}</b><dl><div><dt>관찰 입력</dt><dd>{perspective.input}</dd></div><div><dt>중간 요소</dt><dd>{perspective.middle}</dd></div><div><dt>관찰 출력</dt><dd>{perspective.output}</dd></div></dl></section><p>HW가 반드시 양끝인 것은 아닙니다. 이번 고장과 직접 연결된 기능 경계만 복원합니다.</p>{config.requirement.map((item, index) => <React.Fragment key={item}><div><span>{index === 0 ? "INPUT" : index === 1 ? "IF" : index === 3 ? "THEN" : index === 4 ? "OUTPUT" : "CONTROL"}</span><b>{item}</b></div>{index < config.requirement.length - 1 && <i>↓</i>}</React.Fragment>)}</aside>
-      <section className={`wireCanvas tool-${wireTool} ${eraser ? "erasing" : ""}`} ref={canvasRef} onContextMenu={event => event.preventDefault()} onWheel={event => { event.preventDefault(); setView(previous => ({ ...previous, scale: THREE.MathUtils.clamp(previous.scale * (event.deltaY > 0 ? .9 : 1.1), .48, 1.5) })); }} onPointerDown={event => { if (event.button === 2) setPanning({ x: event.clientX, y: event.clientY, ox: view.x, oy: view.y }); }} onPointerMove={event => { if (!canvasRef.current) return; if (panning) { setView(previous => ({ ...previous, x: panning.ox + event.clientX - panning.x, y: panning.oy + event.clientY - panning.y })); return; } const point = localPoint(event.clientX, event.clientY); if (wireTool === "pencil" && wireDraft) setWireDraft(previous => { if (!previous) return previous; const last = previous.points.at(-1)!; return Math.hypot(point.x - last.x, point.y - last.y) < 7 ? previous : { points: [...previous.points, point] }; }); if (!dragging) return; setNodes(previous => previous.map(node => node.id === dragging.id ? { ...node, x: THREE.MathUtils.clamp(point.x - dragging.dx / view.scale, 5, 1075), y: THREE.MathUtils.clamp(point.y - dragging.dy / view.scale, 5, 525) } : node)); }} onPointerUp={() => { setDragging(null); setPanning(null); }} onPointerLeave={() => { setDragging(null); setPanning(null); }}>
+      <aside className="verticalRequirement"><small>REQUIREMENT FLOW</small>{config.requirement.map((item, index) => <React.Fragment key={item}><div><span>{index === 0 ? "INPUT" : index === 1 ? "IF" : index === 3 ? "THEN" : index === 4 ? "OUTPUT" : "CONTROL"}</span><b>{item}</b></div>{index < config.requirement.length - 1 && <i>↓</i>}</React.Fragment>)}</aside>
+      <section className={`wireCanvas tool-${wireTool} ${eraser ? "erasing" : ""}`} ref={canvasRef} onContextMenu={event => event.preventDefault()} onWheel={event => { event.preventDefault(); setView(previous => ({ ...previous, scale: THREE.MathUtils.clamp(previous.scale * (event.deltaY > 0 ? .9 : 1.1), .48, 1.5) })); }} onPointerDown={event => { if (event.button === 2) setPanning({ x: event.clientX, y: event.clientY, ox: view.x, oy: view.y }); }} onPointerMove={event => { if (!canvasRef.current) return; if (panning) { setView(previous => ({ ...previous, x: panning.ox + event.clientX - panning.x, y: panning.oy + event.clientY - panning.y })); return; } const point = localPoint(event.clientX, event.clientY); if (wireTool === "pencil" && wireDraft) setWireDraft(previous => { if (!previous) return previous; const last = previous.points.at(-1)!; return Math.hypot(point.x - last.x, point.y - last.y) < 7 ? previous : { points: [...previous.points, point] }; }); if (!dragging) return; setNodes(previous => previous.map(node => node.id === dragging.id ? { ...node, x: THREE.MathUtils.clamp(point.x - dragging.dx / view.scale, 5, 1075), y: THREE.MathUtils.clamp(point.y - dragging.dy / view.scale, 5, 525) } : node)); }} onPointerUp={event => { snapDraggedNode(event.clientX, event.clientY); setDragging(null); setPanning(null); }} onPointerLeave={event => { snapDraggedNode(event.clientX, event.clientY); setDragging(null); setPanning(null); }}>
         <div className="wireWorld" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}>
         <div className="canvasGrid" />
-        <svg viewBox="0 0 1200 650">{edges.map((edge, index) => { const a = nodes.find(node => node.id === edge.from); const b = nodes.find(node => node.id === edge.to); if (!a || !b) return null; const x1 = a.x + 110, y1 = a.y + 49, x2 = b.x, y2 = b.y + 49, direction = index % 2 ? 1 : -1; const d = edge.points?.length ? curveFromPoints(edge.points) : `M ${x1} ${y1} C ${x1 + 55} ${y1 + 45 * direction}, ${x2 - 55} ${y2 - 45 * direction}, ${x2} ${y2}`; return <path key={`${edge.from}-${edge.to}`} className="wormWire" d={d} onPointerEnter={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} onClick={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} />; })}{source && wireDraft && <path className="wormWire wireDraft" d={curveFromPoints(wireDraft.points)} />}</svg>
-        {nodes.map(node => <div className={`logicNode ${node.kind.toLowerCase()} ${source === node.id ? "source" : ""}`} style={{ left: node.x, top: node.y }} key={node.id} onDoubleClick={event => { event.stopPropagation(); if (wireTool === "move") setZoomNode(node); }} onClick={event => { event.stopPropagation(); chooseWireNode(node); }} onPointerDown={event => { if (wireTool !== "move" || event.button !== 0) return; const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect(); setDragging({ id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top }); (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId); }}>
+        {gapIndexes.map(index => { const slot = flowSlots[index]; const node = nodes.find(item => item.id === config.correct[index]); const filled = Boolean(node && Math.hypot(node.x - slot.x, node.y - slot.y) < 8); return <div key={index} className={`guidedLogicSlot ${filled ? "filled" : ""}`} style={{ left: slot.x, top: slot.y }}><b>빈칸 {index - 1}</b><span>{config.correct[index] === gapIds[0] ? "판단·변환" : "명령·전달"}</span></div>; })}
+        <svg viewBox="0 0 1000 560">{edges.map((edge, index) => { const a = nodes.find(node => node.id === edge.from); const b = nodes.find(node => node.id === edge.to); if (!a || !b) return null; const x1 = a.x + 128, y1 = a.y + 70, x2 = b.x + 12, y2 = b.y + 70, direction = index % 2 ? 1 : -1; const d = edge.points?.length ? curveFromPoints(edge.points) : `M ${x1} ${y1} C ${x1 + 55} ${y1 + 45 * direction}, ${x2 - 55} ${y2 - 45 * direction}, ${x2} ${y2}`; return <path key={`${edge.from}-${edge.to}`} className="wormWire" d={d} onPointerEnter={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} onClick={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} />; })}{source && wireDraft && <path className="wormWire wireDraft" d={curveFromPoints(wireDraft.points)} />}</svg>
+        {nodes.map((node) => { const correctIndex = config.correct.indexOf(node.id); const locked = correctIndex >= 0 && !gapIndexes.includes(correctIndex); const edgeClass = correctIndex >= 0 ? puzzleEdgeClass(correctIndex, config.correct.length) : "edge-mismatch"; return <div className={`logicNode puzzlePiece ${edgeClass} ${node.kind.toLowerCase()} ${source === node.id ? "source" : ""} ${locked ? "locked" : ""}`} style={{ left: node.x, top: node.y }} key={node.id} onDoubleClick={event => { event.stopPropagation(); if (wireTool === "move") setZoomNode(node); }} onClick={event => { event.stopPropagation(); chooseWireNode(node); }} onPointerDown={event => { if (locked || wireTool !== "move" || event.button !== 0) return; const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect(); setDragging({ id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top }); (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId); }}>
           {node.kind === "HW" ? <div className={`logicNodePhoto componentAssetPhoto asset-${componentAtlasCell[node.id] ?? 2}`}><small>HW · REAL PART</small><em>{perspective.active.includes("E/E") ? "E/E 아키텍처" : "물리 플랜트"}</em></div> : <div className="logicNodePhoto simulinkNodeArt"><small>SW · SIMULINK BLOCK</small><em>SW 로직</em><b>f(u)</b><i /><i /><i /></div>}<div className="logicNodeCaption"><b>{node.label}</b><span>{node.detail}</span></div>
-        </div>)}
+        </div>; })}
         </div>
-        <div className="canvasHelp">손: 이동/더블클릭 확대 · 연필: 카드 두 장을 순서대로 클릭 · 지우개: 선 삭제</div>
+        <div className="canvasHelp">손: 이동/확대 · 우클릭 드래그: 작업대 이동 · 연필: 끊긴 경로 연결 · 지우개: 선 삭제</div>
       </section>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={solvePuzzle}>정답 보기</button>
-    <div className="wiringFooter"><span>모든 블록을 사용할 필요 없음 · 입력/출력은 관찰 경계이며 HW·SW·네트워크·기계요소는 중간에도 올 수 있음</span><button className="primary" disabled={!ready} onClick={() => { send({ type: "COMPILE", program: isCorrect ? config.program : config.faulty }); send({ type: "OPEN_BENCH" }); }}>쌍둥이 실험대에서 통전 →</button></div>
-    {zoomNode && <div className="evidenceZoom logicZoom" onClick={() => setZoomNode(null)}><article onClick={event => event.stopPropagation()}><button onClick={() => setZoomNode(null)}>×</button>{zoomNode.kind === "HW" ? <div className={`logicNodePhoto componentAssetPhoto asset-${componentAtlasCell[zoomNode.id] ?? 2}`}><small>HW · REAL PART</small></div> : <div className="logicNodePhoto simulinkNodeArt"><small>SW · CONTROL LOGIC</small><b>f(u)</b><i /><i /><i /></div>}<small>{zoomNode.kind}</small><h2>{zoomNode.label}</h2><p>{zoomNode.detail}</p></article></div>}
+    <div className="wiringFooter"><span>{puzzleFeedback}</span><button className="primary" disabled={!ready} onClick={() => { send({ type: "COMPILE", program: isCorrect ? config.program : config.faulty }); send({ type: "OPEN_BENCH" }); }}>통합 실험으로 →</button></div>
+    {zoomNode && <div className="evidenceZoom logicZoom" onClick={() => setZoomNode(null)}><article className="logicZoomCard" onClick={event => event.stopPropagation()}><button onClick={() => setZoomNode(null)}>×</button>{zoomNode.kind === "HW" ? <div className={`logicNodePhoto componentAssetPhoto asset-${componentAtlasCell[zoomNode.id] ?? 2}`}><small>HW · REAL PART</small></div> : <div className="logicNodePhoto simulinkNodeArt"><small>SW · CONTROL LOGIC</small><b>f(u)</b><i /><i /><i /></div>}<div className="logicZoomCopy"><small>{zoomNode.kind === "HW" ? "실물 부품 경계" : "제어 로직 블록"}</small><h2>{zoomNode.label}</h2><p>{zoomNode.detail}</p></div></article></div>}
   </div>;
 }
 
-type BenchTab = "sw" | "embedded" | "system" | "vehicle";
+export type BenchTab = "sw" | "embedded" | "system" | "vehicle";
 function LabRaceView({ running, works, caseId }: { running: boolean; works: boolean; caseId: CaseId }) {
   const [sim, setSim] = useState<DriveSim>({ speed: 0, lane: 0, steer: 0, distance: 80, gap: 48, heat: caseId === "thermal" ? 68 : 38, elapsed: 18 });
   useEffect(() => {
@@ -1431,11 +1637,12 @@ function EmbeddedBenchScene({ caseId, running, works }: { caseId: CaseId; runnin
   </>;
 }
 
-function EmbeddedBench3D({ caseId, running, works, wide = false }: { caseId: CaseId; running: boolean; works: boolean; wide?: boolean }) {
-  return <div className={`benchEmbedded3D ${running ? "running" : ""} ${works ? "works" : "broken"} ${wide ? "wideView" : ""}`}><Canvas shadows camera={{ position: [0, wide ? 3.8 : 3.15, wide ? 9.1 : 7.2], fov: wide ? 43 : 40 }} dpr={[1, 1.15]}><EmbeddedBenchScene caseId={caseId} running={running} works={works} /><OrbitControls enablePan minDistance={wide ? 7.1 : 5.8} maxDistance={12} maxPolarAngle={Math.PI * .48} target={[0, .5, -.25]} /></Canvas><div className="embeddedBoundaryLabels"><span>INPUT SENSOR / DRIVER DEVICE</span><b>REAL ECU + I/O HARNESS</b><em>OUTPUT ACTUATOR + FEEDBACK</em></div></div>;
+export function EmbeddedBench3D({ caseId, running, works, wide = false, compact = false }: { caseId: CaseId; running: boolean; works: boolean; wide?: boolean; compact?: boolean }) {
+  const camera = compact ? { position: [0, 2.25, 4.35] as [number, number, number], fov: 36 } : { position: [0, wide ? 3.8 : 3.15, wide ? 9.1 : 7.2] as [number, number, number], fov: wide ? 43 : 40 };
+  return <div className={`benchEmbedded3D ${running ? "running" : ""} ${works ? "works" : "broken"} ${wide ? "wideView" : ""} ${compact ? "compactView" : ""}`}><Canvas shadows camera={camera} dpr={[1, 1.15]}><EmbeddedBenchScene caseId={caseId} running={running} works={works} /><OrbitControls enablePan minDistance={compact ? 3.6 : wide ? 7.1 : 5.8} maxDistance={compact ? 8 : 12} maxPolarAngle={Math.PI * .48} target={[0, .5, -.25]} /></Canvas><div className="embeddedBoundaryLabels"><span>INPUT SENSOR / DRIVER DEVICE</span><b>REAL ECU + I/O HARNESS</b><em>OUTPUT ACTUATOR + FEEDBACK</em></div></div>;
 }
 
-function BenchVisual({ tab, caseId, running, works }: { tab: BenchTab; caseId: CaseId; running: boolean; works: boolean }) {
+export function BenchVisual({ tab, caseId, running, works }: { tab: BenchTab; caseId: CaseId; running: boolean; works: boolean }) {
   const swNodes = caseId === "propulsion" ? [["APS A/B", "60.0 / 60.2%"], ["PLAUSIBILITY", "MATCH · 10ms"], ["DRIVER REQUEST", works ? "204Nm" : "92Nm"], ["DRIVE PERMIT", "D · READY"], ["TRACTION LIMIT", "NO SLIP"], ["POWER LIMIT", "MIN 240Nm"], ["TORQUE RAMP", works ? "+24Nm/s" : "+9Nm/s"], ["CAN COMMAND", works ? "204Nm" : "92Nm"]] : caseId === "thermal" ? [["NTC INPUT", "78.4°C"], ["RANGE CHECK", "VALID"], ["DEBOUNCE", "120ms"], ["HYSTERESIS", ">65°C ON"], ["DERATE STATE", "LEVEL 0"], ["FAN TARGET", "1850RPM"], ["PWM DRIVER", "100%"], ["FEEDBACK", works ? "1846RPM" : "0RPM"]] : [["PEDAL A/B", "55 / 55.3%"], ["VALIDATE", "MATCH"], ["DECEL TARGET", "3.2m/s²"], ["REGEN LIMIT", "1.1m/s²"], ["BLEND", works ? "REGEN+FRICTION" : "REGEN ONLY"], ["ABS GUARD", "NO SLIP"], ["PRESSURE CMD", works ? "42bar" : "8bar"], ["WHEEL RESPONSE", works ? "DECEL" : "LOW DECEL"]];
   const swPositions = [[4,14],[27,14],[50,14],[73,14],[73,62],[50,62],[27,62],[4,62]];
   if (tab === "sw") return <div className={`benchSwVisual detailed ${running ? "running" : ""} ${works ? "works" : "broken"}`}><div className="simulinkModelHeader"><b>요구사항 기반 실행 모델 · MIL/SIL 개념</b><span>입력 검증 → 상태/분기 → 제어 계산 → 제한 → 출력 → 폐루프 피드백</span></div><div className="swFlowchart"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M13 25 H27 M36 25 H50 M59 25 H73 M82 25 V62 M73 74 H59 M50 74 H36 M27 74 H13" /><path className="feedback" d="M13 74 C3 74 3 25 13 25" /></svg>{swNodes.map(([name,value],index)=><span key={name} style={{left:`${swPositions[index][0]}%`,top:`${swPositions[index][1]}%`}} className={`swDiagramBlock ${index===1?"decision":""} ${index===7?"sink":""}`}><i>{index===1?"◇":String(index+1).padStart(2,"0")}</i><b>{name}</b><small>{value}</small><u className="swInPort" /><u className="swOutPort" /></span>)}<em className="swFeedbackLabel">FEEDBACK · 상태/진단 경계로 되먹임</em></div></div>;

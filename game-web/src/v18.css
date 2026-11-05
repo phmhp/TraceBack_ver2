@@ -1,0 +1,195 @@
+/* v18 — text-first controls, true jigsaw logic, guided dynamic validation, continuous dock run */
+
+/* Preserve the original Jalnan2 TraceBack wordmark on the cover. */
+.titleScene .titleMenu h1>span{
+  font-family:"TraceRounded",Pretendard,sans-serif!important;
+  font-weight:400!important;
+  letter-spacing:-.06em!important;
+}
+
+/* Remove the raster button plate everywhere it leaked into gameplay controls. */
+button.primary,
+.clayAction,
+.runLab,
+.garageProceed,
+.stageHistoryNav button,
+.faultDialogueScene .catSpeech button,
+.boardDecisionBar button,
+.wiringFooter button,
+.verificationContinue,
+.experimentRun{
+  min-height:44px!important;
+  padding:9px 16px!important;
+  border:2px solid #f7e2a8!important;
+  border-radius:14px!important;
+  color:#fff!important;
+  background:#31ad94 linear-gradient(180deg,#4bcdb2,#28a88f)!important;
+  background-image:linear-gradient(180deg,#4bcdb2,#28a88f)!important;
+  box-shadow:0 4px 0 #166d60,0 9px 18px #173a302d,inset 0 1px #ffffffa8!important;
+  filter:none!important;
+  font:850 14px/1.25 Pretendard,"Noto Sans KR",sans-serif!important;
+  letter-spacing:-.02em!important;
+  text-align:center!important;
+  text-shadow:none!important;
+  white-space:normal!important;
+  word-break:keep-all!important;
+  overflow-wrap:normal!important;
+}
+button.primary:hover:not(:disabled),.clayAction:hover:not(:disabled),.runLab:hover:not(:disabled),.garageProceed:hover:not(:disabled),.stageHistoryNav button:hover:not(:disabled),.faultDialogueScene .catSpeech button:hover:not(:disabled),.boardDecisionBar button:hover:not(:disabled),.wiringFooter button:hover:not(:disabled),.verificationContinue:hover:not(:disabled),.experimentRun:hover:not(:disabled){transform:translateY(-1px)!important;filter:brightness(1.03)!important}
+button.primary:active:not(:disabled),.clayAction:active:not(:disabled),.runLab:active:not(:disabled),.garageProceed:active:not(:disabled),.stageHistoryNav button:active:not(:disabled),.faultDialogueScene .catSpeech button:active:not(:disabled),.boardDecisionBar button:active:not(:disabled),.wiringFooter button:active:not(:disabled),.verificationContinue:active:not(:disabled),.experimentRun:active:not(:disabled){transform:translateY(3px)!important;box-shadow:0 1px 0 #166d60,inset 0 2px 5px #173a3330!important}
+button.primary:disabled,.garageProceed:disabled,.boardDecisionBar button:disabled,.verificationContinue:disabled,.experimentRun:disabled{color:#728078!important;background:#dce2db!important;background-image:none!important;border-color:#eef0e8!important;box-shadow:0 3px 0 #a9b0a7!important;opacity:.72!important}
+.stageHistoryNav button{min-width:118px!important;height:44px!important;gap:7px!important;padding:8px 14px!important;color:#315148!important;background:#fffdf4!important;background-image:linear-gradient(#fffef8,#eee8d9)!important;border-color:#ead7a4!important;box-shadow:0 4px 0 #9d8c67,0 9px 18px #21352d2e!important}
+.stageHistoryNav .stageForwardButton{color:#fff!important;background:#45bea3!important;background-image:linear-gradient(#58d0b5,#32ad94)!important;border-color:#d8f2df!important;box-shadow:0 4px 0 #1c7767,0 9px 18px #21352d2e!important}
+.stageHistoryNav button span{font-size:14px!important}.stageHistoryNav button i{font-size:17px!important}
+.garageV2 .garageProceed{width:196px!important;min-width:196px!important;height:56px!important;font-size:13px!important}
+.faultDialogueScene .catSpeech button{min-width:280px!important;max-width:330px!important;font-size:14px!important}
+.boardDecisionBar button{min-width:210px!important;height:44px!important}
+
+/* Situation photographs return; each card receives one full atlas cell. */
+.evidenceAssetPhoto{
+  background-image:url('/assets/diagnostic-evidence-sheet-v1.png')!important;
+  background-size:400% 200%!important;
+  background-position:var(--evidence-x) var(--evidence-y)!important;
+  background-repeat:no-repeat!important;
+  background-color:#d8dfd8!important;
+}
+.boardCausePin.freePosition{right:auto!important;bottom:auto!important;cursor:grab!important}
+.boardCausePin.freePosition:active{cursor:grabbing!important}
+
+/* Logic restoration uses actual interlocking pieces, not polaroid rectangles. */
+.wiringV2 .logicNode,
+.wiringV2 .guidedLogicSlot{
+  width:140px!important;
+  height:140px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  clip-path:path('M 14 0 H 49 C 45 8 47 20 59 20 C 71 20 73 8 69 0 H 126 Q 140 0 140 14 V 49 C 132 45 120 47 120 59 C 120 71 132 73 140 69 V 126 Q 140 140 126 140 H 91 C 95 132 93 120 81 120 C 69 120 67 132 71 140 H 14 Q 0 140 0 126 V 91 C 8 95 20 93 20 81 C 20 69 8 67 0 71 V 14 Q 0 0 14 0 Z')!important;
+}
+.wiringV2 .logicNode{
+  overflow:hidden!important;
+  background:#fff8e9!important;
+  background-image:none!important;
+  filter:drop-shadow(0 5px 0 #8d806c) drop-shadow(0 10px 12px #34241945)!important;
+  box-shadow:none!important;
+}
+.wiringV2 .logicNodePhoto{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  margin:0!important;
+  border:0!important;
+  background-color:#eaf1ea!important;
+}
+.wiringV2 .logicNodePhoto.componentAssetPhoto{background-size:400% 200%!important;background-repeat:no-repeat!important}
+.wiringV2 .logicNodePhoto>small{left:14px!important;top:13px!important;padding:3px 5px!important;font-size:8px!important}
+.wiringV2 .logicNodePhoto>em{right:13px!important;bottom:43px!important;font-size:7px!important}
+.wiringV2 .logicNodeCaption{position:absolute!important;z-index:7!important;left:10px!important;right:10px!important;bottom:9px!important;min-height:39px!important;padding:5px 7px!important;border-radius:8px!important;color:#264139!important;background:#fffdf2e8!important;box-shadow:0 2px 8px #1e322b35!important;backdrop-filter:blur(5px)!important}
+.wiringV2 .logicNodeCaption b{display:block!important;overflow:hidden!important;font-size:11px!important;line-height:1.15!important;white-space:nowrap!important;text-overflow:ellipsis!important}
+.wiringV2 .logicNodeCaption span{display:block!important;margin-top:2px!important;overflow:hidden!important;font-size:9px!important;line-height:1.15!important;white-space:nowrap!important;text-overflow:ellipsis!important}
+.wiringV2 .simulinkNodeArt{background-color:#eee8f7!important;background-image:linear-gradient(#8d78aa1c 1px,transparent 1px),linear-gradient(90deg,#8d78aa1c 1px,transparent 1px)!important;background-size:14px 14px!important}
+.wiringV2 .simulinkNodeArt>b{display:grid!important;place-items:center!important;position:absolute!important;left:50%!important;top:47%!important;width:54px!important;height:36px!important;transform:translate(-50%,-50%)!important;border:3px solid #725b96!important;background:#fff!important;color:#624b86!important;font-size:13px!important}
+.wiringV2 .simulinkNodeArt>i{display:block!important;position:absolute!important;top:47%!important;width:34px!important;border-top:3px solid #677b74!important}
+.wiringV2 .simulinkNodeArt>i:nth-of-type(1){left:5px!important}.wiringV2 .simulinkNodeArt>i:nth-of-type(2){right:5px!important}.wiringV2 .simulinkNodeArt>i:nth-of-type(3){display:none!important}
+.wiringV2 .logicNode.locked:after{right:13px!important;top:13px!important}
+.wiringV2 .guidedLogicSlot{display:grid!important;place-content:center!important;gap:4px!important;border:0!important;color:#6e5948!important;background:#fff3d073!important;box-shadow:inset 0 0 0 4px #9d765a,inset 0 0 0 9px #fff2!important}
+.wiringV2 .guidedLogicSlot b{font-size:15px!important}.wiringV2 .guidedLogicSlot span{font-size:11px!important}
+.wiringV2 .wormWire{stroke:#b9343d!important;stroke-width:7!important;stroke-linecap:round!important;stroke-linejoin:round!important;stroke-dasharray:none!important;filter:drop-shadow(0 2px 1px #fff5d7) drop-shadow(0 4px 2px #4c2b1b55)!important}
+.wiringV2 .wormWire.wireDraft{stroke:#e85d55!important;stroke-dasharray:6 4!important}
+
+/* The logic detail modal is a dedicated inspection card, not a nested polaroid. */
+.logicZoom>article.logicZoomCard{
+  width:min(620px,76vw)!important;
+  height:min(390px,72vh)!important;
+  aspect-ratio:auto!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1.25fr) minmax(210px,.75fr)!important;
+  padding:16px!important;
+  overflow:visible!important;
+  border:5px solid #ead49e!important;
+  border-radius:22px!important;
+  background:#fffdf3!important;
+  background-image:none!important;
+  filter:drop-shadow(0 24px 42px #0008)!important;
+}
+.logicZoomCard>.logicNodePhoto{position:relative!important;inset:auto!important;width:100%!important;height:100%!important;min-height:0!important;border:3px solid #9fb3a8!important;border-radius:15px!important;background-size:400% 200%!important;overflow:hidden!important}
+.logicZoomCard>.simulinkNodeArt{background-size:18px 18px!important}.logicZoomCard>.simulinkNodeArt>b{display:grid!important;place-items:center!important;position:absolute!important;left:50%!important;top:50%!important;width:92px!important;height:56px!important;transform:translate(-50%,-50%)!important;border:3px solid #715a96!important;background:#fff!important;font-size:20px!important}
+.logicZoomCopy{display:flex!important;flex-direction:column!important;justify-content:center!important;min-width:0!important;padding:20px!important}.logicZoomCopy small{color:#bc5947!important;font-size:11px!important;font-weight:900!important}.logicZoomCopy h2{margin:7px 0!important;color:#29463f!important;font-size:24px!important;line-height:1.18!important;word-break:keep-all!important}.logicZoomCopy p{margin:0!important;color:#5a6c65!important;font-size:15px!important;line-height:1.5!important;word-break:keep-all!important}
+.logicZoomCard>button{z-index:20!important;right:-18px!important;top:-18px!important}
+
+/* Dynamic, mission-guided verification. */
+.verificationV3,.verificationV3 *{word-break:keep-all!important;overflow-wrap:normal!important}
+.verificationHeader{grid-template-columns:minmax(0,1fr) minmax(300px,.75fr) auto!important;gap:8px!important}
+.verificationMentor h1{font-size:19px!important;line-height:1.2!important}.requirementTicket b{font-size:13px!important;line-height:1.3!important}
+.verificationHelpButton{height:42px;padding:7px 10px;border:2px solid #dbbf79;border-radius:12px;color:#315148;background:#fff8dd;box-shadow:0 3px 0 #9d8757;font:850 12px/1.2 Pretendard,sans-serif;white-space:nowrap}
+.experimentToolBay{grid-template-rows:auto auto auto 56px!important;gap:5px!important;padding:6px!important}
+.validationMissionCard{padding:7px 9px;border:2px solid #8eb4a4;border-radius:11px;color:#29483f;background:#e8f5e9}.validationMissionCard>small,.validationMissionCard>b,.validationMissionCard>p,.validationMissionCard>span{display:block}.validationMissionCard>small{color:#bd5a47;font-size:8px;font-weight:950;letter-spacing:.05em}.validationMissionCard>b{margin:2px 0;font-size:13px;line-height:1.2}.validationMissionCard>p{display:-webkit-box;margin:0;overflow:hidden;color:#5f726a;font-size:9px;line-height:1.3;-webkit-box-orient:vertical;-webkit-line-clamp:2}.validationMissionCard>span{margin-top:4px;padding-top:4px;border-top:1px solid #b7cfc3;font-size:9px;line-height:1.2}.validationMissionCard strong{margin-right:5px;color:#b65442}
+.experimentStep{padding:6px!important}.experimentStep>header{margin-bottom:4px!important}.experimentStep>header b{font-size:12px!important}.experimentStep>header small{font-size:9px!important}
+.stimulusDial{gap:4px!important}.stimulusDial button{min-height:53px!important;padding:4px!important}.stimulusDial button b,.stimulusDial button em,.stimulusDial button small{display:block!important}.stimulusDial button b{font-size:10px!important}.stimulusDial button em{margin:2px 0;color:#34594e;font-size:8px!important;font-style:normal;font-weight:850;line-height:1.15}.stimulusDial button small{font-size:7.5px!important}.probeChoices button{min-height:48px!important}.probeChoices button span b{font-size:9px!important}.probeChoices button span small{display:block!important;font-size:7.5px!important;line-height:1.15!important}
+.experimentRun{min-height:52px!important;padding:6px 8px!important}.experimentRun span b{font-size:12px!important}.experimentRun span small{font-size:8px!important}
+.twinCompareStage{grid-template-columns:1fr!important;grid-template-rows:1fr 1fr!important;gap:5px!important}
+.comparisonPane{grid-template-rows:27px minmax(0,1fr)!important}.comparisonPane>header{padding:2px 6px!important}.comparisonPane>header>i{width:20px!important;height:20px!important}.comparisonPane>header small{font-size:7px!important}.comparisonPane>header b{font-size:10px!important}
+.traceSwVisual{grid-template-rows:25px minmax(0,1fr)!important;padding:3px!important}.traceSwVisual>header{padding:3px 6px!important}.traceSwVisual>header small{font-size:6.5px!important}.traceSwVisual>header b{font-size:8px!important}.traceSwVisual>header em{padding:2px 5px!important;font-size:7px!important}
+.traceSwCanvas{display:grid!important;grid-template-rows:minmax(0,1fr) 17px!important;padding:4px 5px!important;overflow:hidden!important}
+.traceSwLane{min-width:0;display:flex;align-items:center;justify-content:stretch;gap:0}
+.traceSwNode{position:relative!important;left:auto!important;top:auto!important;flex:1 1 0!important;width:auto!important;min-width:0!important;height:54px!important;display:grid!important;grid-template-columns:18px minmax(0,1fr)!important;align-items:center!important;padding:4px!important;border:2px solid #67877d!important;border-radius:5px!important;background:#f8fbf5!important;box-shadow:0 2px 0 #8da198!important}
+.traceSwNode>i{width:16px!important;height:16px!important;font-size:7px!important}.traceSwNode span{min-width:0!important}.traceSwNode small,.traceSwNode b,.traceSwNode em{display:block!important;overflow:hidden!important;white-space:nowrap!important;text-overflow:ellipsis!important}.traceSwNode small{font-size:6.5px!important}.traceSwNode b{font-size:8px!important}.traceSwNode em{font-size:7px!important}.traceSwNode.mismatch{border-color:#d95e4b!important;background:#fff0e9!important;box-shadow:0 2px 0 #a34739!important}.traceSwNode .inPort,.traceSwNode .outPort{position:absolute!important;top:50%!important;width:0!important;height:0!important;transform:translateY(-50%)!important}.traceSwNode .inPort{left:-5px!important;border-top:4px solid transparent!important;border-bottom:4px solid transparent!important;border-right:5px solid #4d8da3!important}.traceSwNode .outPort{right:-5px!important;border-top:4px solid transparent!important;border-bottom:4px solid transparent!important;border-left:5px solid #d97450!important}
+.traceSwLink{position:relative;flex:0 0 11px;height:4px;background:#718c83}.traceSwLink:after{content:"";position:absolute;right:-2px;top:-3px;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:6px solid #718c83}.traceSwLink i{position:absolute;z-index:2;left:0;top:-2px;width:8px;height:8px;border-radius:50%;background:#f0c44f;opacity:0}.traceSwLink.live i{opacity:1;animation:tracePacket .72s linear infinite}.traceFeedbackTag{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;height:17px!important;padding:0!important;border:0!important;color:#665486!important;background:#eee7f6!important;font-size:7px!important}.traceFeedbackTag i{width:35px;border-top:2px dashed #806aa2}
+.systemNetworkVisual{background:linear-gradient(145deg,#dcece5,#c9ded5)!important}.dynamicVehicleRig{position:absolute;inset:0 0 31px;overflow:hidden}.vehicleSilhouette{position:absolute;left:29%;right:25%;top:25%;bottom:12%;border:4px solid #6d9284;border-radius:42% 48% 20% 20% / 35% 38% 18% 18%;background:#e9f3ec80;box-shadow:inset 0 0 0 8px #fff6}.vehicleSilhouette:before{content:"";position:absolute;left:20%;right:20%;top:-23%;height:55%;border:4px solid #6d9284;border-bottom:0;border-radius:48% 48% 0 0;background:#d8e9e1}.vehicleSilhouette>i{position:absolute;width:18%;aspect-ratio:1;border:5px solid #344a45;border-radius:50%;background:#788b84}.vehicleSilhouette>i:nth-child(1){left:8%;bottom:-12%}.vehicleSilhouette>i:nth-child(2){right:8%;bottom:-12%}.vehicleSilhouette>i:nth-child(3){left:8%;top:-7%}.vehicleSilhouette>i:nth-child(4){right:8%;top:-7%}.vehicleSilhouette>span{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);color:#537167;font-size:8px;font-weight:950;white-space:nowrap}.systemDynamicNodes{position:absolute;z-index:4;inset:5px}.systemDynamicNodes article{position:absolute;width:31%;padding:4px 6px;border:2px solid #8ca99b;border-radius:8px;background:#fffdf3ec;box-shadow:0 3px 0 #6e8b7e}.systemDynamicNodes article small,.systemDynamicNodes article b,.systemDynamicNodes article span{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.systemDynamicNodes article small{color:#bd5f49;font-size:6px}.systemDynamicNodes article b{font-size:8px}.systemDynamicNodes article span{font-size:6.5px}.systemDynamicNodes .driverNode{left:1%;top:3%}.systemDynamicNodes .networkNode{left:34.5%;top:39%}.systemDynamicNodes .responseNode{right:1%;bottom:3%}.dynamicVehicleRig>svg{position:absolute;z-index:3;inset:0;width:100%;height:100%}.systemSignalPackets circle{fill:#ffe06f;stroke:#fff;stroke-width:3}.systemNetworkVisual.running .vehicleSilhouette>i{animation:systemWheel .75s linear infinite}.systemNetworkVisual.result-fail .responseNode{border-color:#d7604c!important;background:#fff0e8!important}
+.hardwareRigVisual.running .rigComponent.output .rigPhoto:after{content:"";position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px;border:5px dashed #4ac5a4;border-radius:50%;animation:rigRotor .7s linear infinite}.hardwareRigVisual.result-fail .rigComponent.output .rigPhoto:after{animation:none;border-color:#d85e4c}
+.verificationRules{position:absolute;z-index:900;left:50%;top:50%;width:min(620px,82vw);transform:translate(-50%,-50%);padding:24px 28px;border:6px solid #ead49e;border-radius:24px;color:#29483f;background:#fffdf4;box-shadow:0 26px 70px #102019a6}.verificationRules>button{position:absolute;right:12px;top:10px;width:38px;height:38px;border:0;border-radius:50%;color:#fff;background:#d65e4c;font-size:24px;font-weight:900;box-shadow:0 3px 0 #973d32}.verificationRules>small{color:#bd5a47;font-size:10px;font-weight:950;letter-spacing:.08em}.verificationRules h2{margin:5px 40px 12px 0;font-size:23px;line-height:1.2}.verificationRules ol{margin:0;padding-left:23px}.verificationRules li{margin:7px 0;font-size:13px;line-height:1.45}.verificationRules p{margin:13px 0 0;padding:10px 12px;border-radius:11px;background:#e8f3e9;font-size:13px;line-height:1.45}
+
+/* The coast, camera and state remain continuous through the dock approach. */
+.raceV2.raceMode-ship{background:#b9d9d4 url('/assets/stitch23/coast-overlook.png') center 16%/cover no-repeat!important}
+.driveMission{bottom:14%!important;width:min(390px,46vw)!important;padding:12px 15px!important}.driveMission small{font-size:10px!important}.driveMission b{margin:4px 0!important;font-size:15px!important;line-height:1.2!important}.driveMission span{font-size:11px!important;line-height:1.35!important}
+
+@keyframes tracePacket{from{transform:translateX(0)}to{transform:translateX(9px)}}
+@keyframes systemWheel{to{transform:rotate(360deg)}}
+@keyframes rigRotor{to{transform:rotate(360deg)}}
+
+/* Puzzle grammar: only consecutive control-path pieces share complementary edges. */
+.wiringV2 .logicNode.edge-flat-tab,
+.restoredPuzzlePiece.edge-flat-tab{clip-path:path('M 12 6 H 122 Q 128 6 128 12 V 46 C 128 42 140 42 140 58 C 140 74 128 74 128 70 V 128 Q 128 134 122 134 H 18 Q 12 134 12 128 V 12 Q 12 6 18 6 Z')!important}
+.wiringV2 .logicNode.edge-notch-notch,
+.restoredPuzzlePiece.edge-notch-notch{clip-path:path('M 12 6 H 122 Q 128 6 128 12 V 46 C 128 42 108 42 108 58 C 108 74 128 74 128 70 V 128 Q 128 134 122 134 H 18 Q 12 134 12 128 V 70 C 12 74 32 74 32 58 C 32 42 12 42 12 46 V 12 Q 12 6 18 6 Z')!important}
+.wiringV2 .logicNode.edge-tab-tab,
+.restoredPuzzlePiece.edge-tab-tab{clip-path:path('M 12 6 H 122 Q 128 6 128 12 V 46 C 128 42 140 42 140 58 C 140 74 128 74 128 70 V 128 Q 128 134 122 134 H 18 Q 12 134 12 128 V 70 C 12 74 0 74 0 58 C 0 42 12 42 12 46 V 12 Q 12 6 18 6 Z')!important}
+.wiringV2 .logicNode.edge-notch-flat,
+.restoredPuzzlePiece.edge-notch-flat{clip-path:path('M 12 6 H 122 Q 128 6 128 12 V 128 Q 128 134 122 134 H 18 Q 12 134 12 128 V 70 C 12 74 32 74 32 58 C 32 42 12 42 12 46 V 12 Q 12 6 18 6 Z')!important}
+.wiringV2 .logicNode.edge-mismatch{clip-path:polygon(9% 4%,91% 4%,96% 10%,96% 90%,91% 96%,9% 96%,4% 90%,4% 10%)!important;filter:drop-shadow(0 5px 0 #87776d) drop-shadow(0 10px 12px #34241945) saturate(.78)!important}
+.wiringV2 .guidedLogicSlot{width:140px!important;height:140px!important;clip-path:none!important;pointer-events:none!important;border:3px dashed #8e765f!important;border-radius:18px!important;background:#fff5da5c!important;box-shadow:inset 0 0 0 7px #fff7e777!important}
+.wiringV2 .guidedLogicSlot.filled{opacity:.08!important}
+.wiringV2 .logicNode{transition:left .18s ease,top .18s ease,filter .18s ease!important}
+
+/* The verification lens reuses the exact restored puzzle instead of rebuilding a dense flow chart. */
+.restoredPuzzleVisual{position:relative;width:100%;height:100%;display:grid;grid-template-rows:31px minmax(0,1fr) 20px;padding:5px 7px;box-sizing:border-box;overflow:hidden;background:radial-gradient(circle at 50% 40%,#fffdf1,#dbe9df)}
+.restoredPuzzleVisual>header{display:flex;align-items:center;gap:7px;min-width:0;padding:3px 7px;border-radius:8px;color:#edf8f1;background:#29463f}.restoredPuzzleVisual>header small{color:#efc760;font-size:6px;font-weight:950}.restoredPuzzleVisual>header b{min-width:0;overflow:hidden;font-size:9px;white-space:nowrap;text-overflow:ellipsis}.restoredPuzzleVisual>header em{margin-left:auto;color:#d9ece3;font-size:6.5px;font-style:normal;white-space:nowrap}
+.restoredPuzzleTrack{position:relative;display:flex;align-items:center;justify-content:center;min-height:0;padding-top:5px}.restoredPuzzleWrap{position:relative;flex:0 0 64px;width:64px;height:78px}.restoredPuzzlePiece{position:absolute;left:0;top:0;width:140px;height:140px;transform:scale(.55);transform-origin:left top;overflow:hidden;background:#fff9ea;filter:drop-shadow(0 7px 0 #8d806c) drop-shadow(0 10px 12px #34241940)}
+.restoredPuzzlePiece>.restoredPiecePhoto{position:absolute;inset:0 0 48px;display:block;background-color:#eaf1ea;background-repeat:no-repeat}.restoredPuzzlePiece>.restoredLogicGlyph{display:grid;place-items:center;background-color:#eee8f7;background-image:linear-gradient(#8d78aa1c 2px,transparent 2px),linear-gradient(90deg,#8d78aa1c 2px,transparent 2px);background-size:22px 22px}.restoredLogicGlyph>b{display:grid;place-items:center;width:66px;height:42px;border:4px solid #725b96;background:#fff;color:#624b86;font-size:18px}.restoredLogicGlyph>span{position:absolute;right:16px;color:#56766b;font-size:22px;font-weight:950}
+.restoredPuzzlePiece>span{position:absolute;z-index:3;left:12px;right:12px;bottom:9px;min-height:34px;padding:5px 8px;border-radius:8px;color:#29453d;background:#fffdf1e8}.restoredPuzzlePiece>span small,.restoredPuzzlePiece>span b{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.restoredPuzzlePiece>span small{color:#bd5e4a;font-size:12px;font-weight:950}.restoredPuzzlePiece>span b{font-size:17px;line-height:1.08}.restoredPuzzlePiece.mismatch{outline:8px solid #dc6150;background:#ffe7df;filter:drop-shadow(0 7px 0 #a94436) drop-shadow(0 0 14px #e75347)}
+.restoredSignal{position:absolute;z-index:5;left:5%;top:50%;width:13px;height:13px;border:3px solid #fff;border-radius:50%;background:#f0c34d;box-shadow:0 0 12px #f5c83d;opacity:0}.restoredPuzzleVisual.running .restoredSignal{opacity:1;animation:restoredPacket 1.25s linear infinite}.restoredPuzzleVisual.broken .restoredSignal{animation-duration:2.2s}
+.restoredPuzzleVisual>footer{display:flex;align-items:center;justify-content:center;gap:3px;color:#5f746b;font-size:5.5px;font-weight:950}.restoredPuzzleVisual>footer i{width:10px;border-top:2px solid #89a097}
+
+/* Calm two-column comparison: visual first, compact mission controls second. */
+.verificationV3 .verificationShell{grid-template-rows:58px 48px minmax(0,1fr) 72px!important}
+.verificationV3 .experimentStage{grid-template-columns:1fr!important;grid-template-rows:minmax(0,1fr) 104px!important;gap:7px!important}
+.verificationV3 .experimentVisual{grid-template-rows:35px minmax(0,1fr)!important;padding:5px!important}.verificationV3 .experimentVisual>header{padding:4px 8px!important}.verificationV3 .experimentVisual>header b{font-size:13px!important}.verificationV3 .experimentVisual>header p{display:none!important}.verificationV3 .comparisonInstruction{display:none!important}
+.verificationV3 .twinCompareStage{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important;gap:8px!important}
+.verificationV3 .comparisonPane{grid-template-rows:28px minmax(0,1fr)!important;border-radius:11px!important}.verificationV3 .comparisonPane>div{position:relative;min-height:0;overflow:hidden}.verificationV3 .comparisonPane .benchEmbedded3D{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important}.verificationV3 .comparisonPane .benchEmbedded3D canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important}.verificationV3 .comparisonPane .garage3dLabel{display:none!important}.verificationV3 .comparisonPane .embeddedBoundaryLabels{left:7px!important;right:7px!important;bottom:5px!important;padding:5px 7px!important;font-size:6.5px!important}
+.verificationV3 .experimentToolBay{display:grid!important;grid-template-columns:minmax(180px,.78fr) minmax(0,1.28fr) minmax(0,1fr) minmax(150px,.62fr)!important;grid-template-rows:1fr!important;gap:6px!important;padding:6px!important;overflow:hidden!important}
+.verificationV3 .validationMissionCard{position:relative;display:flex;flex-direction:column;justify-content:center;padding:7px 9px 7px 54px!important;overflow:hidden}.verificationV3 .validationMissionCard:before{content:'⚑';position:absolute;left:9px;top:50%;display:grid;place-items:center;width:36px;height:36px;transform:translateY(-50%);border:3px solid #fff3;border-radius:50%;color:#fff;background:#e67352;box-shadow:0 4px 0 #a94734;font-size:18px}.verificationV3 .validationMissionCard>small{font-size:7px!important}.verificationV3 .validationMissionCard>b{display:-webkit-box!important;overflow:hidden;font-size:11px!important;line-height:1.15!important;-webkit-box-orient:vertical;-webkit-line-clamp:2}.verificationV3 .validationMissionCard>p{display:none!important}.verificationV3 .validationMissionCard>span{overflow:hidden;font-size:7px!important;white-space:nowrap;text-overflow:ellipsis}
+.verificationV3 .experimentStep{display:grid;grid-template-rows:27px minmax(0,1fr);padding:5px!important;overflow:hidden}.verificationV3 .experimentStep>header{margin:0!important}.verificationV3 .experimentStep>header>i{width:21px!important;height:21px!important;font-size:10px!important}.verificationV3 .experimentStep>header b{font-size:9px!important}.verificationV3 .experimentStep>header small{display:none!important}.verificationV3 .stimulusDial,.verificationV3 .probeChoices{align-self:stretch;gap:4px!important}.verificationV3 .stimulusDial button,.verificationV3 .probeChoices button{min-height:0!important;height:100%!important;padding:4px!important}.verificationV3 .stimulusDial button b,.verificationV3 .probeChoices button span b{font-size:8px!important}.verificationV3 .stimulusDial button em{font-size:6px!important}.verificationV3 .probeChoices button>i{width:18px!important;height:18px!important;font-size:8px!important}.verificationV3 .probeChoices button span small{display:none!important}
+.verificationV3 .experimentRun{align-self:stretch;min-height:0!important;height:100%!important;padding:8px!important}.verificationV3 .experimentRun>i{width:31px!important;height:31px!important}.verificationV3 .experimentRun span b{font-size:10px!important}.verificationV3 .experimentRun span small{font-size:7px!important;line-height:1.2!important}
+.verificationV3 .experimentFooter{min-height:72px!important;grid-template-columns:minmax(0,1.2fr) minmax(230px,.78fr) 180px!important;padding:5px!important}.verificationV3 .experimentFooter:not(.conclusive){grid-template-columns:minmax(0,1fr) 180px!important}.verificationV3 .experimentFooter:not(.conclusive) .verificationContinue{grid-column:2!important}.verificationV3 .learnedTechnique{display:none!important}.verificationV3 .experimentFinding,.verificationV3 .traceCompare{padding:5px 7px!important}.verificationV3 .experimentFinding b{font-size:9px!important}.verificationV3 .verificationContinue{min-height:54px!important;font-size:11px!important}
+
+@keyframes restoredPacket{0%{left:5%}100%{left:91%}}
+
+@media(max-width:1180px){
+  .verificationHeader{grid-template-columns:minmax(0,1fr) minmax(270px,.75fr) auto!important}.verificationMentor h1{font-size:16px!important}.requirementTicket b{font-size:11px!important}.verificationHelpButton{font-size:10px!important}
+  .experimentStage{grid-template-columns:minmax(0,1fr) 300px!important}.validationMissionCard>p{display:none}.experimentStep>header small{display:none}.stimulusDial button small{display:none!important}
+  .wiringV2 .logicNode,.wiringV2 .guidedLogicSlot{transform:none!important;transform-origin:left top}
+}
+@media(max-height:720px){
+  .validationMissionCard{padding:5px 7px}.validationMissionCard>p{display:none}.validationMissionCard>span{font-size:8px}.experimentToolBay{gap:4px!important}.experimentStep{padding:5px!important}.stimulusDial button{min-height:45px!important}.probeChoices button{min-height:43px!important}
+}

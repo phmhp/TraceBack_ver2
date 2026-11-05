@@ -246,7 +246,7 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       const finishDistance = Math.max(s.raceDistance, Number(event.distance) || 0);
       const finishGap = Math.max(10, Number.isFinite(Number(event.gap)) ? Number(event.gap) : s.policeGapMeters);
       return s.scene === "SHIP_ESCAPE" && finishDistance >= 1080
-        ? enter({ ...s, raceDistance: finishDistance, policeGapMeters: finishGap, checkpoint: "pirate_ramp" }, "SHIP_BOARDING")
+        ? enter({ ...s, raceDistance: finishDistance, policeGapMeters: finishGap, checkpoint: "pirate_ramp" }, "ENDING")
         : reject(s, "PIRATE_SHIP_NOT_REACHED");
     }
     case "COMPLETE_ENDING":
