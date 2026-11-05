@@ -99,7 +99,7 @@ const reject = (s: Campaign, msg: string): Campaign => ({ ...s, lastError: msg }
 // dramatic buffer until the second incident has started, then 0 m is a real
 // capture everywhere (race, board, wiring and lab).
 const pursuitFloor = (s: Campaign) =>
-  s.caseId === "propulsion" && !s.completedCases.includes("thermal") ? 12 : 0;
+  s.completedCases.length < 2 ? 10 : 0;
 const clampGap = (s: Campaign, gap: number) =>
   Math.max(pursuitFloor(s), Math.min(220, gap));
 
@@ -239,15 +239,28 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       return event.accept
         ? enter({ ...s, optionalBrake: "accepted", caseId: "brake" }, "BOARD")
         : enter({ ...s, optionalBrake: "skipped" }, "SHIP_ESCAPE");
-    case "FINISH_ESCAPE":
-      return s.raceDistance >= 1165 ? enter(s, "SHIP_BOARDING") : reject(s, "PIRATE_SHIP_NOT_REACHED");
+    case "FINISH_ESCAPE": {
+      // Make the hand-off atomic.  The old implementation dispatched SYNC_RACE
+      // and FINISH_ESCAPE separately, so the finish check could observe the
+      // previous render's distance and reject a car already on the dock.
+      const finishDistance = Math.max(s.raceDistance, Number(event.distance) || 0);
+      const finishGap = Math.max(10, Number.isFinite(Number(event.gap)) ? Number(event.gap) : s.policeGapMeters);
+      return s.scene === "SHIP_ESCAPE" && finishDistance >= 1080
+        ? enter({ ...s, raceDistance: finishDistance, policeGapMeters: finishGap, checkpoint: "pirate_ramp" }, "SHIP_BOARDING")
+        : reject(s, "PIRATE_SHIP_NOT_REACHED");
+    }
     case "COMPLETE_ENDING":
       return s.scene === "SHIP_BOARDING" ? enter(s, "ENDING") : reject(s, "BOARDING_REQUIRED");
     case "CAUGHT":
       return enter(s, "CAUGHT");
     case "RETRY_CHECKPOINT":
       return enter(
-        s,
+        {
+          ...s,
+          // Continuing at 0 m used to re-enter CAUGHT on the very next tick.
+          // Preserve tension while always granting a playable recovery window.
+          policeGapMeters: Math.max(s.completedCases.length < 2 ? 35 : 18, s.policeGapMeters),
+        },
         s.checkpoint === "propulsion_fault"
           ? "BOARD"
           : s.checkpoint === "thermal_fault"

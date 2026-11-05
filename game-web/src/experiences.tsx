@@ -452,9 +452,13 @@ function MechanismViewer({ domain, level, feature, activeStep }: { domain: Domai
 }
 
 export function GarageExperience({ state, send }: { state: Campaign; send: Send }) {
-  const [routeLevel, setRouteLevel] = useState(0);
-  const [domain, setDomain] = useState<DomainId>("drive");
-  const [feature, setFeature] = useState(0);
+  const garageParams = useMemo(() => new URLSearchParams(location.search), []);
+  const requestedDomain = garageParams.get("domain") as DomainId | null;
+  const requestedView = Number(garageParams.get("view"));
+  const requestedFeature = Number(garageParams.get("feature"));
+  const [routeLevel, setRouteLevel] = useState(Number.isInteger(requestedView) ? THREE.MathUtils.clamp(requestedView, 0, 2) : 0);
+  const [domain, setDomain] = useState<DomainId>(requestedDomain && requestedDomain in domainContent ? requestedDomain : "drive");
+  const [feature, setFeature] = useState(Number.isInteger(requestedFeature) ? Math.max(0, requestedFeature) : 0);
   const [activeStep, setActiveStep] = useState(0);
   const [lessonHits, setLessonHits] = useState<Set<string>>(() => new Set());
   const content = domainContent[domain];
@@ -517,18 +521,20 @@ function HeistCat3D({ groupRef, coat, role }: { groupRef: React.RefObject<THREE.
     if (rightLeg.current) rightLeg.current.rotation.x = gait * .62;
     if (tail.current) tail.current.rotation.z = -.45 + Math.sin(clock.elapsedTime * 4.5) * .24;
   });
+  const fur = coat;
+  const outfit = role === "driver" ? "#f5f0e5" : "#35565a";
   return <group ref={groupRef} scale={.7}>
-    <mesh position={[0,.72,0]} scale={[.66,.84,.58]} castShadow><sphereGeometry args={[.62,36,26]} /><meshPhysicalMaterial color={role === "driver" ? "#f4efe5" : "#35565a"} roughness={.64} clearcoat={.16} /></mesh>
-    <mesh position={[0,1.57,.02]} scale={[1.08,.94,.9]} castShadow><sphereGeometry args={[.62,40,28]} /><meshPhysicalMaterial color={coat} roughness={.82} /></mesh>
-    {[-.35,.35].map((x,index)=><group key={x} position={[x,1.99,.02]} rotation={[0,0,index?-.14:.14]}><mesh castShadow><coneGeometry args={[.23,.48,5]} /><meshStandardMaterial color={coat} roughness={.82} /></mesh><mesh position={[0,-.045,.12]} scale={[.55,.62,.4]}><coneGeometry args={[.18,.36,5]} /><meshStandardMaterial color="#eaa8a0" roughness={.8} /></mesh></group>)}
+    <mesh position={[0,.72,0]} scale={[.66,.84,.58]} castShadow><sphereGeometry args={[.62,36,26]} /><meshPhysicalMaterial color={outfit} roughness={.64} clearcoat={.16} /></mesh>
+    <mesh position={[0,1.57,.02]} scale={[1.08,.94,.9]} castShadow><sphereGeometry args={[.62,40,28]} /><meshPhysicalMaterial color={fur} roughness={.82} /></mesh>
+    {[-.35,.35].map((x,index)=><group key={x} position={[x,1.99,.02]} rotation={[0,0,index?-.14:.14]}><mesh castShadow><coneGeometry args={[.23,.48,5]} /><meshStandardMaterial color={fur} roughness={.82} /></mesh><mesh position={[0,-.045,.12]} scale={[.55,.62,.4]}><coneGeometry args={[.18,.36,5]} /><meshStandardMaterial color="#eaa8a0" roughness={.8} /></mesh></group>)}
     {[-.22,.22].map(x=><mesh key={x} position={[x,1.65,.56]} scale={[.72,1,.45]}><sphereGeometry args={[.09,24,18]} /><meshStandardMaterial color="#17201f" roughness={.25} /></mesh>)}
     <mesh position={[0,1.48,.59]} rotation={[Math.PI/2,0,0]}><coneGeometry args={[.065,.09,4]} /><meshStandardMaterial color="#d57772" /></mesh>
     {[-.16,.16].map(x=><mesh key={x} position={[x,1.41,.57]} rotation={[0,0,x<0?-.18:.18]}><torusGeometry args={[.11,.018,10,18,Math.PI*.72]} /><meshStandardMaterial color="#5c4a43" /></mesh>)}
-    {[-.28,.28].map((x,index)=><group key={x} ref={index?rightLeg:leftLeg} position={[x,.22,0]}><mesh position={[0,-.1,0]}><capsuleGeometry args={[.13,.38,10,20]} /><meshStandardMaterial color={role==="driver"?"#f2eee4":"#35565a"} roughness={.72} /></mesh><RoundedBox args={[.37,.16,.58]} radius={.08} position={[0,-.34,.16]}><meshStandardMaterial color="#263130" roughness={.76} /></RoundedBox></group>)}
-    {[-.5,.5].map((x,index)=><group key={x} ref={index?rightArm:leftArm} position={[x,.94,0]}><mesh position={[0,-.28,.02]} rotation={[0,0,Math.sign(x)*-.16]}><capsuleGeometry args={[.11,.5,10,18]} /><meshStandardMaterial color={role==="driver"?"#f2eee4":"#35565a"} roughness={.7} /></mesh><mesh position={[0,-.61,.04]}><sphereGeometry args={[.14,20,14]} /><meshStandardMaterial color="#f0d7b8" /></mesh></group>)}
-    <group ref={tail} position={[-.45,.72,-.28]} rotation={[0,0,-.45]}><mesh position={[-.34,.12,0]} rotation={[0,0,Math.PI/2]}><capsuleGeometry args={[.105,.62,10,18]} /><meshStandardMaterial color="#f0d7b8" roughness={.82} /></mesh></group>
+    {[-.28,.28].map((x,index)=><group key={x} ref={index?rightLeg:leftLeg} position={[x,.22,0]}><mesh position={[0,-.1,0]}><capsuleGeometry args={[.13,.38,10,20]} /><meshStandardMaterial color={outfit} roughness={.72} /></mesh><RoundedBox args={[.37,.16,.58]} radius={.08} position={[0,-.34,.16]}><meshStandardMaterial color="#263130" roughness={.76} /></RoundedBox></group>)}
+    {[-.5,.5].map((x,index)=><group key={x} ref={index?rightArm:leftArm} position={[x,.94,0]}><mesh position={[0,-.28,.02]} rotation={[0,0,Math.sign(x)*-.16]}><capsuleGeometry args={[.11,.5,10,18]} /><meshStandardMaterial color={outfit} roughness={.7} /></mesh><mesh position={[0,-.61,.04]}><sphereGeometry args={[.14,20,14]} /><meshStandardMaterial color={fur} /></mesh></group>)}
+    <group ref={tail} position={[-.45,.72,-.28]} rotation={[0,0,-.45]}><mesh position={[-.34,.12,0]} rotation={[0,0,Math.PI/2]}><capsuleGeometry args={[.105,.62,10,18]} /><meshStandardMaterial color={fur} roughness={.82} /></mesh></group>
     {[-.68,.68].map((x,index)=><group key={x} position={[x,.45,.28]} rotation={[0,0,index?.12:-.12]}><mesh scale={[.72,.82,.5]}><sphereGeometry args={[.46,28,20]} /><meshStandardMaterial color="#8c6747" roughness={.96} /></mesh><mesh position={[0,.42,0]}><torusGeometry args={[.2,.045,12,26,Math.PI]} /><meshStandardMaterial color="#4b4035" /></mesh>{[-.15,0,.15].map(gx=><mesh key={gx} position={[gx,.02,.42]}><boxGeometry args={[.12,.08,.05]} /><meshStandardMaterial color="#e4bd54" metalness={.72} roughness={.25} /></mesh>)}</group>)}
-    {role === "driver" && <><mesh position={[0,.96,.52]}><boxGeometry args={[.7,.09,.05]} /><meshStandardMaterial color="#c74c43" /></mesh><mesh position={[0,.76,.52]}><boxGeometry args={[.08,.48,.05]} /><meshStandardMaterial color="#c74c43" /></mesh></>}
+    {role === "driver" ? <><mesh position={[0,.96,.52]}><boxGeometry args={[.7,.09,.05]} /><meshStandardMaterial color="#c74c43" /></mesh><mesh position={[0,.76,.52]}><boxGeometry args={[.08,.48,.05]} /><meshStandardMaterial color="#c74c43" /></mesh></> : <><mesh position={[0,2.12,.28]} rotation={[.05,0,0]}><torusGeometry args={[.42,.07,14,36,Math.PI]} /><meshStandardMaterial color="#6d4f3d" /></mesh>{[-.22,.22].map(x=><mesh key={x} position={[x,1.72,.55]}><torusGeometry args={[.14,.035,12,28]} /><meshPhysicalMaterial color="#6f8795" clearcoat={1} metalness={.35} /></mesh>)}<mesh position={[0,.95,.53]}><boxGeometry args={[.72,.08,.05]} /><meshStandardMaterial color="#d7aa58" /></mesh></>}
   </group>;
 }
 
@@ -552,13 +558,13 @@ function HeistCutsceneScene({ onBeat, onDone }: { onBeat: (beat: number) => void
     const boarded = t >= 7.0;
     const placeCat = (group: THREE.Group | null, offset: number) => {
       if (!group) return;
-      group.position.set(THREE.MathUtils.lerp(offset * .62, 3.12 + offset * .42, escape), .05 + Math.abs(Math.sin(t * 8 + offset)) * .13, THREE.MathUtils.lerp(-1.72, .58 + offset * .18, escape));
+      group.position.set(THREE.MathUtils.lerp(offset * .86, 3.1 + offset * 1.28, escape), .05 + Math.abs(Math.sin(t * 8 + offset)) * .13, THREE.MathUtils.lerp(-1.72, .58 + offset * .12, escape));
       group.rotation.y = Math.PI / 2;
       group.rotation.z = Math.sin(t * 8 + offset) * (escape > 0 ? .08 : .025);
       group.scale.setScalar(t < 1.15 || boarded ? 0 : .7);
     };
-    placeCat(catA.current, 0);
-    placeCat(catB.current, -.78);
+    placeCat(catA.current, -.72);
+    placeCat(catB.current, .72);
     if (doorLeft.current) doorLeft.current.rotation.y = -doorOpen * Math.PI * .48;
     if (doorRight.current) doorRight.current.rotation.y = doorOpen * Math.PI * .48;
     if (alarm.current) alarm.current.intensity = t > 4.8 && t < 7 ? (Math.sin(t * 15) > 0 ? 7 : .3) : 0;
@@ -585,7 +591,7 @@ function HeistCutsceneScene({ onBeat, onDone }: { onBeat: (beat: number) => void
       <group position={[1.72,.1,.59]}><group ref={doorRight}><RoundedBox args={[1.68,3.42,.22]} radius={.08} position={[-.84,1.72,0]} castShadow><meshStandardMaterial color="#6d4933" roughness={.68} /></RoundedBox>{[.58,1.25,1.92,2.59].map(y=><mesh key={y} position={[-.84,y,.13]}><boxGeometry args={[1.28,.08,.06]} /><meshStandardMaterial color="#b88955" /></mesh>)}<mesh position={[-1.5,1.72,.2]}><sphereGeometry args={[.09,18,12]} /><meshStandardMaterial color="#d9b65f" metalness={.8} /></mesh></group></group>
       {[-3,3].map(x => <group key={x} position={[x,2.25,.34]}>{[0,.55,1.1].map(y => <RoundedBox key={y} args={[1.15,.36,.1]} radius={.05} position={[0,y-.55,0]}><meshStandardMaterial color="#ffe58d" emissive="#d39d28" emissiveIntensity={.3} metalness={.65} /></RoundedBox>)}</group>)}
     </group>
-    <HeistCat3D groupRef={catA} coat="#f3efe6" role="driver" /><HeistCat3D groupRef={catB} coat="#35565a" role="engineer" />
+    <HeistCat3D groupRef={catA} coat="#f4ead8" role="driver" /><HeistCat3D groupRef={catB} coat="#f0e1cc" role="engineer" />
     <group ref={car} scale={.72}><Convertible spin={0} /></group>
     {Array.from({length:20},(_,i) => <mesh key={i} position={[-.75+(i%5)*.28,.18+Math.floor(i/5)*.12,-.65]} rotation={[0,0,(i%3)*.2]}><boxGeometry args={[.2,.09,.05]} /><meshStandardMaterial color="#d8b556" metalness={.72} /></mesh>)}
   </>;
@@ -771,7 +777,11 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
   const player = useRef<THREE.Group>(null!);
   const police = useRef<THREE.Group>(null!);
   const lookTarget = useRef(new THREE.Vector3());
-  const shipFrame = trackFrame(TRACK_LENGTH - 8);
+  // Place the visible dock/ship where the playable road actually commits to
+  // the finale.  Keeping it at the mathematical end of the track made the
+  // player drive through an apparently unrelated water/ship area before the
+  // boarding cinematic could start.
+  const shipFrame = trackFrame(TRACK_LENGTH - 108);
   useFrame(({ camera }) => {
     const roadLane = 3.35 + sim.lane;
     const playerFrame = trackFrame(sim.distance, roadLane);
@@ -928,6 +938,14 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         // Bicycle-model inspired lateral movement: the body yaws into the
         // turn and follows a shallow arc instead of translating like a crab.
         let lane = previous.lane + Math.sin(steer) * (speed / 3.6) * .62 * dt;
+        const dockCommitted = mode === "ship" && previous.distance >= TRACK_LENGTH - 170;
+        // The final dock is a constrained ramp, not another free-lane road
+        // segment.  Once committed, guide the car onto the physical centre of
+        // the timber ramp and keep enough momentum for the jump cinematic.
+        if (dockCommitted) {
+          lane = THREE.MathUtils.damp(lane, -3.35, 4.8, dt);
+          speed = THREE.MathUtils.damp(speed, Math.max(64, speed), 3.2, dt);
+        }
         const roadOffset = 3.35 + lane;
         const pushingOutward = steerInput !== 0 && Math.sign(steerInput) === Math.sign(roadOffset);
         const hitRail = Math.abs(roadOffset) > 6.92 && pushingOutward;
@@ -961,11 +979,15 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
             send({ type: "COLLISION" });
           }
         }
-        const floor = state.caseId === "propulsion" && !state.completedCases.includes("thermal") ? 12 : 0;
+        const floor = state.completedCases.length < 2 ? 10 : 0;
         const policeHasJoined = mode !== "normal" || (previous.elapsed >= 3 && previous.distance >= 45);
         const policeSpeed = speed < 4 ? 24 : THREE.MathUtils.clamp(68 + speed * .12, 68, 88);
-        const finalBoardingZone = mode === "ship" && distance >= TRACK_LENGTH - 100;
-        const gap = allowed && policeHasJoined && !finalBoardingZone ? THREE.MathUtils.clamp(previous.gap + (speed - policeSpeed) * dt / 3.6, floor, 220) : previous.gap;
+        const finalBoardingZone = mode === "ship" && distance >= TRACK_LENGTH - 170;
+        const gap = finalBoardingZone
+          ? Math.max(10, previous.gap)
+          : allowed && policeHasJoined
+            ? THREE.MathUtils.clamp(previous.gap + (speed - policeSpeed) * dt / 3.6, floor, 220)
+            : previous.gap;
         const heat = THREE.MathUtils.clamp(previous.heat + (secondSymptom ? speed * dt * .055 : -dt * .7), 35, 94);
         const elapsed = previous.elapsed + (allowed ? dt : 0);
         return { speed, lane, steer, distance, gap, heat, elapsed };
@@ -983,7 +1005,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     if (driveMission === "red" && sim.distance >= 565.8 && sim.speed < 3) setDriveMission("restart");
   }, [driveMission, sim.distance, sim.speed]);
   useEffect(() => {
-    if (mode !== "ship" || waterFall || sim.distance < TRACK_LENGTH - 74) return;
+    if (mode !== "ship" || waterFall || sim.distance < TRACK_LENGTH - 230 || sim.distance >= TRACK_LENGTH - 170) return;
     const roadOffset = 3.35 + sim.lane;
     if (Math.abs(roadOffset) < 8.35) return;
     setWaterFall(true);
@@ -1003,13 +1025,11 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       fired.current = true; send({ type: "FAULT_CUE", caseId: "thermal", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
     } else if (mode === "resume" && state.caseId === "thermal" && sim.distance >= 1050) {
       fired.current = true; send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "START_FINAL_ESCAPE" });
-    } else if (mode === "ship" && sim.distance >= TRACK_LENGTH - 28) {
+    } else if (mode === "ship" && sim.distance >= TRACK_LENGTH - 115) {
       fired.current = true;
-      // Persist the actual ramp position before evaluating the finish gate.
-      // The previous build checked stale campaign distance and could leave the
-      // car driving beside the ship forever even after reaching the deck.
-      send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
-      send({ type: "FINISH_ESCAPE" });
+      // A single reducer event commits the car to the ramp and prevents stale
+      // distance, water fall or a 0 m pursuit tick from stealing the ending.
+      send({ type: "FINISH_ESCAPE", distance: sim.distance, gap: Math.max(10, sim.gap), elapsed: sim.elapsed });
     }
   }, [mode, send, sim.distance, sim.elapsed, sim.gap, state.caseId, state.lastRepairDistance, state.lastRepairElapsedSeconds]);
   const symptom = (mode === "normal" && sim.distance >= 210) || (mode === "resume" && state.caseId === "propulsion" && sim.distance >= 780);
@@ -1046,6 +1066,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     {symptom && <div className="faultBeacon" role="alert"><span /><div><small>VEHICLE WARNING</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "온도 상승 · 보호 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
     {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
     {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>DRIVING MISSION · 제동/전원</small><b>{driveMission === "red" ? "적색 신호 · 정지선에서 완전히 정차" : "정차 후 READY 해제 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(566-sim.distance))}m · S로 제동` : "시동 입력과 전원 허용 경계를 확인하세요"}</span></div>}
+    {mode === "ship" && sim.distance >= TRACK_LENGTH - 230 && <div className="finalRampCommit"><small>FINAL DOCK</small><b>{sim.distance >= TRACK_LENGTH - 170 ? "중앙 오르막 램프 자동 진입" : "해적선 연결 램프 접근"}</b><span>차선 중앙 유도 · 점프 시네마틱 자동 연결</span></div>}
   </div>;
 }
 
@@ -1411,7 +1432,7 @@ function EmbeddedBenchScene({ caseId, running, works }: { caseId: CaseId; runnin
 }
 
 function EmbeddedBench3D({ caseId, running, works, wide = false }: { caseId: CaseId; running: boolean; works: boolean; wide?: boolean }) {
-  return <div className={`benchEmbedded3D ${running ? "running" : ""} ${works ? "works" : "broken"} ${wide ? "wideView" : ""}`}><Canvas shadows camera={{ position: [0, wide ? 4.2 : 3.8, wide ? 10.2 : 8.8], fov: wide ? 44 : 42 }} dpr={[1, 1.15]}><EmbeddedBenchScene caseId={caseId} running={running} works={works} /><OrbitControls enablePan minDistance={wide ? 7.6 : 6.8} maxDistance={12} maxPolarAngle={Math.PI * .48} target={[0, .5, -.25]} /></Canvas><div className="embeddedBoundaryLabels"><span>INPUT SENSOR / DRIVER DEVICE</span><b>REAL ECU + I/O HARNESS</b><em>OUTPUT ACTUATOR + FEEDBACK</em></div></div>;
+  return <div className={`benchEmbedded3D ${running ? "running" : ""} ${works ? "works" : "broken"} ${wide ? "wideView" : ""}`}><Canvas shadows camera={{ position: [0, wide ? 3.8 : 3.15, wide ? 9.1 : 7.2], fov: wide ? 43 : 40 }} dpr={[1, 1.15]}><EmbeddedBenchScene caseId={caseId} running={running} works={works} /><OrbitControls enablePan minDistance={wide ? 7.1 : 5.8} maxDistance={12} maxPolarAngle={Math.PI * .48} target={[0, .5, -.25]} /></Canvas><div className="embeddedBoundaryLabels"><span>INPUT SENSOR / DRIVER DEVICE</span><b>REAL ECU + I/O HARNESS</b><em>OUTPUT ACTUATOR + FEEDBACK</em></div></div>;
 }
 
 function BenchVisual({ tab, caseId, running, works }: { tab: BenchTab; caseId: CaseId; running: boolean; works: boolean }) {
@@ -1425,12 +1446,14 @@ function BenchVisual({ tab, caseId, running, works }: { tab: BenchTab; caseId: C
 
 function TwinDesign({ title, subtitle, tab, caseId, running, works, result }: { title: string; subtitle: string; tab: BenchTab; caseId: CaseId; running: boolean; works: boolean; result?: boolean }) {
   const scope = tab === "sw" ? "SW 요구사항·로직 경계" : tab === "embedded" ? "실 ECU I/O·하니스·가상 Plant" : tab === "system" ? "다중 ECU·차량 기능 통합" : "주행 시나리오·차량 응답";
-  return <section className={`twinDesign ${result === undefined ? "idle" : result ? "pass" : "fail"}`}><header><div><small>{subtitle}</small><h2>{title}</h2></div></header><BenchVisual tab={tab} caseId={caseId} running={running} works={works} /><footer><span>{scope}</span><b>{result === undefined ? "시험 전" : result ? "기대 경로와 일치" : tab === "sw" ? "로직 출력이 처음 갈라짐" : tab === "embedded" ? "ECU I/O 또는 부품 피드백 불일치" : tab === "system" ? "ECU 간 기능 통합 불일치" : "차량 수준 성능 불일치"}</b></footer></section>;
+  const designKind = title.startsWith("정상") ? "referenceDesign" : "playerDesign";
+  return <section className={`twinDesign ${designKind} ${result === undefined ? "idle" : result ? "pass" : "fail"}`}><header><div><small>{subtitle}</small><h2>{title}</h2></div></header><BenchVisual tab={tab} caseId={caseId} running={running} works={works} /><footer><span>{scope}</span><b>{result === undefined ? "시험 전" : result ? "기대 경로와 일치" : tab === "sw" ? "로직 출력이 처음 갈라짐" : tab === "embedded" ? "ECU I/O 또는 부품 피드백 불일치" : tab === "system" ? "ECU 간 기능 통합 불일치" : "차량 수준 성능 불일치"}</b></footer></section>;
 }
 
 export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
   const tabs = [{ id: "sw", label: "SW", desc: "모델/코드 로직" }, { id: "embedded", label: "ECU 통합", desc: "HIL 개념·I/O" }, { id: "system", label: "시스템", desc: "다중 ECU·기능" }, { id: "vehicle", label: "차량", desc: "주행 시나리오" }] as const;
-  const [tab, setTab] = useState<BenchTab>("sw");
+  const requestedTab = new URLSearchParams(location.search).get("tab") as BenchTab | null;
+  const [tab, setTab] = useState<BenchTab>(requestedTab && ["sw", "embedded", "system", "vehicle"].includes(requestedTab) ? requestedTab : "sw");
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<Partial<Record<BenchTab, boolean>>>({});
   const [testTechnique, setTestTechnique] = useState<"requirement" | "boundary" | "fault">("requirement");
@@ -1450,7 +1473,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const run = () => { setRunning(true); window.setTimeout(() => { setRunning(false); setResults(previous => ({ ...previous, [tab]: works })); }, 1250); };
   const revealAnswer = () => { send({ type: "DEV_SOLVE" }); setResults({ sw: true, embedded: true, system: true, vehicle: true }); };
   const actualValue = activeResult === undefined ? "실행 전" : activeResult ? report.actual : state.caseId === "propulsion" ? "92 Nm" : state.caseId === "thermal" ? "0 RPM" : "8 bar";
-  return <div className="benchV2">
+  return <div className={`benchV2 labTab-${tab}`}>
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
     <GameHeader chapter="MING'S V-MODEL LAB" title="요구사항 기반 V-모델 검증 실험실" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <main className="catLab">
@@ -1519,10 +1542,18 @@ function ShipJumpScene({ onBeat }: { onBeat: (beat: number) => void }) {
     const landing = THREE.MathUtils.smoothstep(seconds, 4.15, 5.05);
     ramp.current.rotation.z = THREE.MathUtils.lerp(.03, .22, takeoff);
     const x = THREE.MathUtils.lerp(-6.3, 5.3, flight);
-    const arc = Math.sin(flight * Math.PI) * 3.35;
-    car.current.position.set(x, flight < .98 ? .52 + arc : .62, 0);
-    car.current.rotation.z = flight < .55 ? -.2 + flight * .32 : THREE.MathUtils.lerp(.14, 0, landing);
-    car.current.rotation.y = Math.PI / 2;
+    // Deterministic ballistic motion: the take-off velocity is chosen so the
+    // car returns to deck height at the end of the 3.05 s flight.
+    const flightDuration = 3.05;
+    const flightTime = flight * flightDuration;
+    const gravity = 2.9;
+    const launchVelocityY = gravity * flightDuration * .5;
+    const arc = launchVelocityY * flightTime - .5 * gravity * flightTime * flightTime;
+    const verticalVelocity = launchVelocityY - gravity * flightTime;
+    const horizontalVelocity = 11.6 / flightDuration;
+    car.current.position.set(x, flight < .995 ? .62 + Math.max(0, arc) : .62, 0);
+    car.current.rotation.z = flight < .995 ? -Math.atan2(verticalVelocity, horizontalVelocity) * .32 : THREE.MathUtils.lerp(.12, 0, landing);
+    car.current.rotation.y = Math.PI / 2 - .16;
     police.current.position.x = THREE.MathUtils.lerp(-8.4, -5.9, takeoff);
     camera.position.lerp(new THREE.Vector3(0,3.35,12.8), .08);
     camera.lookAt(0,1.35,0);
@@ -1533,8 +1564,13 @@ function ShipJumpScene({ onBeat }: { onBeat: (beat: number) => void }) {
     <hemisphereLight intensity={2.2} color="#fff4d8" groundColor="#4b7772" />
     <directionalLight castShadow position={[-6,10,8]} intensity={3.4} color="#ffe2aa" />
     <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.5,0]}><planeGeometry args={[40,30]} /><meshPhysicalMaterial color="#3b93ac" roughness={.24} clearcoat={.75} /></mesh>
-    <group position={[-7.2,0,0]}><RoundedBox args={[8,.5,4.2]} radius={.16} position={[0,-.02,0]}><meshStandardMaterial color="#75523a" roughness={.82} /></RoundedBox></group>
-    <group ref={ramp} position={[-4.75,.12,0]}><RoundedBox args={[5.4,.28,2.7]} radius={.12} position={[2.7,0,0]} castShadow><meshStandardMaterial color="#a5774e" roughness={.78} /></RoundedBox>{Array.from({length:7},(_,i)=><mesh key={i} position={[.45+i*.75,.18,0]}><boxGeometry args={[.08,.08,2.5]} /><meshStandardMaterial color="#5f402e" /></mesh>)}</group>
+    <group position={[-7.2,0,0]}><RoundedBox args={[8,.5,4.2]} radius={.16} position={[0,-.02,0]}><meshStandardMaterial color="#75523a" roughness={.82} /></RoundedBox><PartLabel position={[0,.65,0]}>PIER · TAKE-OFF ZONE</PartLabel></group>
+    <group ref={ramp} position={[-4.75,.12,0]}>
+      <RoundedBox args={[5.9,.34,3.05]} radius={.12} position={[2.95,0,0]} castShadow><meshStandardMaterial color="#b18356" roughness={.75} /></RoundedBox>
+      {Array.from({length:8},(_,i)=><mesh key={i} position={[.4+i*.75,.21,0]}><boxGeometry args={[.1,.1,2.85]} /><meshStandardMaterial color="#65442f" /></mesh>)}
+      {[-1.38,1.38].map(z => <mesh key={z} position={[3,.48,z]} rotation={[0,0,-.03]}><boxGeometry args={[5.7,.1,.1]} /><meshStandardMaterial color="#ead3a1" emissive="#6b4b2d" emissiveIntensity={.25} /></mesh>)}
+      <PartLabel position={[2.8,.82,0]}>UPHILL LEVER RAMP</PartLabel>
+    </group>
     <group position={[6.4,.4,0]}><RoundedBox args={[8.6,1.25,5.7]} radius={.7} position={[0,-.12,0]} castShadow><meshPhysicalMaterial color="#352522" roughness={.5} metalness={.16} clearcoat={.25} /></RoundedBox><RoundedBox args={[7.4,.34,4.6]} radius={.18} position={[-.3,.67,0]}><meshStandardMaterial color="#9c744f" roughness={.78} /></RoundedBox><mesh position={[1.2,4.7,0]}><cylinderGeometry args={[.13,.22,7.8,18]} /><meshStandardMaterial color="#322722" /></mesh><mesh position={[3.25,4.55,0]} rotation={[0,0,-.13]}><planeGeometry args={[4.2,3.2]} /><meshStandardMaterial color="#bd4945" side={THREE.DoubleSide} /></mesh><PartLabel position={[0,2.1,0]}>THE RED WHISKER · DECK</PartLabel></group>
     <group ref={car} scale={.84}><Convertible steer={0} spin={18} /></group>
     <group ref={police} position={[-8.4,.02,0]} rotation={[0,Math.PI/2,0]} scale={.76}><PoliceInterceptor spin={12} /></group>

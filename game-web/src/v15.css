@@ -1,0 +1,129 @@
+/* v15 — deterministic finale, readable lab boards and tactile common controls */
+
+/* Large actions reuse one coherent, generated 3D plate and visibly depress. */
+button.primary,.clayAction,.runLab,.garageProceed,.stageHistoryNav button{
+  position:relative!important;
+  border:0!important;
+  border-radius:15px!important;
+  color:#28473f!important;
+  background-color:transparent!important;
+  background-image:url('/assets/ui-button-plate-v1.png')!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+  background-size:100% 100%!important;
+  box-shadow:none!important;
+  filter:drop-shadow(0 5px 5px #17302940);
+  transform:translateY(0);
+  transition:transform .11s ease,filter .11s ease,brightness .11s ease!important;
+}
+button.primary:hover:not(:disabled),.clayAction:hover:not(:disabled),.runLab:hover:not(:disabled),.garageProceed:hover:not(:disabled),.stageHistoryNav button:hover:not(:disabled){transform:translateY(-2px)!important;filter:drop-shadow(0 7px 6px #1730294d) brightness(1.035)}
+button.primary:active:not(:disabled),.clayAction:active:not(:disabled),.runLab:active:not(:disabled),.garageProceed:active:not(:disabled),.stageHistoryNav button:active:not(:disabled){transform:translateY(4px) scale(.985)!important;filter:drop-shadow(0 1px 1px #17302942) brightness(.96)}
+button.primary:disabled,.clayAction:disabled,.runLab:disabled,.garageProceed:disabled{filter:grayscale(.45) opacity(.58)!important}
+
+/* Give the lab history control its own strip instead of covering the title. */
+.benchV2+.stageHistoryNav{left:16px!important;top:68px!important;z-index:160!important}
+.benchV2+.stageHistoryNav button{height:30px!important;min-width:96px!important;padding:5px 14px!important}
+.benchV2 .catLab{top:104px!important;bottom:8px!important;grid-template-rows:54px minmax(0,1fr) auto 88px!important;padding:8px!important;gap:5px!important;border:0!important;border-radius:24px!important;background:linear-gradient(145deg,#f7edd9e8,#d7e8dbed)!important;box-shadow:0 18px 45px #14251e6b,inset 0 0 0 2px #fff9!important;overflow:hidden!important}
+.benchV2 .gameHeader{overflow:visible!important}
+.benchV2 .pressureMeter.gapOnly{position:relative!important;right:auto!important;top:auto!important;min-width:84px!important;height:38px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;padding:4px 9px!important;border:3px solid #f0dca7!important;border-radius:13px!important;color:#2d4a42!important;background:#fff9e9!important;box-shadow:0 4px 0 #aa9162!important}
+.benchV2 .pressureMeter.gapOnly span,.benchV2 .pressureMeter.gapOnly b{display:block!important;white-space:nowrap!important}.benchV2 .pressureMeter.gapOnly span{font-size:4.8px!important}.benchV2 .pressureMeter.gapOnly b{font-size:8px!important}
+
+/* Header tabs stay inside the available width at every desktop aspect ratio. */
+.benchV2 .labHeader{min-width:0!important;display:grid!important;grid-template-columns:minmax(190px,1fr) auto!important;gap:8px!important;padding:0 5px 0 8px!important;overflow:hidden!important}
+.benchV2 .labCat{min-width:0!important}.benchV2 .labCat span{min-width:0!important}.benchV2 .labCat b,.benchV2 .labCat small{overflow:hidden!important;white-space:nowrap!important;text-overflow:ellipsis!important}
+.benchV2 .labHeader nav{min-width:0!important;display:grid!important;grid-template-columns:repeat(4,minmax(68px,86px))!important;gap:4px!important}
+.benchV2 .labHeader nav button{width:auto!important;min-width:0!important;height:43px!important;padding:5px 7px!important;border:2px solid #aebfb5!important;border-radius:12px!important;color:#38564e!important;background:#fffdf4!important;box-shadow:0 3px 0 #8da399!important;overflow:hidden!important}
+.benchV2 .labHeader nav button.active{border-color:#e47d59!important;background:#ffe7c7!important;box-shadow:0 3px 0 #b75842!important;transform:translateY(-1px)!important}
+
+/* Generated board frame replaces the flat white comparison cards. */
+.benchV2 .twinCompare{grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr)!important;gap:4px!important;overflow:hidden!important}
+.benchV2 .twinDesign{position:relative!important;min-width:0!important;height:100%!important;display:grid!important;grid-template-rows:35px minmax(0,1fr) 28px!important;gap:3px!important;padding:28px 23px 18px!important;border:0!important;border-radius:20px!important;background-color:transparent!important;background-image:url('/assets/lab-comparison-board-v1.png')!important;background-size:100% 100%!important;background-position:center!important;background-repeat:no-repeat!important;box-shadow:none!important;filter:drop-shadow(0 7px 7px #18302938);overflow:hidden!important;box-sizing:border-box!important}
+.benchV2 .twinDesign>header{min-width:0!important;height:auto!important;margin:0 4px!important;padding:4px 8px!important;border-radius:8px!important;color:#fff8df!important;background:#173c37d9!important;box-shadow:inset 0 0 0 1px #fff2!important;overflow:hidden!important}
+.benchV2 .twinDesign>header h2{margin:0!important;color:#fff9e6!important;font-size:8.5px!important}.benchV2 .twinDesign>header small{color:#f4c969!important;font-size:4.8px!important}
+.benchV2 .twinDesign>footer{min-width:0!important;height:auto!important;margin:0 4px!important;padding:4px 7px!important;border-radius:7px!important;color:#fff9e6!important;background:#173c37e8!important;overflow:hidden!important}
+.benchV2 .twinDesign>footer span,.benchV2 .twinDesign>footer b{max-width:49%!important;color:#fff9e6!important;font-size:5.3px!important;white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important}
+.benchV2 .versus{align-self:center!important;color:#35544c!important}.benchV2 .versus span{font-size:5px!important}.benchV2 .versus b{width:34px!important;height:34px!important;border:4px solid #fff3cf!important;border-radius:11px!important;color:#fff!important;background:#df7557!important;box-shadow:0 4px 0 #8f3f31,0 8px 12px #20372e44!important;transform:rotate(-4deg)!important}.benchV2 .versus i{height:18px!important}
+
+/* SW model must remain visible: the previous inherited height subtraction could collapse it. */
+.benchV2 .benchSwVisual.detailed{width:100%!important;height:100%!important;min-height:132px!important;display:grid!important;grid-template-rows:28px minmax(0,1fr)!important;justify-content:stretch!important;align-items:stretch!important;gap:5px!important;margin:0!important;padding:6px!important;border:2px solid #b8c8bf!important;border-radius:10px!important;background:#eef5ef!important;box-sizing:border-box!important;overflow:hidden!important;opacity:1!important}
+.benchV2 .benchSwVisual.detailed>*{width:100%!important;max-width:none!important;box-sizing:border-box!important}
+.benchV2 .simulinkModelHeader{min-width:0!important;padding:4px 7px!important;color:#fff!important;background:#294a42!important}.benchV2 .simulinkModelHeader b{font-size:5.7px!important}.benchV2 .simulinkModelHeader span{max-width:64%;overflow:hidden;font-size:4.8px!important;white-space:nowrap;text-overflow:ellipsis}
+.benchV2 .swFlowchart{min-height:96px!important;border:2px solid #9fb5aa!important;background:linear-gradient(#fffdf5,#e5efe8)!important}.benchV2 .swFlowchart>svg{z-index:1!important}.benchV2 .swDiagramBlock{z-index:2!important;width:20%!important;height:30%!important;min-height:36px!important;grid-template-columns:17px minmax(0,1fr)!important;padding:3px!important;border-width:2px!important;background:#fffdf4!important}.benchV2 .swDiagramBlock b{overflow:hidden;color:#263f38!important;font-size:5.2px!important;white-space:nowrap;text-overflow:ellipsis}.benchV2 .swDiagramBlock small{overflow:hidden;color:#60736b!important;font-size:4.6px!important;white-space:nowrap;text-overflow:ellipsis}.benchV2 .swFeedbackLabel{z-index:3!important;bottom:1%!important;font-size:4.5px!important}
+
+/* Embedded/system/vehicle views fill the board window without clipped labels. */
+.benchV2 .benchEmbedded3D,.benchV2 .systemBenchVisual,.benchV2 .benchVehicleVisual{width:100%!important;height:100%!important;min-height:132px!important;margin:0!important;border:2px solid #aebfb5!important;border-radius:10px!important;overflow:hidden!important;box-sizing:border-box!important}.benchV2 .embeddedBoundaryLabels{left:4px!important;right:4px!important;bottom:4px!important;font-size:4.3px!important}.benchV2 .benchExplanation{position:relative!important;z-index:5!important;margin:0 20px!important}
+
+/* TC strip is readable, but remains a compact result console pending the next design decision. */
+.benchV2 .tcConsole{min-height:0!important;grid-template-columns:minmax(0,1fr) 118px 132px!important;padding:6px 8px!important;border:4px solid #d4bd86!important;border-radius:16px!important;background:#fff8e4!important;box-shadow:0 5px 0 #aa8e5b!important;overflow:hidden!important}.benchV2 .tcWorkbench{grid-template-columns:110px minmax(220px,.95fr) 1.1fr!important;gap:6px!important}.benchV2 .tcWorkbench header b{font-size:6px!important}.benchV2 .tcChoices button{background-image:none!important;filter:none!important;transform:none!important}.benchV2 .tcWorkbench dd{font-size:4.8px!important}
+
+/* The final cinematic is always above the race world and cannot fall through it. */
+.shipBoarding.shipJump{z-index:240!important}.shipBoarding.shipJump canvas{display:block!important}.shipBoarding.shipJump .boardingCaption{left:5%!important;right:auto!important;top:8%!important;bottom:auto!important;width:min(470px,40%)!important;height:auto!important;padding:14px 16px!important;box-sizing:border-box!important;border:5px solid #ead39d!important;background:#fff9e8eb!important;box-shadow:0 8px 0 #9e8351,0 18px 42px #13241d66!important}.shipBoarding.shipJump .boardingCaption h1{color:#294b42!important}
+
+@media(max-width:1050px){
+  .benchV2 .labHeader{grid-template-columns:minmax(160px,1fr) auto!important}.benchV2 .labHeader nav{grid-template-columns:repeat(4,70px)!important}.benchV2 .labCat img{width:40px!important;height:40px!important}.benchV2 .twinDesign{padding:25px 19px 16px!important}.benchV2 .tcWorkbench{grid-template-columns:92px minmax(188px,.9fr) 1fr!important}.benchV2 .tcConsole{grid-template-columns:minmax(0,1fr) 108px 120px!important}
+}
+
+/* v16 exhibition readability: the game is shown in a browser to viewers who
+   may have reduced visual acuity.  Information text no longer drops to the
+   4–7 px prototype sizes used while fitting the first wireframes. */
+.gameHeader .chapterChip small,.gameHeader .chapterChip b,.journeyProgress>button,
+.garageLayerNav:before,.viewAxisLabel,.garageLayerNav button small,
+.garageMechanismCard>header small,.garageMechanismCard>header p,
+.garageFlowPanel>small,.garageFlowPanel .flowRelationship,
+.garageFlowPanel>div>button small,.garageProceed,
+.raceIdentity small,.raceTripHud small,.raceTripHud em,.cockpitGauge small,
+.raceControls,.raceMiniMap small,.policeMirror small,.policeMirror strong,
+.faultBeacon small,.faultBeacon em,.driveMission small,.driveMission span,
+.investigationBoard>header small,.limpHomeStatus,.evidenceInventory>p,
+.causeCandidates>p,.polaroidCaption small,.polaroidCaption span,
+.caseBoardTitle,.boardFeedback,.boardDecisionBar button,
+.wiringTitle small,.puzzlePerspectiveTag,.verticalRequirement,
+.logicNodeCaption small,.canvasHelp,.wiringFooter,
+.labCat small,.labHeader nav button small,.verificationBadge small,
+.twinDesign>header small,.twinDesign>footer span,.twinDesign>footer b,
+.simulinkModelHeader span,.swDiagramBlock small,.tcWorkbench header small,
+.tcChoices span,.tcChoices button,.tcWorkbench dt,.tcWorkbench dd,
+.shipJump .boardingCaption p,.shipJump:after{
+  font-size:clamp(9px,.7vw,12px)!important;
+  line-height:1.35!important;
+}
+.garageLayerNav button b,.garageFlowPanel>div>button b,
+.polaroidCaption b,.causeCandidates>button>b,.logicNodeCaption b,
+.labHeader nav button b,.twinDesign>header h2,.swDiagramBlock b,
+.tcWorkbench header b,.benchExplanation b{
+  font-size:clamp(11px,.82vw,14px)!important;
+  line-height:1.25!important;
+}
+
+/* Larger, consistent real-polaroid proportions on the investigation board. */
+.boardV3 .investigationBoard.detectiveLayout{
+  grid-template-columns:230px minmax(0,1fr) 230px!important;
+  grid-template-rows:62px minmax(0,1fr) 58px!important;
+  gap:10px!important;
+  padding:11px!important;
+}
+.evidenceInventory>div{grid-template-columns:1fr!important;gap:12px!important;padding:5px 12px 12px!important}
+.evidenceInventory .polaroidCard{height:224px!important;grid-template-rows:minmax(0,1fr) 58px!important;padding:9px!important}
+.causeCandidates>button{grid-template-columns:92px minmax(0,1fr)!important;min-height:112px!important;padding:9px!important;gap:7px 10px!important}
+.causeCandidates .polaroidGraphic{width:92px!important;height:96px!important}
+.boardPinnedCard,.boardCausePin{width:142px!important;height:190px!important}
+.boardPinnedCard .polaroidCard,.boardCausePin .polaroidCard{grid-template-rows:minmax(0,1fr) 58px!important;padding:8px!important}
+.boardDecisionBar{min-height:48px!important}.boardDecisionBar button{height:40px!important}
+
+/* The final road clearly announces and visually commits to the rising ramp. */
+.finalRampCommit{position:absolute;z-index:32;left:50%;bottom:17%;width:310px;transform:translateX(-50%);padding:11px 15px;border:4px solid #f0d898;border-radius:17px;color:#28463e;background:#fff8dded;box-shadow:0 6px 0 #957544,0 16px 32px #14241e60;text-align:center;pointer-events:none}
+.finalRampCommit small,.finalRampCommit b,.finalRampCommit span{display:block}.finalRampCommit small{color:#bd5343;font-size:10px;font-weight:1000;letter-spacing:.12em}.finalRampCommit b{margin:3px 0;font-size:16px}.finalRampCommit span{font-size:11px;font-weight:800}
+.shipJump .boardingCaption h1{font-size:clamp(25px,2.1vw,34px)!important}.shipJump .boardingCaption p{font-size:clamp(13px,1vw,17px)!important}.shipJump:after{font-size:10px!important}
+
+/* Final exhibition pass: normal prose and controls must be readable from a
+   standing viewing distance.  Dense diagrams keep a slightly smaller floor,
+   but never return to the 4–7 px prototype typography. */
+.gameStage p{font-size:clamp(14px,.95vw,17px)!important;line-height:1.48!important}
+.gameStage button{font-size:clamp(12px,.82vw,15px)!important}
+.gameStage small{font-size:clamp(11px,.72vw,13px)!important;line-height:1.35!important}
+.gameStage dt,.gameStage dd,.gameStage label{font-size:clamp(11px,.72vw,13px)!important}
+.polaroidCaption b,.logicNodeCaption b,.causeCandidates>button>b{font-size:clamp(13px,.9vw,16px)!important}
+.polaroidCaption span,.causeCandidates>button>span,.logicNodeCaption span{font-size:clamp(11px,.72vw,13px)!important}
+.swDiagramBlock b,.systemBenchVisual article b{font-size:clamp(10px,.66vw,12px)!important}.swDiagramBlock small,.systemBenchVisual article small,.systemBenchVisual section>i,.systemBenchVisual footer{font-size:clamp(9px,.6vw,11px)!important}
+.tcChoices button,.tcChoices span,.tcWorkbench dt,.tcWorkbench dd{font-size:clamp(10px,.65vw,12px)!important}
+.gameStage{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}

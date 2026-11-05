@@ -12,16 +12,18 @@ const earlyFlowPolish = readFileSync(new URL("../src/v10.css", import.meta.url),
 const latestPolish = readFileSync(new URL("../src/v11.css", import.meta.url), "utf8");
 const learningPolish = readFileSync(new URL("../src/v12.css", import.meta.url), "utf8");
 const finalPolish = readFileSync(new URL("../src/v14.css", import.meta.url), "utf8");
+const labAndFinalePolish = readFileSync(new URL("../src/v15.css", import.meta.url), "utf8");
 
 test("pursuit state persists across investigation and guarantees two required faults", () => {
   assert.match(runtime, /raceDistance: number/);
   assert.match(runtime, /policeGapMeters: number/);
-  assert.match(runtime, /s\.caseId === "propulsion".*\? 12 : 0/s);
+  assert.match(runtime, /s\.completedCases\.length < 2 \? 10 : 0/);
   assert.match(experience, /mode === "normal" && sim\.distance >= 260/);
   assert.match(experience, /state\.caseId === "propulsion" && sim\.distance >= 830/);
   assert.match(runtime, /const routeGate = s\.caseId === "propulsion" \? 540/);
   assert.match(runtime, /policeGapMeters <= 0 \? enter\(s, "CAUGHT"\)/);
   assert.match(runtime, /nextScore = correct \? 20 : -20/);
+  assert.match(runtime, /policeGapMeters: Math\.max\(s\.completedCases\.length < 2 \? 35 : 18/);
 });
 
 test("interaction rebuild keeps the requested core surfaces", () => {
@@ -112,6 +114,8 @@ test("v14 keeps strict tools, the four-level V-model lab, underfloor EV architec
   assert.doesNotMatch(experience, /검증 여권/);
   assert.match(experience, /function ShipJumpScene/);
   assert.match(experience, /THELMA-STYLE DOCK JUMP/);
+  assert.match(experience, /FINISH_ESCAPE", distance: sim\.distance, gap: Math\.max\(10, sim\.gap\)/);
+  assert.match(runtime, /finishDistance >= 1080/);
   assert.match(experience, /4\.70m × 1\.85m × 1\.45m/);
   assert.match(experience, /하부 배터리\/HV·LV 분기 하니스/);
   assert.doesNotMatch(experience, /className="wirePort/);
@@ -119,4 +123,8 @@ test("v14 keeps strict tools, the four-level V-model lab, underfloor EV architec
   assert.match(finalPolish, /cursor-hand-open-v1\.png/);
   assert.match(finalPolish, /cursor-hand-grab-v1\.png/);
   assert.match(finalPolish, /\.wirePort\{display:none!important\}/);
+  assert.match(labAndFinalePolish, /lab-comparison-board-v1\.png/);
+  assert.match(labAndFinalePolish, /ui-button-plate-v1\.png/);
+  assert.match(labAndFinalePolish, /\.benchV2 \.benchSwVisual\.detailed/);
+  assert.match(labAndFinalePolish, /width:min\(470px,40%\)!important/);
 });

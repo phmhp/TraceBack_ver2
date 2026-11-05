@@ -41,6 +41,7 @@ import "./v11.css";
 import "./v12.css";
 import "./v13.css";
 import "./v14.css";
+import "./v15.css";
 const A = "/assets/";
 type Sim = {
   speed: number;
@@ -63,6 +64,24 @@ function useCampaign() {
     const params = new URLSearchParams(location.search);
     if (params.has("new"))
       return initialCampaign();
+    const qaScene = params.get("qa") as Campaign["scene"] | null;
+    if (import.meta.env.DEV && qaScene && ["PROLOGUE", "GARAGE_L1", "DRIVE_BRIEFING", "CHASE_NORMAL", "FAULT_CUE", "BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR", "CHASE_RESUME", "SHIP_ESCAPE", "SHIP_BOARDING", "CAUGHT", "ENDING", "PAUSE"].includes(qaScene)) {
+      const isFinale = qaScene.startsWith("SHIP") || qaScene === "ENDING";
+      const isResume = qaScene === "CHASE_RESUME";
+      return hydrateCampaign({
+        scene: qaScene,
+        caseId: "propulsion",
+        previousScene: qaScene === "PAUSE" ? "CHASE_NORMAL" : undefined,
+        completedCases: isFinale ? ["propulsion", "thermal"] : isResume ? ["propulsion"] : [],
+        evidence: { propulsion: ["pedal_raw", "pedal_processed", "torque_cmd"], thermal: [], brake: [] },
+        hypothesis: { propulsion: "gateway", thermal: "", brake: "" },
+        program: { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake" },
+        raceDistance: qaScene === "CHASE_NORMAL" ? 0 : qaScene === "SHIP_ESCAPE" ? 1035 : isResume ? 545 : 260,
+        raceElapsedSeconds: 52,
+        policeGapMeters: 72,
+        checkpoint: qaScene.startsWith("SHIP") || qaScene === "ENDING" ? "dock_approach" : "propulsion_fault",
+      });
+    }
     try {
       const r = localStorage.getItem("traceback-v16-save");
       return r ? hydrateCampaign(JSON.parse(r)) : initialCampaign();
@@ -692,7 +711,7 @@ function Race({
       Math.abs(sim.lane) < 1.5 &&
       sim.speed > 45
     )
-      send({ type: "FINISH_ESCAPE" });
+      send({ type: "FINISH_ESCAPE", distance: 1110, gap: Math.max(10, sim.policeGap) });
   }, [sim, mode, state.caseId, send]);
   const symptomActive =
     (mode === "normal" && sim.progress > 78) ||
