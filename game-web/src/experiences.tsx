@@ -5,6 +5,10 @@ import * as THREE from "three";
 import type { Campaign, CaseId } from "./game/runtime";
 import { SCENARIOS } from "./game/scenarios";
 import { GameHeader, JourneyProgress, SceneBackdrop } from "./ui/game-shell";
+import { HeroConvertible } from "./features/vehicle/HeroConvertible";
+import { DevRenderProbe } from "./features/vehicle/DevRenderProbe";
+// Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
+const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
 
 const A = "/assets/";
 type Send = React.Dispatch<any>;
@@ -587,6 +591,7 @@ function HeistCutsceneScene({ onBeat, onDone }: { onBeat: (beat: number) => void
   const catA = useRef<THREE.Group>(null);
   const catB = useRef<THREE.Group>(null);
   const car = useRef<THREE.Group>(null);
+  const carCrew = useRef<THREE.Group>(null);
   const doorLeft = useRef<THREE.Group>(null);
   const doorRight = useRef<THREE.Group>(null);
   const alarm = useRef<THREE.PointLight>(null);
@@ -610,6 +615,8 @@ function HeistCutsceneScene({ onBeat, onDone }: { onBeat: (beat: number) => void
     };
     placeCat(catA.current, -.72);
     placeCat(catB.current, .72);
+    // The running cats vanish as they board; the seated crew appears in the same instant.
+    if (carCrew.current) carCrew.current.visible = boarded;
     if (doorLeft.current) doorLeft.current.rotation.y = -doorOpen * Math.PI * .48;
     if (doorRight.current) doorRight.current.rotation.y = doorOpen * Math.PI * .48;
     if (alarm.current) alarm.current.intensity = t > 4.8 && t < 7 ? (Math.sin(t * 15) > 0 ? 7 : .3) : 0;
@@ -637,7 +644,7 @@ function HeistCutsceneScene({ onBeat, onDone }: { onBeat: (beat: number) => void
       {[-3,3].map(x => <group key={x} position={[x,2.25,.34]}>{[0,.55,1.1].map(y => <RoundedBox key={y} args={[1.15,.36,.1]} radius={.05} position={[0,y-.55,0]}><meshStandardMaterial color="#ffe58d" emissive="#d39d28" emissiveIntensity={.3} metalness={.65} /></RoundedBox>)}</group>)}
     </group>
     <HeistCat3D groupRef={catA} coat="#f4ead8" role="driver" /><HeistCat3D groupRef={catB} coat="#f0e1cc" role="engineer" />
-    <group ref={car} scale={.72}><Convertible spin={0} /></group>
+    <group ref={car} scale={.72}><HeroConvertible spin={0} crewRef={carCrew} /></group>
     {Array.from({length:20},(_,i) => <mesh key={i} position={[-.75+(i%5)*.28,.18+Math.floor(i/5)*.12,-.65]} rotation={[0,0,(i%3)*.2]}><boxGeometry args={[.2,.09,.05]} /><meshStandardMaterial color="#d8b556" metalness={.72} /></mesh>)}
   </>;
 }
@@ -941,8 +948,9 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
         <PartLabel position={[0,5.35,-14]}>FINAL · THE RED WHISKER · PHYSICAL DECK</PartLabel>
       </group>
     </>}
-    <group ref={player}><Convertible steer={sim.steer} spin={sim.distance * .11} /></group>
+    <group ref={player}>{DEV_LEGACY_CAR ? <Convertible steer={sim.steer} spin={sim.distance * .11} /> : <HeroConvertible steer={sim.steer} spin={sim.distance * .11} speed={sim.speed} />}</group>
     <group ref={police} visible={policeVisible}><PoliceInterceptor spin={sim.distance * .11} /></group>
+    {import.meta.env.DEV && <DevRenderProbe name="race" />}
   </>;
 }
 
@@ -1779,7 +1787,7 @@ function ShipJumpScene({ onBeat }: { onBeat: (beat: number) => void }) {
       <PartLabel position={[2.8,.82,0]}>UPHILL LEVER RAMP</PartLabel>
     </group>
     <group position={[6.4,.4,0]}><RoundedBox args={[8.6,1.25,5.7]} radius={.7} position={[0,-.12,0]} castShadow><meshPhysicalMaterial color="#352522" roughness={.5} metalness={.16} clearcoat={.25} /></RoundedBox><RoundedBox args={[7.4,.34,4.6]} radius={.18} position={[-.3,.67,0]}><meshStandardMaterial color="#9c744f" roughness={.78} /></RoundedBox><mesh position={[1.2,4.7,0]}><cylinderGeometry args={[.13,.22,7.8,18]} /><meshStandardMaterial color="#322722" /></mesh><mesh position={[3.25,4.55,0]} rotation={[0,0,-.13]}><planeGeometry args={[4.2,3.2]} /><meshStandardMaterial color="#bd4945" side={THREE.DoubleSide} /></mesh><PartLabel position={[0,2.1,0]}>THE RED WHISKER · DECK</PartLabel></group>
-    <group ref={car} scale={.84}><Convertible steer={0} spin={18} /></group>
+    <group ref={car} scale={.84}><HeroConvertible steer={0} spin={18} speed={60} /></group>
     <group ref={police} position={[-8.4,.02,0]} rotation={[0,Math.PI/2,0]} scale={.76}><PoliceInterceptor spin={12} /></group>
   </>;
 }

@@ -1473,6 +1473,12 @@ function App() {
   if (state.scene === "ENDING") return frame(<Ending state={state} send={send} />);
   return frame(<Overlay state={state} send={send} />);
 }
+const devShowroom = import.meta.env.DEV && new URLSearchParams(location.search).get("showroom") === "car";
+const VehicleShowroom = import.meta.env.DEV
+  ? React.lazy(() => import("./features/vehicle/VehicleShowroom").then(module => ({ default: module.VehicleShowroom })))
+  : null;
 createRoot(document.getElementById("root")!).render(
-  <GameStage><App /></GameStage>,
+  devShowroom && VehicleShowroom
+    ? <React.Suspense fallback={null}><VehicleShowroom /></React.Suspense>
+    : <GameStage><App /></GameStage>,
 );
