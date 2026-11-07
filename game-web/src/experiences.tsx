@@ -14,6 +14,7 @@ import { play } from "./ui/sfx";
 import { ECUS } from "./sim/components";
 import { getComponent } from "./sim/registry";
 import { SimulinkDiagram } from "./features/garage/SimulinkDiagram";
+import { EeBlueprint } from "./features/garage/EeBlueprint";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
 
@@ -517,9 +518,13 @@ function SimulinkFlow({ domain, feature, level, activeStep }: { domain: DomainId
   </div>;
 }
 
-function MechanismViewer({ domain, level, feature, activeStep, removed = null }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null }) {
+function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void }) {
   const [shell, setShell] = useState(false);
   const sourceLevel = garageLayerSource[level] ?? 3;
+  if (level === 1) {
+    const chain = getFeatureLayer(domain, feature, 1);
+    return <div className="mechanismViewer eeView eeBlueprintView"><EeBlueprint chain={chain} roles={chain.map((label, index) => partRole(label, index, chain.length))} active={activeStep} removed={removed} onPick={onPick} /></div>;
+  }
   if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={activeStep} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
   return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
     <Canvas key={`${domain}-${feature}`} shadows camera={{ position: [5.9, 3.35, 6.6], fov: 36 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
@@ -657,7 +662,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map((id, index) => <button key={id} className={domain === id ? "active" : ""} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span>{domainContent[id].icon}</span><b>{domainContent[id].label}</b><small>{index < 4 ? "필수" : "확장"}</small></button>)}</nav>
       <section className="garageMechanismCard">
         <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
-        <MechanismViewer domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} />
+        <MechanismViewer domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {routeLevel === 1 && (() => {
           const parts = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
