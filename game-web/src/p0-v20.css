@@ -537,3 +537,6 @@ kbd.wide { min-width: 34px; }
 .eeChip.active { border-color: #e07a2c; box-shadow: 0 0 0 3px #e07a2c33; }
 .eeChip.out { border-style: dashed; border-color: #e0483c; background: #fdeeed; text-decoration: line-through; }
 .garageV2 .eeBlueprintView .shellToggle { display: none; }
+
+/* Korean text wraps only at spaces (no mid-word breaks) */
+body, button, p, li, span, b, small, em, h1, h2, h3 { word-break: keep-all; overflow-wrap: break-word; }

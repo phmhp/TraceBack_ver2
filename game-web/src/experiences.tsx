@@ -1890,6 +1890,18 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const [dragging, setDragging] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const initialWireScale = () => window.innerWidth < 1100 ? .72 : .9;
   const [view, setView] = useState({ x: 0, y: 0, scale: initialWireScale() });
+  // start fitted: the whole puzzle (pieces x 0–980, y 90–460) is visible without zooming
+  useEffect(() => {
+    const fit = () => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect || !rect.width) return;
+      const scale = Math.min(rect.width / 990, rect.height / 400, 1.1);
+      setView({ scale, x: (rect.width - 990 * scale) / 2, y: (rect.height - 400 * scale) / 2 - 80 * scale });
+    };
+    const timer = window.setTimeout(fit, 50);
+    addEventListener("resize", fit);
+    return () => { clearTimeout(timer); removeEventListener("resize", fit); };
+  }, []);
   const [panning, setPanning] = useState<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const [wireTool, setWireTool] = useState<"move" | "pencil" | "erase">("move");
   const eraser = wireTool === "erase";
