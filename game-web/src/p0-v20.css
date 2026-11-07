@@ -902,3 +902,19 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 .vbMonitorFoot { display: flex; justify-content: center; padding-top: 2px; }
 .vbLab .vbAfter { grid-column: 1 / 3; }
 .vbLayout { grid-template-rows: auto minmax(0, 1fr) auto !important; }
+
+/* Domino: pushpin + red string, card flip on measure */
+.dtPinWrap { display: grid; justify-items: center; gap: 2px; margin-top: 2px; }
+.dtPinWrap em { font: 800 10.5px Pretendard, system-ui; font-style: normal; color: var(--clueDeep); }
+.dtPin { width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: grab; touch-action: none; background: radial-gradient(circle at 35% 30%, #ff9a8a, #d9362b 55%, #8e1d16); box-shadow: 0 3px 0 #6d140f, 0 4px 8px #0004; animation: dtPinBob 1.4s ease-in-out infinite; }
+.dtPin:active, .dtPin.pulling { cursor: grabbing; animation: none; transform: scale(1.15); }
+@keyframes dtPinBob { 50% { transform: translateY(-3px); } }
+.dtThread { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 95; pointer-events: none; }
+.dtThread path { fill: none; stroke: #c0392b; stroke-width: 3.5; stroke-linecap: round; filter: drop-shadow(0 2px 1px #0004); }
+.dtThread path.hot { stroke: #e74c3c; stroke-width: 4.5; }
+.dtThread circle { fill: #d9362b; stroke: #fff; stroke-width: 2; } .dtThread circle.tip { fill: #fff; stroke: #c0392b; }
+.dtChainItem.dropReady .dtPol { outline: 3px dashed #c0392b; outline-offset: 4px; }
+.dtChainItem.dropHot .dtPol { outline: 4px solid #e74c3c; outline-offset: 4px; transform: scale(1.06); }
+.dtCand.flipIn .dtPol { animation: dtFlip .45s cubic-bezier(.3,1.5,.5,1); }
+@keyframes dtFlip { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+.dtArrow { height: 3px; background: #c0392b !important; } .dtArrow::after { border-left-color: #c0392b !important; }

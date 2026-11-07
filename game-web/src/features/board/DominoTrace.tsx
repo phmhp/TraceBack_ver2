@@ -185,6 +185,9 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
   const [help, setHelp] = useState(true);
   const [mapOpen, setMapOpen] = useState(false);
   const [replay, setReplay] = useState(false);
+  // red string dragged from a polaroid's pushpin onto the domino being investigated
+  const [thread, setThread] = useState<{ id: string; x0: number; y0: number; x: number; y: number; hot: boolean } | null>(null);
+  const [justOpened, setJustOpened] = useState("");
   const current = chain[chain.length - 1];
   const cur = dom(current);
   const candidates = causesOf(current);
@@ -199,6 +202,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
   const measure = (id: string) => {
     if (checked.includes(id)) return;
     setChecked(previous => [...previous, id]);
+    setJustOpened(id); window.setTimeout(() => setJustOpened(""), 500);
     const d = dom(id);
     play("zip");
     window.setTimeout(() => play(d.status === "bad" ? "stamp" : "pop"), 160);
@@ -246,6 +250,25 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     if (state.hypothesis[caseId] !== scenario.root) send({ type: "SELECT_HYPOTHESIS", id: scenario.root });
     send({ type: "OPEN_BENCH" });
   };
+  const startThread = (id: string, event: React.PointerEvent) => {
+    event.preventDefault(); event.stopPropagation();
+    const pin = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    setThread({ id, x0: pin.left + pin.width / 2, y0: pin.top + pin.height / 2, x: event.clientX, y: event.clientY, hot: false });
+    play("pop", 1.3);
+  };
+  useEffect(() => {
+    if (!thread) return;
+    const overTarget = (x: number, y: number) => Boolean(document.elementFromPoint(x, y)?.closest(".dtChainItem.current"));
+    const move = (event: PointerEvent) => setThread(previous => previous && { ...previous, x: event.clientX, y: event.clientY, hot: overTarget(event.clientX, event.clientY) });
+    const up = (event: PointerEvent) => {
+      const id = thread.id;
+      setThread(null);
+      if (overTarget(event.clientX, event.clientY)) { play("zip", .8); accuse(id); }
+      else play("pop", .7);
+    };
+    addEventListener("pointermove", move); addEventListener("pointerup", up);
+    return () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); };
+  }, [thread?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { setMapOpen(false); setHelp(false); } };
     addEventListener("keydown", onKey); return () => removeEventListener("keydown", onKey);
@@ -283,7 +306,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
         {!traced && <><div className="dtGhost">?</div><i className="dtArrow" /></>}
         {ordered.map((id, index) => <React.Fragment key={id}>
           {index > 0 && <i className={`dtArrow ${traced && index <= fallIdx ? "lit" : ""}`} />}
-          <div className={`dtChainItem ${id === current && !traced ? "current" : ""} ${shake === id ? "shake" : ""}`}>
+          <div className={`dtChainItem ${id === current && !traced ? "current" : ""} ${thread && id === current ? thread.hot ? "dropHot" : "dropReady" : ""} ${shake === id ? "shake" : ""}`}>
             {id === data.start && <em className="dtBadge">증상</em>}
             <Polaroid dom={dom(id)} unit={unit} state={traced && id === data.first ? "first" : "clue"} small fell={phase === "cascade" && index <= fallIdx} />
           </div>
@@ -303,16 +326,16 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
         <div className={`dtCands ${candidates.length > 3 ? "many" : ""}`}>{candidates.map(id => {
           const d = dom(id); const open = checked.includes(id);
           const tileState: TileState = !open ? "hidden" : traps.includes(id) ? "trap" : d.status === "bad" ? "clue" : d.status === "tol" ? "tol" : "normal";
-          return <div key={id} className={`dtCand ${shake === id ? "shake" : ""}`}>
+          return <div key={id} className={`dtCand ${shake === id ? "shake" : ""} ${justOpened === id ? "flipIn" : ""}`}>
             <Polaroid dom={d} unit={unit} state={tileState} onClick={open ? undefined : () => measure(id)}>
-              {open && d.status === "bad" && !traps.includes(id) && <button className="dtAccuse" onClick={event => { event.stopPropagation(); accuse(id); }}>이게 원인! →</button>}
+              {open && d.status === "bad" && !traps.includes(id) && <span className="dtPinWrap"><button className={`dtPin ${thread?.id === id ? "pulling" : ""}`} onPointerDown={event => startThread(id, event)} title="압정을 끌어 위의 도미노에 연결" /><em>📌 끌어서 위 도미노에 연결</em></span>}
             </Polaroid>
           </div>;
         })}</div>
         <div className="dtCall">
           {allOpen && !earlierBad
             ? <button className="dtFirst" onClick={callFirst}>들어오는 입력이 모두 정상 → 🎯 {cur.label}{josa(cur.label, "이", "가")} 시작점!</button>
-            : <span className="dtTip">사진을 눌러 측정 · 원인은 결과보다 <b>먼저</b> 달라져요</span>}
+            : <span className="dtTip">사진을 눌러 측정 · 수상하면 📌 압정을 끌어 실로 연결 · 원인은 결과보다 <b>먼저</b> 달라져요</span>}
         </div>
       </section>}
 
@@ -334,6 +357,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
       <div className="dtBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>밍</b>{bubble}</p></div>
     </main>
 
+    {thread && <svg className="dtThread"><path d={`M${thread.x0} ${thread.y0} Q${(thread.x0 + thread.x) / 2} ${Math.max(thread.y0, thread.y) + 40} ${thread.x} ${thread.y}`} className={thread.hot ? "hot" : ""} /><circle cx={thread.x0} cy={thread.y0} r="7" /><circle cx={thread.x} cy={thread.y} r="5" className="tip" /></svg>}
     {mapOpen && <TraceMap data={data} chain={chain} checked={checked} traps={traps} first={traced ? data.first : null} onClose={() => setMapOpen(false)} />}
 
     {help && <div className="dtModal" onClick={() => setHelp(false)}><article onClick={event => event.stopPropagation()}>
