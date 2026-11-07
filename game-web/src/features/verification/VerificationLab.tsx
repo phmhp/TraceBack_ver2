@@ -32,7 +32,7 @@ const experimentConfig: Record<CaseId, ExperimentConfig> = {
     requirement: "APS 60%에서 요청 토크 204 Nm가 생성되어야 한다.",
     missionTitle: "신호등 출발 가속을 그대로 재현하라",
     missionBrief: "정차 후 녹색 신호가 켜진 순간의 페달 램프 입력을 재현하고, 요청 토크가 처음 작아지는 경계를 찾습니다.",
-    precondition: "READY · D2 · 차속 0 km/h · 브레이크 해제",
+    precondition: "READY · D · 차속 0 km/h · 브레이크 해제",
     stimuli: [
       { label: "무입력 유지", hint: "기준 상태만 확인", sequence: "0% · 3 s" },
       { label: "출발 가속", hint: "주행 기록과 동일", sequence: "0→60% / 0.3 s · 3 s 유지" },
@@ -53,7 +53,7 @@ const experimentConfig: Record<CaseId, ExperimentConfig> = {
     requirement: "구동계 냉각수 온도 65°C 초과 시 팬 명령과 실제 회전이 발생해야 한다.",
     missionTitle: "재출발 뒤 누적된 열부하를 재현하라",
     missionBrief: "신호 대기 후 재가속하면서 기록된 온도 상승을 재현하고, 팬 명령과 실제 회전이 갈라지는 경계를 찾습니다.",
-    precondition: "READY · 냉각팬 OFF · 모터 62°C · 차량 정차",
+    precondition: "READY · 냉각팬 OFF · 냉각수 62°C · 차량 정차",
     stimuli: [
       { label: "경계 아래", hint: "팬 OFF 확인", sequence: "64.9°C · 5 s" },
       { label: "경계 통과", hint: "ON 전환 확인", sequence: "64.9→65.1°C / 1 s" },
@@ -74,7 +74,7 @@ const experimentConfig: Record<CaseId, ExperimentConfig> = {
     requirement: "제동 요구 55%에서 회생·마찰 제동이 함께 감속 요구를 만족해야 한다.",
     missionTitle: "적색 신호 정지 미션을 재현하라",
     missionBrief: "주행 중 적색 신호를 발견한 시점부터 정지선까지의 제동 입력을 재현하고 회생·마찰 제동의 협조 경계를 확인합니다.",
-    precondition: "72 km/h · D3 · SOC 82% · ABS 비활성",
+    precondition: "72 km/h · D · SOC 82% · ABS 비활성",
     stimuli: [
       { label: "약제동", hint: "회생 우선 구간", sequence: "0→10% / 1.0 s" },
       { label: "정지선 제동", hint: "미션 기록과 동일", sequence: "0→55% / 0.6 s · 정지까지 유지" },
@@ -93,10 +93,10 @@ const experimentConfig: Record<CaseId, ExperimentConfig> = {
 };
 
 const lenses: { id: BenchTab; label: string; short: string; observation: string }[] = [
-  { id: "sw", label: "SW 로직", short: "제어 흐름", observation: "입력·검증·계산·출력 중 어느 블록에서 처음 값이 달라지는가" },
-  { id: "embedded", label: "ECU·I/O", short: "제어기·하니스", observation: "입력 센서, ECU 계산, 출력 액추에이터와 피드백이 이어지는가" },
-  { id: "system", label: "시스템 통합", short: "다중 ECU·기능", observation: "ECU·네트워크·플랜트가 함께 차량 기능 요구를 만족하는가" },
-  { id: "vehicle", label: "차량 시나리오", short: "주행 응답", observation: "같은 입력에서 정상 기준과 실제 주행 응답이 일치하는가" },
+  { id: "sw", label: "SW 로직", short: "단위 검증 · MIL/SIL", observation: "입력·검증·계산·출력 중 어느 블록에서 처음 값이 달라지는가" },
+  { id: "embedded", label: "ECU·I/O", short: "임베디드 검증 · HIL", observation: "입력 센서, ECU 계산, 출력 액추에이터와 피드백이 이어지는가" },
+  { id: "system", label: "시스템 통합", short: "통합 검증 · 다중 ECU", observation: "ECU·네트워크·플랜트가 함께 차량 기능 요구를 만족하는가" },
+  { id: "vehicle", label: "차량 시나리오", short: "차량 검증 · 실차", observation: "같은 입력에서 정상 기준과 실제 주행 응답이 일치하는가" },
 ];
 
 const probeOptions: { id: ProbeId; label: string; icon: string }[] = [
@@ -273,6 +273,71 @@ function SoftwareLogicVisual({ caseId, running, works, conclusive, reference }: 
   </section>;
 }
 
+// Verification report shown before leaving the bench: test-case card with a
+// PASS/FAIL stamp, "which level first catches this fault?" pick, regression list.
+const LEVELS: { id: BenchTab; name: string; sub: string; icon: string }[] = [
+  { id: "sw", name: "단위 검증", sub: "MIL/SIL · SW 블록만", icon: "ƒ" },
+  { id: "embedded", name: "임베디드 검증", sub: "HIL · 실제 ECU·부품 신호", icon: "▣" },
+  { id: "system", name: "통합 검증", sub: "여러 ECU·통신", icon: "⌘" },
+  { id: "vehicle", name: "차량 검증", sub: "실차 주행", icon: "◉" },
+];
+const levelCheck: Record<CaseId, { answer: BenchTab; why: string; wrong: string }> = {
+  propulsion: {
+    answer: "sw",
+    why: "신호 변환 비율(보정값)이 SW 블록 안에 있으니까, SW만 돌려 보는 단위 검증에서 바로 잡혀! 가장 싸고 빠른 단계야.",
+    wrong: "그 단계에서도 보이긴 해. 그런데 원인이 SW 블록 안의 보정값이라 더 앞 단계에서 먼저 잡을 수 있어!",
+  },
+  thermal: {
+    answer: "embedded",
+    why: "SW는 팬에 100% 명령을 잘 보내고 있어서 SW만 보면 정상이야. 실제 팬과 피드백을 연결한 HIL에서야 '명령은 있는데 안 돈다'가 보여!",
+    wrong: "SW 블록만 보면 명령은 100%로 정상이라 못 잡아. 실제 부품 응답이 함께 보이는 단계가 필요해!",
+  },
+  brake: {
+    answer: "embedded",
+    why: "제동 SW는 압력 명령을 제대로 내고 있어. 실제 유압 장치와 캘리퍼 응답을 붙인 HIL에서 '명령 42 bar, 실제 8 bar'가 드러나!",
+    wrong: "명령값만 보면 정상이라 SW 단계에선 안 보여. 실제 유압 응답이 보이는 단계가 필요해!",
+  },
+};
+const regressionTests: Record<CaseId, string[]> = {
+  propulsion: ["브레이크를 함께 밟으면 구동 토크 차단", "APS 두 센서 값이 어긋나면 토크 제한", "P단에서는 페달을 밟아도 토크 0"],
+  thermal: ["냉각수 온도가 내려가면 팬 정지(히스테리시스)", "팬 피드백이 없으면 고장 코드·경고", "출력 제한 해제 후 정상 가속 복귀"],
+  brake: ["회생 가능 범위에서는 회생 우선", "ABS 작동 시 압력 조절 정상", "브레이크 경고등 소등"],
+};
+
+function VerificationReport({ caseId, config, works, actual, onDone, onClose }: { caseId: CaseId; config: ExperimentConfig; works: boolean; actual: string; onDone: () => void; onClose: () => void }) {
+  const [pick, setPick] = useState<BenchTab | null>(null);
+  const check = levelCheck[caseId];
+  const correct = pick === check.answer;
+  return <div className="vrOverlay" role="dialog" aria-modal="true">
+    <div className="vrCard">
+      <button className="vrClose" onClick={onClose} aria-label="닫기">×</button>
+      <section className="vrTc">
+        <small>TEST CASE · {config.requirementId}</small>
+        <b className="vrReq">{config.requirement}</b>
+        <ol>
+          <li><em>사전 조건</em><span>{config.precondition}</span></li>
+          <li><em>입력</em><span>{config.stimuli[config.target].sequence}</span></li>
+          <li><em>기대 결과</em><span>{config.expected}</span></li>
+          <li><em>실제 결과</em><span>{actual}</span></li>
+        </ol>
+        <span className={`vrStamp ${works ? "pass" : "fail"}`}>{works ? "PASS" : "FAIL"}</span>
+      </section>
+      <section className="vrLevels">
+        <h3>🔍 이 고장은 어느 검증 단계에서 <u>처음</u> 잡을 수 있을까?</h3>
+        <div className="vrLevelRow">{LEVELS.map(level => <button key={level.id} className={`${pick === level.id ? (level.id === check.answer ? "is-right" : "is-wrong") : ""} ${pick && level.id === check.answer ? "is-answer" : ""}`} onClick={() => setPick(level.id)}>
+          <i>{level.icon}</i><b>{level.name}</b><small>{level.sub}</small>
+        </button>)}</div>
+        {pick && <div className={`vrBubble ${correct ? "ok" : "hint"}`}><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>밍</b>{correct ? check.why : check.wrong}</p></div>}
+      </section>
+      {works && <section className="vrRegression">
+        <h3>🔁 고친 김에 다른 기능은 안 망가졌나? (회귀 검증)</h3>
+        <ul>{regressionTests[caseId].map((name, index) => <li key={name} style={{ animationDelay: `${.15 + index * .25}s` }}><span>{name}</span><em>PASS</em></li>)}</ul>
+      </section>}
+      <button className="vrNext" disabled={!pick} onClick={onDone}>{!pick ? "검증 단계를 먼저 골라 보세요" : works ? "검증 완료 · 수리 적용 →" : "실패 원인 해설 보기 →"}</button>
+    </div>
+  </div>;
+}
+
 export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
   const requestedTab = new URLSearchParams(location.search).get("tab") as BenchTab | null;
   const [tab, setTab] = useState<BenchTab>(requestedTab && lenses.some(item => item.id === requestedTab) ? requestedTab : "sw");
@@ -281,6 +346,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [experimentState, setExperimentState] = useState<ExperimentState>("idle");
   const [attempts, setAttempts] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const config = experimentConfig[state.caseId];
   const scenario = SCENARIOS[state.caseId];
   const correctCause = state.hypothesis[state.caseId] === scenario.root;
@@ -382,9 +448,10 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
           <span><small>EXPECTED</small><b>{config.expected}</b></span><i>{works ? "≈" : "≠"}</i><span><small>ACTUAL</small><b>{observedActual}</b></span><em><small>FIRST MISMATCH</small><b>{works ? "없음 · 요구 충족" : config.mismatch}</b></em>
         </section>}
         {conclusive && <section className="learnedTechnique"><small>방금 사용한 검증 사고법</small><b>{config.technique}</b><p>{config.lesson}</p></section>}
-        <button className="verificationContinue primary" disabled={!conclusive} onClick={() => send({ type: "BENCH_RESULT", pass: works, causeCorrect: correctCause })}>{!conclusive ? `실험 설계 ${attempts ? `· ${attempts}회 시도` : ""}` : works ? "검증 근거로 수리 적용 →" : "실패 경계 해설 보기 →"}</button>
+        <button className="verificationContinue primary" disabled={!conclusive} onClick={() => setReportOpen(true)}>{!conclusive ? `실험 설계 ${attempts ? `· ${attempts}회 시도` : ""}` : works ? "검증 근거로 수리 적용 →" : "실패 경계 해설 보기 →"}</button>
       </footer>
     </main>
+    {reportOpen && <VerificationReport caseId={state.caseId} config={config} works={works} actual={observedActual} onClose={() => setReportOpen(false)} onDone={() => send({ type: "BENCH_RESULT", pass: works, causeCorrect: correctCause })} />}
     {helpOpen && <aside className="verificationRules" role="dialog" aria-modal="true"><button onClick={() => setHelpOpen(false)} aria-label="도움말 닫기">×</button><small>HOW TO VALIDATE</small><h2>주행 사건을 하나의 시험 케이스로 재현합니다</h2><ol><li><b>미션 초기조건</b>을 확인합니다. 기어·READY·차속·온도처럼 결과를 바꾸는 조건입니다.</li><li><b>시간 시퀀스</b>를 선택합니다. 단일 값이 아니라 변화율과 유지시간까지 사건 기록과 맞춰야 합니다.</li><li><b>관측쌍</b>을 정합니다. 경계 앞·뒤 값을 동시에 비교해야 최초 불일치를 좁힐 수 있습니다.</li><li>실행 후 SW·ECU·시스템·차량 탭에서 <b>같은 TC의 인가점과 관측점이 어떻게 달라지는지</b> 확인합니다.</li></ol><p>정답을 외우는 문제가 아니라, 증상을 재현할 조건과 결함을 분리할 측정 위치를 고르는 검증 미션입니다.</p></aside>}
     <button className="secretSolve" title="개발용 정답 적용" onClick={revealAnswer}>정답 보기</button>
   </div>;
