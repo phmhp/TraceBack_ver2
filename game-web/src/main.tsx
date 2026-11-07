@@ -52,6 +52,7 @@ import "./p0-v20.css";
 import { BustedEnding, WantedEnding } from "./ui/CaseFileEnding";
 import { SoundToggle } from "./ui/ComicBurst";
 import { installGlobalSfx } from "./ui/sfx";
+import { SuspectBoard } from "./features/board/SuspectBoard";
 const A = "/assets/";
 type Sim = {
   speed: number;
@@ -1467,7 +1468,7 @@ function App() {
     return frame(<RaceExperience state={state} send={send} mode="ship" />);
   if (state.scene === "FAULT_CUE")
     return frame(<FaultDialogue state={state} send={send} />);
-  if (state.scene === "BOARD") return frame(<InvestigationBoard state={state} send={send} />);
+  if (state.scene === "BOARD") return frame(<SuspectBoard state={state} send={send} />);
   if (state.scene === "WIRING") return frame(<WiringPuzzle state={state} send={send} />);
   if (state.scene === "TWIN_BENCH") return frame(<TwinBenchExperience state={state} send={send} />);
   if (state.scene === "VERIFY_FAIL")

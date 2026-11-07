@@ -372,3 +372,61 @@ kbd.wide { min-width: 34px; }
 .fromTag { height: 20px; display: grid; place-items: center; border-radius: 10px; font: 800 11px Pretendard, system-ui; white-space: nowrap; border: 1.5px solid; box-sizing: border-box; background: #fff; }
 .fromTag.min { color: #9a6418; border-color: #d9a75c; background: #fff6e6; }
 .fromTag.pi { color: #6a4fa3; border-color: #b9a4e0; background: #f4effc; }
+
+/* ── suspect board (memo board v2) ── */
+.suspectBoard { position: fixed; inset: 0; display: grid; grid-template-rows: auto auto 1fr; font-family: Pretendard, system-ui, sans-serif; color: #3b2f25; }
+.suspectBoard > .sceneBackdrop { position: fixed; inset: 0; z-index: 0; }
+.suspectBoard > *:not(.sceneBackdrop) { position: relative; z-index: 1; }
+.sbLayout { margin: 8px 18px 14px; min-height: 0; display: grid; grid-template-columns: 210px 1fr; grid-template-rows: auto auto 1fr auto; gap: 10px; padding: 14px; border-radius: 22px; background: #fff8ecf2; border: 3px solid #e2c88c; box-shadow: 0 6px 0 #d3b26e, 0 18px 40px #0003; }
+.sbHead { grid-column: 1 / 3; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sbHead small { font-size: 12px; font-weight: 800; color: #c0782a; letter-spacing: .04em; }
+.sbHead h1 { margin: 2px 0 0; font: 900 22px "TraceRounded", system-ui; }
+.sbButtons { display: flex; gap: 8px; }
+.sbButtons button, .sbModal button, .sbNext, .sbBuy { padding: 8px 16px; border-radius: 999px; border: 2px solid #c0782a; background: #fff; color: #9a5a14; font: 800 13px Pretendard, system-ui; cursor: pointer; box-shadow: 0 3px 0 #c0782a; white-space: nowrap; }
+.sbButtons button:active, .sbNext:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 #c0782a; }
+.sbRail { grid-column: 1 / 3; display: flex; align-items: stretch; padding: 8px 10px; border-radius: 16px; background: #fffdf6; border: 2px solid #ead8b0; }
+.sbRailTitle { display: grid; align-content: center; margin-right: 10px; white-space: nowrap; }
+.sbRailTitle b { font-size: 13px; } .sbRailTitle em { font-style: normal; font-size: 12px; color: #c0782a; letter-spacing: .1em; }
+.sbWire { align-self: center; flex: 0 0 16px; height: 4px; border-radius: 2px; background: #d8ccb2; }
+.sbStop { flex: 1 1 0; min-width: 0; display: grid; justify-items: center; gap: 2px; padding: 6px 4px; border-radius: 12px; border: 2px dashed #d9c79c; background: #fff; font: inherit; color: inherit; cursor: pointer; }
+.sbStop small { font-size: 11px; font-weight: 800; color: #7b6a48; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.sbStop b { font-size: 14px; white-space: nowrap; } .sbStop b.tap { color: #c0782a; font-size: 13px; }
+.sbStop.ok { border: 2px solid #3f9b7d; background: #eaf6f0; } .sbStop.bad { border: 2px solid #e0483c; background: #fdeeed; }
+.sbStop:disabled { cursor: default; } .sbStop:not(.ok):not(.bad):disabled { opacity: .5; }
+.sbBuy { margin-left: 8px; display: grid; justify-items: center; padding: 4px 10px; } .sbBuy small { font-size: 10px; color: #c0392b; }
+.sbEvidence { grid-row: 3 / 4; min-height: 0; overflow-y: auto; padding: 10px; border-radius: 16px; background: #fffdf6; border: 2px solid #ead8b0; }
+.sbEvidence h2 { margin: 0; font-size: 15px; } .sbEvidence p { margin: 2px 0 8px; font-size: 11px; color: #8a7a55; line-height: 1.4; word-break: keep-all; }
+.sbEvidence > div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sbCard { cursor: grab; border-radius: 4px; transition: transform .15s; }
+.sbCard.picked { transform: translateY(-4px) rotate(-2deg); box-shadow: 0 0 0 3px #f0a14a; }
+.sbCork { grid-row: 3 / 4; min-height: 0; position: relative; display: grid; grid-template-rows: 1fr auto; gap: 8px; padding: 14px; border-radius: 16px; background: #c99a64 radial-gradient(#0000 60%, #00000014) ; background-image: radial-gradient(circle at 20% 30%, #ffffff14 0 2px, transparent 3px), radial-gradient(circle at 70% 60%, #00000012 0 2px, transparent 3px); background-size: 18px 18px, 22px 22px; border: 6px solid #8a5a34; }
+.sbSuspects { display: flex; justify-content: center; align-items: center; gap: 18px; flex-wrap: wrap; min-height: 0; }
+.sbSuspect { position: relative; width: 150px; cursor: pointer; transition: transform .2s; }
+.sbSuspect:nth-child(odd) { transform: rotate(-2deg); } .sbSuspect:nth-child(even) { transform: rotate(2deg); }
+.sbSuspect.droppable { outline: 3px dashed #fff; outline-offset: 4px; }
+.sbSuspect.is-rebut .polaroidCard { filter: grayscale(.8); opacity: .6; }
+.sbSuspect.shake { animation: vrShake .35s; }
+.sbSuspect > .pushPin { position: absolute; left: 50%; top: -6px; z-index: 3; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #d0453a; box-shadow: 0 2px 2px #0005; }
+.sbStamp { position: absolute; z-index: 4; left: 50%; top: 32%; padding: 4px 14px; border: 4px solid; border-radius: 8px; font: 900 22px/1 "TraceRounded", system-ui; transform: translateX(-50%) rotate(-12deg); background: #ffffffd9; white-space: nowrap; animation: vrStamp .45s both cubic-bezier(.2,1.8,.4,1); }
+.sbStamp.rebut { color: #c0392b; border-color: #c0392b; } .sbStamp.support { color: #2f7d5b; border-color: #2f7d5b; }
+.sbBubble { display: flex; gap: 10px; align-items: flex-start; }
+.sbBubble img { width: 42px; height: 42px; border-radius: 50%; background: #fff; border: 2px solid #f0dcb0; object-fit: cover; flex: none; }
+.sbBubble p { margin: 0; padding: 9px 13px; border-radius: 16px; background: #fffdf6; border: 2px solid #f0dcb0; font-size: 13px; line-height: 1.5; word-break: keep-all; }
+.sbBubble p b { display: block; font-size: 11px; color: #c0782a; }
+.sbFoot { grid-column: 1 / 3; display: flex; align-items: center; gap: 12px; }
+.sbStars { font-size: 20px; color: #f0a52c; letter-spacing: .05em; }
+.sbNext { margin-left: auto; background: #3f9b7d; border-color: #2a6f58; color: #fff; box-shadow: 0 3px 0 #2a6f58; }
+.sbNext:disabled { background: #d9d2c2; border-color: #bdb5a3; color: #7b7365; box-shadow: none; cursor: default; }
+.sbModal { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; background: #1d2a2acc; }
+.sbModal article { width: min(560px, 90vw); padding: 22px 24px; border-radius: 22px; background: #fffaf0; border: 3px solid #e2c88c; box-shadow: 0 18px 40px #0005; }
+.sbModal h2 { margin: 0 0 10px; font: 900 19px "TraceRounded", system-ui; }
+.sbModal ol { margin: 0 0 14px; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; line-height: 1.55; word-break: keep-all; overflow-wrap: break-word; }
+.sbModal button { display: block; margin-left: auto; }
+/* 3:4 cards inside the new board */
+.suspectBoard .polaroidCard { width: 100% !important; aspect-ratio: 3 / 4 !important; height: auto !important; display: flex !important; flex-direction: column !important; padding: 7% 7% 0 !important; box-sizing: border-box !important; container-type: inline-size; overflow: hidden !important; background: linear-gradient(170deg, #fdfbf6, #f3eee3) !important; border: 1px solid #e3dccb !important; border-radius: 4px !important; box-shadow: 0 5px 12px #3b2f2533 !important; position: relative !important; }
+.suspectBoard .polaroidCard > .polaroidGraphic { position: relative !important; inset: auto !important; width: 100% !important; height: auto !important; aspect-ratio: 1 / 1 !important; flex: none !important; overflow: hidden !important; }
+.suspectBoard .polaroidCard > .polaroidCaption { position: static !important; flex: 1 1 auto; min-height: 0; display: grid; align-content: start; gap: 1.5cqw; padding: 4cqw 1cqw 0 !important; overflow: hidden; background: none !important; }
+.suspectBoard .polaroidCaption b { font-size: clamp(9px, 8.6cqw, 20px) !important; line-height: 1.22; display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: keep-all; color: #22303a; }
+.suspectBoard .polaroidCaption span { font-size: clamp(8px, 6.6cqw, 15px) !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #6b6458; display: block; }
+.suspectBoard .sbStop.ok { border: 2px solid #3f9b7d !important; background: #eaf6f0 !important; color: #2f7d5b !important; opacity: 1 !important; }
+.suspectBoard .sbStop.bad { border: 2px solid #e0483c !important; background: #fdeeed !important; color: #c0392b !important; opacity: 1 !important; }

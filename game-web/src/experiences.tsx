@@ -836,7 +836,7 @@ function formatRaceTime(seconds: number) {
   return `${String(Math.floor(whole / 60)).padStart(2, "0")}:${String(whole % 60).padStart(2, "0")}`;
 }
 
-function PursuitRouteBar({ distance, gap, compact = false }: { distance: number; gap: number; compact?: boolean }) {
+export function PursuitRouteBar({ distance, gap, compact = false }: { distance: number; gap: number; compact?: boolean }) {
   const routeProgress = Math.min(100, distance / (1200 / 100));
   const playerMarker = Math.max(5, routeProgress);
   const policeProgress = Math.max(1, Math.min(96, playerMarker - Math.max(4, gap / 12)));
@@ -1494,12 +1494,12 @@ const componentCutoutCell: Record<string, number> = {
 const CARD_PHOTO: Record<string, string> = Object.fromEntries(["pedal_raw", "pedal_processed", "torque_cmd", "motor_actual", "motor_temp", "thermal_protection", "brake_request", "regen_request", "brake_actual"].map(id => [id, id]));
 const CARD_CUTOUT: Record<string, string> = { fan_command: "thermal_ecu", fan_actual: "cooling_fan" };
 const SUSPECT_PART: Record<string, string> = {
-  gateway: "vcu", bms: "bms", motor: "traction_motor", sensor: "motor_temp_sensor", software_command: "thermal_ecu",
+  gateway: "vcu", bms: "bms", motor: "traction_motor", aps_sensor: "accel_pedal", sensor: "motor_temp_sensor", software_command: "thermal_ecu",
   fan_actuator: "cooling_fan", brake_actuator: "brake_caliper", regen_limit: "bms", pedal: "brake_pedal",
 };
-type Reading = { value: string; ok: boolean };
+export type Reading = { value: string; ok: boolean };
 /** Photo of where the clue came from; a measured value appears as a sticker only after it is measured. */
-function CardGraphic({ id, kind, reading }: { id: string; kind: string; masked?: boolean; reading?: Reading }) {
+export function CardGraphic({ id, kind, reading }: { id: string; kind: string; masked?: boolean; reading?: Reading }) {
   const tag = <span className="cardKindTag">{kind === "HYPOTHESIS" ? "원인 후보" : kind}</span>;
   const sticker = reading && <em className={`valueSticker ${reading.ok ? "ok" : "bad"}`}>{reading.ok ? "✓" : "✗"} {reading.value}</em>;
   if (CARD_PHOTO[id]) return <div className="polaroidGraphic photoFill"><img src={`/assets/board-photos/${CARD_PHOTO[id]}.png`} alt="" />{tag}{sticker}</div>;
@@ -1516,7 +1516,7 @@ function Polaroid({ id, title, value, kind, selected, picked = false, onToggle, 
   </button>;
 }
 
-function ReplayRaceView({ caseId }: { caseId: CaseId }) {
+export function ReplayRaceView({ caseId }: { caseId: CaseId }) {
   const [sim, setSim] = useState<DriveSim>({ speed: 72, lane: 0, steer: 0, distance: 140, gap: 56, heat: caseId === "thermal" ? 72 : 38, elapsed: 36 });
   useEffect(() => {
     const start = performance.now();
@@ -1539,7 +1539,7 @@ function ReplayRaceView({ caseId }: { caseId: CaseId }) {
 // normal vs measured; the first ✗ is where the fault starts. Hypotheses whose
 // part measured fine, or sits after the first mismatch, are auto-stamped "반박".
 type RailStop = { at: string; value: string; expect: string; ok: boolean; ev: string };
-const MEASURE_RAIL: Record<CaseId, { stops: RailStop[]; hypothesisAt: Record<string, number> }> = {
+export const MEASURE_RAIL: Record<CaseId, { stops: RailStop[]; hypothesisAt: Record<string, number> }> = {
   propulsion: {
     stops: [
       { at: "가속 페달(APS)", value: "60%", expect: "60%", ok: true, ev: "pedal_raw" },
@@ -1547,7 +1547,7 @@ const MEASURE_RAIL: Record<CaseId, { stops: RailStop[]; hypothesisAt: Record<str
       { at: "CAN 토크 명령", value: "92 Nm", expect: "204 Nm", ok: false, ev: "torque_cmd" },
       { at: "모터 실제 토크", value: "91 Nm", expect: "204 Nm", ok: false, ev: "motor_actual" },
     ],
-    hypothesisAt: { gateway: 1, bms: 2, motor: 3 },
+    hypothesisAt: { aps_sensor: 0, gateway: 1, bms: 2, motor: 3 },
   },
   thermal: {
     stops: [
@@ -1568,7 +1568,7 @@ const MEASURE_RAIL: Record<CaseId, { stops: RailStop[]; hypothesisAt: Record<str
   },
 };
 /** The fault boundary is known once the first ✗ and the stop just before it (a ✓) are both measured. */
-const boundaryFound = (rail: (typeof MEASURE_RAIL)[CaseId], measured: number[]) => {
+export const boundaryFound = (rail: (typeof MEASURE_RAIL)[CaseId], measured: number[]) => {
   const firstBad = rail.stops.findIndex(stop => !stop.ok);
   return firstBad >= 0 && measured.includes(firstBad) && (firstBad === 0 || measured.includes(firstBad - 1));
 };

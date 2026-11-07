@@ -24,6 +24,7 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
       { id: "motor_actual", label: "모터 실제 토크가 91 Nm로 측정됨", value: "명령값과의 차이 1 Nm", kind: "물리 응답" },
     ],
     hypotheses: [
+      { id: "aps_sensor", label: "가속 페달 센서가 틀린 값을 보냈다", desc: "입력 센서 오류 가능성" },
       { id: "gateway", label: "페달 신호를 잘못 줄여서 전달했다", desc: "입력 변환 비율 설정 오류" },
       { id: "bms", label: "배터리가 출력을 제한했다", desc: "배터리 보호 개입 가능성" },
       { id: "motor", label: "구동 모터가 힘을 내지 못했다", desc: "모터 출력 저하 가능성" },
