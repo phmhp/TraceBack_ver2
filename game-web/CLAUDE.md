@@ -66,6 +66,13 @@
 - 메모판: 미션 "어디서 처음 어긋났을까?" + 측정 기회 3번(`MEASURE_BUDGET`), 측정 +1은 HINT 이벤트(−5m), 별점. 연필 버그(제목이 카드 덮음, 실이 놓기 가로챔) 수정. 폴라로이드 그림: 주행 현상=`public/assets/board-photos/`, 계측=측정값 화면, 가설=부품 컷아웃(`SYMPTOM_PHOTO`/`SUSPECT_PART`).
 - 퍼즐: 선 아래 신호 값(`SIGNAL_VALUE`), 요구사항 줄 ✓(`REQ_OF_STEP`), 함정 블록 메시지(`TRAP_MSG`).
 
+## 2026-11-08 5차 반영
+- Control Software: `SimulinkDiagram.tsx`를 그림 아이콘 + 한 줄 쉬운 설명(`plainText`) 흐름도로, 4개씩 지그재그 줄바꿈, 수식 표기 없음.
+- 레이스: 키캡 조작 바(하단) + 출발 전 조작법 카드(왼쪽).
+- 생선 말풍선: 동글·클레이 입체, 외곽선 없음(`bubble-fish-*.svg` 재작성).
+- 폴라로이드: 3:4 + 정사각 사진창, CSS 종이 액자(예전 `polaroid-frame-real-v1.png` 배경은 사진창이 안 맞아 메모판에서 덮어씀), 실제 사진 `board-photos/`, 측정 후에만 값 스티커, '미분류' 문구 제거.
+- 메모판: 출력은 처음부터 ✗(무료), `boundaryFound`(첫 ✗와 그 앞 ✓ 둘 다 측정) 시 성공, 측정 기회는 출력 제외 3번, 단계 바(`boardStepper`).
+
 ## 남은 일 (우선순위 순)
 1. 생성 이미지가 들어오면 메모판을 아틀라스 대신 개별 증거 이미지 파일로 전환. (부품 모델 차고·벤치 연결은 완료)
 2. Day 2~6: 레이스에 driverInput 연결, 단계별 시뮬레이션, 차고·벤치 공용 부품 에셋, Tier C 부품 직접 모델링(규격은 `docs/TIER_C_ASSET_PLAN.md` 4절).
