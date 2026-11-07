@@ -115,17 +115,17 @@
 button { transition: scale .22s cubic-bezier(.2, 1.9, .35, 1); }
 button:not(:disabled):active { scale: .93; transition-duration: .06s; }
 
-/* ── tension alert: chubby clay-like fish bubble at the left/right edge ── */
-.fishAlert { position: fixed; z-index: 80; width: 180px; height: 123px; pointer-events: none; animation: fishIn 2.8s cubic-bezier(.25, 1.3, .4, 1) both; }
-.fishAlert .fishShape { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 8px 10px #0003) drop-shadow(0 2px 0 #0001); }
-.fishAlert.side-right .fishShape { transform: scaleX(-1); }
-.fishBody { position: absolute; top: 22%; bottom: 20%; left: 27%; right: 19%; display: grid; place-items: center; align-content: center; gap: 2px; }
-.fishAlert.side-right .fishBody { left: 19%; right: 27%; }
-.fishBody b { white-space: nowrap; font: 900 15px/1 "TraceRounded", system-ui; text-shadow: 0 1px 0 #fff9; }
-.tone-fault .fishBody b { color: #a8321f; }
-.tone-police .fishBody b { color: #22508f; }
-.fishIcon { width: 46px; height: 32px; object-fit: contain; }
-.fishPart { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 2px 2px #0003); }
+/* ── tension alert: flat ivory fish bubble with one outline, at the left/right edge ── */
+.fishAlert { position: fixed; z-index: 80; width: 206px; height: 120px; pointer-events: none; animation: fishIn 2.8s cubic-bezier(.25, 1.3, .4, 1) both; }
+.fishAlert .fishShape { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 5px 0 #4a3a2c22); }
+.fishAlert.side-left .fishShape { transform: scaleX(-1); }
+.fishBody { position: absolute; top: 22%; bottom: 22%; left: 22%; right: 30%; display: grid; place-items: center; align-content: center; gap: 2px; }
+.fishAlert.side-left .fishBody { left: 30%; right: 22%; }
+.fishBody b { white-space: nowrap; font: 900 14px/1 "TraceRounded", system-ui; color: #4a3a2c; }
+.tone-fault .fishBody b { color: #b23a26; }
+.tone-police .fishBody b { color: #2f5fb0; }
+.fishIcon { width: 40px; height: 28px; object-fit: contain; }
+.fishPart { width: 36px; height: 36px; object-fit: contain; }
 .fishAlert.side-left { left: 12px; top: 44%; --from: -120%; }
 .fishAlert.side-right { right: 12px; top: 36%; --from: 120%; }
 @keyframes fishIn {
