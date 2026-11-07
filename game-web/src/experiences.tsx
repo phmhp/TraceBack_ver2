@@ -1373,7 +1373,15 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     <div className="cockpitGauge"><small>SPEED</small><b>{Math.round(sim.speed)}</b><span>km/h</span><div><i style={{ width: `${Math.min(100, sim.speed)}%` }} /></div><em>{state.caseId === "thermal" ? `${Math.round(sim.heat)}°C` : "HV READY"}</em></div>
     <RearMirror3D gap={sim.gap} visible={policeInWorld} />
     <div className="raceMiniMap"><b>LIVE CURVE MAP</b><svg viewBox="0 0 90 100"><path d="M45 98 C20 83 72 70 42 55 S16 30 48 8" /><circle className="cop" cx={mapPolice.x} cy={mapPolice.y} r="4" /><circle className="me" cx={mapPlayer.x} cy={mapPlayer.y} r="4.5" /></svg><small><i /> 자차 <em /> 경찰</small></div>
-    <div className="raceControls"><b>W/S</b> 가속·제동 <b>A/D</b> 조향 <b>Q/E</b> 회생 단계 <b>R</b> READY 재시동</div>
+    <div className="raceControls keyBar">
+      <span><kbd>W</kbd><em>가속</em></span><span><kbd>S</kbd><em>브레이크</em></span><span><kbd>A</kbd><kbd>D</kbd><em>조향</em></span>
+      <span><kbd>Q</kbd><kbd>E</kbd><em>회생 −/+</em></span><span><kbd>R</kbd><em>재시동</em></span><span><kbd className="wide">Esc</kbd><em>멈춤</em></span>
+    </div>
+    {mode === "normal" && (countdown > 0 || sim.speed < 3) && sim.distance < 40 && <div className="keyGuideCard" aria-label="조작법">
+      <b>조작법</b>
+      <div className="wasd"><kbd className="k-w">W</kbd><kbd className="k-a">A</kbd><kbd className="k-s">S</kbd><kbd className="k-d">D</kbd></div>
+      <ul><li><kbd>W</kbd> 가속 · <kbd>S</kbd> 브레이크</li><li><kbd>A</kbd><kbd>D</kbd> 좌우 조향</li><li><kbd>Q</kbd><kbd>E</kbd> 회생제동 약하게/강하게</li><li><kbd>R</kbd> 멈췄을 때 READY 재시동</li></ul>
+    </div>}
     {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
     {(countdown > 0 || goFlash) && <div className="startCountdown"><small>GET READY</small><b>{goFlash ? "GO!" : countdown}</b></div>}
     {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="바짝 붙었어!" sound="siren" />}
