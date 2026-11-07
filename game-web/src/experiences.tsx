@@ -937,6 +937,36 @@ function TrafficFleet({ sim }: { sim: DriveSim }) {
   </group>)}</>;
 }
 
+// Sky dome whose horizon colour equals the fog colour, so far ground and sea
+// fade into the sky with no visible edge (replaces the flat painted backdrop).
+const SKY = { top: "#4f9fe0", mid: "#93cdf0", horizon: "#d6eef0" };
+// [angle around the camera (rad, 0 = straight ahead), height, scale]
+const CLOUDS: [number, number, number][] = [[-.5, 120, 1.4], [-.15, 160, 1], [.25, 110, 1.2], [.6, 150, .9], [1.2, 130, 1.3], [-1.1, 140, 1.1], [2.2, 120, 1], [-2.4, 150, 1.2], [3.1, 130, 1]];
+function SkyDome() {
+  const dome = useRef<THREE.Mesh>(null!);
+  const geometry = useMemo(() => {
+    const g = new THREE.SphereGeometry(900, 32, 24);
+    const top = new THREE.Color(SKY.top), mid = new THREE.Color(SKY.mid), horizon = new THREE.Color(SKY.horizon);
+    const colors: number[] = [];
+    const position = g.attributes.position;
+    for (let i = 0; i < position.count; i++) {
+      const h = position.getY(i) / 900; // -1 bottom … 1 top
+      const c = h <= 0 ? horizon.clone() : h < .08 ? horizon.clone().lerp(mid, h / .08) : mid.clone().lerp(top, Math.min(1, (h - .08) / .35));
+      colors.push(c.r, c.g, c.b);
+    }
+    g.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    return g;
+  }, []);
+  const sky = useRef<THREE.Group>(null!);
+  useFrame(({ camera }) => { if (sky.current) sky.current.position.set(camera.position.x, 0, camera.position.z); });
+  return <group ref={sky}>
+    <mesh ref={dome} geometry={geometry} renderOrder={-10}><meshBasicMaterial vertexColors side={THREE.BackSide} fog={false} depthWrite={false} /></mesh>
+    {CLOUDS.map(([angle, height, size], index) => <group key={index} position={[Math.sin(angle) * 620, height, -Math.cos(angle) * 620]} scale={size}>
+      {[[0, 0, 0, 14], [13, -3, 2, 10], [-13, -4, 1, 10], [6, 6, -2, 9], [-6, 5, 2, 8]].map(([x, y, z, r], k) => <mesh key={k} position={[x, y, z]} renderOrder={-9}><sphereGeometry args={[r, 14, 10]} /><meshLambertMaterial color="#ffffff" emissive="#dfeefa" emissiveIntensity={.55} fog={false} /></mesh>)}
+    </group>)}
+  </group>;
+}
+
 function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: DriveSim; ship: boolean; policeVisible: boolean; waterFall?: boolean }) {
   const player = useRef<THREE.Group>(null!);
   const police = useRef<THREE.Group>(null!);
@@ -976,15 +1006,19 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
     camera.lookAt(lookTarget.current);
   });
   return <>
-    <fog attach="fog" args={["#b8e1e4", 58, 210]} />
+    <fog attach="fog" args={[SKY.horizon, 70, 260]} />
+    <SkyDome />
     <hemisphereLight intensity={1.8} color="#fff5dc" groundColor="#4c735d" />
     <directionalLight castShadow position={[-12, 22, 10]} intensity={2.8} />
-    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -.12, -TRACK_LENGTH / 2]}><planeGeometry args={[110, TRACK_LENGTH + 220]} /><meshStandardMaterial color="#76b47d" roughness={1} /></mesh>
-    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[34, -.095, -TRACK_LENGTH / 2]}><planeGeometry args={[38, TRACK_LENGTH + 220, 12, 80]} /><meshPhysicalMaterial color="#4f9fb5" roughness={.24} metalness={.08} clearcoat={.7} /></mesh>
+    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[-300, -.12, -TRACK_LENGTH / 2]}><planeGeometry args={[800, TRACK_LENGTH + 1400]} /><meshStandardMaterial color="#76b47d" roughness={1} /></mesh>
+    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[315, -.095, -TRACK_LENGTH / 2]}><planeGeometry args={[600, TRACK_LENGTH + 1400, 12, 80]} /><meshPhysicalMaterial color="#4f9fb5" roughness={.24} metalness={.08} clearcoat={.7} /></mesh>
     {Array.from({ length: 9 }, (_, index) => <group key={`landmark-${index}`} position={[-25 - (index % 2) * 8, 0, -80 - index * 138]}>
       <mesh position={[0, 3.2 + (index % 3), 0]} castShadow><coneGeometry args={[5.5 + (index % 2) * 2, 7 + (index % 3) * 2, 9]} /><meshStandardMaterial color={index % 2 ? "#668c73" : "#7d9d78"} roughness={1} /></mesh>
       <mesh position={[0, 6.4 + (index % 3), 0]}><coneGeometry args={[2.1, 2.2, 9]} /><meshStandardMaterial color="#d8e2d5" roughness={1} /></mesh>
     </group>)}
+    {/* Far layers: mountains on land and islands at sea, softened by fog for depth */}
+    {Array.from({ length: 14 }, (_, index) => <mesh key={`far-mtn-${index}`} position={[-150 - (index % 3) * 45, 0, 120 - index * 130]}><coneGeometry args={[60 + (index % 4) * 14, 55 + (index % 3) * 22, 7]} /><meshStandardMaterial color={index % 2 ? "#6f9a86" : "#7fa892"} roughness={1} flatShading /></mesh>)}
+    {Array.from({ length: 7 }, (_, index) => <mesh key={`island-${index}`} position={[170 + (index % 2) * 60, -.5, 60 - index * 230]} scale={[1, .35, 1]}><sphereGeometry args={[30 + (index % 3) * 10, 14, 10]} /><meshStandardMaterial color="#8fb58c" roughness={1} /></mesh>)}
     {trackSamples.map((s, i) => { if (ship && s >= RAMP_START) return null; const frame = trackFrame(s); return <group key={s} position={[frame.x, 0, frame.z]} rotation={[0, frame.yaw, 0]}>
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[14.8, 20.35]} /><meshStandardMaterial color={i % 2 ? "#48545b" : "#4b575e"} roughness={.96} /></mesh>
       {[-3.7, 3.7].map(x => <mesh key={x} rotation={[-Math.PI / 2, 0, 0]} position={[x, .012, 0]}><planeGeometry args={[.08, 3.5]} /><meshStandardMaterial color="#ece7d9" /></mesh>)}

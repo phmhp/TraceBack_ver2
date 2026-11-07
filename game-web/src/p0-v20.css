@@ -139,3 +139,6 @@ button:not(:disabled):active { scale: .93; transition-duration: .06s; }
 .soundToggle button.on { opacity: 1; }
 .burstShot { position: relative; flex: none; }
 .burstShot i { position: absolute; right: -10px; top: -12px; font-size: 24px !important; animation: burstWobble .6s ease-in-out infinite; }
+
+/* race: the 3D sky dome replaces the painted backdrop (no seam between 3D ground and picture) */
+.raceV2:not(.raceMode-ship) { background: linear-gradient(#6fb2e6, #cfe9ec 60%) !important; }
