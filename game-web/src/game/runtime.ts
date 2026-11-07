@@ -163,7 +163,8 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
         "FAULT_CUE",
       );
     case "CONTINUE_FAULT":
-      return enter(s, "BOARD");
+      // flow: fault → build the normal reference (puzzle) → compare on the memo board → bench
+      return enter(s, "WIRING");
     case "OPEN_BOARD":
       return enter(s, "BOARD");
     case "RECORD_EVIDENCE": {
@@ -237,7 +238,7 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       return enter({ ...s, optionalBrake: "skipped" }, "SHIP_ESCAPE");
     case "OPTIONAL_BRAKE":
       return event.accept
-        ? enter({ ...s, optionalBrake: "accepted", caseId: "brake" }, "BOARD")
+        ? enter({ ...s, optionalBrake: "accepted", caseId: "brake" }, "WIRING")
         : enter({ ...s, optionalBrake: "skipped" }, "SHIP_ESCAPE");
     case "FINISH_ESCAPE": {
       // Make the hand-off atomic.  The old implementation dispatched SYNC_RACE
@@ -262,9 +263,9 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
           policeGapMeters: Math.max(s.completedCases.length < 2 ? 35 : 18, s.policeGapMeters),
         },
         s.checkpoint === "propulsion_fault"
-          ? "BOARD"
+          ? "WIRING"
           : s.checkpoint === "thermal_fault"
-            ? "BOARD"
+            ? "WIRING"
             : s.checkpoint === "dock_approach"
               ? "CHASE_RESUME"
               : "CHASE_NORMAL",
@@ -281,8 +282,8 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
         GARAGE_L4: "PROLOGUE",
         DRIVE_BRIEFING: "GARAGE_L1",
         CHASE_NORMAL: "DRIVE_BRIEFING",
-        WIRING: "BOARD",
-        TWIN_BENCH: "WIRING",
+        BOARD: "WIRING",
+        TWIN_BENCH: "BOARD",
         VERIFY_FAIL: "TWIN_BENCH",
         REPAIR: "TWIN_BENCH",
       };

@@ -1833,13 +1833,38 @@ const TRAP_MSG: Record<string, string> = {
   regenonly: "🕵️ 이 블록이 범인! 회생만 쓰고 모자란 제동력을 마찰로 채우지 않아",
   logger: "📝 기록 전용 블록이라 신호를 바꾸지 않아. 경로에는 안 넣어도 돼",
 };
-const REQ_OF_STEP = [0, 1, 2, 3, 3, 4]; // correct path index → requirement row
+const REQ_OF_STEP = [0, 1, 2, 3, 3, 4];
+// Jigsaw tab shape = signal type, so only pieces with matching units fit together.
+type Nub = "round" | "square" | "zigzag" | "wave" | "tri";
+const NUB_NAME: Record<Nub, string> = { round: "% 신호", square: "힘·토크", zigzag: "통신 명령", wave: "PWM 구동", tri: "온도·압력" };
+// Jigsaw silhouette on the 140×140 piece box: right edge has a tab, left edge a matching socket.
+const TAB: Record<Nub, string> = {
+  round: "V 46 C 128 42 140 42 140 58 C 140 74 128 74 128 70",
+  square: "V 46 H 140 V 70 H 128",
+  tri: "V 44 L 140 58 L 128 72",
+  zigzag: "V 44 L 136 44 L 140 50 L 136 58 L 140 66 L 136 72 L 128 72",
+  wave: "V 44 Q 140 44 136 51 Q 132 58 140 65 Q 140 72 128 72",
+};
+const SOCKET: Record<Nub, string> = {
+  round: "V 70 C 12 74 24 74 24 58 C 24 42 12 42 12 46",
+  square: "V 70 H 24 V 46 H 12",
+  tri: "V 72 L 24 58 L 12 44",
+  zigzag: "V 72 L 16 72 L 24 66 L 20 58 L 24 50 L 16 44 L 12 44",
+  wave: "V 72 Q 24 72 20 65 Q 16 58 24 51 Q 24 44 12 44",
+};
+const piecePath = (io: { in?: Nub; out?: Nub }) =>
+  `path("M 18 6 H 122 Q 128 6 128 12 ${io.out ? TAB[io.out] : ""} V 128 Q 128 134 122 134 H 18 Q 12 134 12 128 ${io.in ? SOCKET[io.in] : ""} V 12 Q 12 6 18 6 Z")`;
+const PIECE_IO: Record<CaseId, Record<string, { in?: Nub; out?: Nub }>> = {
+  propulsion: { aps: { out: "round" }, adapter: { in: "round", out: "round" }, map100: { in: "round", out: "square" }, map45: { in: "round", out: "square" }, can: { in: "square", out: "zigzag" }, vcu: { in: "zigzag", out: "zigzag" }, inverter: { in: "zigzag" }, logger: { in: "round" } },
+  thermal: { temp: { out: "tri" }, filter: { in: "tri", out: "tri" }, threshold: { in: "tri", out: "zigzag" }, forceoff: { in: "tri", out: "zigzag" }, pwm: { in: "zigzag", out: "wave" }, thermalecu: { in: "wave", out: "wave" }, fan: { in: "wave" }, logger: { in: "tri" } },
+  brake: { pedal: { out: "round" }, request: { in: "round", out: "square" }, blend: { in: "square", out: "square" }, regenonly: { in: "square", out: "square" }, pressure: { in: "square", out: "tri" }, brakeecu: { in: "tri", out: "tri" }, caliper: { in: "tri" }, logger: { in: "round" } },
+}; // correct path index → requirement row
 
 export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const config = puzzleConfig[state.caseId];
   const perspective = puzzlePerspective[state.caseId];
   const mission = puzzleMission[state.caseId];
-  const flowSlots = config.correct.map((_, index) => ({ x: 38 + index * 116, y: 105 }));
+  const flowSlots = config.correct.map((_, index) => ({ x: 24 + index * 156, y: 105 }));
   const gapIndexes = [2, 3];
   const gapIds = gapIndexes.map(index => config.correct[index]);
   const spreadNodes = () => {
@@ -1847,7 +1872,7 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
     return config.blocks.map(block => {
       const correctIndex = config.correct.indexOf(block.id);
       if (correctIndex >= 0 && !gapIndexes.includes(correctIndex)) return { ...block, ...flowSlots[correctIndex] };
-      const position = { x: 80 + looseIndex * 195, y: 360 + (looseIndex % 2) * 8 };
+      const position = { x: 90 + looseIndex * 220, y: 300 };
       looseIndex += 1;
       return { ...block, ...position };
     });
@@ -1926,6 +1951,14 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
     const slot = flowSlots[gapIndex];
     if (Math.hypot(draggedNode.x - slot.x, draggedNode.y - slot.y) >= 130) return;
     setNodes(previous => previous.map(node => node.id === dragging.id ? { ...node, ...slot } : node));
+    // jigsaw: a piece that fits connects itself to its neighbours (no pencil needed)
+    setEdges(previous => {
+      const id = config.correct[gapIndex], before = config.correct[gapIndex - 1], after = config.correct[gapIndex + 1];
+      const next = previous.filter(edge => edge.to !== id && edge.from !== id);
+      if (before) next.push({ from: before, to: id });
+      if (after) next.push({ from: id, to: after });
+      return next;
+    });
     setPuzzleFeedback(`${draggedNode.label} 조각이 맞는 홈에 끼워졌습니다.`);
     play("squish");
   };
@@ -1945,10 +1978,10 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const ready = slotsFilled && isCorrect;
   return <div className="wiringV2">
     <SceneBackdrop image={`${A}stitch23/prologue-plan.png`} position="center" shade="soft" />
-    <GameHeader chapter="CONTROL PATH RESTORATION" title="제어 경로 복원" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="BUILD THE REFERENCE" title="정상 기준 만들기" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <div className="wiringTitle"><div><small>CONTROL PATH RESTORATION · GUIDED FUNCTION SLICE</small><h1><em className="puzzlePerspectiveTag" onMouseEnter={() => setHelpOpen(true)} onMouseLeave={() => setHelpOpen(false)} onFocus={() => setHelpOpen(true)}>{perspective.active} 수준</em><span>{mission.domain} 도메인 · {mission.feature}</span></h1><p><b>관찰 입력</b> {mission.input}<i>→</i><b>관찰 출력</b> {mission.output}</p></div><span>{source ? `${nodes.find(node => node.id === source)?.label} → 다음 카드` : `빈칸 ${gapIds.length}개 · 확대 ${Math.round(view.scale * 100)}%`}</span><div className="wiringToolbox"><button className={wireTool === "move" ? "active" : ""} onClick={() => { setWireTool("move"); setSource(""); setWireDraft(null); }}><img src={`${A}cursor-hand-open-v1.png`} alt="" /><small>이동</small></button><button className={wireTool === "pencil" ? "active" : ""} onClick={() => setWireTool("pencil")}><img src={`${A}detective-pencil-v1.png`} alt="" /><small>배선</small></button><button className={wireTool === "erase" ? "active" : ""} onClick={() => { setWireTool("erase"); setSource(""); setWireDraft(null); }}><img src={`${A}detective-eraser-v1.png`} alt="" /><small>지우개</small></button></div><button onClick={() => setHelpOpen(value => !value)}>도움말</button><button onClick={() => setRulesOpen(value => !value)}>규칙</button><button className="wiringHint" disabled={seconds < 60 || hintUsed} onClick={() => send({ type: "HINT", key: hintKey })}>{hintUsed ? `힌트: ${gapIds.join(" → ")}` : seconds < 60 ? `힌트 ${60 - seconds}초` : "힌트 · -5m"}</button><button onClick={() => { setNodes(spreadNodes()); setEdges(starterEdges()); setSource(""); setWireDraft(null); setView({ x: 0, y: 0, scale: initialWireScale() }); }}>초기화</button></div>
     {helpOpen && <aside className="perspectiveHelp"><button onClick={() => setHelpOpen(false)}>×</button><b>완성된 핵심 흐름의 빈칸 두 곳만 복원합니다</b><p><strong>현재 관점</strong> {perspective.active} · {perspective.depth}</p><p><strong>경계</strong> {perspective.input} → {perspective.middle} → {perspective.output}</p><p><strong>주의</strong> HW가 반드시 양끝일 필요는 없습니다. 이번 고장과 직접 연결된 기능 경계만 봅니다.</p></aside>}
-      {rulesOpen && <aside className="wiringRules"><button className="wiringRulesClose" onClick={() => setRulesOpen(false)} aria-label="규칙 닫기">×</button><b>배선 퍼즐 규칙</b><ol><li>선이 이어지면 아래에 <b>신호 값</b>이 흘러요(예: 60% → 204 Nm). 오른쪽 요구사항 줄은 맞게 이어질 때마다 ✓가 켜져요.</li><li>아래에 섞인 <b>함정 블록</b>을 눌러 보면 그 블록이 신호에 무슨 짓을 하는지 알려 줘요.</li><li>이미 고정된 흐름 사이의 빈칸 두 곳을 채웁니다.</li><li>아래 느슨한 카드 중 맞는 두 장만 빈칸 가까이 끌면 자리에 붙습니다.</li><li>연필로 끊긴 구간을 직접 그어 연결합니다.</li><li>오류 후보와 기록 블록은 사용하지 않아도 됩니다.</li><li>손은 이동·확대, 지우개는 선 삭제만 담당합니다.</li></ol></aside>}
+      {rulesOpen && <aside className="wiringRules"><button className="wiringRulesClose" onClick={() => setRulesOpen(false)} aria-label="규칙 닫기">×</button><b>정상 기준 만들기 규칙</b><ol><li>요구사항(오른쪽)대로 <b>정상 로직</b>을 조립해요. 이게 메모판에서 이번 주행과 비교할 <b>기준</b>이 돼요.</li><li>아래 조각을 끌어 빈칸에 끼우면 자동으로 이어져요. <b>홈 모양이 같은 신호 종류</b>끼리만 맞아요.</li><li>모양이 맞아도 <b>사양이 다른 함정 조각</b>이 있어요. 눌러 보면 무슨 일을 하는지 알려 줘요.</li><li>선 아래 <b>신호 값</b>과 요구사항 ✓를 확인하고 완성해요.</li></ol></aside>}
     <main className="eePuzzle">
       <aside className="verticalRequirement"><small>REQUIREMENT FLOW</small>{config.requirement.map((item, index) => { const steps = REQ_OF_STEP.map((row, k) => row === index ? k : -1).filter(k => k >= 0); const done = steps.every(k => k === 0 ? edges.some(edge => edge.from === config.correct[0]) : edges.some(edge => edge.to === config.correct[k] && edge.from === config.correct[k - 1])); return <React.Fragment key={item}><div className={done ? "reqDone" : ""}>{done && <em className="reqTick">✓</em>}<span>{index === 0 ? "INPUT" : index === 1 ? "IF" : index === 3 ? "THEN" : index === 4 ? "OUTPUT" : "CONTROL"}</span><b>{item}</b></div>{index < config.requirement.length - 1 && <i>↓</i>}</React.Fragment>; })}</aside>
       <section className={`wireCanvas tool-${wireTool} ${eraser ? "erasing" : ""}`} ref={canvasRef} onContextMenu={event => event.preventDefault()} onWheel={event => { event.preventDefault(); setView(previous => ({ ...previous, scale: THREE.MathUtils.clamp(previous.scale * (event.deltaY > 0 ? .9 : 1.1), .48, 1.5) })); }} onPointerDown={event => { if (event.button === 2) setPanning({ x: event.clientX, y: event.clientY, ox: view.x, oy: view.y }); }} onPointerMove={event => { if (!canvasRef.current) return; if (panning) { setView(previous => ({ ...previous, x: panning.ox + event.clientX - panning.x, y: panning.oy + event.clientY - panning.y })); return; } const point = localPoint(event.clientX, event.clientY); if (wireTool === "pencil" && wireDraft) setWireDraft(previous => { if (!previous) return previous; const last = previous.points.at(-1)!; return Math.hypot(point.x - last.x, point.y - last.y) < 7 ? previous : { points: [...previous.points, point] }; }); if (!dragging) return; setNodes(previous => previous.map(node => node.id === dragging.id ? { ...node, x: THREE.MathUtils.clamp(point.x - dragging.dx / view.scale, 5, 1075), y: THREE.MathUtils.clamp(point.y - dragging.dy / view.scale, 5, 525) } : node)); }} onPointerUp={event => { snapDraggedNode(event.clientX, event.clientY); setDragging(null); setPanning(null); }} onPointerLeave={event => { snapDraggedNode(event.clientX, event.clientY); setDragging(null); setPanning(null); }}>
@@ -1956,15 +1989,15 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
         <div className="canvasGrid" />
         {gapIndexes.map(index => { const slot = flowSlots[index]; const node = nodes.find(item => item.id === config.correct[index]); const filled = Boolean(node && Math.hypot(node.x - slot.x, node.y - slot.y) < 8); return <div key={index} className={`guidedLogicSlot ${filled ? "filled" : ""}`} style={{ left: slot.x, top: slot.y }}><b>빈칸 {index - 1}</b><span>{config.correct[index] === gapIds[0] ? "판단·변환" : "명령·전달"}</span></div>; })}
         <svg viewBox="0 0 1000 560">{edges.map((edge, index) => { const a = nodes.find(node => node.id === edge.from); const b = nodes.find(node => node.id === edge.to); if (!a || !b) return null; const x1 = a.x + 128, y1 = a.y + 70, x2 = b.x + 12, y2 = b.y + 70, direction = index % 2 ? 1 : -1; const d = edge.points?.length ? curveFromPoints(edge.points) : `M ${x1} ${y1} C ${x1 + 55} ${y1 + 45 * direction}, ${x2 - 55} ${y2 - 45 * direction}, ${x2} ${y2}`; const pill = SIGNAL_VALUE[state.caseId][edge.from]; return <g key={`${edge.from}-${edge.to}`}>{pill && <g className="wirePill" transform={`translate(${(x1 + x2) / 2} ${(y1 + y2) / 2 + 92})`}><path d="M0 -24 L0 -12" className="pillStem" /><rect x={-38} y={-12} width={76} height={24} rx={12} /><text textAnchor="middle" y={5}>{pill}</text></g>}<path className="wormWire" d={d} onPointerEnter={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} onClick={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} /></g>; })}{source && wireDraft && <path className="wormWire wireDraft" d={curveFromPoints(wireDraft.points)} />}</svg>
-        {nodes.map((node) => { const correctIndex = config.correct.indexOf(node.id); const locked = correctIndex >= 0 && !gapIndexes.includes(correctIndex); const edgeClass = correctIndex >= 0 ? puzzleEdgeClass(correctIndex, config.correct.length) : "edge-mismatch"; return <div className={`logicNode puzzlePiece ${edgeClass} ${node.kind.toLowerCase()} ${source === node.id ? "source" : ""} ${locked ? "locked" : ""}`} style={{ left: node.x, top: node.y }} key={node.id} onDoubleClick={event => { event.stopPropagation(); if (wireTool === "move") setZoomNode(node); }} onClick={event => { event.stopPropagation(); chooseWireNode(node); }} onPointerDown={event => { if (locked || wireTool !== "move" || event.button !== 0) return; const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect(); setDragging({ id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top }); (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId); }}>
+        {nodes.map((node) => { const correctIndex = config.correct.indexOf(node.id); const locked = correctIndex >= 0 && !gapIndexes.includes(correctIndex); const edgeClass = correctIndex >= 0 ? puzzleEdgeClass(correctIndex, config.correct.length) : "edge-mismatch"; return <div className={`logicNode puzzlePiece ${edgeClass} ${node.kind.toLowerCase()} ${source === node.id ? "source" : ""} ${locked ? "locked" : ""}`} style={{ left: node.x, top: node.y, ...(PIECE_IO[state.caseId][node.id] ? { clipPath: piecePath(PIECE_IO[state.caseId][node.id]) } : {}) }} title={[PIECE_IO[state.caseId][node.id]?.in && `들어오는 신호: ${NUB_NAME[PIECE_IO[state.caseId][node.id].in!]}`, PIECE_IO[state.caseId][node.id]?.out && `나가는 신호: ${NUB_NAME[PIECE_IO[state.caseId][node.id].out!]}`].filter(Boolean).join(" · ")} key={node.id} onDoubleClick={event => { event.stopPropagation(); if (wireTool === "move") setZoomNode(node); }} onClick={event => { event.stopPropagation(); chooseWireNode(node); }} onPointerDown={event => { if (locked || wireTool !== "move" || event.button !== 0) return; const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect(); setDragging({ id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top }); (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId); }}>
           {node.kind === "HW" ? <div className={`logicNodePhoto componentAssetPhoto asset-${componentAtlasCell[node.id] ?? 2}`}><small>HW · REAL PART</small><em>{perspective.active.includes("E/E") ? "E/E 아키텍처" : "물리 플랜트"}</em></div> : <div className="logicNodePhoto simulinkNodeArt"><small>SW · SIMULINK BLOCK</small><em>SW 로직</em><b>f(u)</b><i /><i /><i /></div>}<div className="logicNodeCaption"><b>{node.label}</b><span>{node.detail}</span></div>
         </div>; })}
         </div>
-        <div className="canvasHelp">손: 이동/확대 · 우클릭 드래그: 작업대 이동 · 연필: 끊긴 경로 연결 · 지우개: 선 삭제</div>
+        <div className="canvasHelp">조각을 끌어 빈칸에 끼우면 자동으로 이어져요 · 홈 모양 = 신호 종류(● % · ■ 힘·토크 · ⚡ 통신 명령 · ∿ PWM · ▶ 온도·압력) · 휠: 확대</div>
       </section>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={solvePuzzle}>정답 보기</button>
-    <div className="wiringFooter"><span>{puzzleFeedback}</span><button className="primary" disabled={!ready} onClick={() => { send({ type: "COMPILE", program: isCorrect ? config.program : config.faulty }); send({ type: "OPEN_BENCH" }); }}>통합 실험으로 →</button></div>
+    <div className="wiringFooter"><span>{puzzleFeedback}</span><button className="primary" disabled={!ready} onClick={() => { send({ type: "COMPILE", program: isCorrect ? config.program : config.faulty }); send({ type: "OPEN_BOARD" }); }}>정상 기준 완성 → 메모판에서 비교</button></div>
     {zoomNode && <div className="evidenceZoom logicZoom" onClick={() => setZoomNode(null)}><article className="logicZoomCard" onClick={event => event.stopPropagation()}><button onClick={() => setZoomNode(null)}>×</button>{zoomNode.kind === "HW" ? <div className={`logicNodePhoto componentAssetPhoto asset-${componentAtlasCell[zoomNode.id] ?? 2}`}><small>HW · REAL PART</small></div> : <div className="logicNodePhoto simulinkNodeArt"><small>SW · CONTROL LOGIC</small><b>f(u)</b><i /><i /><i /></div>}<div className="logicZoomCopy"><small>{zoomNode.kind === "HW" ? "실물 부품 경계" : "제어 로직 블록"}</small><h2>{zoomNode.label}</h2><p>{zoomNode.detail}</p></div></article></div>}
   </div>;
 }

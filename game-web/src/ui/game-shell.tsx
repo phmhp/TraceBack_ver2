@@ -67,8 +67,8 @@ const journeyStages = [
   { id: "garage", label: "차고지", detail: "차량 도메인 학습" },
   { id: "heist", label: "범행·도주", detail: "고양이 탑승과 출발" },
   { id: "race", label: "주행", detail: "코스 지점까지 도주" },
-  { id: "board", label: "메모판", detail: "증거와 원인 연결" },
-  { id: "wiring", label: "경로 복원", detail: "제어 신호 연결" },
+  { id: "wiring", label: "정상 기준", detail: "요구사항대로 정상 로직 조립" },
+  { id: "board", label: "메모판", detail: "기준과 비교해 시작점·영향 찾기" },
   { id: "bench", label: "V-모델 검증", detail: "SW·ECU·시스템·차량" },
   { id: "repair", label: "수리", detail: "검증 설계 적용" },
   { id: "escape", label: "해적선", detail: "최종 승선" },
@@ -78,8 +78,8 @@ const stageForScene = (scene: string) => {
   if (scene.startsWith("GARAGE")) return 0;
   if (scene === "DRIVE_BRIEFING") return 1;
   if (["CHASE_NORMAL", "CHASE_RESUME", "FAULT_CUE", "ASSIST_CHASE"].includes(scene)) return 2;
-  if (scene === "BOARD" || scene === "OPTIONAL_FAULT") return 3;
-  if (scene === "WIRING") return 4;
+  if (scene === "WIRING" || scene === "OPTIONAL_FAULT") return 3;
+  if (scene === "BOARD") return 4;
   if (["TWIN_BENCH", "VERIFY_FAIL"].includes(scene)) return 5;
   if (scene === "REPAIR") return 6;
   return 7;

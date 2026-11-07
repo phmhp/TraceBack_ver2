@@ -433,3 +433,18 @@ kbd.wide { min-width: 34px; }
 /* no tilt on polaroids */
 .boardV3 .polaroidCard, .boardV3 .boardPinnedCard, .boardV3 .boardCausePin, .boardV3 .evidenceInventory > div > div, .boardV3 .causeCandidates > div, .suspectBoard .sbSuspect, .suspectBoard .sbCard { rotate: 0deg !important; }
 .boardV3 .polaroidCard, .boardV3 .boardPinnedCard .polaroidCard, .suspectBoard .sbSuspect:nth-child(n) { transform: none !important; }
+
+/* ── puzzle: jigsaw tabs by signal type, no drawing tools ── */
+.wiringV2 .wiringToolbox { display: none !important; }
+.logicNode.puzzlePiece { overflow: visible !important; }
+.jigNub { position: absolute; top: 50%; z-index: 3; width: 22px; height: 22px; margin-top: -11px; background: #fffaf0; border: 2.5px solid #7b6a48; box-sizing: border-box; pointer-events: auto; }
+.jigNub.out { right: -13px; }
+.jigNub.in { left: -11px; background: #3b2f25; border-color: #3b2f25; opacity: .78; }
+.jigNub.t-round { border-radius: 50%; }
+.jigNub.t-square { border-radius: 3px; }
+.jigNub.t-tri { clip-path: polygon(0 0, 100% 50%, 0 100%); border: 0; background: #7b6a48; }
+.jigNub.in.t-tri { background: #3b2f25; }
+.jigNub.t-zigzag { clip-path: polygon(0 0, 50% 25%, 100% 0, 100% 100%, 50% 75%, 0 100%); border: 0; background: #c0782a; }
+.jigNub.in.t-zigzag { background: #3b2f25; }
+.jigNub.t-wave { border-radius: 50% 50% 0 0 / 70% 70% 0 0; }
+.jigNub.out.t-round, .jigNub.out.t-square, .jigNub.out.t-wave { background: #f2c66d; }
