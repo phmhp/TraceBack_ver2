@@ -1,13 +1,14 @@
-// Memo board v5 — "쓰러진 도미노 거꾸로 따라가기" (mystery: trace the abnormal values backward).
+// Memo board v6 — "쓰러진 도미노 거꾸로 따라가기" with time clues.
 // One question per screen: "Why did <this value> differ from the reference?"
-//  1) Start from the symptom (vehicle output).
-//  2) Flip the 3 face-down upstream candidates (compare reference vs this drive).
-//     Abnormal one = clue → follow it. Normal ones are ruled out.
-//  3) When every candidate in front is normal, this one is the first domino.
-//  4) Replay the cascade, zoom inside the first domino (SW block or HW part),
-//     and the fallen chain becomes the bench's regression list (impact analysis).
-// The "전체 지도" overlay shows the whole E/E path as Simulink-like subsystems
-// (센서 → 제어기 → CAN → 부품 → 차량) with the trace falling backward from the output.
+//  1) Flip (measure) the 3 polaroid candidates: reference vs this drive + WHEN it started to differ.
+//  2) Two candidates can be abnormal: the real cause went wrong EARLIER than the current domino,
+//     the trap went wrong LATER (it is an effect of the current domino, not its cause).
+//     → the player reasons from the timeline, not from prior domain knowledge.
+//  3) When every candidate in front is normal, the current domino is the first domino.
+//  4) Cascade replay → zoom inside the first domino (SW block or HW part) →
+//     every fallen domino (chain + traps found = side effects) becomes the bench's regression list.
+// "🗺 전체 지도" shows the E/E path (센서 → 제어기 → CAN → 부품 → 차량) as subsystems,
+// with the trace falling backward from the output.
 import React, { useEffect, useState } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
 import { SCENARIOS } from "../../game/scenarios";
@@ -19,72 +20,75 @@ type Send = React.Dispatch<any>;
 type Status = "ok" | "tol" | "bad";
 type Zone = "센서" | "제어기" | "CAN" | "부품" | "차량";
 type Dom = {
-  id: string; label: string; icon: string; zone: Zone;
-  ref: number; run: number; unit: string; status: Status;
-  causes?: string[]; expertCauses?: string[]; ev?: string;
+  id: string; label: string; img: string; zone: Zone;
+  ref: number | string; run: number | string; unit: string; status: Status;
+  t?: number; causes?: string[]; ev?: string;
 };
 type Zoom = { where: string; kind: "sw" | "hw"; reference: [string, string][]; run: [string, string][]; part?: [string, string, string]; culprit: string; lesson: string };
-type CaseData = { start: string; first: string; req: string; doms: Dom[]; zoom: Zoom };
+type CaseData = { start: string; first: string; timeUnit: string; req: string; doms: Dom[]; zoom: Zoom };
 
 const ZONES: Zone[] = ["센서", "제어기", "CAN", "부품", "차량"];
 const ZONE_ICON: Record<Zone, string> = { 센서: "🦶", 제어기: "🧠", CAN: "📡", 부품: "⚙️", 차량: "🚗" };
 
-// shared "normal" candidates
-const OK = (id: string, label: string, icon: string, zone: Zone, ref: number, unit: string): Dom => ({ id, label, icon, zone, ref, run: ref, unit, status: "ok" });
+// generated images: evidence photos, part cut-outs, the 3×3 evidence atlas and the car
+const B = (name: string) => `/assets/board-photos/${name}.png`;
+const E = (name: string) => `/assets/ending-thumbs/${name}.png`;
+const ATLAS = (cell: number) => `atlas:${cell}`;
+const CAR = "/assets/traceback-red-ev-v2.png";
+const SENSOR = "/assets/ASSET_090_Input_Sensor_Node.png";
+const ECU = "/assets/ASSET_091_ECU_Controller_Node.png";
+const RADIATOR = "/assets/ASSET_030_Radiator_Cooling_Fan_TRANSPARENT.png";
+
+const OK = (id: string, label: string, img: string, zone: Zone, ref: number | string, unit: string, status: Status = "ok", run?: number | string): Dom => ({ id, label, img, zone, ref, run: run ?? ref, unit, status });
 
 const CASES: Record<CaseId, CaseData> = {
   propulsion: {
-    start: "accel", first: "vcu_in",
+    start: "accel", first: "vcu_in", timeUnit: "ms",
     req: "요구사항: 가속 페달을 60% 밟으면 모터가 204 Nm를 내야 한다.",
     doms: [
-      { id: "accel", label: "차량 가속", icon: "🚗", zone: "차량", ref: 2.8, run: 1.2, unit: "m/s²", status: "bad", causes: ["motor_tq", "regen", "tire"], expertCauses: ["slope"], ev: "pedal_raw" },
-      { id: "motor_tq", label: "모터 힘", icon: "⚙️", zone: "부품", ref: 204, run: 91, unit: "Nm", status: "bad", causes: ["batt_lim", "can_cmd", "motor_temp"], expertCauses: ["inv_lim"], ev: "motor_actual" },
-      { id: "can_cmd", label: "CAN 토크 명령", icon: "📡", zone: "CAN", ref: 204, run: 92, unit: "Nm", status: "bad", causes: ["gateway", "drive_mode", "vcu_in"], expertCauses: ["can_err"], ev: "torque_cmd" },
-      { id: "vcu_in", label: "VCU 페달 처리값", icon: "🧠", zone: "제어기", ref: 60, run: 27, unit: "%", status: "bad", causes: ["aps", "brake_sw", "gear"], expertCauses: ["aps2"], ev: "pedal_processed" },
-      OK("aps", "가속 페달 센서", "🦶", "센서", 60, "%"),
-      OK("aps2", "예비 페달 센서", "🦶", "센서", 30, "%"),
-      { ...OK("brake_sw", "브레이크 스위치", "🛑", "센서", 0, "꺼짐") },
-      { ...OK("gear", "기어 위치", "🅳", "센서", 0, "D") },
-      OK("regen", "회생 제동", "♻️", "제어기", 0, "%"),
-      OK("batt_lim", "배터리 출력 한계", "🔋", "제어기", 160, "kW"),
-      OK("inv_lim", "인버터 전류 한계", "⚡", "부품", 400, "A"),
-      OK("gateway", "게이트웨이 전달", "🔀", "CAN", 100, "%"),
-      OK("can_err", "CAN 오류 횟수", "📡", "CAN", 0, "회"),
-      { ...OK("drive_mode", "주행 모드", "🎚️", "제어기", 0, "보통") },
-      OK("slope", "도로 경사", "⛰️", "차량", 0, "%"),
-      { id: "tire", label: "타이어 공기압", icon: "🛞", zone: "부품", ref: 2.4, run: 2.3, unit: "bar", status: "tol" },
-      { id: "motor_temp", label: "모터 온도", icon: "🌡️", zone: "부품", ref: 62, run: 60, unit: "°C", status: "tol" },
+      { id: "accel", label: "차량 가속", img: CAR, zone: "차량", ref: 2.8, run: 1.2, unit: "m/s²", status: "bad", t: 60, causes: ["motor_tq", "cluster", "regen"], ev: "pedal_raw" },
+      { id: "motor_tq", label: "모터 힘", img: B("motor_actual"), zone: "부품", ref: 204, run: 91, unit: "Nm", status: "bad", t: 30, causes: ["batt_i", "can_cmd", "motor_temp"], ev: "motor_actual" },
+      { id: "can_cmd", label: "CAN 토크 명령", img: B("torque_cmd"), zone: "CAN", ref: 204, run: 92, unit: "Nm", status: "bad", t: 20, causes: ["inv_i", "gateway", "vcu_in"], ev: "torque_cmd" },
+      { id: "vcu_in", label: "VCU 페달 처리값", img: B("pedal_processed"), zone: "제어기", ref: 60, run: 27, unit: "%", status: "bad", t: 10, causes: ["aps", "brake_sw", "gear"], ev: "pedal_processed" },
+      // traps: abnormal, but they changed LATER than the domino they are offered for
+      { id: "cluster", label: "계기판 출력 게이지", img: ECU, zone: "차량", ref: 60, run: 27, unit: "%", status: "bad", t: 70 },
+      { id: "batt_i", label: "배터리 방전 전류", img: E("bms"), zone: "부품", ref: 180, run: 85, unit: "A", status: "bad", t: 40 },
+      { id: "inv_i", label: "인버터 전류", img: E("mcu"), zone: "부품", ref: 310, run: 140, unit: "A", status: "bad", t: 25 },
+      OK("aps", "가속 페달 센서", B("pedal_raw"), "센서", 60, "%"),
+      OK("brake_sw", "브레이크 스위치", E("brake_pedal"), "센서", "꺼짐", ""),
+      OK("gear", "기어 위치", SENSOR, "센서", "D", ""),
+      OK("regen", "회생 제동", B("regen_request"), "제어기", 0, "%"),
+      OK("motor_temp", "모터 온도", B("motor_temp"), "부품", 62, "°C", "tol", 60),
+      OK("gateway", "게이트웨이 전달", ATLAS(1), "CAN", 100, "%"),
     ],
     zoom: {
       where: "VCU", kind: "sw",
       reference: [["페달 신호 읽기", "60%"], ["토크 지도", "204 Nm"], ["CAN 토크 명령", "204 Nm"]],
-      run: [["페달 신호 읽기", "60%"], ["옛 보정 45%", "27%"], ["토크 지도", "92 Nm"], ["CAN 토크 명령", "92 Nm"]],
-      culprit: "옛 보정 45%",
-      lesson: "기준 설계에 없는 블록이 끼어 있었어! 페달 값을 45%로 줄인 옛 보정값이 범인이야.",
+      run: [["페달 신호 읽기", "60%"], ["보정 계수 ×0.45", "27%"], ["토크 지도", "92 Nm"], ["CAN 토크 명령", "92 Nm"]],
+      culprit: "보정 계수 ×0.45",
+      lesson: "기준 설계에 없는 '보정 계수 ×0.45' 블록이 끼어 있었어! 페달 값을 0.45배로 줄여 버린 잘못된 보정값이야.",
     },
   },
   thermal: {
-    start: "accel", first: "fan_rpm",
+    start: "accel", first: "fan_rpm", timeUnit: "초",
     req: "요구사항: 냉각수가 65°C를 넘으면 냉각 팬을 100%로 돌려야 한다.",
     doms: [
-      { id: "accel", label: "차량 가속", icon: "🚗", zone: "차량", ref: 2.8, run: 1.9, unit: "m/s²", status: "bad", causes: ["regen", "tq_limit", "tire"], expertCauses: ["slope"] },
-      { id: "tq_limit", label: "모터 힘 한계", icon: "⚙️", zone: "제어기", ref: 240, run: 150, unit: "Nm", status: "bad", causes: ["batt_lim", "drive_mode", "derate"] },
-      { id: "derate", label: "출력 허용", icon: "🚦", zone: "제어기", ref: 100, run: 62, unit: "%", status: "bad", causes: ["coolant", "air_temp", "batt_temp"], ev: "thermal_protection" },
-      { id: "coolant", label: "냉각수 온도", icon: "🌡️", zone: "센서", ref: 65, run: 78, unit: "°C", status: "bad", causes: ["pump", "fan_rpm", "coolant_lv"], ev: "motor_temp" },
-      { id: "fan_rpm", label: "냉각 팬 회전", icon: "🌀", zone: "부품", ref: 1850, run: 0, unit: "rpm", status: "bad", causes: ["fan_cmd", "fan_power", "fan_block"], expertCauses: ["fan_can"], ev: "fan_actual" },
-      { ...OK("fan_cmd", "팬 명령", "🧠", "제어기", 100, "%"), ev: "fan_command" },
-      OK("fan_power", "팬 전원", "⚡", "부품", 12, "V"),
-      { ...OK("fan_block", "팬 막힘", "🍂", "부품", 0, "없음") },
-      OK("fan_can", "팬 명령 전달", "📡", "CAN", 100, "%"),
-      { id: "pump", label: "냉각수 펌프", icon: "💧", zone: "부품", ref: 12, run: 11.8, unit: "L/min", status: "tol" },
-      OK("coolant_lv", "냉각수 양", "🧪", "부품", 100, "%"),
-      { id: "air_temp", label: "바깥 기온", icon: "☀️", zone: "센서", ref: 25, run: 26, unit: "°C", status: "tol" },
-      OK("batt_temp", "배터리 온도", "🔋", "센서", 30, "°C"),
-      OK("regen", "회생 제동", "♻️", "제어기", 0, "%"),
-      OK("batt_lim", "배터리 출력 한계", "🔋", "제어기", 160, "kW"),
-      { ...OK("drive_mode", "주행 모드", "🎚️", "제어기", 0, "보통") },
-      OK("slope", "도로 경사", "⛰️", "차량", 0, "%"),
-      { id: "tire", label: "타이어 공기압", icon: "🛞", zone: "부품", ref: 2.4, run: 2.3, unit: "bar", status: "tol" },
+      { id: "accel", label: "차량 가속", img: CAR, zone: "차량", ref: 2.8, run: 1.9, unit: "m/s²", status: "bad", t: 72, causes: ["derate", "regen", "warn_lamp"] },
+      { id: "derate", label: "출력 허용", img: B("thermal_protection"), zone: "제어기", ref: 100, run: 62, unit: "%", status: "bad", t: 70, causes: ["batt_out", "motor_temp", "air_temp"], ev: "thermal_protection" },
+      { id: "motor_temp", label: "모터 온도", img: B("motor_temp"), zone: "부품", ref: 70, run: 96, unit: "°C", status: "bad", t: 55, causes: ["coolant", "inv_temp", "pump"] },
+      { id: "coolant", label: "냉각수 온도", img: E("motor_temp_sensor"), zone: "센서", ref: 65, run: 78, unit: "°C", status: "bad", t: 40, causes: ["batt_temp", "coolant_lv", "fan_rpm"], ev: "motor_temp" },
+      { id: "fan_rpm", label: "냉각 팬 회전", img: E("cooling_fan"), zone: "부품", ref: 1850, run: 0, unit: "rpm", status: "bad", t: 0, causes: ["fan_cmd", "fan_power", "fan_block"], ev: "fan_actual" },
+      { id: "warn_lamp", label: "냉각 경고등", img: ECU, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 75 },
+      { id: "batt_out", label: "배터리 출력", img: E("bms"), zone: "부품", ref: 160, run: 100, unit: "kW", status: "bad", t: 71 },
+      { id: "inv_temp", label: "인버터 온도", img: E("mcu"), zone: "부품", ref: 60, run: 84, unit: "°C", status: "bad", t: 60 },
+      { id: "batt_temp", label: "배터리 온도", img: E("bms"), zone: "센서", ref: 30, run: 41, unit: "°C", status: "bad", t: 50 },
+      { ...OK("fan_cmd", "팬 명령 (Thermal ECU)", E("thermal_ecu"), "제어기", 100, "%"), ev: "fan_command" },
+      OK("fan_power", "팬 전원", ATLAS(5), "부품", 12, "V"),
+      OK("fan_block", "팬 막힘", RADIATOR, "부품", "없음", ""),
+      OK("pump", "냉각수 펌프", RADIATOR, "부품", 12, "L/min", "tol", 11.8),
+      OK("coolant_lv", "냉각수 양", RADIATOR, "부품", 100, "%"),
+      OK("air_temp", "바깥 기온", SENSOR, "센서", 25, "°C", "tol", 26),
+      OK("regen", "회생 제동", B("regen_request"), "제어기", 0, "%"),
     ],
     zoom: {
       where: "냉각 팬", kind: "hw",
@@ -96,20 +100,19 @@ const CASES: Record<CaseId, CaseData> = {
     },
   },
   brake: {
-    start: "stop", first: "caliper",
+    start: "stop", first: "caliper", timeUnit: "초",
     req: "요구사항: 브레이크를 55% 밟으면 3.2 m/s²로 감속해야 한다.",
     doms: [
-      { id: "stop", label: "정지 거리", icon: "📏", zone: "차량", ref: 32, run: 58, unit: "m", status: "bad", causes: ["road", "decel", "speed"] },
-      { id: "decel", label: "차량 감속", icon: "🚗", zone: "차량", ref: 3.2, run: 1.4, unit: "m/s²", status: "bad", causes: ["regen", "tire", "caliper"], expertCauses: ["abs"] },
-      { id: "caliper", label: "캘리퍼 압력", icon: "🗜️", zone: "부품", ref: 42, run: 8, unit: "bar", status: "bad", causes: ["p_cmd", "fluid", "wheel"], ev: "brake_actual" },
-      OK("p_cmd", "압력 명령", "🧠", "제어기", 42, "bar"),
-      OK("fluid", "브레이크액 양", "🧪", "부품", 100, "%"),
-      { ...OK("regen", "회생 제동", "♻️", "제어기", 22, "%"), ev: "regen_request" },
-      OK("road", "노면 미끄러움", "🛣️", "차량", 0.8, "μ"),
-      OK("speed", "출발 속도", "🏁", "차량", 80, "km/h"),
-      { ...OK("abs", "ABS 개입", "🅰️", "제어기", 0, "없음") },
-      { id: "wheel", label: "바퀴 속도 센서", icon: "🛞", zone: "센서", ref: 100, run: 99, unit: "%", status: "tol" },
-      { id: "tire", label: "타이어 공기압", icon: "🛞", zone: "부품", ref: 2.4, run: 2.3, unit: "bar", status: "tol" },
+      { id: "stop", label: "정지 거리", img: CAR, zone: "차량", ref: 32, run: 58, unit: "m", status: "bad", t: 3, causes: ["decel", "road", "rear_warn"] },
+      { id: "decel", label: "차량 감속", img: B("brake_request"), zone: "차량", ref: 3.2, run: 1.4, unit: "m/s²", status: "bad", t: 0.2, causes: ["pitch", "caliper", "regen"] },
+      { id: "caliper", label: "캘리퍼 압력", img: B("brake_actual"), zone: "부품", ref: 42, run: 8, unit: "bar", status: "bad", t: 0.1, causes: ["p_cmd", "pad_temp", "bpp"], ev: "brake_actual" },
+      { id: "rear_warn", label: "후방 추돌 경고", img: ECU, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 3.2 },
+      { id: "pitch", label: "차체 앞 쏠림", img: CAR, zone: "차량", ref: 3, run: 1.2, unit: "°", status: "bad", t: 0.4 },
+      { id: "pad_temp", label: "브레이크 패드 온도", img: ATLAS(7), zone: "부품", ref: 180, run: 60, unit: "°C", status: "bad", t: 0.5 },
+      OK("p_cmd", "압력 명령 (Brake ECU)", E("brake_ecu"), "제어기", 42, "bar"),
+      OK("bpp", "브레이크 페달", E("brake_pedal"), "센서", 55, "%"),
+      { ...OK("regen", "회생 제동", B("regen_request"), "제어기", 22, "%"), ev: "regen_request" },
+      OK("road", "노면 마찰", CAR, "차량", 0.8, "μ"),
     ],
     zoom: {
       where: "캘리퍼", kind: "hw",
@@ -122,20 +125,23 @@ const CASES: Record<CaseId, CaseData> = {
   },
 };
 
-const MODE_KEY = "tb-board-mode";
-const readMode = (): "rookie" | "expert" => { try { return localStorage.getItem(MODE_KEY) === "expert" ? "expert" : "rookie"; } catch { return "rookie"; } };
-const fmt = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
+const fmt = (value: number | string) => typeof value === "string" ? value : Number.isInteger(value) ? String(value) : value.toFixed(1);
 /** Korean particle: picks 이/가, 은/는 … from the last Hangul syllable. */
 const josa = (word: string, withBatchim: string, without: string) => {
-  const hangul = word.replace(/[^가-힣]/g, "");
+  const hangul = word.replace(/\([^)]*\)/g, "").replace(/[^가-힣]/g, "");
   const code = hangul.charCodeAt(hangul.length - 1) - 0xac00;
   return code >= 0 && code % 28 ? withBatchim : without;
 };
-const isWord = (dom: Dom) => ["꺼짐", "D", "보통", "없음"].includes(dom.unit);
+const refText = (d: Dom) => `${fmt(d.ref)}${d.unit ? ` ${d.unit}` : ""}`;
+
+function Photo({ src }: { src: string }) {
+  if (src.startsWith("atlas:")) { const cell = Number(src.slice(6)); return <i className="dtPhoto atlas" style={{ backgroundPosition: `${(cell % 3) * 50}% ${Math.floor(cell / 3) * 50}%` }} />; }
+  return <i className="dtPhoto"><img src={src} alt="" draggable={false} /></i>;
+}
 
 /** Reference vs this drive: dashed outline = reference, filled = this drive. */
 function Gauge({ dom }: { dom: Dom }) {
-  if (isWord(dom)) return <div className={`dtGauge g-${dom.status}`}><span className="dtGaugeTxt">기준 {dom.unit} · 지금 <b>{dom.unit}</b></span></div>;
+  if (typeof dom.ref === "string" || typeof dom.run === "string") return <div className={`dtGauge g-${dom.status}`}><span className="dtGaugeTxt">기준 {fmt(dom.ref)} · 지금 <b>{fmt(dom.run)}</b></span></div>;
   const max = Math.max(dom.ref, dom.run, 0.001) * 1.15;
   return <div className={`dtGauge g-${dom.status}`}>
     <div className="dtTrack"><i className="ref" style={{ width: `${Math.max(3, dom.ref / max * 100)}%` }} /><i className="run" style={{ width: `${Math.max(3, dom.run / max * 100)}%` }} /></div>
@@ -143,15 +149,14 @@ function Gauge({ dom }: { dom: Dom }) {
   </div>;
 }
 
-type TileState = "hidden" | "clue" | "normal" | "tol" | "first";
-function Tile({ dom, state, small, onClick, fell }: { dom: Dom; state: TileState; small?: boolean; onClick?: () => void; fell?: boolean }) {
-  return <div className={`dtTile t-${state} ${small ? "small" : ""} ${onClick ? "click" : ""} ${fell ? "fell" : ""}`} onClick={onClick}>
-    {state === "hidden"
-      ? <div className="dtBack"><span className="dtIcon">{dom.icon}</span><b>{dom.label}</b><em>🔍 조사하기</em></div>
-      : <div className="dtFace">
-        <span className="dtIcon">{dom.icon}</span><b>{dom.label}</b><Gauge dom={dom} />
-        <i className="dtMark">{state === "clue" ? "🔎 단서" : state === "first" ? "🎯 시작점" : state === "tol" ? "≈ 허용 범위" : "✓ 정상"}</i>
-      </div>}
+type TileState = "hidden" | "clue" | "normal" | "tol" | "first" | "trap";
+function Polaroid({ dom, state, unit, small, onClick, fell, children }: { dom: Dom; state: TileState; unit: string; small?: boolean; onClick?: () => void; fell?: boolean; children?: React.ReactNode }) {
+  const mark = state === "clue" ? "🔎 단서" : state === "first" ? "🎯 시작점" : state === "trap" ? "↪ 결과였어" : state === "tol" ? "≈ 허용 범위" : "✓ 정상";
+  return <div className={`dtPol t-${state} ${small ? "small" : ""} ${onClick ? "click" : ""} ${fell ? "fell" : ""}`} onClick={onClick}>
+    <div className="dtPolPic"><Photo src={dom.img} />{state === "hidden" && <span className="dtQ">?</span>}{state !== "hidden" && dom.t !== undefined && dom.status === "bad" && <em className="dtTime">⏱ {fmt(dom.t)}{unit}</em>}</div>
+    <b>{dom.label}</b>
+    {state === "hidden" ? <em className="dtCheck">🔍 측정하기</em> : <><Gauge dom={dom} />{!small && <i className="dtMark">{mark}</i>}</>}
+    {children}
   </div>;
 }
 
@@ -159,50 +164,56 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
   const caseId = state.caseId;
   const scenario = SCENARIOS[caseId];
   const data = CASES[caseId];
+  const unit = data.timeUnit;
   const dom = (id: string) => data.doms.find(item => item.id === id)!;
-  const [mode, setModeState] = useState(readMode);
-  const expert = mode === "expert";
-  const causesOf = (id: string) => { const d = dom(id); return [...(d.causes ?? []), ...(expert ? d.expertCauses ?? [] : [])]; };
+  const causesOf = (id: string) => dom(id).causes ?? [];
 
   const [chain, setChain] = useState<string[]>([data.start]); // symptom → … (backward)
   const [checked, setChecked] = useState<string[]>([]);
+  const [traps, setTraps] = useState<string[]>([]);
+  const [mistakes, setMistakes] = useState(0);
   const [phase, setPhase] = useState<"trace" | "cascade" | "zoom" | "done">("trace");
   const [fallIdx, setFallIdx] = useState(-1);
   const [zoomPick, setZoomPick] = useState<string | null>(null);
-  const [bubble, setBubble] = useState(`${dom(data.start).label}${josa(dom(data.start).label, "이", "가")} 기준과 달라! 뒤집어서 원인을 하나씩 확인해 보자.`);
+  const [bubble, setBubble] = useState(`${dom(data.start).label}${josa(dom(data.start).label, "이", "가")} 기준과 달라! 후보를 측정해서 원인을 찾아보자. ⏱ 언제 달라졌는지가 중요해.`);
   const [shake, setShake] = useState("");
   const [help, setHelp] = useState(true);
   const [mapOpen, setMapOpen] = useState(false);
   const [replay, setReplay] = useState(false);
-  const [extra, setExtra] = useState(0);
   const current = chain[chain.length - 1];
+  const cur = dom(current);
   const candidates = causesOf(current);
-  const clue = candidates.find(id => checked.includes(id) && dom(id).status === "bad");
-  const allClear = candidates.every(id => checked.includes(id) && dom(id).status !== "bad");
-  // expert: limited investigations. best = one lucky flip per step + all flips at the first domino
-  const route: string[] = []; for (let id: string | undefined = data.start; id; id = causesOf(id).find(c => dom(c).status === "bad")) route.push(id);
-  const best = route.length - 1 + causesOf(data.first).length;
-  const worst = route.reduce((sum, id) => sum + causesOf(id).length, 0);
-  const budget = Math.max(best + 2, worst - 3) + extra;
-  const left = budget - checked.length;
-  const stars = checked.length <= best + 1 ? 3 : checked.length <= best + 4 ? 2 : 1;
+  const opened = candidates.filter(id => checked.includes(id));
+  const allOpen = opened.length === candidates.length;
+  const stars = mistakes === 0 ? 3 : mistakes === 1 ? 2 : 1;
+  const route: string[] = []; for (let id: string | undefined = data.start; id; id = causesOf(id).find(c => dom(c).status === "bad" && (dom(c).t ?? 0) < (dom(id!).t ?? 0))) route.push(id);
 
-  const setMode = (next: "rookie" | "expert") => { try { localStorage.setItem(MODE_KEY, next); } catch { /* ignore */ } setModeState(next); reset(); };
-  const reset = () => { setChain([data.start]); setChecked([]); setPhase("trace"); setFallIdx(-1); setZoomPick(null); setExtra(0); setBubble("처음부터! 출력 쪽에서 거꾸로 따라가 보자."); play("squish"); };
+  const reset = () => { setChain([data.start]); setChecked([]); setTraps([]); setMistakes(0); setPhase("trace"); setFallIdx(-1); setZoomPick(null); setBubble("처음부터! 출력 쪽에서 거꾸로 따라가 보자."); play("squish"); };
   const nope = (id: string, text: string) => { setBubble(text); setShake(id); play("error"); window.setTimeout(() => setShake(""), 420); };
 
-  const investigate = (id: string) => {
-    if (checked.includes(id) || clue) return;
-    if (expert && left <= 0) { nope(id, "조사 기회를 다 썼어. '+1 기회'를 쓰면 추격차가 5m 가까워져."); return; }
+  const measure = (id: string) => {
+    if (checked.includes(id)) return;
     setChecked(previous => [...previous, id]);
     const d = dom(id);
     play("zip");
     window.setTimeout(() => play(d.status === "bad" ? "stamp" : "pop"), 160);
-    setBubble(d.status === "bad" ? `찾았다, 단서! ${d.label}도 기준과 달라. 이걸 따라가 보자.`
-      : d.status === "tol" ? `${d.label}은 아주 조금 달라. 허용 범위라 원인이 아니야.`
-        : `${d.label}은 기준과 같아. 원인이 아니야.`);
+    setBubble(d.status === "bad" ? `${d.label}도 기준과 달라! ⏱ ${fmt(d.t!)}${unit}에 달라지기 시작했어. ${cur.label}(⏱ ${fmt(cur.t!)}${unit})보다 먼저야, 나중이야?`
+      : d.status === "tol" ? `${d.label}${josa(d.label, "은", "는")} 아주 조금 달라. 허용 범위라 원인이 아니야.`
+        : `${d.label}${josa(d.label, "은", "는")} 기준과 같아. 원인이 아니야.`);
   };
-  const follow = (id: string) => { setChain(previous => [...previous, id]); play("squish"); const d = dom(id); setBubble(`좋아! 이제 ${d.label}${josa(d.label, "이", "가")} 왜 달라졌는지 찾아보자.`); };
+  const accuse = (id: string) => {
+    const d = dom(id);
+    if ((d.t ?? 0) > (cur.t ?? 0)) {
+      // trap: it changed AFTER the current domino → it is an effect, not the cause
+      setTraps(previous => previous.includes(id) ? previous : [...previous, id]);
+      setMistakes(value => value + 1);
+      nope(id, `앗, ${d.label}${josa(d.label, "은", "는")} ⏱ ${fmt(d.t!)}${unit}에 달라졌어. ${cur.label}(⏱ ${fmt(cur.t!)}${unit})보다 늦어! 원인은 결과보다 먼저 일어나야 해. 이건 ${cur.label} 때문에 생긴 영향이야.`);
+      return;
+    }
+    play("squish");
+    setChain(previous => [...previous, id]);
+    setBubble(`맞아, ${d.label}${josa(d.label, "이", "가")} 더 먼저 달라졌어. 이제 ${d.label}${josa(d.label, "이", "가")} 왜 달라졌는지 찾아보자.`);
+  };
   const startCascade = (nextChain: string[]) => {
     setPhase("cascade");
     setBubble("찾았다! 시작점부터 다시 쓰러뜨려 볼게.");
@@ -211,11 +222,6 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     window.setTimeout(() => { setPhase("zoom"); setBubble(`이제 ${dom(data.first).label} 안을 확대해서 기준 설계와 다른 곳을 찾자!`); play("success"); }, 1000 + nextChain.length * 420);
   };
   const callFirst = () => {
-    if (!allClear) {
-      // expert may guess early: wrong if there is still an abnormal candidate in front
-      const hiddenBad = candidates.find(id => dom(id).status === "bad");
-      if (hiddenBad) { nope(current, "아직 앞쪽에 기준과 다른 값이 숨어 있어! 성급했어."); if (expert) setChecked(previous => [...previous, `penalty${previous.length}`]); return; }
-    }
     if (current !== data.first) { nope(current, "흠… 이건 아닌 것 같아."); return; }
     play("stamp");
     startCascade(chain);
@@ -226,9 +232,10 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     else { setBubble(data.zoom.kind === "hw" ? "이 SW 블록은 기준과 똑같아. 값이 다른 곳을 찾아봐!" : "이 블록은 기준에도 있어. 기준에 없는 블록을 찾아봐!"); play("error"); }
   };
   const revealAnswer = () => { setChain(route); setChecked(route.flatMap(id => causesOf(id))); setZoomPick(data.zoom.culprit); setPhase("done"); setFallIdx(route.length); setBubble(data.zoom.lesson); };
-  const effects = chain.filter(id => id !== data.first).map(dom);
+  // impact = everything that fell because of the first domino (chain effects + side effects found as traps)
+  const effects = [...chain.filter(id => id !== data.first), ...traps].map(dom);
   const finish = () => {
-    try { sessionStorage.setItem(`tb-impact-${caseId}`, JSON.stringify(effects.map(d => `${d.label} 정상 복귀 (기준 ${isWord(d) ? d.unit : `${fmt(d.ref)} ${d.unit}`})`))); } catch { /* ignore */ }
+    try { sessionStorage.setItem(`tb-impact-${caseId}`, JSON.stringify(effects.map(d => `${d.label} 정상 복귀 (기준 ${refText(d)})`))); } catch { /* ignore */ }
     const evidence = data.doms.filter(d => d.ev && (chain.includes(d.id) || checked.includes(d.id))).map(d => d.ev!);
     evidence.filter(id => !state.evidence[caseId].includes(id)).forEach(id => send({ type: "RECORD_EVIDENCE", id }));
     if (state.hypothesis[caseId] !== scenario.root) send({ type: "SELECT_HYPOTHESIS", id: scenario.root });
@@ -241,8 +248,11 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
 
   const ordered = [...chain].reverse(); // cause → effect (left → right)
   const step = phase === "trace" ? 0 : phase === "done" ? 2 : 1;
-  const cur = dom(current);
   const traced = phase !== "trace";
+  const earlierBad = opened.some(id => dom(id).status === "bad" && (dom(id).t ?? 0) < (cur.t ?? 0));
+  // timeline markers for this step: the current domino + measured abnormal candidates
+  const marks = [cur, ...opened.map(dom).filter(d => d.status === "bad")];
+  const tMax = Math.max(...data.doms.filter(d => d.t !== undefined).map(d => d.t!)) || 1;
 
   return <div className="dtBoard">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
@@ -256,48 +266,48 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
         </button>
         <div className="dtSteps">{["거꾸로 따라가기", "시작점 안 확대", "영향 범위 → 검증"].map((label, index) => <span key={label} className={index < step ? "done" : index === step ? "now" : ""}><i>{index < step ? "✓" : index + 1}</i>{label}</span>)}</div>
         <div className="dtButtons">
-          <span className="dtMode"><button className={!expert ? "on" : ""} onClick={() => setMode("rookie")}>신입</button><button className={expert ? "on" : ""} onClick={() => setMode("expert")}>실무자</button></span>
+          <span className="dtHearts" title="실수">{"♥".repeat(3 - Math.min(2, mistakes))}{"♡".repeat(Math.min(2, mistakes))}</span>
           <button onClick={() => setHelp(true)}>방법</button>
           <button onClick={() => setReplay(true)}>▶ 리플레이</button>
           <button onClick={reset}>↺</button>
         </div>
       </header>
 
-      {/* the abnormal chain, cause → effect */}
       <section className="dtChain">
         <span className="dtChainHint">원인 쪽</span>
         {!traced && <><div className="dtGhost">?</div><i className="dtArrow" /></>}
-        {ordered.map((id, index) => {
-          const isFirst = traced && id === data.first;
-          return <React.Fragment key={id}>
-            {index > 0 && <i className={`dtArrow ${traced && index <= fallIdx ? "lit" : ""}`} />}
-            <div className={`dtChainItem ${id === current && !traced ? "current" : ""} ${shake === id ? "shake" : ""}`}>
-              {id === data.start && <em className="dtBadge">증상</em>}
-              <Tile dom={dom(id)} state={isFirst ? "first" : "clue"} small fell={phase === "cascade" && index <= fallIdx} />
-            </div>
-          </React.Fragment>;
-        })}
+        {ordered.map((id, index) => <React.Fragment key={id}>
+          {index > 0 && <i className={`dtArrow ${traced && index <= fallIdx ? "lit" : ""}`} />}
+          <div className={`dtChainItem ${id === current && !traced ? "current" : ""} ${shake === id ? "shake" : ""}`}>
+            {id === data.start && <em className="dtBadge">증상</em>}
+            <Polaroid dom={dom(id)} unit={unit} state={traced && id === data.first ? "first" : "clue"} small fell={phase === "cascade" && index <= fallIdx} />
+          </div>
+        </React.Fragment>)}
         <span className="dtChainHint">결과 쪽</span>
       </section>
 
       {phase === "trace" && <section className="dtQuestion">
         <h2><b>{cur.label}</b>{josa(cur.label, "이", "가")} 기준과 달라진 원인은?</h2>
+        <div className="dtTimeline">
+          <span className="dtTlEdge">⏱ 먼저 달라짐</span>
+          <div className="dtTlAxis">
+            {marks.map(d => <i key={d.id} className={`dtTlMark ${d.id === current ? "cur" : (d.t ?? 0) < (cur.t ?? 0) ? "early" : "late"}`} style={{ left: `${4 + (d.t ?? 0) / tMax * 92}%` }}><em>{d.label} · {fmt(d.t!)}{unit}</em></i>)}
+          </div>
+          <span className="dtTlEdge">나중에 달라짐 ⏱</span>
+        </div>
         <div className="dtCands">{candidates.map(id => {
           const d = dom(id); const open = checked.includes(id);
-          const tileState: TileState = !open ? "hidden" : d.status === "bad" ? "clue" : d.status === "tol" ? "tol" : "normal";
-          return <div key={id} className={`dtCand ${shake === id ? "shake" : ""} ${clue && clue !== id ? "dim" : ""}`}>
-            <Tile dom={d} state={tileState} onClick={open || clue ? undefined : () => investigate(id)} />
+          const tileState: TileState = !open ? "hidden" : traps.includes(id) ? "trap" : d.status === "bad" ? "clue" : d.status === "tol" ? "tol" : "normal";
+          return <div key={id} className={`dtCand ${shake === id ? "shake" : ""}`}>
+            <Polaroid dom={d} unit={unit} state={tileState} onClick={open ? undefined : () => measure(id)}>
+              {open && d.status === "bad" && !traps.includes(id) && <button className="dtAccuse" onClick={event => { event.stopPropagation(); accuse(id); }}>이게 원인! →</button>}
+            </Polaroid>
           </div>;
         })}</div>
         <div className="dtCall">
-          {expert && <span className="dtBudget">조사 {"●".repeat(Math.max(0, left))}{"○".repeat(Math.max(0, Math.min(budget, budget - left)))}{left <= 0 && <button onClick={() => { send({ type: "HINT", key: `${caseId}:trace${extra + 1}` }); setExtra(value => value + 1); play("squish"); }}>+1 기회 · 추격 −5m</button>}</span>}
-          {clue
-            ? <button className="dtFollow" onClick={() => follow(clue)}>🔎 {dom(clue).label} 따라가기 →</button>
-            : allClear
-              ? <button className="dtFirst" onClick={callFirst}>앞쪽 원인이 모두 정상 → 🎯 {cur.label}{josa(cur.label, "이", "가")} 시작점!</button>
-              : expert
-                ? <button className="dtFirst ghost" onClick={callFirst}>🎯 여기가 시작점이라고 추리하기</button>
-                : <span className="dtTip">카드를 눌러 기준과 비교해 봐</span>}
+          {allOpen && !earlierBad
+            ? <button className="dtFirst" onClick={callFirst}>앞쪽에 먼저 달라진 게 없어 → 🎯 {cur.label}{josa(cur.label, "이", "가")} 시작점!</button>
+            : <span className="dtTip">사진을 눌러 측정 · 원인은 결과보다 <b>먼저</b> 달라져요</span>}
         </div>
       </section>}
 
@@ -310,8 +320,8 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
         </div>
         {phase === "done" && <div className="dtImpact">
           <b>📋 함께 쓰러진 곳 = 고친 뒤 다시 확인할 곳 (회귀 검증)</b>
-          <div>{effects.map(d => <span key={d.id}>{d.icon} {d.label}</span>)}</div>
-          {expert && <b className="dtStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b>}
+          <div>{effects.map(d => <span key={d.id}>{d.label}</span>)}</div>
+          <b className="dtStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b>
           <button className="dtNext" onClick={finish}>벤치에서 고치고 검증하기 →</button>
         </div>}
       </section>}
@@ -319,16 +329,16 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
       <div className="dtBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>밍</b>{bubble}</p></div>
     </main>
 
-    {mapOpen && <TraceMap data={data} chain={chain} checked={checked} first={traced ? data.first : null} onClose={() => setMapOpen(false)} />}
+    {mapOpen && <TraceMap data={data} chain={chain} checked={checked} traps={traps} first={traced ? data.first : null} onClose={() => setMapOpen(false)} />}
 
     {help && <div className="dtModal" onClick={() => setHelp(false)}><article onClick={event => event.stopPropagation()}>
       <h2>🕵️ 도미노 추리, 이렇게 해요</h2>
       <div className="dtHow">
-        <div><span className="pic">🚗</span><b>1. 증상에서 시작</b><small>기준과 다른 출력값</small></div>
-        <div><span className="pic">🔍</span><b>2. 원인 후보 뒤집기</b><small>다르면 🔎 단서, 따라가기</small></div>
+        <div><span className="pic">📸</span><b>1. 사진 측정</b><small>기준과 같은지, 언제 달라졌는지</small></div>
+        <div><span className="pic">⏱</span><b>2. 먼저 달라진 쪽이 원인</b><small>나중에 달라진 건 결과(함정)</small></div>
         <div><span className="pic">🎯</span><b>3. 시작점 찾기</b><small>앞쪽이 모두 정상일 때</small></div>
       </div>
-      <p className="dtHowNote">막대: <i className="dash" /> 기준 · <i className="fill" /> 이번 주행 · 🗺 전체 지도에서 지금 위치를 봐요</p>
+      <p className="dtHowNote">막대: <i className="dash" /> 기준 · <i className="fill" /> 이번 주행 · 틀리면 ♥이 줄어요</p>
       <button onClick={() => setHelp(false)}>시작!</button>
     </article></div>}
     {replay && <div className="replayModal" onClick={() => setReplay(false)}><div onClick={event => event.stopPropagation()}><button onClick={() => setReplay(false)}>×</button><small>QUICK REPLAY</small><h2>고장 직전 주행 다시 보기</h2><ReplayRaceView caseId={caseId} /></div></div>}
@@ -337,7 +347,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
 }
 
 /** Whole E/E path as Simulink-like subsystems; the trace falls backward from the output. */
-function TraceMap({ data, chain, checked, first, onClose }: { data: CaseData; chain: string[]; checked: string[]; first: string | null; onClose: () => void }) {
+function TraceMap({ data, chain, checked, traps, first, onClose }: { data: CaseData; chain: string[]; checked: string[]; traps: string[]; first: string | null; onClose: () => void }) {
   const dom = (id: string) => data.doms.find(item => item.id === id)!;
   const [shown, setShown] = useState(0);
   useEffect(() => {
@@ -351,7 +361,7 @@ function TraceMap({ data, chain, checked, first, onClose }: { data: CaseData; ch
     <div className="dtSubs">
       {ZONES.map((zone, zi) => {
         const inChain = chain.filter(id => dom(id).zone === zone);
-        const ruled = checked.filter(id => !id.startsWith("penalty") && !chain.includes(id) && dom(id).zone === zone);
+        const others = checked.filter(id => !chain.includes(id) && dom(id).zone === zone);
         return <React.Fragment key={zone}>
           {zi > 0 && <div className="dtWire"><i className="fwd" /><i className={`back ${reached.has(zone) ? "on" : ""}`} /></div>}
           <div className={`dtSub ${reached.has(zone) ? "hit" : ""}`}>
@@ -359,13 +369,13 @@ function TraceMap({ data, chain, checked, first, onClose }: { data: CaseData; ch
             <small>Subsystem</small><b>{ZONE_ICON[zone]} {zone}</b>
             <div className="dtSubBody">
               {inChain.map(id => <span key={id} className={`dtChip ${order(id) < shown ? "fell" : ""} ${id === first ? "first" : ""}`}><em>{order(id) + 1}</em>{dom(id).label}</span>)}
-              {ruled.map(id => dom(id).status === "bad" ? <span key={id} className="dtChip clue">🔎 {dom(id).label}</span> : <span key={id} className="dtChip ok">✓ {dom(id).label}</span>)}
-              {!inChain.length && !ruled.length && <span className="dtChip unknown">?</span>}
+              {others.map(id => traps.includes(id) ? <span key={id} className="dtChip trap">↪ {dom(id).label}</span> : dom(id).status === "bad" ? <span key={id} className="dtChip clue">🔎 {dom(id).label}</span> : <span key={id} className="dtChip ok">✓ {dom(id).label}</span>)}
+              {!inChain.length && !others.length && <span className="dtChip unknown">?</span>}
             </div>
           </div>
         </React.Fragment>;
       })}
     </div>
-    <p className="dtMapNote"><span className="dtChip fell"><em>1</em>단서</span> 출력에서부터 거꾸로 찾은 순서 · <span className="dtChip ok">✓</span> 조사해서 정상 · <span className="dtChip unknown">?</span> 아직 안 감</p>
+    <p className="dtMapNote"><span className="dtChip fell"><em>1</em>단서</span> 출력부터 거꾸로 찾은 순서 · <span className="dtChip trap">↪</span> 함께 쓰러진 영향 · <span className="dtChip ok">✓</span> 정상 · <span className="dtChip unknown">?</span> 아직 안 감</p>
   </article></div>;
 }

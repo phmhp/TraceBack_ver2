@@ -757,3 +757,40 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 .pzIo i { font-style: normal; font-weight: 900; color: #c0782a; }
 .pzVal { margin: 0; font: 700 13px Pretendard, system-ui; } .pzVal b { color: #c0392b; }
 .pzTip { margin: 0; font: 700 11.5px Pretendard, system-ui; color: #8a7a60; }
+
+/* ===== Domino v6: polaroid photos + time clues ===== */
+.dtPol { position: relative; width: clamp(130px, 14vw, 162px); box-sizing: border-box; padding: 7px 7px 8px; border-radius: 4px; background: #fffef8; border: 1px solid #e4ded0; box-shadow: 0 6px 12px #3826193a; display: grid; justify-items: center; gap: 4px; text-align: center; transition: box-shadow .2s, translate .15s, outline-color .2s; outline: 3px solid transparent; outline-offset: 2px; }
+.dtPol.small { width: clamp(92px, 9.5vw, 116px); padding: 5px 5px 6px; gap: 2px; }
+.dtPol.click { cursor: pointer; } .dtPol.click:hover { translate: 0 -4px; box-shadow: 0 10px 16px #3826194d; }
+.dtPolPic { position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 2px; background: #ece5d6; }
+.dtPhoto { position: absolute; inset: 0; display: block; }
+.dtPhoto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dtPhoto.atlas { background-image: url("/assets/traceback-engineering-evidence-atlas-v1.png"); background-size: 300% 300%; }
+.t-hidden .dtPhoto { filter: grayscale(.85) brightness(1.08) contrast(.8); opacity: .55; }
+.dtQ { position: absolute; inset: 0; display: grid; place-items: center; font: 900 38px "TraceRounded", system-ui; color: #c0782a; text-shadow: 0 2px 0 #fff; }
+.dtTime { position: absolute; right: 4px; bottom: 4px; padding: 2px 7px; border-radius: 999px; background: #2f4a44; color: #fff; font: 900 11px Pretendard, system-ui; font-style: normal; }
+.dtPol.small .dtTime { font-size: 9.5px; padding: 1px 5px; }
+.dtPol > b { font: 900 12.5px/1.2 Pretendard, system-ui; color: #3b2f25; }
+.dtPol.small > b { font-size: 11px; }
+.dtPol.small .dtGaugeTxt { font-size: 9px; }
+.dtCheck { font: 800 11px Pretendard, system-ui; font-style: normal; color: #fff; background: #c0782a; padding: 3px 10px; border-radius: 999px; }
+.dtPol.t-clue { outline-color: var(--clue); } .dtPol.t-first { outline-color: #e05a3a; }
+.dtPol.t-normal { outline-color: #b9dcbb; } .dtPol.t-tol { outline-color: #e9d38a; }
+.dtPol.t-trap { outline-color: #9c8fb8; } .dtPol.t-trap .dtPolPic { filter: saturate(.6); }
+.t-trap .dtMark { background: #ece6f7; color: #5b4a86; }
+.dtPol.fell { animation: dtFall .35s ease-out; }
+.dtAccuse { margin-top: 2px; padding: 5px 12px; border-radius: 999px; border: 2px solid var(--clueDeep); background: var(--clue); color: #fff; font: 900 12px Pretendard, system-ui; cursor: pointer; box-shadow: 0 3px 0 var(--clueDeep); }
+.dtAccuse:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--clueDeep); }
+.dtTimeline { display: flex; align-items: center; gap: 8px; width: min(680px, 100%); }
+.dtTlEdge { font: 800 10.5px Pretendard, system-ui; color: #a08a6a; white-space: nowrap; }
+.dtTlAxis { position: relative; flex: 1; height: 30px; border-bottom: 3px solid #d9c49a; }
+.dtTlMark { position: absolute; bottom: -7px; width: 11px; height: 11px; margin-left: -5px; border-radius: 50%; background: #fff; border: 3px solid #a08a6a; font-style: normal; }
+.dtTlMark em { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); padding: 1px 7px; border-radius: 999px; font: 800 10.5px Pretendard, system-ui; font-style: normal; white-space: nowrap; background: #f1e6d0; color: #6b5a3a; }
+.dtTlMark.cur { border-color: #2f4a44; background: #ffd56b; } .dtTlMark.cur em { background: #2f4a44; color: #fff; }
+.dtTlMark.early { border-color: var(--clue); } .dtTlMark.early em { background: var(--clueBg); color: var(--clueDeep); }
+.dtTlMark.late { border-color: #9c8fb8; } .dtTlMark.late em { background: #ece6f7; color: #5b4a86; top: 14px; bottom: auto; }
+.dtHearts { color: #e05a3a; font-size: 16px; letter-spacing: 1px; }
+.dtChip.trap { background: #ece6f7; color: #5b4a86; }
+.dtTip b { color: var(--clueDeep); }
+.dtQuestion { gap: 4px; }
+.dtTlMark.late em { top: 16px !important; }
