@@ -332,8 +332,8 @@ function VerificationReport({ caseId, config, works, actual, onDone, onClose }: 
         {pick && <div className={`vrBubble ${correct ? "ok" : "hint"}`}><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>밍</b>{correct ? check.why : check.wrong}</p></div>}
       </section>
       {works && <section className="vrRegression">
-        <h3>🔁 고친 김에 다른 기능은 안 망가졌나? (회귀 검증)</h3>
-        <ul>{regressionTests[caseId].map((name, index) => <li key={name} style={{ animationDelay: `${.15 + index * .25}s` }}><span>{name}</span><em>PASS</em></li>)}</ul>
+        <h3>🔁 메모판에서 찾은 영향 범위 다시 확인 (회귀 검증)</h3>
+        <ul>{(() => { try { const fromBoard = JSON.parse(sessionStorage.getItem(`tb-impact-${caseId}`) ?? "null"); return Array.isArray(fromBoard) && fromBoard.length ? fromBoard as string[] : regressionTests[caseId]; } catch { return regressionTests[caseId]; } })().map((name, index) => <li key={name} style={{ animationDelay: `${.15 + index * .25}s` }}><span>{name}</span><em>PASS</em></li>)}</ul>
       </section>}
       <button className="vrNext" disabled={!pick} onClick={onDone}>{!pick ? "검증 단계를 먼저 골라 보세요" : works ? "검증 완료 · 수리 적용 →" : "실패 원인 해설 보기 →"}</button>
     </div>
