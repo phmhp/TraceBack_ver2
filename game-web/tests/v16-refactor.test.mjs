@@ -54,9 +54,9 @@ test("diagnosis stays evidence-led and the restored logic uses compatible jigsaw
   assert.match(currentLayout, /\.twinCompareStage\{grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
 });
 
-test("garage learning asks for a prediction and the v16 layout protects readable surfaces", () => {
-  assert.match(garage, /correctPhysicalOutput/);
-  assert.match(garage, /먼저 예측하고 관찰/);
+test("garage learning lets players pull parts out and the v16 layout protects readable surfaces", () => {
+  assert.match(garage, /빼 보기 실험/);
+  assert.match(garage, /RemovedPartMarker/);
   assert.match(layout, /\.garagePredictionChoices/);
   assert.match(layout, /\.reasoningMicroRail/);
   assert.match(layout, /\.verificationShell/);

@@ -392,7 +392,15 @@ function DomainSignature({ domain, activeStep }: { domain: DomainId; activeStep:
   </group>;
 }
 
-function DomainFlowRig({ domain, feature, activeStep = 0, compact = false, running = true }: { domain: DomainId; feature: number; activeStep?: number; compact?: boolean; running?: boolean }) {
+/** Empty slot left after "빼 보기": a red dashed ring where the part used to be. */
+function RemovedPartMarker({ position }: { position: [number, number, number] }) {
+  return <group position={position}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.38, 0]}><ringGeometry args={[.42, .5, 40]} /><meshBasicMaterial color="#e0483c" transparent opacity={.85} /></mesh>
+    <PartLabel position={[0, .25, 0]} className="removedPartLabel">🚫 빠짐</PartLabel>
+  </group>;
+}
+
+function DomainFlowRig({ domain, feature, activeStep = 0, compact = false, running = true, removed = null }: { domain: DomainId; feature: number; activeStep?: number; compact?: boolean; running?: boolean; removed?: number | null }) {
   const labels = getFeatureLayer(domain, feature, 1);
   const last = labels.length - 1;
   const positions = labels.map((_, index) => {
@@ -407,8 +415,8 @@ function DomainFlowRig({ domain, feature, activeStep = 0, compact = false, runni
   });
   return <group scale={compact ? .58 : labels.length > 5 ? .68 : .76}>
     <DomainSignature domain={domain} activeStep={activeStep} />
-    {labels.map((label, index) => { const position = positions[index]; const kind = hardwareKindFor(domain, label, index, last); const role = index === 0 ? "INPUT" : index === last ? "OUTPUT" : /ECU|VCU|BMS|CAN/.test(label) ? "CONTROL" : "PLANT"; return <GarageFlowPart key={`${label}-${index}`} label={label} position={position} kind={kind} active={activeStep === index} running={running} role={role} partId={partModelFor(domain, label)} />; })}
-    {positions.slice(0, -1).map((position, index) => { const next = positions[index + 1]; return <SignalCable key={`${position.join("-")}`} from={[position[0] + .32, position[1] + .04, position[2]]} to={[next[0] - .32, next[1] + .04, next[2]]} color={index < activeStep ? "#f2c653" : index === activeStep ? "#ff7b49" : domain === "brake" ? "#4b9dc1" : domain === "steer" ? "#8d75b6" : domain === "power" ? "#4a9a82" : "#7ca8b3"} />; })}
+    {labels.map((label, index) => { const position = positions[index]; const kind = hardwareKindFor(domain, label, index, last); const role = index === 0 ? "INPUT" : index === last ? "OUTPUT" : /ECU|VCU|BMS|CAN/.test(label) ? "CONTROL" : "PLANT"; return removed === index ? <RemovedPartMarker key={`${label}-${index}`} position={position} /> : <GarageFlowPart key={`${label}-${index}`} label={label} position={position} kind={kind} active={activeStep === index} running={running} role={role} partId={partModelFor(domain, label)} />; })}
+    {positions.slice(0, -1).map((position, index) => { const next = positions[index + 1]; return <SignalCable key={`${position.join("-")}`} from={[position[0] + .32, position[1] + .04, position[2]]} to={[next[0] - .32, next[1] + .04, next[2]]} color={removed !== null && (index === removed || index + 1 === removed) ? "#e0483c" : index < activeStep ? "#f2c653" : index === activeStep ? "#ff7b49" : domain === "brake" ? "#4b9dc1" : domain === "steer" ? "#8d75b6" : domain === "power" ? "#4a9a82" : "#7ca8b3"} />; })}
     {!compact && <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0,-.04,0]}><ringGeometry args={[3.45,3.55,96]} /><meshStandardMaterial color="#c3d2cb" transparent opacity={.42} /></mesh>}
   </group>;
 }
@@ -457,18 +465,18 @@ function VehiclePlatformShell({ active }: { active: boolean }) {
   </group>;
 }
 
-function FullVehicleSystem({ domain, feature, activeStep }: { domain: DomainId; feature: number; activeStep: number }) {
+function FullVehicleSystem({ domain, feature, activeStep, removed = null }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null }) {
   return <group rotation={[0, -.18, 0]}>
     <VehiclePlatformShell active />
-    <DomainFlowRig domain={domain} feature={feature} activeStep={activeStep} />
+    <DomainFlowRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} />
     <PartLabel className="garageStaticLabel" position={[0, 2.12, 0]}>{domainContent[domain].functions[feature]} · 운전자 입력에서 차량 거동까지</PartLabel>
   </group>;
 }
 
-function EeArchitectureRig({ domain, feature, activeStep }: { domain: DomainId; feature: number; activeStep: number }) {
+function EeArchitectureRig({ domain, feature, activeStep, removed = null }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null }) {
   return <group rotation={[0, -.18, 0]}>
     <VehiclePlatformShell active={false} />
-    <DomainFlowRig domain={domain} feature={feature} activeStep={activeStep} />
+    <DomainFlowRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} />
     <PartLabel className="garageStaticLabel" position={[0, 2.12, 0]}>차체를 벗겨도 센서·ECU·액추에이터 위치는 그대로</PartLabel>
   </group>;
 }
@@ -487,9 +495,9 @@ function EcuSoftwareRig({ domain, feature, detailed }: { domain: DomainId; featu
   </group>;
 }
 
-function MechanismModel({ domain, level, feature, activeStep }: { domain: DomainId; level: number; feature: number; activeStep: number }) {
-  if (level === 0) return <FullVehicleSystem domain={domain} feature={feature} activeStep={activeStep} />;
-  return <EeArchitectureRig domain={domain} feature={feature} activeStep={activeStep} />;
+function MechanismModel({ domain, level, feature, activeStep, removed = null }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null }) {
+  if (level === 0) return <FullVehicleSystem domain={domain} feature={feature} activeStep={activeStep} removed={removed} />;
+  return <EeArchitectureRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} />;
 }
 
 function SimulinkFlow({ domain, feature, level, activeStep }: { domain: DomainId; feature: number; level: number; activeStep: number }) {
@@ -507,7 +515,7 @@ function SimulinkFlow({ domain, feature, level, activeStep }: { domain: DomainId
   </div>;
 }
 
-function MechanismViewer({ domain, level, feature, activeStep }: { domain: DomainId; level: number; feature: number; activeStep: number }) {
+function MechanismViewer({ domain, level, feature, activeStep, removed = null }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null }) {
   const sourceLevel = garageLayerSource[level] ?? 3;
   if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={activeStep} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
   return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
@@ -516,10 +524,44 @@ function MechanismViewer({ domain, level, feature, activeStep }: { domain: Domai
       <color attach="background" args={["#eef5ef"]} />
       <hemisphereLight intensity={2.25} color="#fff8e5" groundColor="#6d8c7b" />
       <directionalLight castShadow position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
-      <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} />
+      <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} />
       <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={2.5} maxDistance={10} maxPolarAngle={Math.PI * .49} target={[0, .65, 0]} />
     </Canvas>
     <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동</span>
+  </div>;
+}
+
+// ── "빼 보기" experiment: what breaks when one part of the chain is missing ──
+type PartRole = "input" | "control" | "network" | "actuator" | "result";
+const partRole = (label: string, index: number, length: number): PartRole => {
+  if (index === 0) return "input";
+  if (/CAN|통신|메시지|Permit|Torque$|Limit$/.test(label) && !/ECU|VCU|BMS/.test(label)) return "network";
+  if (/ECU|VCU|BMS|MCU|Interlock|Coordinator|제어기/.test(label)) return "control";
+  if (index === length - 1 && (/^(차량|차체|노면)/.test(label) || /(가속|감속|진로 변경|거동|안정|유지|고정|복원|저감|추진력|구동력)$/.test(label))) return "result";
+  return "actuator";
+};
+const ROLE_TEXT: Record<PartRole, { tag: string; what: string; safe: string }> = {
+  input: { tag: "입력·센서", what: "운전자나 차의 상태를 알려 주는 눈·귀가 없어져서, 제어기가 무엇을 해야 할지 몰라요.", safe: "그래서 제어기는 '모르면 위험하지 않게'를 택해요: 기능을 막거나 출력을 줄이고 경고등을 켜요." },
+  control: { tag: "제어기(ECU)", what: "판단하는 두뇌가 없어서 입력은 들어와도 명령이 하나도 안 나가요.", safe: "다른 제어기들이 '응답 없음'을 알아채고 경고등을 켜고, 관련 기능은 정지해요." },
+  network: { tag: "통신(메시지)", what: "제어기끼리 주고받던 편지가 끊겨서, 받는 쪽은 최신 값을 모르게 돼요.", safe: "받는 쪽은 '통신 끊김(타임아웃)'으로 판단하고 정해진 안전한 기본값을 써요." },
+  actuator: { tag: "액추에이터·부품", what: "명령은 잘 나가는데 실제로 움직여 줄 손발이 없어서 차가 반응하지 않아요.", safe: "피드백이 없으면 제어기가 고장을 알아채고 경고등을 켜고 다른 수단으로 보완해요(가능한 경우)." },
+  result: { tag: "차량 반응", what: "이건 부품이 아니라 결과예요! 앞 부품을 빼 보면 이 결과가 어떻게 바뀌는지 볼 수 있어요.", safe: "" },
+};
+const DOMAIN_SYMPTOM: Record<DomainId, string> = {
+  drive: "🚗 페달을 밟아도 가속이 안 되거나 약해져요",
+  brake: "🛑 제동이 약해지거나 정지 거리가 늘어나요",
+  steer: "🌀 핸들이 무거워지거나 원하는 만큼 안 돌아요",
+  power: "🔋 READY가 안 켜지거나 출력이 제한돼요",
+  gear: "🅿️ 변속이 안 되거나 P에서 안 풀려요",
+  thermal: "🌡️ 온도가 올라 출력이 제한돼요(파워다운)",
+  suspension: "〰️ 승차감이 나빠지고 자세 제어가 약해져요",
+};
+
+function PullOutBubble({ domain, label, role }: { domain: DomainId; label: string; role: PartRole }) {
+  const text = ROLE_TEXT[role];
+  return <div className="pullOutBubble" key={label}>
+    <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />
+    <p><b>밍 · {label} 빠짐!</b>{text.what}{role !== "result" && <><span className="symptom">{DOMAIN_SYMPTOM[domain]}</span><span className="safe">🛡 {text.safe}</span></>}</p>
   </div>;
 }
 
@@ -533,27 +575,18 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const [feature, setFeature] = useState(Number.isInteger(requestedFeature) ? Math.max(0, requestedFeature) : 0);
   const [activeStep, setActiveStep] = useState(0);
   const [lessonHits, setLessonHits] = useState<Set<string>>(() => new Set());
-  const [prediction, setPrediction] = useState("");
-  const [predictionResult, setPredictionResult] = useState<"idle" | "correct" | "wrong">("idle");
+  const [removed, setRemoved] = useState<number | null>(null);
+  const [triedRemovals, setTriedRemovals] = useState<Set<string>>(() => new Set());
   const content = domainContent[domain];
   const selectedFeature = featureFlows[domain][feature];
-  const correctPhysicalOutput = getFeatureLayer(domain, feature, 1).at(-1)!;
-  const predictionOptions = useMemo(() => {
-    const alternatives = featureFlows[domain]
-      .map((_, index) => getFeatureLayer(domain, index, 1).at(-1)!)
-      .filter(item => item !== correctPhysicalOutput);
-    const options = [correctPhysicalOutput, ...alternatives.slice(0, 2)];
-    const shift = feature % options.length;
-    return [...options.slice(shift), ...options.slice(0, shift)];
-  }, [correctPhysicalOutput, domain, feature]);
-  const predictionDisplay = (option: string) => option.replace("전륜 PMSM·감속기", "전륜 모터·감속기");
+  const chain = getFeatureLayer(domain, feature, 1);
   const selectLevel = (level: number) => { setRouteLevel(level); setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-layer-${level}`)); };
   const inspectStep = (index: number, step: number) => {
     setActiveStep(step);
     setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-${routeLevel}-${index}`));
   };
-  useEffect(() => { setFeature(0); setActiveStep(0); setPrediction(""); setPredictionResult("idle"); }, [domain]);
-  useEffect(() => { setActiveStep(0); setPrediction(""); setPredictionResult("idle"); }, [feature, routeLevel]);
+  useEffect(() => { setFeature(0); setActiveStep(0); setRemoved(null); }, [domain]);
+  useEffect(() => { setActiveStep(0); setRemoved(null); }, [feature, routeLevel]);
   useEffect(() => {
     const flowLength = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
     const timer = window.setInterval(() => setActiveStep(value => (value + 1) % flowLength), 1450);
@@ -572,20 +605,20 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map((id, index) => <button key={id} className={domain === id ? "active" : ""} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span>{domainContent[id].icon}</span><b>{domainContent[id].label}</b><small>{index < 4 ? "필수" : "확장"}</small></button>)}</nav>
       <section className="garageMechanismCard">
         <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
-        <MechanismViewer domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} />
+        <MechanismViewer domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
-        <div className={`garageLearningMission prediction-${predictionResult}`}>
-          <span><small>LEARNING MISSION · 먼저 예측하고 관찰</small><b>“{content.functions[feature]}”의 최종 물리 출력은?</b></span>
-          <div className="garagePredictionChoices">{predictionOptions.map(option => <button key={option} className={prediction === option ? "selected" : ""} onClick={() => {
-            const correct = option === correctPhysicalOutput;
-            setPrediction(option);
-            setPredictionResult(correct ? "correct" : "wrong");
-            if (correct) {
-              setActiveStep(getFeatureLayer(domain, feature, garageLayerSource[routeLevel]).length - 1);
-              setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-prediction`));
-            }
-          }}>{predictionDisplay(option)}</button>)}</div>
-          <em>{predictionResult === "correct" ? "✓ 흐름에서 출력 위치가 켜졌습니다" : predictionResult === "wrong" ? "입력 장치가 아니라 차량이 실제로 만드는 결과를 찾아보세요" : `${Math.min(6, lessonHits.size)}/6 관찰`}</em>
+        <div className="pullOutLab">
+          <header><small>🧪 빼 보기 실험</small><b>부품 하나를 빼면 차는 어떻게 될까?</b><em>{triedRemovals.size}개 실험함</em></header>
+          <div className="pullOutChain">{chain.map((label, index) => <React.Fragment key={`${label}-${index}`}>
+            {index > 0 && <i className={removed !== null && (removed === index || removed === index - 1) ? "broken" : ""}>→</i>}
+            <button className={`${removed === index ? "is-out" : ""} role-${partRole(label, index, chain.length)}`} onClick={() => {
+              const next = removed === index ? null : index;
+              setRemoved(next);
+              if (next !== null) { setActiveStep(index); setTriedRemovals(previous => new Set(previous).add(`${domain}-${feature}-${index}`)); }
+            }}><small>{ROLE_TEXT[partRole(label, index, chain.length)].tag}</small><b>{label}</b><em>{removed === index ? "↩ 다시 끼우기" : "빼 보기"}</em></button>
+          </React.Fragment>)}</div>
+          {removed !== null && <PullOutBubble domain={domain} label={chain[removed]} role={partRole(chain[removed], removed, chain.length)} />}
+          {removed === null && <p className="pullOutHint">부품을 눌러 빼 보세요. 3D에서도 그 부품이 사라져요.</p>}
         </div>
       </section>
       <aside className="domainFunctionShelf">
