@@ -338,3 +338,15 @@ kbd.wide { min-width: 34px; }
   position: static !important; inset: auto !important; top: auto !important; bottom: auto !important; left: auto !important; right: auto !important; width: auto !important; transform: none !important;
 }
 .boardV3 .polaroidCard > .polaroidGraphic { top: auto !important; left: auto !important; right: auto !important; bottom: auto !important; inset: auto !important; }
+
+/* ── board step bar + drag hint ── */
+.boardStepper { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+.boardStepper > span { display: flex; align-items: center; gap: 5px; padding: 5px 11px 5px 5px; border-radius: 999px; background: #f1ead9; color: #8a7a55; font-size: 13px; font-weight: 800; white-space: nowrap; }
+.boardStepper > span i { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #fff; font-style: normal; font-size: 12px; }
+.boardStepper > span.now { background: #fff1d6; color: #9a5a14; box-shadow: 0 0 0 2px #f0a14a; animation: stepGlow 1.4s ease-in-out infinite; }
+.boardStepper > span.done { background: #e6f5ec; color: #2f7d5b; }
+.boardStepper > span.done i { background: #3f9b7d; color: #fff; }
+.boardStepper .boardFeedback { font-style: normal; font-size: 12.5px; color: #5f5442; margin-left: 6px; }
+@keyframes stepGlow { 50% { box-shadow: 0 0 0 5px #f0a14a55; } }
+.dragMeBadge { position: absolute; z-index: 6; left: 50%; bottom: 30%; transform: translateX(-50%); padding: 4px 10px; border-radius: 999px; background: #3f9b7d; color: #fff; font-size: 11.5px; font-weight: 900; white-space: nowrap; box-shadow: 0 3px 0 #2a6f58; animation: dragBounce .9s ease-in-out infinite; pointer-events: none; }
+@keyframes dragBounce { 50% { transform: translate(-50%, -6px); } }

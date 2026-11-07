@@ -1517,7 +1517,7 @@ const MEASURE_RAIL: Record<CaseId, { stops: RailStop[]; hypothesisAt: Record<str
       { at: "가속 페달(APS)", value: "60%", expect: "60%", ok: true, ev: "pedal_raw" },
       { at: "VCU 입력 처리", value: "27%", expect: "60%", ok: false, ev: "pedal_processed" },
       { at: "CAN 토크 명령", value: "92 Nm", expect: "204 Nm", ok: false, ev: "torque_cmd" },
-      { at: "모터 실제 토크", value: "91 Nm", expect: "명령 92 Nm", ok: true, ev: "motor_actual" },
+      { at: "모터 실제 토크", value: "91 Nm", expect: "204 Nm", ok: false, ev: "motor_actual" },
     ],
     hypothesisAt: { gateway: 1, bms: 2, motor: 3 },
   },
@@ -1539,11 +1539,16 @@ const MEASURE_RAIL: Record<CaseId, { stops: RailStop[]; hypothesisAt: Record<str
     hypothesisAt: { pedal: 0, regen_limit: 1, brake_actuator: 2 },
   },
 };
+/** The fault boundary is known once the first ✗ and the stop just before it (a ✓) are both measured. */
+const boundaryFound = (rail: (typeof MEASURE_RAIL)[CaseId], measured: number[]) => {
+  const firstBad = rail.stops.findIndex(stop => !stop.ok);
+  return firstBad >= 0 && measured.includes(firstBad) && (firstBad === 0 || measured.includes(firstBad - 1));
+};
 const verdictFor = (rail: (typeof MEASURE_RAIL)[CaseId], measured: number[], hypothesisId: string): "rebut" | "likely" | undefined => {
   const at = rail.hypothesisAt[hypothesisId];
   if (at === undefined) return undefined;
   const firstBad = rail.stops.findIndex(stop => !stop.ok);
-  const firstBadKnown = firstBad >= 0 && measured.includes(firstBad) && rail.stops.slice(0, firstBad).every((_, i) => measured.includes(i));
+  const firstBadKnown = boundaryFound(rail, measured);
   if (measured.includes(at) && rail.stops[at].ok) return "rebut";
   if (firstBadKnown && at > firstBad) return "rebut";
   if (firstBadKnown && at === firstBad) return "likely";
@@ -1554,11 +1559,12 @@ const MEASURE_BUDGET = 3;
 function MeasureRail({ caseId, measured, budget, onMeasure, onBuy }: { caseId: CaseId; measured: number[]; budget: number; onMeasure: (index: number) => void; onBuy: () => void }) {
   const rail = MEASURE_RAIL[caseId];
   const firstBad = rail.stops.findIndex(stop => !stop.ok);
-  const found = firstBad >= 0 && rail.stops.slice(0, firstBad + 1).every((_, i) => measured.includes(i));
-  const left = budget - measured.length;
-  const stars = measured.length <= 2 ? 3 : measured.length === 3 ? 2 : 1;
+  const found = boundaryFound(rail, measured);
+  const used = measured.length - 1; // the output (last stop) is measured for free: that is the symptom
+  const left = budget - used;
+  const stars = used <= 2 ? 3 : used === 3 ? 2 : 1;
   return <div className={`measureRail ${found ? "is-found" : ""}`}>
-    <span className="railTitle">{found ? <><b>찾았다!</b><em className="railStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</em></> : <><b>🔍 어디서 처음 어긋났을까?</b><em>측정 기회 {"●".repeat(Math.max(0, left))}{"○".repeat(Math.max(0, budget - Math.max(0, left)))}</em></>}</span>
+    <span className="railTitle">{found ? <><b>찾았다!</b><em className="railStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</em></> : <><b>🔍 출력이 이상해! ✓와 ✗의 경계를 찾자</b><em>측정 기회 {"●".repeat(Math.max(0, left))}{"○".repeat(Math.max(0, budget - Math.max(0, left)))}</em></>}</span>
     {rail.stops.map((stop, index) => { const done = measured.includes(index); return <React.Fragment key={stop.at}>
       {index > 0 && <i className={`railWire ${done && measured.includes(index - 1) ? (rail.stops[index - 1].ok ? "ok" : "bad") : ""}`} />}
       <button disabled={!done && (left <= 0 || found)} className={`railStop ${done ? stop.ok ? "ok" : "bad" : ""} ${found && index === firstBad ? "first" : ""}`} onClick={() => !done && left > 0 && !found && onMeasure(index)}>
@@ -1587,7 +1593,11 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
   const [threadPaths, setThreadPaths] = useState<Record<string, { x: number; y: number }[]>>({});
   const [boardTool, setBoardTool] = useState<"move" | "thread" | "erase">("move");
   const [threadDraft, setThreadDraft] = useState<{ from: string; points: { x: number; y: number }[] } | null>(null);
-  const [measured, setMeasured] = useState<number[]>([]);
+  const [measured, setMeasured] = useState<number[]>(() => [MEASURE_RAIL[state.caseId].stops.length - 1]);
+  useEffect(() => {
+    const last = MEASURE_RAIL[state.caseId].stops.at(-1)!;
+    if (!state.evidence[state.caseId].includes(last.ev)) send({ type: "RECORD_EVIDENCE", id: last.ev });
+  }, []); // the symptom at the output is known from the start
   const [extraMeasures, setExtraMeasures] = useState(0);
   const readingFor = (id: string): Reading | undefined => { const index = MEASURE_RAIL[state.caseId].stops.findIndex(stop => stop.ev === id); return index >= 0 && measured.includes(index) ? { value: MEASURE_RAIL[state.caseId].stops[index].value, ok: MEASURE_RAIL[state.caseId].stops[index].ok } : undefined; };
   const rail = MEASURE_RAIL[state.caseId];
@@ -1599,9 +1609,9 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
     setCardPositions(previous => previous[stop.ev] ? previous : ({ ...previous, [stop.ev]: { x: 4 + index * (68 / Math.max(1, rail.stops.length - 1)), y: 30 + (index % 2) * 26 } }));
     const nowMeasured = [...measured, index];
     const firstBad = rail.stops.findIndex(item => !item.ok);
-    const nowFound = rail.stops.slice(0, firstBad + 1).every((_, i) => nowMeasured.includes(i));
+    const nowFound = boundaryFound(rail, nowMeasured);
     if (nowFound) window.setTimeout(() => { play("stamp"); play("success"); }, 420);
-    setFeedback(nowFound ? `찾았다! ${rail.stops[firstBad].at}에서 처음 어긋났어요 → 오른쪽 '유력' 가설을 보드로 끌어와 연필로 단서와 이어 주세요` : stop.ok ? `${stop.at}: 정상 ✓ — 이 지점까지는 멀쩡해요` : `${stop.at}: 정상과 달라요 ✗ — 이보다 앞은 어땠을까요?`);
+    setFeedback(nowFound ? `찾았다! ${firstBad > 0 ? `${rail.stops[firstBad - 1].at}(✓)과 ` : ""}${rail.stops[firstBad].at}(✗) 사이에서 고장이 시작됐어요` : stop.ok ? `${stop.at}: 정상 ✓ — 고장은 이 뒤쪽에서 시작됐어요` : `${stop.at}: 여기도 이상해요 ✗ — 더 앞쪽을 재 볼까요?`);
   };
   const hintKey = `${state.caseId}:board`;
   const hintUsed = Boolean(state.hintClaims[hintKey]);
@@ -1675,7 +1685,7 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
       <header><div><small>OBSERVE · MEASURE · HYPOTHESIZE</small><h1>{scenario.title}</h1><div className="reasoningMicroRail"><span>현상 확인</span><i>→</i><span>계측 단서</span><i>→</i><span>가능 원인 가설</span><i>→</i><span>후속 검증</span></div></div><div className="boardToolbox"><button className={boardTool === "move" ? "active" : ""} onClick={() => setBoardTool("move")}><img src={`${A}cursor-hand-open-v1.png`} alt="" /><span>손</span></button><button className={boardTool === "thread" ? "active" : ""} onClick={() => setBoardTool("thread")}><img src={`${A}detective-pencil-v1.png`} alt="" /><span>연필</span></button><button className={boardTool === "erase" ? "active" : ""} onClick={() => setBoardTool("erase")}><img src={`${A}detective-eraser-v1.png`} alt="" /><span>지우개</span></button></div><button onClick={() => setRulesOpen(value => !value)}>규칙</button><button onClick={() => setReplay(true)}>▶ QUICK REPLAY</button><button className="hintButton" disabled={seconds < 60 || hintUsed} onClick={() => { send({ type: "HINT", key: hintKey }); setFeedback(`힌트: ${scenario.hypotheses.find(item => item.id === scenario.root)?.label} 가설을 명령값과 실제 반응으로 검토해 보세요. (-5m)`); }}>{hintUsed ? "힌트 사용됨" : seconds < 60 ? `힌트 ${60 - seconds}초` : "힌트 보기 · -5m"}</button></header>
       {rulesOpen && <aside className="boardRules"><b>🕵️ 목표 · 신호를 따라가며 고장이 시작된 곳을 찾고, 범인 가설을 증거로 묶기</b><ol>
         <li><b>▶ QUICK REPLAY</b>로 운전자가 겪은 증상을 확인해요.</li>
-        <li><b>🔍 신호 측정</b>: 레일의 지점을 눌러 정상값과 비교해요. 기회는 <b>3번</b>! 앞에서부터 따라가다 <b>처음 ✗가 나온 곳</b>이 고장의 시작이에요. (기회가 부족하면 <b>측정 +1</b>, 추격차가 5m 가까워져요)</li>
+        <li><b>🔍 신호 측정</b>: 맨 오른쪽 <b>출력은 이미 ✗</b>(증상)예요. 레일의 지점을 눌러 정상값과 비교하며 <b>✓와 ✗가 바뀌는 경계</b>를 찾아요. 출력에서 거꾸로 올라가도, 입력부터 따라가도 OK! 기회는 <b>3번</b>, 가운데부터 재면 더 빨라요. (부족하면 <b>측정 +1</b>, 추격차가 5m 가까워져요)</li>
         <li>측정할수록 오른쪽 가설에 <b>반박</b>·<b>유력</b> 도장이 찍혀요. 적게 측정할수록 ★이 많아요.</li>
         <li><b>유력</b> 가설을 코르크판으로 끌어오고, <b>✏️ 연필</b>로 증거 사진에서 가설 카드까지 쭉 그어 실로 이어요. (지우개로 실 삭제)</li>
         <li>증거 <b>2장 이상</b>을 이으면 다음 단계(경로 복원)로!</li>
@@ -1689,8 +1699,15 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
         {cause && (() => { const pos = cardPositions[`cause:${cause.id}`] ?? { x: 78, y: 40 }; return <div className="boardCausePin freePosition" draggable={boardTool === "move"} style={{ left: `${pos.x}%`, top: `${pos.y}%` }} onDragEnd={event => boardTool === "move" && movePinned(`cause:${cause.id}`, event)} onPointerUp={finishThread}><Polaroid id={cause.id} title={cause.label} value={cause.desc} kind="HYPOTHESIS" selected tool={boardTool} onZoom={() => setZoomCard({ id: cause.id, label: cause.label, value: cause.desc, kind: "HYPOTHESIS" })} /></div>; })()}
         {!selectedCards.length && <div className="emptyCaseBoard"><b>① 증거 사진을 이곳으로 끌어오세요</b><span>② 원인 후보도 끌어온 뒤 ③ 연필로 압정 사이를 잇습니다</span></div>}
       </section>
-      <aside className="causeCandidates"><h2>가능 원인 가설</h2><p>검증할 가설 한 장을 보드에 배치</p>{scenario.hypotheses.map(item => { const verdict = verdictFor(rail, measured, item.id); return <div key={item.id} className={`${selectedHypothesis === item.id ? "selected" : ""} ${verdict ? `verdict-${verdict}` : ""}`}>{verdict && <span className={`verdictStamp ${verdict}`}>{verdict === "rebut" ? "반박" : "유력"}</span>}<Polaroid id={item.id} title={item.label} value={item.desc} kind="원인 가설" selected={false} tool={boardTool} dragData={boardTool === "move" ? `cause:${item.id}` : undefined} onZoom={() => setZoomCard({ id: item.id, label: item.label, value: item.desc, kind: "원인 가설" })} /></div>; })}</aside>
-      <footer className="boardDecisionBar"><span className="boardFeedback">{feedback || "성공 조건: 가능 원인 가설 1장 + 이를 지지하는 사실 단서 2장 이상의 직접 연결"}</span><button className="primary" disabled={linkedEvidence.length < 2 || !selectedHypothesis} onClick={() => send({ type: "OPEN_WIRING" })}>{linkedEvidence.length < 2 ? `단서 연결 ${linkedEvidence.length}/2` : "가설 채택 · 제어 경로 검증 →"}</button></footer>
+      <aside className="causeCandidates"><h2>가능 원인 가설</h2><p>검증할 가설 한 장을 보드에 배치</p>{scenario.hypotheses.map(item => { const verdict = verdictFor(rail, measured, item.id); return <div key={item.id} className={`${selectedHypothesis === item.id ? "selected" : ""} ${verdict ? `verdict-${verdict}` : ""}`}>{verdict && <span className={`verdictStamp ${verdict}`}>{verdict === "rebut" ? "반박" : "유력"}</span>}{verdict === "likely" && selectedHypothesis !== item.id && <span className="dragMeBadge">보드로 끌어오기 ↙</span>}<Polaroid id={item.id} title={item.label} value={item.desc} kind="원인 가설" selected={false} tool={boardTool} dragData={boardTool === "move" ? `cause:${item.id}` : undefined} onZoom={() => setZoomCard({ id: item.id, label: item.label, value: item.desc, kind: "원인 가설" })} /></div>; })}</aside>
+      <footer className="boardDecisionBar">{(() => { const steps = [
+          { label: "✓·✗ 경계 찾기", done: boundaryFound(rail, measured) },
+          { label: "'유력' 가설을 보드로", done: Boolean(selectedHypothesis) },
+          { label: "연필로 증거 2장 잇기", done: linkedEvidence.length >= 2 },
+        ]; const current = steps.findIndex(step => !step.done); return <div className="boardStepper">
+          {steps.map((step, index) => <span key={step.label} className={step.done ? "done" : index === current ? "now" : ""}><i>{step.done ? "✓" : index + 1}</i>{step.label}</span>)}
+          {feedback && <em className="boardFeedback">{feedback}</em>}
+        </div>; })()}<button className="primary" disabled={linkedEvidence.length < 2 || !selectedHypothesis} onClick={() => send({ type: "OPEN_WIRING" })}>{linkedEvidence.length < 2 ? `단서 연결 ${linkedEvidence.length}/2` : "가설 채택 · 제어 경로 검증 →"}</button></footer>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={() => { send({ type: "SOLVE_BOARD" }); setLinkedEvidence(state.caseId === "propulsion" ? ["pedal_raw", "pedal_processed", "torque_cmd"] : state.caseId === "thermal" ? ["motor_temp", "fan_command", "fan_actual"] : ["brake_request", "regen_request", "brake_actual"]); }}>정답 보기</button>
     {zoomCard && <div className="evidenceZoom" onClick={() => setZoomCard(null)}><article onClick={event => event.stopPropagation()}><button onClick={() => setZoomCard(null)} aria-label="확대 카드 닫기">×</button><CardGraphic id={zoomCard.id} kind={zoomCard.kind} reading={readingFor(zoomCard.id)} /><div className="zoomPolaroidCaption"><small>{zoomCard.kind}</small><h2>{zoomCard.label}</h2><p>{zoomCard.value}</p></div></article></div>}
