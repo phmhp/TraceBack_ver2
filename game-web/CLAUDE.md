@@ -80,6 +80,13 @@
 - 메모판 → `src/features/board/SuspectBoard.tsx`(용의자 메모판): 출력 ✗ 무료, 측정 3번, 증거를 용의자에 끌어 무죄/유력 판정(`judge`), 1명 남고 유력이면 범인 확정. 구동 사건에 `aps_sensor` 가설 추가. 옛 `InvestigationBoard`는 미사용 보존.
 - 다음 제안: E/E 관점을 도메인 공통 2D 설계도(전 도메인 ECU·게이트웨이·CAN 버스, 현재 도메인 강조)로, 퍼즐을 모양 다른 직소 조각·자동 연결(연필·지우개 제거)로.
 
+## 2026-11-08 7차 반영 (흐름 재구성)
+- 흐름: 고장 → **퍼즐(정상 기준 만들기)** → **메모판(도미노)** → 벤치. runtime `CONTINUE_FAULT`·체크포인트·선택 제동 → WIRING, 퍼즐 완료 → `OPEN_BOARD`, 메모판 완료 → `OPEN_BENCH`. 진행 바: 4 정상 기준, 5 메모판.
+- 퍼즐: 조각 실루엣이 신호 종류별(`PIECE_IO`/`TAB`/`SOCKET` clip-path), 끼우면 자동 연결, 연필·지우개 숨김, 간격 156px.
+- 메모판: `src/features/board/DominoBoard.tsx` — 전 도메인 E/E 설계도 위 신호 카드(정상/허용/이상), 이상 카드마다 시작점·원인 화살표·무시 판정, 도미노 연출, 시작점 제어기 확대(기준 SW vs 이번 SW, HW면 부품), 영향 카드 → sessionStorage `tb-impact-<case>` → 벤치 회귀 목록. 신입/실무자 모드(localStorage `tb-board-mode`): 실무자는 엉뚱한 단서·측정 전 카드(기회 2 + HINT −5m)·시간 순서 숨김. 옛 InvestigationBoard·SuspectBoard는 미사용 보존.
+- 차고 E/E 관점: `src/features/garage/EeBlueprint.tsx` 전 차량 2D 설계도(선택 도메인 강조), Vehicle/System은 3D 유지.
+- 대화 넘기기 Enter 지원. 생선 말풍선은 실루엣 외곽선만·작은 동그란 꼬리.
+
 ## 남은 일 (우선순위 순)
 1. 생성 이미지가 들어오면 메모판을 아틀라스 대신 개별 증거 이미지 파일로 전환. (부품 모델 차고·벤치 연결은 완료)
 2. Day 2~6: 레이스에 driverInput 연결, 단계별 시뮬레이션, 차고·벤치 공용 부품 에셋, Tier C 부품 직접 모델링(규격은 `docs/TIER_C_ASSET_PLAN.md` 4절).
