@@ -470,17 +470,17 @@ function VehiclePlatformShell({ active }: { active: boolean }) {
   </group>;
 }
 
-function FullVehicleSystem({ domain, feature, activeStep, removed = null }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null }) {
+function FullVehicleSystem({ domain, feature, activeStep, removed = null, shell = false }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null; shell?: boolean }) {
   return <group rotation={[0, -.18, 0]}>
-    <VehiclePlatformShell active />
+    {shell && <VehiclePlatformShell active />}
     <DomainFlowRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} />
     <PartLabel className="garageStaticLabel" position={[0, 2.12, 0]}>{domainContent[domain].functions[feature]} · 운전자 입력에서 차량 거동까지</PartLabel>
   </group>;
 }
 
-function EeArchitectureRig({ domain, feature, activeStep, removed = null }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null }) {
+function EeArchitectureRig({ domain, feature, activeStep, removed = null, shell = false }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null; shell?: boolean }) {
   return <group rotation={[0, -.18, 0]}>
-    <VehiclePlatformShell active={false} />
+    {shell && <VehiclePlatformShell active={false} />}
     <DomainFlowRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} />
     <PartLabel className="garageStaticLabel" position={[0, 2.12, 0]}>차체를 벗겨도 센서·ECU·액추에이터 위치는 그대로</PartLabel>
   </group>;
@@ -500,9 +500,9 @@ function EcuSoftwareRig({ domain, feature, detailed }: { domain: DomainId; featu
   </group>;
 }
 
-function MechanismModel({ domain, level, feature, activeStep, removed = null }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null }) {
-  if (level === 0) return <FullVehicleSystem domain={domain} feature={feature} activeStep={activeStep} removed={removed} />;
-  return <EeArchitectureRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} />;
+function MechanismModel({ domain, level, feature, activeStep, removed = null, shell = false }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; shell?: boolean }) {
+  if (level === 0) return <FullVehicleSystem domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />;
+  return <EeArchitectureRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />;
 }
 
 function SimulinkFlow({ domain, feature, level, activeStep }: { domain: DomainId; feature: number; level: number; activeStep: number }) {
@@ -518,6 +518,7 @@ function SimulinkFlow({ domain, feature, level, activeStep }: { domain: DomainId
 }
 
 function MechanismViewer({ domain, level, feature, activeStep, removed = null }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null }) {
+  const [shell, setShell] = useState(false);
   const sourceLevel = garageLayerSource[level] ?? 3;
   if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={activeStep} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
   return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
@@ -526,10 +527,11 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null }:
       <color attach="background" args={["#eef5ef"]} />
       <hemisphereLight intensity={2.25} color="#fff8e5" groundColor="#6d8c7b" />
       <directionalLight castShadow position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
-      <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} />
+      <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />
       <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={2.5} maxDistance={10} maxPolarAngle={Math.PI * .49} target={[0, .65, 0]} />
     </Canvas>
     <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동</span>
+    <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}>🚗 차체 {shell ? "숨기기" : "보기"}</button>
   </div>;
 }
 
@@ -571,6 +573,24 @@ function PullOutBubble({ domain, label, role }: { domain: DomainId; label: strin
 const ecuIdFor = (label: string) =>
   /^VCU/.test(label) ? "vcu" : /MCU|인버터 ECU/.test(label) ? "mcu" : /^BMS/.test(label) ? "bms"
     : /Thermal ECU/.test(label) ? "thermal_ecu" : /(Brake|ABS|ESC|Hydraulic) ECU/.test(label) ? "brake_ecu" : /EPS ECU/.test(label) ? "eps_ecu" : undefined;
+const ROLE_INTRO: Record<PartRole, string> = {
+  input: "운전자나 차의 상태를 재서 제어기에 알려 주는 눈·귀",
+  control: "받은 값을 판단해 명령을 내리는 두뇌",
+  network: "제어기끼리 값을 주고받는 편지(통신 메시지)",
+  actuator: "명령을 받아 실제로 움직이는 손발",
+  result: "부품들이 함께 만든 차량의 실제 반응",
+};
+function PartIntroCard({ label, role, domain, onClose, onPull }: { label: string; role: PartRole; domain: DomainId; onClose: () => void; onPull: () => void }) {
+  if (role === "control") return <ControllerCard label={label} onClose={onClose} onPull={onPull} />;
+  const partId = partModelFor(domain, label);
+  return <div className="ecuCard" role="dialog">
+    <button className="ecuClose" onClick={onClose} aria-label="닫기">×</button>
+    {partId && ["accel_pedal", "brake_pedal", "traction_motor", "brake_caliper", "motor_temp_sensor", "cooling_fan"].includes(partId) ? <img src={`/assets/ending-thumbs/${partId}.png`} alt="" /> : <span className="ecuGeneric">{role === "input" ? "👀" : role === "network" ? "✉️" : role === "actuator" ? "🦾" : "🚗"}</span>}
+    <div><small>{ROLE_TEXT[role].tag}</small><b>{label}</b><div className="ecuRow"><i>💡</i><span><em className="do">{ROLE_INTRO[role]}</em></span></div>
+    {role !== "result" && <button className="ecuPull" onClick={onPull}>이 부품 빼 보기</button>}</div>
+  </div>;
+}
+
 function ControllerCard({ label, onPull, onClose }: { label: string; onPull: () => void; onClose: () => void }) {
   const ecu = ECUS.find(item => item.id === ecuIdFor(label));
   const ko = (id: string) => getComponent(id)?.nameKo ?? id;
@@ -604,6 +624,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const [removed, setRemoved] = useState<number | null>(null);
   const [triedRemovals, setTriedRemovals] = useState<Set<string>>(() => new Set());
   const [ecuCard, setEcuCard] = useState<number | null>(null);
+  const [labMode, setLabMode] = useState<"intro" | "pull" | "hunt">("intro");
   // "범인 찾기" mini-game: one part is secretly missing, the player finds it from the clue.
   const [culprit, setCulprit] = useState<number | null>(null);
   const [guess, setGuess] = useState<{ index: number; right: boolean } | null>(null);
@@ -617,7 +638,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-${routeLevel}-${index}`));
   };
   useEffect(() => { setFeature(0); setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); }, [domain]);
-  useEffect(() => { setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); }, [feature, routeLevel]);
+  useEffect(() => { setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("intro"); }, [feature, routeLevel]);
   useEffect(() => {
     const flowLength = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
     const timer = window.setInterval(() => setActiveStep(value => (value + 1) % flowLength), 1450);
@@ -639,38 +660,45 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         <MechanismViewer domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {routeLevel === 1 && (() => {
-          const suspects = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
-          const startHunt = () => { const pick = suspects[Math.floor(Math.random() * suspects.length)]; setCulprit(pick.index); setGuess(null); setRemoved(null); setEcuCard(null); play("siren"); };
+          const parts = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
           const pullOut = (index: number) => { setRemoved(index); setActiveStep(index); setEcuCard(null); setTriedRemovals(previous => new Set(previous).add(`${domain}-${feature}-${index}`)); play("squish"); };
-          const onChip = (index: number, role: PartRole) => {
-            if (culprit !== null && !guess?.right) {
-              const right = index === culprit;
-              setGuess({ index, right });
-              if (right) { setRemoved(index); setCaught(value => value + 1); window.setTimeout(() => { play("stamp"); play("success"); }, 60); } else play("error");
-              return;
-            }
-            if (removed === index) { setRemoved(null); return; }
-            if (role === "control") { setEcuCard(index); setRemoved(null); return; }
-            pullOut(index);
+          const startHunt = () => {
+            const pick = parts[Math.floor(Math.random() * parts.length)];
+            setCulprit(pick.index); setGuess(null); setRemoved(null); setEcuCard(null); setLabMode("hunt"); play("siren");
           };
-          return <div className={`pullOutLab ${culprit !== null ? "is-hunt" : ""}`}>
+          const answer = (index: number) => {
+            if (culprit === null || guess?.right) return;
+            const right = index === culprit;
+            setGuess({ index, right });
+            if (right) { setRemoved(index); setCaught(value => value + 1); window.setTimeout(() => { play("stamp"); play("success"); }, 60); } else play("error");
+          };
+          return <div className={`pullOutLab mode-${labMode}`}>
             <header>
-              <small>{culprit !== null ? "🕵️ 범인 찾기" : "🧪 빼 보기 실험"}</small>
-              <b>{culprit !== null ? "빠진 부품(범인)을 찾아라!" : "부품을 눌러 빼 보세요 · 제어기는 소개부터"}</b>
-              <em>{caught ? `검거 ${caught}` : `${triedRemovals.size}개 실험`}</em>
-              <button className="huntButton" onClick={culprit !== null && !guess?.right ? () => { setCulprit(null); setGuess(null); } : startHunt}>{culprit !== null && !guess?.right ? "그만하기" : guess?.right ? "한 번 더!" : "🕵️ 범인 찾기"}</button>
+              <nav className="labTabs">
+                <button className={labMode === "intro" ? "on" : ""} onClick={() => { setLabMode("intro"); setRemoved(null); setCulprit(null); }}>① 부품 소개</button>
+                <button className={labMode === "pull" ? "on" : ""} onClick={() => { setLabMode("pull"); setCulprit(null); setEcuCard(null); }}>② 빼 보기</button>
+                <button className={labMode === "hunt" ? "on" : ""} onClick={startHunt}>③ 범인 찾기{caught ? ` · ${caught}` : ""}</button>
+              </nav>
+              <em>{labMode === "intro" ? "부품을 눌러 무슨 일을 하는지 보세요" : labMode === "pull" ? "부품을 하나 빼면 차가 어떻게 될까?" : "밍의 퀴즈: 어느 부품이 빠졌을까?"}</em>
             </header>
             <div className="pullOutChain">{chain.map((label, index) => { const role = partRole(label, index, chain.length); return <React.Fragment key={`${label}-${index}`}>
               {index > 0 && <i className={removed !== null && (removed === index || removed === index - 1) ? "broken" : ""}>→</i>}
-              <button disabled={role === "result" && culprit !== null} className={`${removed === index ? "is-out" : ""} ${guess && guess.index === index ? guess.right ? "is-caught" : "is-innocent" : ""} role-${role}`} onClick={() => onChip(index, role)}>
+              <button disabled={labMode === "hunt" || (role === "result" && labMode === "pull")} className={`${removed === index ? "is-out" : ""} ${ecuCard === index ? "is-open" : ""} role-${role}`} onClick={() => {
+                if (labMode === "intro") { setEcuCard(ecuCard === index ? null : index); setActiveStep(index); play("pop"); return; }
+                if (removed === index) { setRemoved(null); return; }
+                pullOut(index);
+              }}>
                 <small>{ROLE_TEXT[role].tag}</small><b>{label}</b>
-                <em>{culprit !== null && !guess?.right ? "범인?" : removed === index ? "↩ 다시 끼우기" : role === "control" ? "소개 보기" : role === "result" ? "결과" : "빼 보기"}</em>
+                <em>{labMode === "intro" ? "소개" : labMode === "hunt" ? "?" : removed === index ? "↩ 다시 끼우기" : role === "result" ? "결과" : "빼 보기"}</em>
               </button>
             </React.Fragment>; })}</div>
-            {culprit !== null && !guess?.right && <div className="pullOutBubble huntClue"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{guess ? "그 부품은 멀쩡해! 다시!" : "사건 발생!"}</b>{DOMAIN_SYMPTOM[domain]}<span className="pullOutChips"><em>🔎 {ROLE_TEXT[partRole(chain[culprit], culprit, chain.length)].clue}</em></span></p></div>}
-            {guess?.right && <div className="pullOutBubble huntClue"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>범인 검거! 🎉</b>{chain[guess.index]} — {ROLE_TEXT[partRole(chain[guess.index], guess.index, chain.length)].what}</p></div>}
-            {culprit === null && removed !== null && <PullOutBubble domain={domain} label={chain[removed]} role={partRole(chain[removed], removed, chain.length)} />}
-            {culprit === null && ecuCard !== null && <ControllerCard label={chain[ecuCard]} onClose={() => setEcuCard(null)} onPull={() => pullOut(ecuCard)} />}
+            {labMode === "intro" && ecuCard !== null && <PartIntroCard label={chain[ecuCard]} role={partRole(chain[ecuCard], ecuCard, chain.length)} domain={domain} onClose={() => setEcuCard(null)} onPull={() => { setLabMode("pull"); pullOut(ecuCard); }} />}
+            {labMode === "pull" && removed !== null && <PullOutBubble domain={domain} label={chain[removed]} role={partRole(chain[removed], removed, chain.length)} />}
+            {labMode === "hunt" && culprit !== null && <div className="pullOutBubble huntQuiz"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><div>
+              <p><b>{guess?.right ? "정답! 범인 검거 🎉" : guess ? "땡! 그 부품은 멀쩡해" : "사건 발생! 어느 부품이 빠졌을까?"}</b>{DOMAIN_SYMPTOM[domain]}<span className="pullOutChips"><em>🔎 단서: {ROLE_TEXT[partRole(chain[culprit], culprit, chain.length)].clue}</em></span></p>
+              <div className="quizChoices">{parts.map(item => <button key={item.index} disabled={Boolean(guess?.right)} className={guess?.index === item.index ? guess.right ? "right" : "wrong" : guess?.right && item.index === culprit ? "right" : ""} onClick={() => answer(item.index)}>{item.label}</button>)}</div>
+              {guess?.right && <button className="huntButton" onClick={startHunt}>한 번 더!</button>}
+            </div></div>}
           </div>;
         })()}
       </section>
