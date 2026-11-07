@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 190">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4fbff"/><stop offset="1" stop-color="#a8d6ff"/></linearGradient></defs>
+  <path d="M4,70 L34,72" stroke="#1f3f73" stroke-width="5" stroke-linecap="round" opacity=".55"/><path d="M0,98 L26,98" stroke="#1f3f73" stroke-width="6" stroke-linecap="round" opacity=".55"/><path d="M8,124 L30,122" stroke="#1f3f73" stroke-width="4" stroke-linecap="round" opacity=".55"/>
+  <path d="M153.5,8.8 L179.4,35.6 L224.3,18.9 L210.5,54.2 L277.3,44.4 L247.6,70.4 L289.9,82.8 L249.3,102.6 L272.9,120.3 L226.4,129.2 L252.4,159.1 L201.8,148.8 L189.9,177.9 L146.6,149.1 L121.5,173.4 L96.6,150.3 L54.6,153.3 L66.7,127.9 L22.0,120.1 L47.8,99.5 L-1.2,85.9 L58.1,76.4 L37.1,52.9 L87.0,51.9 L91.7,26.1 L125.1,39.5Z" transform="translate(7 8)" fill="#1f3f73" opacity=".35"/>
+  <path d="M153.5,8.8 L179.4,35.6 L224.3,18.9 L210.5,54.2 L277.3,44.4 L247.6,70.4 L289.9,82.8 L249.3,102.6 L272.9,120.3 L226.4,129.2 L252.4,159.1 L201.8,148.8 L189.9,177.9 L146.6,149.1 L121.5,173.4 L96.6,150.3 L54.6,153.3 L66.7,127.9 L22.0,120.1 L47.8,99.5 L-1.2,85.9 L58.1,76.4 L37.1,52.9 L87.0,51.9 L91.7,26.1 L125.1,39.5Z" fill="url(#g)" stroke="#1f3f73" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M149.8,29.8 L167.4,53.9 L197.2,37.1 L199.4,59.6 L244.1,60.2 L217.0,81.6 L253.9,88.2 L220.6,98.1 L242.8,118.2 L208.5,119.6 L222.5,146.6 L185.1,132.3 L172.9,155.6 L148.2,136.3 L119.1,157.5 L114.2,130.4 L85.2,138.6 L85.9,118.3 L51.2,113.9 L75.5,101.0 L46.7,89.7 L82.4,81.8 L62.2,56.2 L99.8,65.2 L96.3,35.5 L130.4,53.8Z" fill="#ffffff" opacity=".38"/>
+  <ellipse cx="96" cy="52" rx="22" ry="9" fill="#ffffff" opacity=".8" transform="rotate(-18 96 52)"/>
+  <circle cx="72" cy="66" r="4" fill="#ffffff" opacity=".9"/>
+</svg>

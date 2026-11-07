@@ -1379,9 +1379,9 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     <div className="raceControls"><b>W/S</b> 가속·제동 <b>A/D</b> 조향 <b>Q/E</b> 회생 단계 <b>R</b> READY 재시동</div>
     {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
     {(countdown > 0 || goFlash) && <div className="startCountdown"><small>GET READY</small><b>{goFlash ? "GO!" : countdown}</b></div>}
-    {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" icon="🚓" title="삐뽀삐뽀!" text={`경찰이 ${Math.round(sim.gap)}m 뒤까지 붙었어!`} sound="siren" />}
-    {crashFlash > 0 && <ComicBurst key={crashFlash} tone="crash" side="top" icon="💥" title="쾅!" text="속도가 확 줄었어" sound="crash" />}
-    {symptom && <ComicBurst tone="fault" side="right" icon="💀" image={mode === "normal" ? "/assets/ending-thumbs/accel_pedal.png" : "/assets/ending-thumbs/cooling_fan.png"} title={mode === "normal" ? "안 나가!" : "너무 뜨거워!"} text={mode === "normal" ? "끝까지 밟았는데 힘이 없어" : "출력이 확 줄었어"} sound="alarm" />}
+    {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="삐뽀삐뽀!" sound="siren" />}
+    {crashFlash > 0 && <ComicBurst key={crashFlash} tone="crash" side="top" title="쾅!" sound="crash" />}
+    {symptom && <ComicBurst tone="fault" side="right" image={mode === "normal" ? "/assets/ending-thumbs/accel_pedal.png" : "/assets/ending-thumbs/cooling_fan.png"} title={mode === "normal" ? "힘이 없어!" : "과열!"} sound="alarm" />}
     {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i>{zone.icon}</i><span><small>DRIVING ZONE</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
     {symptom && <div className="faultBeacon" role="alert"><span /><div><small>VEHICLE WARNING</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "온도 상승 · 보호 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
     {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
