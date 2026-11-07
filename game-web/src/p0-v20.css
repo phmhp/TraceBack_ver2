@@ -541,106 +541,6 @@ kbd.wide { min-width: 34px; }
 /* Korean text wraps only at spaces (no mid-word breaks) */
 body, button, p, li, span, b, small, em, h1, h2, h3 { word-break: keep-all; overflow-wrap: break-word; }
 
-/* ===== Memo board v4: trace fallen dominoes backward ===== */
-.dtBoard { position: fixed; inset: 0; display: grid; grid-template-rows: auto auto 1fr; font-family: Pretendard, system-ui, sans-serif; color: #3b2f25; }
-.dtBoard > .sceneBackdrop { position: fixed; inset: 0; z-index: 0; }
-.dtBoard > header, .dtBoard > .dtLayout, .dtBoard > div:not(.sceneBackdrop):not(.dtModal):not(.replayModal) { position: relative; z-index: 1; }
-.dtLayout { margin: 8px 18px 14px; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 14px; border-radius: 22px; background: #fff8ecf2; border: 3px solid #e2c88c; box-shadow: 0 6px 0 #d3b26e, 0 18px 40px #0003; }
-.dtHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.dtSteps { display: flex; gap: 6px; flex-wrap: wrap; }
-.dtSteps span { display: flex; align-items: center; gap: 6px; padding: 5px 12px 5px 6px; border-radius: 999px; background: #f1e6d0; color: #a08a6a; font: 800 13px Pretendard, system-ui; }
-.dtSteps span i { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #fff; font-style: normal; font-size: 12px; }
-.dtSteps span.now { background: #ffd56b; color: #6b4300; } .dtSteps span.done { background: #cdeccf; color: #2e7d32; }
-.dtButtons { display: flex; gap: 6px; align-items: center; }
-.dtButtons > button, .dtMode button, .dtModal button, .dtFollow, .dtNext, .dtFirst, .dtBudget button { padding: 7px 14px; border-radius: 999px; border: 2px solid #c0782a; background: #fff; color: #9a5a14; font: 800 13px Pretendard, system-ui; cursor: pointer; box-shadow: 0 3px 0 #c0782a; white-space: nowrap; transition: transform .12s; }
-.dtButtons > button:active, .dtFollow:active, .dtFirst:active, .dtNext:active { transform: translateY(2px) scale(.96); box-shadow: 0 1px 0 #c0782a; }
-.dtMode { display: flex; border-radius: 999px; overflow: hidden; }
-.dtMode button { box-shadow: none; border-radius: 0; padding: 6px 12px; }
-.dtMode button:first-child { border-radius: 999px 0 0 999px; } .dtMode button:last-child { border-radius: 0 999px 999px 0; border-left: 0; }
-.dtMode button.on { background: #c0782a; color: #fff; }
-.dtZones { display: flex; align-items: center; justify-content: center; gap: 6px; font: 800 12px Pretendard, system-ui; color: #b9a582; }
-.dtZones span { padding: 3px 12px; border-radius: 8px; border: 2px dashed #e0cfa8; }
-.dtZones span.seen { border-style: solid; color: #c0392b; border-color: #f0b4a8; background: #fff0ec; }
-.dtZones span.now { border-style: solid; color: #fff; background: #e05a3a; border-color: #e05a3a; }
-.dtZones i { font-style: normal; color: #d9c49a; }
-.dtChain { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 14px 10px 10px; border-radius: 18px; background: repeating-linear-gradient(90deg, #f3e3c2 0 2px, transparent 2px 28px), #fbefd8; border: 2px solid #ead6ae; overflow-x: auto; }
-.dtChainHint { font: 800 11px Pretendard, system-ui; color: #b9a582; white-space: nowrap; }
-.dtChainItem { position: relative; transition: transform .2s; }
-.dtChainItem.current { transform: scale(1.04); }
-.dtBadge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 2; padding: 2px 8px; border-radius: 999px; background: #6b4f2a; color: #fff; font: 900 11px Pretendard, system-ui; font-style: normal; white-space: nowrap; }
-.dtBadge.red { background: #e05a3a; }
-.dtArrow { width: 26px; height: 4px; border-radius: 2px; background: #e0cfa8; position: relative; flex: none; }
-.dtArrow::after { content: ""; position: absolute; right: -4px; top: -5px; border: 7px solid transparent; border-left-color: #e0cfa8; border-right: 0; }
-.dtArrow.lit { background: linear-gradient(90deg, #ffb36b, #e05a3a); } .dtArrow.lit::after { border-left-color: #e05a3a; }
-.dtTile { width: 150px; min-height: 150px; border-radius: 16px; background: #fff; border: 3px solid #e2c88c; box-shadow: 0 5px 0 #d3b26e; display: grid; transition: transform .45s cubic-bezier(.3,1.6,.5,1), box-shadow .3s, border-color .3s; transform-origin: 50% 100%; }
-.dtTile.small { width: 118px; min-height: 118px; }
-.dtTile.small .dtIcon { font-size: 26px; } .dtTile.small b { font-size: 12px; }
-.dtTile.click { cursor: pointer; } .dtTile.click:hover { transform: translateY(-4px) rotate(-1deg); }
-.dtTile.t-fallen { border-color: #e05a3a; box-shadow: 0 5px 0 #b8432a; transform: rotate(-9deg) translateY(4px); background: #fff3ef; }
-.dtTile.t-standing { border-color: #6dbb72; box-shadow: 0 5px 0 #4f9a55; }
-.dtTile.t-wobble { border-color: #e9b949; box-shadow: 0 5px 0 #c99a2c; animation: dtWobble 1.6s ease-in-out infinite; }
-@keyframes dtWobble { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
-.dtTile.t-hidden { background: repeating-linear-gradient(45deg, #f7e7c4 0 10px, #fbefd6 10px 20px); border-style: dashed; }
-.dtFace, .dtBack { display: grid; justify-items: center; align-content: center; gap: 5px; padding: 10px 8px; text-align: center; }
-.dtFace b { font: 900 13px Pretendard, system-ui; line-height: 1.3; }
-.dtIcon { font-size: 34px; line-height: 1; }
-.dtBack span { font: 900 40px "TraceRounded", system-ui; color: #c0782a; line-height: 1; }
-.dtBack small { font: 800 12px Pretendard, system-ui; color: #6b4f2a; }
-.dtBack em { font: 800 11px Pretendard, system-ui; font-style: normal; color: #fff; background: #c0782a; padding: 3px 10px; border-radius: 999px; }
-.dtGauge { width: 100%; display: grid; gap: 3px; }
-.dtTrack { position: relative; height: 12px; border-radius: 6px; background: #f1e6d0; overflow: hidden; }
-.dtTrack i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; }
-.dtTrack i.ref { border: 2px dashed #8a7550; background: transparent; z-index: 2; box-sizing: border-box; }
-.dtTrack i.run { background: #6dbb72; transition: width .6s; }
-.g-tol .dtTrack i.run { background: #e9b949; } .g-bad .dtTrack i.run { background: #e05a3a; }
-.dtGaugeTxt { font: 700 10.5px Pretendard, system-ui; color: #8a7550; } .dtGaugeTxt b { color: #3b2f25; }
-.dtQuestion { display: grid; justify-items: center; gap: 12px; }
-.dtQuestion h2 { margin: 0; font: 900 20px "TraceRounded", system-ui; }
-.dtQuestion h2 b { color: #e05a3a; }
-.dtCands { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
-.dtCand { display: grid; justify-items: center; gap: 8px; }
-.dtFollow { background: #e05a3a; color: #fff; border-color: #b8432a; box-shadow: 0 3px 0 #b8432a; }
-.dtClear { font: 800 12px Pretendard, system-ui; color: #4f9a55; padding: 6px 0; }
-.dtCall { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
-.dtFirst { background: #ffd56b; border-color: #c0782a; color: #6b4300; padding: 9px 20px; font-size: 14px; }
-.dtBudget { display: flex; gap: 6px; align-items: center; font: 800 13px Pretendard, system-ui; color: #c0782a; letter-spacing: 1px; }
-.dtZoom { display: grid; gap: 10px; justify-items: center; }
-.dtZoom h2 { margin: 0; font: 900 18px "TraceRounded", system-ui; }
-.dtFlowRow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
-.dtFlowRow small { width: 38px; font: 900 12px Pretendard, system-ui; color: #a08a6a; }
-.dtFlowRow i { font-style: normal; color: #c0782a; font-weight: 900; }
-.dtBlk { display: grid; gap: 2px; min-width: 110px; padding: 8px 10px; border-radius: 12px; background: #fff; border: 2px solid #e2c88c; font: 700 12px Pretendard, system-ui; text-align: center; color: #3b2f25; }
-.dtBlk.ref { background: #f4f9f4; border-color: #b9dcbb; border-style: dashed; }
-button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; } button.dtBlk:hover { transform: translateY(-2px); }
-.dtBlk em { font-style: normal; font-weight: 900; color: #8a7550; }
-.dtBlk.part { background: #fff6e6; }
-.dtBlk.right { border-color: #e05a3a; background: #ffece6; animation: dtPop .4s; } .dtBlk.wrong { animation: dtShake .4s; opacity: .6; }
-.dtImpact { display: grid; gap: 8px; justify-items: center; padding: 12px 16px; border-radius: 16px; background: #fff; border: 2px dashed #e0b07a; }
-.dtImpact h3 { margin: 0; font: 900 14px Pretendard, system-ui; }
-.dtImpact > div { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.dtImpact > div span { padding: 5px 12px; border-radius: 999px; background: #fff0ec; border: 2px solid #f0b4a8; font: 800 12px Pretendard, system-ui; }
-.dtStars { color: #f0a020; font-size: 20px; letter-spacing: 2px; }
-.dtNext { background: #6dbb72; border-color: #4f9a55; color: #fff; box-shadow: 0 3px 0 #4f9a55; padding: 9px 22px; font-size: 14px; }
-.dtBubble { display: flex; gap: 10px; align-items: center; align-self: center; max-width: 640px; margin-top: auto; padding: 8px 16px 8px 8px; border-radius: 999px; background: #fff; border: 2px solid #e2c88c; }
-.dtBubble img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
-.dtBubble p { margin: 0; font: 700 14px/1.45 Pretendard, system-ui; } .dtBubble b { margin-right: 8px; color: #c0782a; }
-.shake { animation: dtShake .4s; }
-@keyframes dtShake { 0%,100% { translate: 0; } 25% { translate: -6px; } 75% { translate: 6px; } }
-@keyframes dtPop { 50% { transform: scale(1.08); } }
-.dtModal { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: #1d2a2acc; }
-.dtModal article { width: min(560px, 92vw); padding: 22px 24px; border-radius: 22px; background: #fffaf0; border: 3px solid #e2c88c; box-shadow: 0 18px 40px #0005; display: grid; gap: 14px; }
-.dtModal h2 { margin: 0; font: 900 19px "TraceRounded", system-ui; text-align: center; }
-.dtHow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.dtHow > div { display: grid; justify-items: center; gap: 4px; padding: 12px 6px; border-radius: 14px; background: #fff; border: 2px solid #ead6ae; text-align: center; }
-.dtHow .pic { font-size: 34px; height: 44px; display: grid; place-items: center; }
-.dtHow b { font: 900 13px Pretendard, system-ui; } .dtHow small { font: 700 11.5px Pretendard, system-ui; color: #8a7550; }
-.dtHowNote { margin: 0; text-align: center; font: 700 12px Pretendard, system-ui; color: #8a7550; }
-.dtHowNote i { display: inline-block; width: 28px; height: 10px; border-radius: 5px; vertical-align: middle; }
-.dtHowNote i.dash { border: 2px dashed #8a7550; } .dtHowNote i.fill { background: #e05a3a; }
-.dtModal button { justify-self: center; }
-.dtLayout > * { flex: none; }
-.dtChain { padding: 22px 12px 16px; }
-
 /* E/E blueprint: gradient signal-flow arrows (blue input → red vehicle response) */
 .eeBlueprint { position: relative; }
 .eeFlow { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: visible; }
@@ -654,3 +554,132 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; } button.dtBlk:hove
 .shellToggle.on { background: #c0782a; color: #fff; border-color: #c0782a; }
 .allDomainLabel { padding: 4px 12px; border-radius: 999px; background: #fffaf0; border: 2px solid #e2c88c; font: 900 13px Pretendard, system-ui; color: #5a4632; white-space: nowrap; box-shadow: 0 3px 0 #d3b26e; }
 .allDomainLabel.allDomainOn { background: #e05a3a; border-color: #b8432a; color: #fff; box-shadow: 0 3px 0 #b8432a; }
+
+/* ===== Memo board v5: trace abnormal values backward (one screen, no tilt) ===== */
+.dtBoard { position: fixed; inset: 0; overflow: hidden; font-family: Pretendard, system-ui, sans-serif; color: #3b2f25; --clue: #f08c2a; --clueDeep: #c76a12; --clueBg: #fff4e3; }
+.dtBoard > .sceneBackdrop { position: fixed; inset: 0; z-index: 0; }
+.dtBoard .compactRouteTracker { position: absolute; z-index: 5; left: 50%; right: auto; top: 62px; width: min(560px, calc(100% - 320px)); height: 40px; padding: 4px 13px 6px; transform: translateX(-50%); border-radius: 12px; box-sizing: border-box; }
+.dtLayout { position: absolute; z-index: 2; left: 16px; right: 16px; top: 108px; bottom: 10px; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 8px; padding: 10px 14px; border-radius: 20px; background: #fff8ecf2; border: 3px solid #e2c88c; box-shadow: 0 6px 0 #d3b26e, 0 18px 40px #0003; overflow: hidden; box-sizing: border-box; }
+.dtHead { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.dtSteps { display: flex; gap: 5px; flex: 1; justify-content: center; min-width: 0; }
+.dtSteps span { display: flex; align-items: center; gap: 5px; padding: 4px 10px 4px 4px; border-radius: 999px; background: #f1e6d0; color: #a08a6a; font: 800 12px Pretendard, system-ui; white-space: nowrap; }
+.dtSteps span i { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: #fff; font-style: normal; font-size: 11px; }
+.dtSteps span.now { background: #ffd56b; color: #6b4300; } .dtSteps span.done { background: #cdeccf; color: #2e7d32; }
+.dtButtons { display: flex; gap: 5px; align-items: center; }
+.dtButtons > button, .dtMode button, .dtModal button, .dtFollow, .dtNext, .dtFirst, .dtBudget button, .dtMapBtn { padding: 6px 12px; border-radius: 999px; border: 2px solid #c0782a; background: #fff; color: #9a5a14; font: 800 12px Pretendard, system-ui; cursor: pointer; box-shadow: 0 3px 0 #c0782a; white-space: nowrap; transition: transform .12s, box-shadow .12s; }
+.dtButtons > button:active, .dtFollow:active, .dtFirst:active, .dtNext:active, .dtMapBtn:active, .dtModal button:active { transform: translateY(2px) scale(.96); box-shadow: 0 1px 0 #c0782a; }
+.dtMode { display: flex; }
+.dtMode button { box-shadow: none; border-radius: 0; padding: 5px 10px; }
+.dtMode button:first-child { border-radius: 999px 0 0 999px; } .dtMode button:last-child { border-radius: 0 999px 999px 0; border-left: 0; }
+.dtMode button.on { background: #c0782a; color: #fff; }
+.dtMapBtn { display: flex; align-items: center; gap: 8px; background: #2f4a44; color: #fff; border-color: #22362f; box-shadow: 0 3px 0 #22362f; }
+.dtMini { display: flex; gap: 3px; }
+.dtMini i { width: 10px; height: 14px; border-radius: 3px; background: #fff3; border: 1px solid #fff6; }
+.dtMini i.seen { background: var(--clue); border-color: var(--clue); } .dtMini i.now { background: #ffd56b; border-color: #fff; box-shadow: 0 0 0 2px #ffd56b88; }
+.dtChain { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 12px 8px 6px; border-radius: 16px; background: #fbefd8; border: 2px solid #ead6ae; min-width: 0; overflow: hidden; }
+.dtChainHint { font: 800 11px Pretendard, system-ui; color: #b9a582; white-space: nowrap; padding: 0 4px; }
+.dtGhost { width: 56px; height: 72px; border-radius: 12px; border: 2px dashed #d9c49a; display: grid; place-items: center; font: 900 26px "TraceRounded", system-ui; color: #d9c49a; }
+.dtChainItem { position: relative; }
+.dtChainItem.current .dtTile { box-shadow: 0 0 0 4px #ffd56b, 0 4px 0 var(--clueDeep); }
+.dtBadge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 2; padding: 1px 8px; border-radius: 999px; background: #6b4f2a; color: #fff; font: 900 10.5px Pretendard, system-ui; font-style: normal; white-space: nowrap; }
+.dtArrow { width: 22px; height: 4px; border-radius: 2px; background: #e0cfa8; position: relative; flex: none; }
+.dtArrow::after { content: ""; position: absolute; right: -4px; top: -5px; border: 7px solid transparent; border-left-color: #e0cfa8; border-right: 0; }
+.dtArrow.lit { background: linear-gradient(90deg, #ffd56b, var(--clue)); } .dtArrow.lit::after { border-left-color: var(--clue); }
+.dtTile { width: clamp(118px, 15vw, 160px); height: clamp(118px, 24vh, 168px); box-sizing: border-box; border-radius: 16px; background: #fff; border: 3px solid #e2c88c; box-shadow: 0 4px 0 #d3b26e; display: grid; transition: background .3s, border-color .3s, box-shadow .2s, translate .15s; }
+.dtTile.small { width: clamp(96px, 11vw, 126px); height: clamp(84px, 15vh, 104px); border-radius: 12px; }
+.dtTile.small .dtIcon { font-size: 20px; } .dtTile.small b { font-size: 11.5px; } .dtTile.small .dtMark { display: none; } .dtTile.small .dtGaugeTxt { font-size: 9.5px; }
+.dtTile.click { cursor: pointer; } .dtTile.click:hover { translate: 0 -4px; box-shadow: 0 8px 0 #d3b26e; }
+.dtTile.t-clue { border-color: var(--clue); box-shadow: 0 4px 0 var(--clueDeep); background: var(--clueBg); }
+.dtTile.t-first { border-color: #e05a3a; box-shadow: 0 4px 0 #b8432a; background: #fff0ec; }
+.dtTile.t-normal { border-color: #b9dcbb; box-shadow: 0 4px 0 #9cc59f; background: #f6fbf6; }
+.dtTile.t-tol { border-color: #e9d38a; box-shadow: 0 4px 0 #d4bb68; background: #fffbea; }
+.dtTile.t-hidden { background: repeating-linear-gradient(45deg, #f7e7c4 0 10px, #fbefd6 10px 20px); border-style: dashed; }
+.dtTile.fell { animation: dtFall .35s ease-out; }
+@keyframes dtFall { 40% { translate: 0 6px; filter: brightness(1.15); } }
+.dtFace, .dtBack { display: grid; justify-items: center; align-content: center; gap: 4px; padding: 8px; text-align: center; min-width: 0; }
+.dtFace b, .dtBack b { font: 900 13px Pretendard, system-ui; line-height: 1.25; }
+.dtIcon { font-size: 28px; line-height: 1; }
+.dtBack em { font: 800 11px Pretendard, system-ui; font-style: normal; color: #fff; background: #c0782a; padding: 3px 10px; border-radius: 999px; }
+.dtMark { font: 900 11px Pretendard, system-ui; font-style: normal; padding: 2px 9px; border-radius: 999px; background: #e8f5e9; color: #2e7d32; }
+.t-clue .dtMark { background: var(--clue); color: #fff; } .t-first .dtMark { background: #e05a3a; color: #fff; } .t-tol .dtMark { background: #fff1bf; color: #8a6d00; }
+.dtGauge { width: 100%; display: grid; gap: 3px; }
+.dtTrack { position: relative; height: 10px; border-radius: 5px; background: #f1e6d0; overflow: hidden; }
+.dtTrack i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; }
+.dtTrack i.ref { border: 2px dashed #6b5a3a; background: transparent; z-index: 2; box-sizing: border-box; }
+.dtTrack i.run { background: #6dbb72; transition: width .6s; }
+.g-tol .dtTrack i.run { background: #e9b949; } .g-bad .dtTrack i.run { background: var(--clue); }
+.dtGaugeTxt { font: 700 10.5px Pretendard, system-ui; color: #8a7550; } .dtGaugeTxt b { color: #3b2f25; }
+.dtQuestion { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; justify-items: center; align-items: center; gap: 6px; min-height: 0; }
+.dtQuestion h2 { margin: 0; font: 900 18px "TraceRounded", system-ui; }
+.dtQuestion h2 b { color: var(--clueDeep); }
+.dtCands { display: flex; gap: 16px; justify-content: center; align-items: center; }
+.dtCand { transition: opacity .3s; } .dtCand.dim { opacity: .55; }
+.dtFollow { background: var(--clue); color: #fff; border-color: var(--clueDeep); box-shadow: 0 3px 0 var(--clueDeep); padding: 8px 20px; font-size: 14px; animation: dtPulse 1.2s ease-in-out infinite; }
+@keyframes dtPulse { 50% { box-shadow: 0 3px 0 var(--clueDeep), 0 0 0 6px #f08c2a33; } }
+.dtCall { display: flex; gap: 10px; align-items: center; justify-content: center; min-height: 38px; }
+.dtFirst { background: #ffd56b; color: #6b4300; padding: 8px 18px; font-size: 14px; }
+.dtFirst.ghost { background: #fff; font-size: 12px; }
+.dtTip { font: 700 12px Pretendard, system-ui; color: #a08a6a; }
+.dtBudget { display: flex; gap: 6px; align-items: center; font: 800 12px Pretendard, system-ui; color: #c0782a; letter-spacing: 1px; }
+.dtZoom { display: grid; gap: 8px; justify-items: center; align-content: center; min-height: 0; }
+.dtZoom h2 { margin: 0; font: 900 17px "TraceRounded", system-ui; }
+.dtReq { margin: 0; padding: 4px 12px; border-radius: 8px; background: #eef4ff; border: 1px solid #c7d6f5; font: 700 12px Pretendard, system-ui; color: #34518a; }
+.dtFlowRow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.dtFlowRow small { width: 34px; font: 900 12px Pretendard, system-ui; color: #a08a6a; }
+.dtFlowRow i { font-style: normal; color: #c0782a; font-weight: 900; }
+.dtBlk { display: grid; gap: 2px; min-width: 104px; padding: 7px 10px; border-radius: 12px; background: #fff; border: 2px solid #e2c88c; font: 700 12px Pretendard, system-ui; text-align: center; color: #3b2f25; }
+.dtBlk.ref { background: #f4f9f4; border-color: #b9dcbb; border-style: dashed; }
+button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: translate .12s; } button.dtBlk:hover { translate: 0 -2px; }
+.dtBlk em { font-style: normal; font-weight: 900; color: #8a7550; }
+.dtBlk.part { background: #fff6e6; }
+.dtBlk.right { border-color: #e05a3a; background: #ffece6; animation: dtPop .4s; } .dtBlk.wrong { animation: dtShake .4s; opacity: .6; }
+.dtImpact { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; padding: 8px 14px; border-radius: 14px; background: #fff; border: 2px dashed #e0b07a; font: 800 12.5px Pretendard, system-ui; }
+.dtImpact > div { display: flex; gap: 6px; flex-wrap: wrap; }
+.dtImpact > div span { padding: 3px 10px; border-radius: 999px; background: var(--clueBg); border: 2px solid #f5c48a; font: 800 12px Pretendard, system-ui; }
+.dtStars { color: #f0a020; font-size: 18px; letter-spacing: 2px; }
+.dtNext { background: #6dbb72; border-color: #4f9a55; color: #fff; box-shadow: 0 3px 0 #4f9a55; padding: 8px 18px; font-size: 13px; }
+.dtBubble { display: flex; gap: 10px; align-items: center; justify-self: center; max-width: min(680px, 100%); padding: 5px 16px 5px 5px; border-radius: 999px; background: #fff; border: 2px solid #e2c88c; }
+.dtBubble img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+.dtBubble p { margin: 0; font: 700 13px/1.4 Pretendard, system-ui; } .dtBubble b { margin-right: 8px; color: #c0782a; }
+.dtBoard .shake { animation: dtShake .4s; }
+@keyframes dtShake { 0%,100% { translate: 0; } 25% { translate: -6px; } 75% { translate: 6px; } }
+@keyframes dtPop { 50% { scale: 1.06; } }
+.dtModal { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: #1d2a2acc; }
+.dtModal article { width: min(560px, 92vw); max-height: 90vh; overflow: auto; padding: 20px 22px; border-radius: 22px; background: #fffaf0; border: 3px solid #e2c88c; box-shadow: 0 18px 40px #0005; display: grid; gap: 12px; box-sizing: border-box; }
+.dtModal h2 { margin: 0; font: 900 18px "TraceRounded", system-ui; text-align: center; }
+.dtHow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.dtHow > div { display: grid; justify-items: center; gap: 4px; padding: 12px 6px; border-radius: 14px; background: #fff; border: 2px solid #ead6ae; text-align: center; }
+.dtHow .pic { font-size: 32px; height: 40px; display: grid; place-items: center; }
+.dtHow b { font: 900 13px Pretendard, system-ui; } .dtHow small { font: 700 11.5px Pretendard, system-ui; color: #8a7550; }
+.dtHowNote { margin: 0; text-align: center; font: 700 12px Pretendard, system-ui; color: #8a7550; }
+.dtHowNote i { display: inline-block; width: 26px; height: 9px; border-radius: 5px; vertical-align: middle; }
+.dtHowNote i.dash { border: 2px dashed #6b5a3a; } .dtHowNote i.fill { background: var(--clue); }
+.dtModal article > button { justify-self: center; }
+.dtModal article.dtMap { width: min(1080px, 94vw); }
+.dtMap header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dtMap header h2 { text-align: left; font-size: 16px; }
+.dtSubs { display: flex; align-items: stretch; gap: 0; }
+.dtSub { position: relative; flex: 1; min-width: 0; display: grid; align-content: start; gap: 4px; padding: 10px 10px 12px; border-radius: 12px; background: #fff; border: 2px solid #9fb3ad; box-shadow: 0 4px 0 #7f958e; }
+.dtSub.hit { border-color: var(--clue); box-shadow: 0 4px 0 var(--clueDeep); background: var(--clueBg); }
+.dtSub small { font: 800 9.5px Pretendard, system-ui; color: #7f958e; letter-spacing: .5px; }
+.dtSub > b { font: 900 14px Pretendard, system-ui; }
+.dtSub .dtPort { position: absolute; top: 50%; width: 0; height: 0; border-top: 7px solid transparent; border-bottom: 7px solid transparent; margin-top: -7px; }
+.dtSub .dtPort.in { left: -2px; border-left: 9px solid #9fb3ad; } .dtSub .dtPort.out { right: -11px; border-left: 9px solid #9fb3ad; }
+.dtSubBody { display: grid; gap: 4px; margin-top: 4px; }
+.dtWire { flex: 0 0 34px; display: grid; align-content: center; gap: 10px; }
+.dtWire i { display: block; height: 3px; position: relative; }
+.dtWire i.fwd { background: #9fb3ad; } .dtWire i.fwd::after { content: ""; position: absolute; right: -2px; top: -4px; border: 5px solid transparent; border-left-color: #9fb3ad; border-right: 0; }
+.dtWire i.back { background: repeating-linear-gradient(90deg, #e0cfa8 0 5px, transparent 5px 9px); }
+.dtWire i.back.on { background: repeating-linear-gradient(90deg, var(--clue) 0 5px, transparent 5px 9px); background-size: 18px 3px; animation: dtBack .6s linear infinite; }
+.dtWire i.back::before { content: ""; position: absolute; left: -3px; top: -4px; border: 5px solid transparent; border-right-color: inherit; }
+.dtWire i.back.on::before { border-right-color: var(--clue); }
+@keyframes dtBack { to { background-position: -18px 0; } }
+.dtChip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 8px; background: #f1e6d0; font: 800 11.5px Pretendard, system-ui; color: #8a7550; transition: background .3s, color .3s; }
+.dtChip em { font-style: normal; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; background: #fff; font-size: 10px; }
+.dtChip.fell { background: var(--clue); color: #fff; } .dtChip.fell em { color: var(--clueDeep); }
+.dtChip.first { background: #e05a3a; }
+.dtChip.ok { background: #e8f5e9; color: #2e7d32; }
+.dtChip.unknown { background: transparent; border: 2px dashed #d9c49a; color: #c4ad80; }
+.dtMapNote { margin: 0; display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; font: 700 12px Pretendard, system-ui; color: #8a7550; }
+@media (max-width: 760px) { .dtSteps { display: none; } }
+.dtChip.clue { background: var(--clueBg); border: 2px solid var(--clue); color: var(--clueDeep); }
