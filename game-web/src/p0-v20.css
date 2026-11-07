@@ -872,3 +872,33 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 .raceFeed > * { position: relative !important; inset: auto !important; left: auto !important; right: auto !important; top: auto !important; bottom: auto !important; transform: none !important; margin: 0 !important; max-width: 100% !important; box-sizing: border-box; }
 .raceFeed > .gearToast { animation: eeTagIn .3s ease-out, gearOut .4s 2.2s forwards; }
 .raceV2 .raceMiniMap { bottom: 62px !important; }
+
+/* Bench v5: simulation tabs + live signal monitor */
+.vbLab { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 10px; min-height: 0; }
+.vbSim { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 6px; min-height: 0; }
+.vbSim nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.vbSim nav button { display: grid; padding: 4px 10px; border-radius: 10px; border: 2px solid #e2c88c; background: #fff; cursor: pointer; font-family: inherit; text-align: left; color: #3b2f25; }
+.vbSim nav button b { font: 900 12px Pretendard, system-ui; } .vbSim nav button small { font: 700 10px Pretendard, system-ui; color: #8a7550; }
+.vbSim nav button.on { background: #2f4a44; border-color: #2f4a44; color: #fff; } .vbSim nav button.on small { color: #cfe3dc; }
+.vbSimView { position: relative; min-height: 0; border-radius: 14px; overflow: hidden; background: #eef3ee; border: 2px solid #cfdcd2; }
+.vbSimView > *:not(.vbStamp) { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; margin: 0 !important; }
+.vbSimView .vbStamp { right: 12px !important; top: 12px !important; transform: rotate(8deg) !important; z-index: 5; }
+.vbMonitor { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 4px; min-height: 0; padding: 8px 10px; border-radius: 14px; background: #1f2b2a; color: #e8f1ec; }
+.vbMonitor header { display: flex; justify-content: space-between; align-items: center; font: 800 12.5px Pretendard, system-ui; } .vbMonitor header span { font: 800 12px ui-monospace, monospace; color: #ffd56b; }
+.vbLegend { margin: 0; font: 700 10.5px Pretendard, system-ui; color: #9fb8af; } .vbLegend i { display: inline-block; width: 18px; height: 0; vertical-align: middle; margin: 0 3px; }
+.vbLegend i.d { border-top: 2px dashed #9fb8af; } .vbLegend i.s { border-top: 3px solid #ffb36b; }
+.vbMonitor ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; overflow: auto; min-height: 0; }
+.vbMonitor li { display: grid; grid-template-columns: 26px 104px minmax(0, 1fr) 70px 30px; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 8px; background: #2a3836; transition: background .2s; }
+.vbMonitor li.probed { background: #33433f; } .vbMonitor li.off { box-shadow: inset 3px 0 0 #ff7a59; } .vbMonitor li.flagged { background: #4a3a2a; }
+.vbClip { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #6d8a80; background: #1f2b2a; color: #e8f1ec; cursor: pointer; font-size: 12px; padding: 0; }
+.vbMonitor li.probed .vbClip { border-color: #ffd56b; background: #ffd56b22; }
+.vbSigName { display: grid; } .vbSigName small { font: 700 9.5px Pretendard, system-ui; color: #8fa89f; } .vbSigName b { font: 800 11.5px Pretendard, system-ui; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vbTrace { width: 100%; height: 30px; background: #172120; border-radius: 6px; }
+.vbTrace polyline { fill: none; stroke-width: 2; stroke-linejoin: round; } .vbTrace .ref { stroke: #9fb8af; stroke-dasharray: 4 3; } .vbTrace .run { stroke: #ffb36b; stroke-width: 2.4; } .vbTrace .run.ok { stroke: #7fd88a; }
+.vbTrace.off line { stroke: #3a4a47; stroke-dasharray: 2 4; }
+.vbTrace .split line { stroke: #ff5a4a; stroke-width: 1.5; } .vbTrace .split circle { fill: #ff5a4a; }
+.vbVal { font: 800 11.5px ui-monospace, monospace; font-style: normal; color: #ffd56b; text-align: right; }
+.vbFlag { width: 28px; height: 24px; border-radius: 6px; border: 0; background: #ffffff18; cursor: pointer; font-size: 14px; padding: 0; } .vbFlag:hover { background: #ffffff33; }
+.vbMonitorFoot { display: flex; justify-content: center; padding-top: 2px; }
+.vbLab .vbAfter { grid-column: 1 / 3; }
+.vbLayout { grid-template-rows: auto minmax(0, 1fr) auto !important; }
