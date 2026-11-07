@@ -377,7 +377,7 @@ function DomainSignature({ domain, activeStep }: { domain: DomainId; activeStep:
     <group position={[-2.1,.45,.25]} scale={.72}><HardwarePart kind="gear" active={activeStep < 2} partId={partModelFor("gear", "PRND")} /></group>
     <RoundedBox args={[1.55,.7,1.05]} radius={.16} position={[0,.38,0]}><meshPhysicalMaterial color="#667672" metalness={.62} roughness={.24} clearcoat={.55} /></RoundedBox>
     {[-.5,0,.5].map(x => <mesh key={x} position={[x,.4,.58]}><cylinderGeometry args={[.13,.13,.18,24]} /><meshStandardMaterial color={activeStep>1?"#f0a154":"#b7c1bc"} metalness={.75} /></mesh>)}
-    <group position={[2.05,.32,-.15]} scale={.62}><HardwarePart kind="contactor" active={activeStep>1} /></group>
+    <group position={[2.05,.32,-.15]} scale={.78}><HardwarePart kind="contactor" active={activeStep>1} /></group>
     <SignalCable from={[-1.55,.65,.05]} to={[-.72,.65,.05]} color="#b17752" /><SignalCable from={[.72,.65,.05]} to={[1.55,.65,.05]} color="#ef8a4f" />
   </group>;
   if (domain === "thermal") return <group position={[0,.16,0]}>
@@ -479,6 +479,21 @@ function FullVehicleSystem({ domain, feature, activeStep, removed = null, shell 
   </group>;
 }
 
+// Whole vehicle: every domain's chain side by side (selected domain runs, others idle)
+function AllDomainsSystem({ domain }: { domain: DomainId }) {
+  const ids = Object.keys(domainContent) as DomainId[];
+  return <group>
+    {ids.map((id, index) => {
+      const col = index % 4, row = Math.floor(index / 4);
+      const x = (col - (row ? 1 : 1.5)) * 3.4, z = row * 3.3 - 1.65;
+      return <group key={id} position={[x, 0, z]} scale={.78}>
+        <DomainFlowRig domain={id} feature={0} compact running={id === domain} />
+        <PartLabel className={`allDomainLabel ${id === domain ? "allDomainOn" : ""}`} position={[0, 2.1, 0]}>{domainContent[id].icon} {domainContent[id].label}</PartLabel>
+      </group>;
+    })}
+  </group>;
+}
+
 function EeArchitectureRig({ domain, feature, activeStep, removed = null, shell = false }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null; shell?: boolean }) {
   return <group rotation={[0, -.18, 0]}>
     {shell && <VehiclePlatformShell active={false} />}
@@ -520,6 +535,7 @@ function SimulinkFlow({ domain, feature, level, activeStep }: { domain: DomainId
 
 function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void }) {
   const [shell, setShell] = useState(false);
+  const [allDomains, setAllDomains] = useState(false);
   const sourceLevel = garageLayerSource[level] ?? 3;
   if (level === 1) {
     const chain = getFeatureLayer(domain, feature, 1);
@@ -527,16 +543,19 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
   }
   if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={activeStep} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
   return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
-    <Canvas key={`${domain}-${feature}`} shadows camera={{ position: [5.9, 3.35, 6.6], fov: 36 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
+    <Canvas key={`${domain}-${feature}-${allDomains}`} shadows camera={{ position: allDomains ? [7.2, 7.4, 9.4] : [5.9, 3.35, 6.6], fov: 36 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
       {import.meta.env.DEV && <DevRenderProbe name="garage" />}
       <color attach="background" args={["#eef5ef"]} />
       <hemisphereLight intensity={2.25} color="#fff8e5" groundColor="#6d8c7b" />
       <directionalLight castShadow position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
-      <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />
-      <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={2.5} maxDistance={10} maxPolarAngle={Math.PI * .49} target={[0, .65, 0]} />
+      {allDomains && level === 0 ? <AllDomainsSystem domain={domain} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />}
+      <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={2.5} maxDistance={allDomains ? 22 : 10} maxPolarAngle={Math.PI * .49} target={[0, .65, 0]} />
     </Canvas>
     <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동</span>
-    <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}>🚗 차체 {shell ? "숨기기" : "보기"}</button>
+    <div className="viewToggles">
+      {level === 0 && <button className={`shellToggle ${allDomains ? "on" : ""}`} onClick={() => setAllDomains(value => !value)}>{allDomains ? "🔎 이 도메인만" : "🧩 전체 도메인 보기"}</button>}
+      {!allDomains && <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}>🚗 차체 {shell ? "숨기기" : "보기"}</button>}
+    </div>
   </div>;
 }
 

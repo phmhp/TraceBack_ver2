@@ -649,3 +649,8 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; } button.dtBlk:hove
 .eeFlow g.hot .eeFlowBase { stroke-width: 6; opacity: 1; }
 @keyframes eeFlowRun { to { stroke-dashoffset: -17; } }
 .eeChip { position: relative; z-index: 4; }
+.viewToggles { position: absolute; right: 12px; top: 48px; z-index: 8; display: flex; gap: 6px; }
+.viewToggles .shellToggle { position: static; }
+.shellToggle.on { background: #c0782a; color: #fff; border-color: #c0782a; }
+.allDomainLabel { padding: 4px 12px; border-radius: 999px; background: #fffaf0; border: 2px solid #e2c88c; font: 900 13px Pretendard, system-ui; color: #5a4632; white-space: nowrap; box-shadow: 0 3px 0 #d3b26e; }
+.allDomainLabel.allDomainOn { background: #e05a3a; border-color: #b8432a; color: #fff; box-shadow: 0 3px 0 #b8432a; }
