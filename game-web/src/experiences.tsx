@@ -1993,7 +1993,7 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
           {node.kind === "HW" ? <div className={`logicNodePhoto componentAssetPhoto asset-${componentAtlasCell[node.id] ?? 2}`}><small>HW · REAL PART</small><em>{perspective.active.includes("E/E") ? "E/E 아키텍처" : "물리 플랜트"}</em></div> : <div className="logicNodePhoto simulinkNodeArt"><small>SW · SIMULINK BLOCK</small><em>SW 로직</em><b>f(u)</b><i /><i /><i /></div>}<div className="logicNodeCaption"><b>{node.label}</b><span>{node.detail}</span></div>
         </div>; })}
         </div>
-        <div className="canvasHelp">조각을 끌어 빈칸에 끼우면 자동으로 이어져요 · 홈 모양 = 신호 종류(● % · ■ 힘·토크 · ⚡ 통신 명령 · ∿ PWM · ▶ 온도·압력) · 휠: 확대</div>
+        <div className="canvasHelp">조각을 끌어 빈칸에 끼우면 자동으로 이어져요 · 홈 모양 = 신호 종류(● % · ■ 힘·토크 · ⚡ 통신 명령 · ∿ PWM · ▶ 온도·압력) · 휠: 확대 · 우클릭 드래그: 작업대 이동</div>
       </section>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={solvePuzzle}>정답 보기</button>
