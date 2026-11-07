@@ -174,3 +174,42 @@ button:not(:disabled):active { scale: .93; transition-duration: .06s; }
 .pullOutLab header small, .pullOutLab header em, .huntButton { white-space: nowrap; flex: none; }
 .pullOutLab header b { flex: 1; min-width: 0; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pullOutLab header em { margin-left: 0; }
+
+/* ── Simulink-style control logic diagram ── */
+.simulinkSvgWrap { position: relative; width: 100%; min-height: 0; flex: 1; display: grid; place-items: center; padding: 4px 6px; }
+.simulinkSvg { width: 100%; height: auto; max-height: 100%; font-family: Pretendard, system-ui, sans-serif; }
+.simulinkSvg .subsystem { fill: #f6f9ff; stroke: #9db1d6; stroke-width: 1.5; stroke-dasharray: 6 5; }
+.simulinkSvg .subsystemName { font-size: 13px; font-weight: 800; fill: #5872a3; }
+.simulinkSvg .port { stroke-width: 2.5; }
+.simulinkSvg .port.in { fill: #e3f3fb; stroke: #3f8fb0; }
+.simulinkSvg .port.out { fill: #ffeede; stroke: #e07a2c; }
+.simulinkSvg .portText { font-size: 12.5px; font-weight: 900; fill: #2b3a44; }
+.simulinkSvg .boundaryText { font-size: 13px; font-weight: 800; fill: #5f6b70; }
+.simulinkSvg .wire { fill: none; stroke: #5b6b78; stroke-width: 2.4; stroke-dasharray: 7 6; animation: simFlow 1.1s linear infinite; }
+.simulinkSvg .wire.live { stroke: #e07a2c; }
+.simulinkSvg .wire.feedback, .simulinkSvg .wire.loop { stroke: #7c5fb0; }
+.simulinkSvg .wire.side { stroke: #b07a2a; }
+.simulinkSvg .arrowHead { fill: #5b6b78; }
+.simulinkSvg .arrowHeadFb { fill: #7c5fb0; }
+@keyframes simFlow { to { stroke-dashoffset: -13; } }
+.simulinkSvg .blockBody { fill: #fff; stroke: #33424d; stroke-width: 2.4; filter: drop-shadow(0 3px 0 #33424d33); }
+.simulinkSvg .block.active .blockBody { stroke: #e07a2c; stroke-width: 3.4; fill: #fff6ec; }
+.simulinkSvg .kind-pi .blockBody, .simulinkSvg .kind-state .blockBody { fill: #f4effc; }
+.simulinkSvg .kind-min .blockBody { fill: #fff6e6; }
+.simulinkSvg .kind-check .blockBody { fill: #eaf6f0; }
+.simulinkSvg .kind-lut .blockBody { fill: #eef4ff; }
+.simulinkSvg .ic { fill: none; stroke: #33424d; stroke-width: 1.6; }
+.simulinkSvg .icLine { fill: none; stroke: #33424d; stroke-width: 2; stroke-linecap: round; }
+.simulinkSvg .icDot { fill: #33424d; }
+.simulinkSvg .icText { font-size: 15px; font-weight: 900; fill: #33424d; }
+.simulinkSvg .blockLabel { font-size: 15px; font-weight: 800; fill: #22303a; }
+.simulinkSvg .blockTag { font-size: 11px; font-weight: 800; fill: #7b8790; }
+.simulinkSvg .sum { fill: #fff; stroke: #7c5fb0; stroke-width: 2.4; }
+.simulinkSvg .sign { font-size: 13px; font-weight: 900; fill: #7c5fb0; }
+.simulinkSvg .feedbackText, .simulinkSvg .sideText { font-size: 10.5px; font-weight: 800; fill: #7c5fb0; }
+.simulinkSvg .sideText { fill: #b07a2a; }
+
+.garageV2 .softwareView .simulinkFlow { display: flex !important; flex-direction: column !important; gap: 6px; }
+.garageV2 .softwareView .simulinkFlow > .softwarePhysicalBoundary, .garageV2 .softwareView .simulinkFlow > .simulinkScope { display: none !important; }
+.garageV2 .softwareView .simulinkSvgWrap { flex: 1 1 auto; padding-top: 34px; }
+.garageV2 .softwareView .simulinkSvg { max-height: none; }

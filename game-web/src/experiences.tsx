@@ -13,6 +13,7 @@ import { ComicBurst } from "./ui/ComicBurst";
 import { play } from "./ui/sfx";
 import { ECUS } from "./sim/components";
 import { getComponent } from "./sim/registry";
+import { SimulinkDiagram } from "./features/garage/SimulinkDiagram";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
 
@@ -506,14 +507,11 @@ function MechanismModel({ domain, level, feature, activeStep, removed = null }: 
 
 function SimulinkFlow({ domain, feature, level, activeStep }: { domain: DomainId; feature: number; level: number; activeStep: number }) {
   const base = getFeatureLayer(domain, feature, level);
-  const blocks = level === 3
-    ? [base[0], "신호 유효성·타이밍", base[1], base[2], "보호·고장 중재", base[3]]
-    : base;
   const boundary = domainHardware[domain];
   return <div className={`simulinkFlow level-${level}`}>
     <div className="simulinkToolbar"><b>CORE CONTROL · {domain.toUpperCase()}_{feature + 1}</b><span>LIVE INPUT</span><span>STATE / PROTECTION</span><span>10 ms</span></div>
     <div className="softwarePhysicalBoundary inputBoundary"><i /><small>PHYSICAL INPUT</small><b>{boundary.labels[0]}</b><em>입력 신호가 ECU로 이동</em></div>
-    <div className="simulinkDiagram">{blocks.map((block, index) => <React.Fragment key={block}><article className={`${index === activeStep ? "active" : ""} ${index === 0 ? "input" : index === blocks.length - 1 ? "output" : "logic"}`}><i className="inPort" /><small>{index === 0 ? "IN" : index === blocks.length - 1 ? "OUT" : level === 2 ? "SWC" : "LOGIC"}</small><b>{block}</b><span>{level === 2 ? "signal / port" : index === 1 ? "condition" : index === 2 ? "calculation" : "state / limit"}</span><i className="outPort" /></article>{index < blocks.length - 1 && <div className={`simWire ${activeStep >= index ? "live" : ""}`}><i /></div>}</React.Fragment>)}</div>
+    <SimulinkDiagram logic={base} components={getFeatureLayer(domain, feature, 2)} inputLabel={boundary.labels[0]} outputLabel={boundary.labels[3]} activeStep={activeStep} />
     <div className="softwarePhysicalBoundary outputBoundary"><i /><small>PHYSICAL OUTPUT</small><b>{boundary.labels[3]}</b><em>명령이 실제 액추에이터를 구동</em></div>
     <div className="simulinkScope"><span>INPUT</span><svg viewBox="0 0 380 42"><path d="M0 30 L45 30 L48 8 L135 8 L138 24 L220 24 L225 12 L380 12" /></svg><b>OUTPUT</b></div>
   </div>;
