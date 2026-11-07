@@ -50,7 +50,7 @@ const experimentConfig: Record<CaseId, ExperimentConfig> = {
   },
   thermal: {
     requirementId: "REQ-THM-02",
-    requirement: "모터 온도 65°C 초과 시 팬 명령과 실제 회전이 발생해야 한다.",
+    requirement: "구동계 냉각수 온도 65°C 초과 시 팬 명령과 실제 회전이 발생해야 한다.",
     missionTitle: "재출발 뒤 누적된 열부하를 재현하라",
     missionBrief: "신호 대기 후 재가속하면서 기록된 온도 상승을 재현하고, 팬 명령과 실제 회전이 갈라지는 경계를 찾습니다.",
     precondition: "READY · 냉각팬 OFF · 모터 62°C · 차량 정차",
@@ -121,7 +121,7 @@ const rigParts: Record<CaseId, readonly RigPart[]> = {
     { cell: [3, 0], role: "PHYSICAL OUTPUT", label: "PMSM 구동 모터", signal: "204 Nm", kind: "output" },
   ],
   thermal: [
-    { cell: [0, 1], role: "SENSOR INPUT", label: "NTC 온도 센서", signal: "78.4°C", kind: "input" },
+    { cell: [0, 1], role: "SENSOR INPUT", label: "냉각수 온도 센서(NTC)", signal: "78.4°C", kind: "input" },
     { cell: [1, 0], role: "CONTROL", label: "열관리 ECU", signal: "Fan request", kind: "controller" },
     { cell: [2, 0], role: "POWER DRIVER", label: "PWM 구동단", signal: "68% duty", kind: "transfer" },
     { cell: [1, 1], role: "PHYSICAL OUTPUT", label: "냉각 팬 모듈", signal: "1850 RPM", kind: "output" },
@@ -228,7 +228,7 @@ const softwareFlows: Record<CaseId, { nodes: SoftwareFlowNode[]; mismatchIndex: 
   thermal: {
     mismatchIndex: 5,
     nodes: [
-      { stage: "INPUT", label: "NTC 온도", expected: "78.4°C", faulty: "78.4°C" },
+      { stage: "INPUT", label: "냉각수 온도(NTC)", expected: "78.4°C", faulty: "78.4°C" },
       { stage: "VALIDATE", label: "범위·단선 검사", expected: "VALID", faulty: "VALID", kind: "decision" },
       { stage: "FILTER", label: "Debounce", expected: "120 ms", faulty: "120 ms" },
       { stage: "STATE", label: "Hysteresis", expected: "FAN ON", faulty: "FAN ON", kind: "decision" },

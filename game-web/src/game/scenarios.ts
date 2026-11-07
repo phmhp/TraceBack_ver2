@@ -32,11 +32,11 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
   thermal: {
     title: "온도는 오르는데 냉각 팬이 돌지 않는다",
     chapter: "CASE 02 · COOLING RESPONSE",
-    symptom: "모터 온도 경고가 켜지고 출력이 제한됐지만 냉각 팬 소리가 들리지 않습니다.",
+    symptom: "파워다운 표시등이 켜지고 출력이 제한됐지만 냉각 팬 소리가 들리지 않습니다.",
     root: "fan_actuator",
     repair: "냉각 팬 액추에이터 응답 복원",
     evidence: [
-      { id: "motor_temp", label: "온도 경고와 가속력 저하가 함께 발생함", value: "모터 온도 78.4°C", kind: "주행 현상" },
+      { id: "motor_temp", label: "온도 경고와 가속력 저하가 함께 발생함", value: "구동계 냉각수 온도 78.4°C", kind: "주행 현상" },
       { id: "thermal_protection", label: "구동 토크 제한 상태가 기록됨", value: "Derate flag ON", kind: "상태 계측" },
       { id: "fan_command", label: "Fan PWM 명령이 100%로 기록됨", value: "ECU 출력 명령 100%", kind: "제어 명령" },
       { id: "fan_actual", label: "팬 회전 피드백이 0 RPM으로 측정됨", value: "명령 100% · 실제 0 RPM", kind: "물리 응답" },

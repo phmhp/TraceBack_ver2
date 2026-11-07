@@ -47,6 +47,9 @@ import "./v15.css";
 import "./v16.css";
 import "./v17.css";
 import "./v18.css";
+import "./ending-v19.css";
+import "./p0-v20.css";
+import { BustedEnding, WantedEnding } from "./ui/CaseFileEnding";
 const A = "/assets/";
 type Sim = {
   speed: number;
@@ -1470,15 +1473,22 @@ function App() {
   if (state.scene === "REPAIR") return frame(<RepairSequence state={state} send={send} />);
   if (state.scene === "OPTIONAL_FAULT") return frame(<RaceExperience state={state} send={send} mode="ship" />);
   if (state.scene === "SHIP_BOARDING") return frame(<ShipBoardingSequence send={send} />);
-  if (state.scene === "ENDING") return frame(<Ending state={state} send={send} />);
+  if (state.scene === "ENDING") return frame(<WantedEnding state={state} send={send} />);
+  if (state.scene === "CAUGHT") return frame(<BustedEnding state={state} send={send} />);
   return frame(<Overlay state={state} send={send} />);
 }
 const devShowroom = import.meta.env.DEV && new URLSearchParams(location.search).get("showroom") === "car";
+const devPartShowroom = import.meta.env.DEV && new URLSearchParams(location.search).get("showroom") === "parts";
 const VehicleShowroom = import.meta.env.DEV
   ? React.lazy(() => import("./features/vehicle/VehicleShowroom").then(module => ({ default: module.VehicleShowroom })))
+  : null;
+const PartShowroom = import.meta.env.DEV
+  ? React.lazy(() => import("./features/parts/PartShowroom").then(module => ({ default: module.PartShowroom })))
   : null;
 createRoot(document.getElementById("root")!).render(
   devShowroom && VehicleShowroom
     ? <React.Suspense fallback={null}><VehicleShowroom /></React.Suspense>
-    : <GameStage><App /></GameStage>,
+    : devPartShowroom && PartShowroom
+      ? <React.Suspense fallback={null}><PartShowroom /></React.Suspense>
+      : <GameStage><App /></GameStage>,
 );

@@ -1,0 +1,269 @@
+// Final screens, one printed page each:
+// - escaped: a WANTED poster (Lou & Ming portraits + bounty) next to the case brief
+// - caught:  a police booking sheet (mugshots in prison stripes) next to the same brief
+// The case brief summarises every fault case: symptom → evidence → cause → verified repair.
+import React from "react";
+import type { Campaign, CaseId } from "../game/runtime";
+import { SCENARIOS } from "../game/scenarios";
+import { SceneBackdrop } from "./game-shell";
+
+const A = "/assets/";
+const SHEET = `${A}cutscene-character-master-v1.png`; // 1536 × 1024 turnaround sheet
+const SHEET_W = 1536, SHEET_H = 1024;
+// Front-view head-and-shoulders crops on the sheet (x, y, w, h).
+const CATS = [
+  { id: "lou", name: "LOU", role: "드라이버", crop: [40, 20, 250, 300] },
+  { id: "ming", name: "MING", role: "엔지니어", crop: [40, 510, 250, 300] },
+] as const;
+
+const cropStyle = ([x, y, w, h]: readonly number[]): React.CSSProperties => ({
+  backgroundImage: `url(${SHEET})`,
+  backgroundSize: `${SHEET_W / w * 100}% ${SHEET_H / h * 100}%`,
+  backgroundPosition: `${x / (SHEET_W - w) * 100}% ${y / (SHEET_H - h) * 100}%`,
+  aspectRatio: `${w} / ${h}`,
+});
+
+type CaseStatus = "solved" | "open" | "skipped" | "none";
+const STATUS_LABEL: Record<CaseStatus, string> = { solved: "해결", open: "미해결", skipped: "건너뜀", none: "미발생" };
+
+function caseStatus(state: Campaign, id: CaseId): CaseStatus {
+  if (state.completedCases.includes(id)) return "solved";
+  if (id === "brake" && state.optionalBrake === "skipped") return "skipped";
+  if (state.caseId === id && state.checkpoint !== "start") return "open";
+  if (id === "brake" && state.optionalBrake === "undecided") return "none";
+  return id === "brake" ? "open" : "none";
+}
+
+const score = (state: Campaign) => Math.max(0, 100 - state.collisions * 8 - state.hints * 4);
+const rank = (value: number) => (value >= 85 ? "S" : value >= 70 ? "A" : "B");
+const clock = (seconds: number) => `${Math.floor(seconds / 60)}분 ${String(Math.round(seconds % 60)).padStart(2, "0")}초`;
+
+// Picture data for each case: the signal chain with the fault position, the
+// "normal vs at the time" measurement and the one-line lesson.
+const T = `${A}ending-thumbs/`;
+type Fault = { at: "node" | "link"; index: number; label: string };
+const CASE_VISUAL: Record<CaseId, {
+  chain: { img: string; label: string; role: string }[];
+  fault: Fault;
+  meter: { label: string; unit: string; normal: number; actual: number; max: number };
+  lesson: string;
+}> = {
+  propulsion: {
+    chain: [
+      { img: "accel_pedal", label: "가속 페달", role: "입력" },
+      { img: "vcu", label: "VCU", role: "제어" },
+      { img: "traction_motor", label: "구동 모터", role: "출력" },
+    ],
+    fault: { at: "link", index: 0, label: "신호 60%→27%" },
+    meter: { label: "모터 토크", unit: "Nm", normal: 204, actual: 91, max: 220 },
+    lesson: "입력 신호가 줄어든 채 전달되면, 출력도 그만큼 약해진다",
+  },
+  thermal: {
+    chain: [
+      { img: "motor_temp_sensor", label: "온도 센서", role: "입력" },
+      { img: "thermal_ecu", label: "Thermal ECU", role: "제어" },
+      { img: "cooling_fan", label: "냉각 팬", role: "출력" },
+    ],
+    fault: { at: "node", index: 2, label: "팬 고착" },
+    meter: { label: "팬 응답 (명령 대비)", unit: "%", normal: 100, actual: 0, max: 100 },
+    lesson: "명령은 100%인데 응답이 0 → 제어가 아니라 출력 장치 문제",
+  },
+  brake: {
+    chain: [
+      { img: "brake_pedal", label: "브레이크 페달", role: "입력" },
+      { img: "brake_ecu", label: "Brake ECU", role: "제어" },
+      { img: "brake_caliper", label: "캘리퍼", role: "출력" },
+    ],
+    fault: { at: "node", index: 2, label: "응답 8%" },
+    meter: { label: "마찰 제동 응답", unit: "%", normal: 55, actual: 8, max: 60 },
+    lesson: "제동 명령은 정상, 캘리퍼가 따라오지 못함 → 출력 장치 고장",
+  },
+};
+
+// Functional-safety view of each case (ISO 26262 vocabulary only; no ASIL is
+// assigned because that depends on each vehicle's own hazard analysis).
+const CASE_SAFETY: Record<CaseId, { hazard: string; detect: string; safeState: string; insight: string }> = {
+  propulsion: {
+    hazard: "의도보다 약한 구동력 → 합류·추월 중 가속 부족",
+    detect: "APS 두 센서 비교(타당성 검사), 요청 토크 vs 실제 토크 감시",
+    safeState: "토크 제한(비상 운전) + 경고등",
+    insight: "두 센서가 같은 값을 주는 SW 보정 오류는 타당성 검사로 못 잡음 → 요구사항 기반 테스트가 필요한 '체계적 고장'",
+  },
+  thermal: {
+    hazard: "과열로 부품 손상, 주행 중 급격한 출력 상실",
+    detect: "냉각수 온도 감시, 팬 명령 vs 회전 피드백 비교",
+    safeState: "단계적 출력 제한(파워다운) + 경고등",
+    insight: "갑자기 끄지 않고 단계적으로 줄이는 것 자체가 운전자를 위한 안전 설계",
+  },
+  brake: {
+    hazard: "제동력 부족 → 정지 거리 증가",
+    detect: "제동 압력 명령 vs 측정 압력 비교, 회생 실패 감시",
+    safeState: "마찰 제동으로 보상 + 브레이크 경고등",
+    insight: "한 제동 수단이 실패해도 다른 수단으로 보완하는 '중복' 구조",
+  },
+};
+
+function SafetyView({ id }: { id: CaseId }) {
+  const item = CASE_SAFETY[id];
+  return <div className="cfSafety">
+    <div className="cfSafetyFlow">
+      <span className="is-hazard"><i>⚠</i><em>위험(Hazard)</em><b>{item.hazard}</b></span>
+      <span className="is-detect"><i>🔎</i><em>감지(안전 메커니즘)</em><b>{item.detect}</b></span>
+      <span className="is-safe"><i>🛡</i><em>안전 상태(Safe state)</em><b>{item.safeState}</b></span>
+    </div>
+    <p className="cfLesson">🧩 {item.insight}</p>
+  </div>;
+}
+
+function FaultMark({ fault, status, found }: { fault: Fault; status: CaseStatus; found: boolean }) {
+  const fixed = status === "solved";
+  return <span className={`cfFault ${fixed ? "is-fixed" : found ? "is-found" : "is-unknown"}`}>
+    <i>{fixed ? "✔" : found ? "!" : "?"}</i>{fixed ? `${fault.label} → 수리` : found ? fault.label : "원인 미확인"}
+  </span>;
+}
+
+function SignalChain({ id, status, found }: { id: CaseId; status: CaseStatus; found: boolean }) {
+  const { chain, fault } = CASE_VISUAL[id];
+  return <div className="cfChain">
+    {chain.map((node, index) => <React.Fragment key={node.img}>
+      {index > 0 && <div className={`cfLink ${fault.at === "link" && fault.index === index - 1 ? "is-fault" : ""}`}>
+        <span className="cfLine" />
+        {fault.at === "link" && fault.index === index - 1 && <FaultMark fault={fault} status={status} found={found} />}
+      </div>}
+      <figure className={`cfNode ${fault.at === "node" && fault.index === index ? "is-fault" : ""}`}>
+        <small>{node.role}</small>
+        <img src={`${T}${node.img}.png`} alt="" />
+        <figcaption>{node.label}</figcaption>
+        {fault.at === "node" && fault.index === index && <FaultMark fault={fault} status={status} found={found} />}
+      </figure>
+    </React.Fragment>)}
+  </div>;
+}
+
+function Meter({ id }: { id: CaseId }) {
+  const { meter } = CASE_VISUAL[id];
+  const pct = (value: number) => `${Math.max(2, value / meter.max * 100)}%`;
+  return <div className="cfMeter">
+    <small>{meter.label}</small>
+    <div className="cfBar is-normal"><em>정상</em><span><i style={{ width: pct(meter.normal) }} /></span><b>{meter.normal}{meter.unit}</b></div>
+    <div className="cfBar is-actual"><em>고장 당시</em><span><i style={{ width: pct(meter.actual) }} /></span><b>{meter.actual}{meter.unit}</b></div>
+  </div>;
+}
+
+function Steps({ state, id, status }: { state: Campaign; id: CaseId; status: CaseStatus }) {
+  const scenario = SCENARIOS[id];
+  const found = state.evidence[id].length, total = scenario.evidence.length;
+  const picked = state.hypothesis[id];
+  const correct = picked === scenario.root;
+  const solved = status === "solved";
+  const steps: { icon: string; label: string; state: "done" | "warn" | "fail" | "todo"; extra?: React.ReactNode }[] = [
+    { icon: "👁", label: "증상", state: "done" },
+    { icon: "🔍", label: "증거", state: found > 0 || solved ? "done" : "todo", extra: <span className="cfDots">{Array.from({ length: total }, (_, i) => <i key={i} className={i < found ? "on" : ""} />)}</span> },
+    { icon: "🎯", label: "원인", state: correct ? "done" : solved ? "warn" : picked ? "fail" : "todo" },
+    { icon: "🧪", label: "검증·수리", state: solved ? "done" : "fail" },
+  ];
+  return <ol className="cfSteps">{steps.map(step => <li key={step.label} className={`is-${step.state}`}>
+    <i>{step.icon}</i><span>{step.label}</span>{step.extra}
+  </li>)}</ol>;
+}
+
+function CaseRow({ state, id, safety }: { state: Campaign; id: CaseId; safety: boolean }) {
+  const scenario = SCENARIOS[id];
+  const status = caseStatus(state, id);
+  const active = status === "solved" || status === "open";
+  const found = state.hypothesis[id] === scenario.root;
+  return <article className={`cfCase is-${status}`} title={scenario.symptom}>
+    <header>
+      <small>{scenario.chapter}</small>
+      <b>{scenario.title}</b>
+      <span className="cfBadge">{STATUS_LABEL[status]}</span>
+    </header>
+    {active && safety && <SafetyView id={id} />}
+    {active && !safety && <>
+      <div className="cfVisual"><SignalChain id={id} status={status} found={found || status === "solved"} /><Meter id={id} /></div>
+      <div className="cfLessonRow"><Steps state={state} id={id} status={status} /><p className="cfLesson">💡 {CASE_VISUAL[id].lesson}</p></div>
+    </>}
+  </article>;
+}
+
+function CaseBrief({ state, escaped }: { state: Campaign; escaped: boolean }) {
+  const value = score(state);
+  const [safety, setSafety] = React.useState(false);
+  return <section className="cfBrief">
+    <header className="cfBriefHead">
+      <small>{escaped ? "CASE FILE // TB-16 · CLOSED" : "CASE FILE // TB-16 · ARREST REPORT"}</small>
+      <h2>사건 발생 개요</h2>
+      <div className="cfLens" role="group" aria-label="보기 관점">
+        <button className={safety ? "" : "on"} onClick={() => setSafety(false)}>🔧 고장 추적</button>
+        <button className={safety ? "on" : ""} onClick={() => setSafety(true)}>🛡 안전 관점</button>
+      </div>
+      <p>네오 베이 항만 레이스 추격 · 부두 탈출 작전</p>
+    </header>
+    <dl className="cfMeta">
+      <div><dt>주행 거리</dt><dd>{Math.round(state.raceDistance).toLocaleString()} m</dd></div>
+      <div><dt>경과 시간</dt><dd>{clock(state.raceElapsedSeconds)}</dd></div>
+      <div><dt>추격차 격차</dt><dd>{escaped ? `${Math.round(state.policeGapMeters)} m` : "0 m"}</dd></div>
+      <div><dt>검증 실행</dt><dd>{state.benchRuns}회</dd></div>
+    </dl>
+    <div className="cfCases">{(["propulsion", "thermal", "brake"] as CaseId[]).map(id => <CaseRow key={id} state={state} id={id} safety={safety} />)}</div>
+    <footer className="cfFoot">
+      <span>충돌 <b>{state.collisions}</b></span>
+      <span>힌트 <b>{state.hints}</b></span>
+      <span>운전 점수 <b>{value}</b></span>
+      <span className="cfRank">등급 <b>{rank(value)}</b></span>
+    </footer>
+  </section>;
+}
+
+export function WantedEnding({ state, send }: { state: Campaign; send: React.Dispatch<any> }) {
+  const bounty = 2_000_000 + score(state) * 50_000;
+  return <div className="caseFileScreen is-escaped">
+    <SceneBackdrop image={`${A}stitch23/ship-escape.png`} position="center" shade="deep" />
+    <div className="cfSheet">
+      <section className="cfPoster cfWanted">
+        <h1>WANTED</h1>
+        <p className="cfSub">전기차 도주 2인조 · 생포 시 포상</p>
+        <div className="cfPhotos">{CATS.map(cat => <figure key={cat.id}>
+          <div className="cfPhoto" style={cropStyle(cat.crop)} />
+          <figcaption><b>{cat.name}</b><span>{cat.role}</span></figcaption>
+        </figure>)}</div>
+        <div className="cfBounty"><small>REWARD</small><b>₩ {bounty.toLocaleString()}</b></div>
+        <p className="cfNote">고장 난 차를 달리면서 고쳐 부두에서 배로 탈출함. 최종 목격 지점: 네오 베이 항만 램프.</p>
+        <span className="cfStamp">ESCAPED</span>
+      </section>
+      <CaseBrief state={state} escaped />
+      <div className="cfActions">
+        <button className="cfBtn" onClick={() => send({ type: "TITLE" })}>메인 메뉴</button>
+        <button className="cfBtn cfPrimary" onClick={() => send({ type: "NEW_GAME" })}>새 사건 시작 →</button>
+      </div>
+    </div>
+  </div>;
+}
+
+export function BustedEnding({ state, send }: { state: Campaign; send: React.Dispatch<any> }) {
+  const scenario = SCENARIOS[state.caseId];
+  return <div className="caseFileScreen is-caught">
+    <SceneBackdrop image={`${A}stitch23/fail-rain.png`} position="center" shade="deep" />
+    <div className="cfSheet">
+      <section className="cfPoster cfBooking">
+        <header><small>NEO BAY POLICE DEPT.</small><h1>BOOKING RECORD</h1></header>
+        <div className="cfPhotos">{CATS.map((cat, index) => <figure key={cat.id}>
+          <div className="cfMug">
+            <div className="cfPhoto" style={cropStyle(cat.crop)} />
+            <span className="cfStripes" />
+            <span className="cfPlacard">TB-16-00{index + 1}<br />{cat.name}</span>
+          </div>
+          <figcaption><b>{cat.name}</b><span>{cat.role}</span></figcaption>
+        </figure>)}</div>
+        <p className="cfNote">체포 지점: {Math.round(state.raceDistance).toLocaleString()} m · 진행 중이던 사건: {scenario.chapter}</p>
+        <p className="cfTip">고장 원인을 더 빨리 좁힐수록 추격차와의 격차가 덜 줄어요. 증거를 다시 확인해 보세요.</p>
+        <span className="cfStamp">ARRESTED</span>
+      </section>
+      <CaseBrief state={state} escaped={false} />
+      <div className="cfActions">
+        <button className="cfBtn" onClick={() => send({ type: "TITLE" })}>처음으로</button>
+        <button className="cfBtn cfPrimary" onClick={() => send({ type: "RETRY_CHECKPOINT" })}>잡힌 지점부터 다시 →</button>
+      </div>
+    </div>
+  </div>;
+}

@@ -1,0 +1,241 @@
+/* Final screens: WANTED poster (escaped) and booking record (caught). Uses its own
+   class names so the older stacked .ending rules don't apply. */
+.caseFileScreen {
+  --paper: #f1e2bf;
+  --paper-edge: #d9c193;
+  --ink: #3a2a1a;
+  --ink-soft: #6b5639;
+  --stamp: #b3261e;
+  --accent: #8a5a24;
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2.5vh 2vw;
+  overflow: auto;
+  font-family: "Pretendard", system-ui, sans-serif;
+  color: var(--ink);
+}
+.caseFileScreen.is-caught {
+  --paper: #e4e9ec;
+  --paper-edge: #b9c4cb;
+  --ink: #1f2a33;
+  --ink-soft: #52616c;
+  --stamp: #b3261e;
+  --accent: #2f4d66;
+}
+.caseFileScreen > .sceneBackdrop { position: fixed; inset: 0; z-index: 0; }
+
+.cfSheet {
+  position: relative;
+  z-index: 1;
+  width: min(1180px, 100%);
+  max-height: 95vh;
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 18px 22px;
+  padding: 20px 26px 16px;
+  background:
+    radial-gradient(120% 90% at 20% 10%, #ffffff40, transparent 60%),
+    radial-gradient(90% 80% at 85% 90%, #0000000f, transparent 70%),
+    var(--paper);
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px var(--paper-edge), 0 24px 60px #0008;
+  transform: rotate(-.4deg);
+}
+.is-caught .cfSheet {
+  transform: none;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 27px, #2f4d6614 27px 28px),
+    var(--paper);
+}
+
+/* ── left: poster ── */
+.cfPoster {
+  position: relative;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 16px;
+  border: 3px double var(--ink-soft);
+  text-align: center;
+  min-height: 0;
+}
+.cfWanted h1 {
+  margin: 0;
+  font-family: "TraceRounded", Georgia, serif;
+  font-size: clamp(48px, 6.4vw, 78px);
+  letter-spacing: .14em;
+  line-height: 1;
+  color: var(--ink);
+  text-shadow: 2px 2px 0 #fff6;
+}
+.cfSub { margin: 0; font-size: 14px; font-weight: 700; color: var(--ink-soft); letter-spacing: .04em; }
+.cfPhotos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; }
+.cfPhotos figure { margin: 0; display: grid; gap: 6px; }
+.cfPhoto { width: 100%; background-repeat: no-repeat; border-radius: 2px; }
+.cfWanted .cfPhoto {
+  filter: sepia(.55) contrast(1.05) saturate(.8);
+  border: 6px solid #fbf3df;
+  box-shadow: 0 0 0 1px var(--ink-soft), 0 6px 12px #0003;
+}
+.cfPhotos figcaption { display: grid; line-height: 1.15; }
+.cfPhotos figcaption b { font-family: "TraceRounded", Georgia, serif; font-size: 20px; letter-spacing: .08em; }
+.cfPhotos figcaption span { font-size: 12px; color: var(--ink-soft); }
+.cfBounty { display: grid; border-top: 2px solid var(--ink-soft); border-bottom: 2px solid var(--ink-soft); padding: 6px 18px; }
+.cfBounty small { font-size: 12px; letter-spacing: .3em; color: var(--ink-soft); }
+.cfBounty b { font-family: "TraceRounded", Georgia, serif; font-size: clamp(24px, 2.6vw, 32px); color: var(--accent); }
+.cfNote { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-soft); }
+.cfTip { margin: 0; font-size: 13px; line-height: 1.5; padding: 8px 10px; border-left: 3px solid var(--stamp); background: #fff8; text-align: left; }
+
+.cfStamp {
+  position: absolute;
+  right: 5%;
+  bottom: 2.5%;
+  padding: 4px 14px;
+  border: 4px solid var(--stamp);
+  border-radius: 6px;
+  color: var(--stamp);
+  font-family: "TraceRounded", Georgia, serif;
+  font-size: clamp(26px, 3vw, 38px);
+  letter-spacing: .08em;
+  transform: rotate(-14deg);
+  opacity: .82;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* booking sheet */
+.cfBooking header { display: grid; gap: 2px; }
+.cfBooking header small { font-size: 12px; letter-spacing: .28em; color: var(--ink-soft); font-weight: 700; }
+.cfBooking h1 { margin: 0; font-family: "TraceRounded", Georgia, serif; font-size: clamp(30px, 3.4vw, 42px); letter-spacing: .08em; }
+.cfMug {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--ink-soft);
+  background:
+    repeating-linear-gradient(180deg, transparent 0 17px, #1f2a3340 17px 18px),
+    #cfd8de;
+}
+.cfMug .cfPhoto { filter: grayscale(.9) contrast(1.1); mix-blend-mode: multiply; }
+/* prison uniform over the shoulders */
+.cfStripes {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 26%;
+  background: repeating-linear-gradient(180deg, #1c1c1c 0 9px, #f2f2f2 9px 18px);
+  clip-path: polygon(0 35%, 30% 0, 70% 0, 100% 35%, 100% 100%, 0 100%);
+}
+.cfPlacard {
+  position: absolute;
+  left: 50%; bottom: 6%;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  background: #111;
+  color: #f4f4f4;
+  font: 700 11px/1.25 ui-monospace, Menlo, monospace;
+  letter-spacing: .08em;
+  border: 1px solid #555;
+  white-space: nowrap;
+}
+.is-caught .cfStamp { transform: rotate(-8deg); }
+
+/* ── right: case brief ── */
+.cfBrief { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; overflow-x: hidden; overflow-y: auto; padding-right: 4px; }
+.cfBriefHead small { font-size: 12px; letter-spacing: .2em; color: var(--ink-soft); font-weight: 700; }
+.cfBriefHead h2 { margin: 0; font-family: "TraceRounded", sans-serif; font-size: clamp(24px, 2.4vw, 30px); }
+.cfBriefHead p { display: none; }
+.cfMeta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0; }
+.cfMeta div { padding: 4px 9px; border: 1px solid var(--paper-edge); background: #ffffff55; border-radius: 4px; }
+.cfMeta dt { font-size: 11px; color: var(--ink-soft); }
+.cfMeta dd { margin: 0; font-size: 14px; font-weight: 800; }
+.cfCases { display: grid; gap: 8px; }
+.cfCase { padding: 8px 11px; background: #ffffff66; border: 1px solid var(--paper-edge); border-left: 5px solid var(--ink-soft); border-radius: 4px; }
+.cfCase.is-solved { border-left-color: #2f7d5b; }
+.cfCase.is-open { border-left-color: var(--stamp); }
+.cfCase.is-skipped, .cfCase.is-none { opacity: .62; }
+.cfCase header { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; align-items: center; }
+.cfCase header small { grid-column: 1; font-size: 11px; letter-spacing: .12em; color: var(--ink-soft); font-weight: 700; }
+.cfCase header b { grid-column: 1; font-size: 15px; }
+.cfBadge { grid-column: 2; grid-row: 1 / 3; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #0000000f; }
+.is-solved .cfBadge { background: #2f7d5b; color: #fff; }
+.is-open .cfBadge { background: var(--stamp); color: #fff; }
+/* graphic case summary */
+.cfVisual { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 10px; margin-top: 5px; align-items: center; }
+.cfChain { display: flex; align-items: center; min-width: 0; }
+.cfNode { position: relative; margin: 0; flex: 0 0 auto; width: 66px; display: grid; justify-items: center; gap: 1px; padding: 4px 3px 5px; background: #ffffffb0; border: 1px solid var(--paper-edge); border-radius: 8px; }
+.cfNode small { font-size: 9px; font-weight: 800; letter-spacing: .08em; color: var(--ink-soft); }
+.cfNode img { width: 50px; height: 40px; object-fit: contain; }
+.cfNode figcaption { font-size: 10.5px; font-weight: 700; line-height: 1.1; text-align: center; }
+.cfNode.is-fault { border: 2px solid var(--stamp); box-shadow: 0 0 0 3px #b3261e22; }
+.is-solved .cfNode.is-fault { border-color: #2f7d5b; box-shadow: 0 0 0 3px #2f7d5b22; }
+.cfLink { position: relative; flex: 1 1 auto; min-width: 16px; height: 40px; display: grid; align-items: center; }
+.cfLink > .cfLine { height: 3px; background: var(--ink-soft); position: relative; }
+.cfLink > .cfLine::after { content: ""; position: absolute; right: -2px; top: -4px; border: 5.5px solid transparent; border-left: 8px solid var(--ink-soft); border-right: 0; }
+.cfLink.is-fault > .cfLine { background: repeating-linear-gradient(90deg, var(--stamp) 0 6px, transparent 6px 10px); }
+.is-solved .cfLink.is-fault > .cfLine { background: #2f7d5b; }
+.cfFault { position: absolute; left: 50%; bottom: -8px; transform: translate(-50%, 100%); display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px 2px 2px; border-radius: 999px; font-size: 10px; font-weight: 800; white-space: nowrap; color: #fff; background: var(--stamp); z-index: 1; }
+.cfLink .cfFault { bottom: -25px; }
+.cfFault i { display: grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; background: #fff; color: var(--stamp); font-style: normal; font-size: 10px; }
+.cfFault.is-fixed { background: #2f7d5b; }
+.cfFault.is-fixed i { color: #2f7d5b; }
+.cfFault.is-unknown { background: #8a8f94; }
+.cfFault.is-unknown i { color: #8a8f94; }
+.cfMeter { display: grid; gap: 4px; padding: 6px 8px; background: #ffffff8c; border-radius: 6px; }
+.cfMeter small { font-size: 10.5px; font-weight: 800; color: var(--ink-soft); }
+.cfBar { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: 6px; font-size: 10.5px; }
+.cfBar em { font-style: normal; color: var(--ink-soft); }
+.cfBar span { height: 10px; border-radius: 5px; background: #0000000d; overflow: hidden; }
+.cfBar span i { display: block; height: 100%; border-radius: 5px; }
+.cfBar.is-normal i { background: #2f7d5b; }
+.cfBar.is-actual i { background: var(--stamp); }
+.cfBar b { font-size: 11.5px; min-width: 38px; text-align: right; }
+.cfLessonRow { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; margin-top: 15px; }
+.cfSteps { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; }
+.cfSteps li { display: grid; justify-items: center; gap: 1px; width: 46px; font-size: 9.5px; font-weight: 700; color: var(--ink-soft); position: relative; }
+.cfSteps li + li::before { content: ""; position: absolute; left: -10px; top: 13px; width: 16px; height: 2px; background: var(--paper-edge); }
+.cfSteps li > i { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-style: normal; font-size: 13px; background: #0000000d; border: 2px solid transparent; }
+.cfSteps li.is-done > i { background: #2f7d5b1f; border-color: #2f7d5b; }
+.cfSteps li.is-warn > i { background: #d9a2201f; border-color: #c48a12; }
+.cfSteps li.is-fail > i { background: #b3261e14; border-color: var(--stamp); }
+.cfSteps li.is-todo > i { opacity: .45; }
+.cfDots { display: flex; gap: 2px; }
+.cfDots i { width: 5px; height: 5px; border-radius: 50%; background: #00000022; }
+.cfDots i.on { background: #2f7d5b; }
+.cfLesson { margin: 0; padding: 6px 10px; border-radius: 6px; background: #fff3c4; border: 1px dashed #c9a640; font-size: 12px; font-weight: 700; line-height: 1.35; }
+.is-caught .cfLesson { background: #fff; border-color: var(--paper-edge); }
+.cfFoot { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; padding-top: 8px; border-top: 1px dashed var(--ink-soft); font-size: 13px; color: var(--ink-soft); }
+.cfFoot b { color: var(--ink); font-size: 15px; }
+.cfRank b { display: inline-grid; place-items: center; width: 30px; height: 30px; margin-left: 4px; border-radius: 6px; background: var(--accent); color: #fff; font-size: 18px; }
+
+.cfActions { grid-column: 2; display: flex; justify-content: flex-end; gap: 10px; }
+.caseFileScreen .cfBtn {
+  background-image: none;
+  box-shadow: none;
+  text-shadow: none;
+  min-height: 0;
+  padding: 10px 18px;
+  border: 2px solid var(--ink-soft);
+  border-radius: 8px;
+  background: #fff9;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+.caseFileScreen .cfBtn.cfPrimary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.caseFileScreen .cfBtn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.caseFileScreen .cfBtn:focus-visible { outline: 3px solid var(--stamp); outline-offset: 2px; }
+
+@media (max-width: 860px) {
+  .cfSheet { grid-template-columns: 1fr; grid-template-rows: auto; max-height: none; transform: none; padding: 18px 16px; }
+  .cfPoster { grid-row: auto; }
+  .cfActions { grid-column: 1; }
+  .cfMeta { grid-template-columns: repeat(2, 1fr); }
+  .cfVisual, .cfLessonRow { grid-template-columns: 1fr; }
+}
