@@ -480,17 +480,24 @@ function FullVehicleSystem({ domain, feature, activeStep, removed = null, shell 
 }
 
 // Whole vehicle: every domain's chain side by side (selected domain runs, others idle)
-function AllDomainsSystem({ domain }: { domain: DomainId }) {
+function AllDomainsSystem({ domain, overlay = false }: { domain: DomainId; overlay?: boolean }) {
   const ids = Object.keys(domainContent) as DomainId[];
+  const slot = (index: number): [number, number, number] => { const col = index % 4, row = Math.floor(index / 4); return [(col - (row ? 1 : 1.5)) * 3.4, 0, row * 3.3 - 1.65]; };
+  // labels live outside the rigs so a slow part model never hides a name
+  const labels = ids.map((id, index) => {
+    const position: [number, number, number] = overlay ? [-3.6 + index * 1.2, 2.3 + (index % 2) * .35, 0] : [slot(index)[0], 1.7, slot(index)[2]];
+    return <PartLabel key={`label-${id}`} className={`allDomainLabel ${id === domain ? "allDomainOn" : ""}`} position={position}>{domainContent[id].icon} {domainContent[id].label}</PartLabel>;
+  });
+  // overlay: every domain sits in the same vehicle space, like layers of one car
+  // the very first label after the canvas remounts is dropped by the label library, so a hidden one goes first
+  const spacer = <PartLabel className="labelSpacer" position={[0, -20, 0]}>{" "}</PartLabel>;
+  if (overlay) return <group rotation={[0, -.18, 0]}>
+    {spacer}{labels}
+    {ids.map((id, index) => <group key={id} position={[0, index * .02, 0]}><DomainFlowRig domain={id} feature={0} running={id === domain} /></group>)}
+  </group>;
   return <group>
-    {ids.map((id, index) => {
-      const col = index % 4, row = Math.floor(index / 4);
-      const x = (col - (row ? 1 : 1.5)) * 3.4, z = row * 3.3 - 1.65;
-      return <group key={id} position={[x, 0, z]} scale={.78}>
-        <DomainFlowRig domain={id} feature={0} compact running={id === domain} />
-        <PartLabel className={`allDomainLabel ${id === domain ? "allDomainOn" : ""}`} position={[0, 2.1, 0]}>{domainContent[id].icon} {domainContent[id].label}</PartLabel>
-      </group>;
-    })}
+    {spacer}{labels}
+    {ids.map((id, index) => <group key={id} position={slot(index)} scale={.78}><DomainFlowRig domain={id} feature={0} compact running={id === domain} /></group>)}
   </group>;
 }
 
@@ -535,7 +542,8 @@ function SimulinkFlow({ domain, feature, level, activeStep }: { domain: DomainId
 
 function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void }) {
   const [shell, setShell] = useState(false);
-  const [allDomains, setAllDomains] = useState(false);
+  const [view3d, setView3d] = useState<"one" | "grid" | "overlay">("one");
+  const allDomains = view3d !== "one";
   const sourceLevel = garageLayerSource[level] ?? 3;
   if (level === 1) {
     const chain = getFeatureLayer(domain, feature, 1);
@@ -543,17 +551,17 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
   }
   if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={activeStep} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
   return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
-    <Canvas key={`${domain}-${feature}-${allDomains}`} shadows camera={{ position: allDomains ? [7.2, 7.4, 9.4] : [5.9, 3.35, 6.6], fov: 36 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
+    <Canvas key={`${domain}-${feature}-${view3d}`} shadows camera={{ position: view3d === "grid" ? [7.2, 7.4, 9.4] : view3d === "overlay" ? [6.4, 4.6, 7.6] : [5.9, 3.35, 6.6], fov: 36 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
       {import.meta.env.DEV && <DevRenderProbe name="garage" />}
       <color attach="background" args={["#eef5ef"]} />
       <hemisphereLight intensity={2.25} color="#fff8e5" groundColor="#6d8c7b" />
       <directionalLight castShadow position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
-      {allDomains && level === 0 ? <AllDomainsSystem domain={domain} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />}
+      {allDomains && level === 0 ? <AllDomainsSystem domain={domain} overlay={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />}
       <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={2.5} maxDistance={allDomains ? 22 : 10} maxPolarAngle={Math.PI * .49} target={[0, .65, 0]} />
     </Canvas>
     <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동</span>
     <div className="viewToggles">
-      {level === 0 && <button className={`shellToggle ${allDomains ? "on" : ""}`} onClick={() => setAllDomains(value => !value)}>{allDomains ? "🔎 이 도메인만" : "🧩 전체 도메인 보기"}</button>}
+      {level === 0 && <span className="view3dSeg">{([["one", "🔎 이 도메인"], ["grid", "🧩 나란히"], ["overlay", "🚗 겹쳐 보기"]] as const).map(([id, label]) => <button key={id} className={`shellToggle ${view3d === id ? "on" : ""}`} onClick={() => setView3d(id)}>{label}</button>)}</span>}
       {!allDomains && <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}>🚗 차체 {shell ? "숨기기" : "보기"}</button>}
     </div>
   </div>;

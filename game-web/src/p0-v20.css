@@ -728,3 +728,7 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 .flowStepCard { padding: 6px 10px; gap: 5px; }
 .flowStepBody > div { padding: 4px 8px; }
 .eeBlueprint { bottom: 172px; }
+.view3dSeg { display: flex; gap: 4px; }
+.labelSpacer { display: none !important; }
+.garage3dLabel.allDomainLabel { padding: 4px 12px !important; border-radius: 999px !important; background: #fffaf0 !important; border: 2px solid #e2c88c !important; color: #5a4632 !important; font: 900 13px Pretendard, system-ui !important; white-space: nowrap; }
+.garage3dLabel.allDomainLabel.allDomainOn { background: #e05a3a !important; border-color: #b8432a !important; color: #fff !important; }
