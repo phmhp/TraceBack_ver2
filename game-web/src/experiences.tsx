@@ -1488,6 +1488,67 @@ function ReplayRaceView({ caseId }: { caseId: CaseId }) {
   return <div className="replayRaceWorld"><RaceWorld sim={sim} ship={false} /><div className="replayHud"><span>LAST 8.0 SEC</span><b>{Math.round(sim.speed)} km/h</b><em>{sim.speed < 40 ? "⚠ OUTPUT DROP" : "HV READY"}</em></div></div>;
 }
 
+// Signal measurement rail: stops along the signal chain. Measuring a stop shows
+// normal vs measured; the first ✗ is where the fault starts. Hypotheses whose
+// part measured fine, or sits after the first mismatch, are auto-stamped "반박".
+type RailStop = { at: string; value: string; expect: string; ok: boolean; ev: string };
+const MEASURE_RAIL: Record<CaseId, { stops: RailStop[]; hypothesisAt: Record<string, number> }> = {
+  propulsion: {
+    stops: [
+      { at: "가속 페달(APS)", value: "60%", expect: "60%", ok: true, ev: "pedal_raw" },
+      { at: "VCU 입력 처리", value: "27%", expect: "60%", ok: false, ev: "pedal_processed" },
+      { at: "CAN 토크 명령", value: "92 Nm", expect: "204 Nm", ok: false, ev: "torque_cmd" },
+      { at: "모터 실제 토크", value: "91 Nm", expect: "명령 92 Nm", ok: true, ev: "motor_actual" },
+    ],
+    hypothesisAt: { gateway: 1, bms: 2, motor: 3 },
+  },
+  thermal: {
+    stops: [
+      { at: "냉각수 온도 센서", value: "78.4°C", expect: "실제 고온", ok: true, ev: "motor_temp" },
+      { at: "출력 제한 상태", value: "LEVEL 1", expect: "고온 시 제한", ok: true, ev: "thermal_protection" },
+      { at: "팬 PWM 명령", value: "100%", expect: "100%", ok: true, ev: "fan_command" },
+      { at: "팬 실제 회전", value: "0 RPM", expect: "1850 RPM", ok: false, ev: "fan_actual" },
+    ],
+    hypothesisAt: { sensor: 0, software_command: 2, fan_actuator: 3 },
+  },
+  brake: {
+    stops: [
+      { at: "브레이크 페달", value: "55%", expect: "55%", ok: true, ev: "brake_request" },
+      { at: "회생 제동 명령", value: "22%", expect: "가능 범위", ok: true, ev: "regen_request" },
+      { at: "캘리퍼 제동 응답", value: "8%", expect: "부족분 보충", ok: false, ev: "brake_actual" },
+    ],
+    hypothesisAt: { pedal: 0, regen_limit: 1, brake_actuator: 2 },
+  },
+};
+const verdictFor = (rail: (typeof MEASURE_RAIL)[CaseId], measured: number[], hypothesisId: string): "rebut" | "likely" | undefined => {
+  const at = rail.hypothesisAt[hypothesisId];
+  if (at === undefined) return undefined;
+  const firstBad = rail.stops.findIndex(stop => !stop.ok);
+  const firstBadKnown = firstBad >= 0 && measured.includes(firstBad) && rail.stops.slice(0, firstBad).every((_, i) => measured.includes(i));
+  if (measured.includes(at) && rail.stops[at].ok) return "rebut";
+  if (firstBadKnown && at > firstBad) return "rebut";
+  if (firstBadKnown && at === firstBad) return "likely";
+  return undefined;
+};
+
+function MeasureRail({ caseId, measured, onMeasure }: { caseId: CaseId; measured: number[]; onMeasure: (index: number) => void }) {
+  const rail = MEASURE_RAIL[caseId];
+  const firstBad = rail.stops.findIndex(stop => !stop.ok);
+  const found = firstBad >= 0 && rail.stops.slice(0, firstBad + 1).every((_, i) => measured.includes(i));
+  return <div className="measureRail">
+    <span className="railTitle">🔍 신호 측정</span>
+    {rail.stops.map((stop, index) => { const done = measured.includes(index); return <React.Fragment key={stop.at}>
+      {index > 0 && <i className={`railWire ${done && measured.includes(index - 1) ? (rail.stops[index - 1].ok ? "ok" : "bad") : ""}`} />}
+      <button className={`railStop ${done ? stop.ok ? "ok" : "bad" : ""} ${found && index === firstBad ? "first" : ""}`} onClick={() => !done && onMeasure(index)}>
+        <small>{stop.at}</small>
+        {done ? <b>{stop.ok ? "✓" : "✗"} {stop.value}</b> : <b className="tap">측정하기</b>}
+        {done && <em>정상 {stop.expect}</em>}
+        {found && index === firstBad && <span className="firstFlag">처음 어긋남!</span>}
+      </button>
+    </React.Fragment>; })}
+  </div>;
+}
+
 export function InvestigationBoard({ state, send }: { state: Campaign; send: Send }) {
   const scenario = SCENARIOS[state.caseId];
   const selectedEvidence = state.evidence[state.caseId];
@@ -1503,6 +1564,16 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
   const [threadPaths, setThreadPaths] = useState<Record<string, { x: number; y: number }[]>>({});
   const [boardTool, setBoardTool] = useState<"move" | "thread" | "erase">("move");
   const [threadDraft, setThreadDraft] = useState<{ from: string; points: { x: number; y: number }[] } | null>(null);
+  const [measured, setMeasured] = useState<number[]>([]);
+  const rail = MEASURE_RAIL[state.caseId];
+  const measure = (index: number) => {
+    const stop = rail.stops[index];
+    setMeasured(previous => [...previous, index]);
+    play("zip"); window.setTimeout(() => play(stop.ok ? "pop" : "error"), 140);
+    if (!selectedEvidence.includes(stop.ev)) send({ type: "RECORD_EVIDENCE", id: stop.ev });
+    setCardPositions(previous => previous[stop.ev] ? previous : ({ ...previous, [stop.ev]: { x: 4 + index * (68 / Math.max(1, rail.stops.length - 1)), y: 30 + (index % 2) * 26 } }));
+    setFeedback(stop.ok ? `${stop.at}: 정상 ✓ — 여기는 범인이 아니에요` : `${stop.at}: 정상과 달라요 ✗ — 가장 앞에서 어긋난 곳이 수상해요`);
+  };
   const hintKey = `${state.caseId}:board`;
   const hintUsed = Boolean(state.hintClaims[hintKey]);
   useEffect(() => { const timer = window.setInterval(() => setSeconds(value => value + 1), 1000); return () => clearInterval(timer); }, []);
@@ -1576,13 +1647,14 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
       {rulesOpen && <aside className="boardRules"><b>목표 · 사실 단서로 가장 설명력 높은 원인 가설을 세우세요</b><ol><li>QUICK REPLAY에서 운전자가 겪은 <b>주행 현상</b>을 먼저 확인합니다.</li><li>입력값·제어 명령·실제 물리 응답처럼 직접 측정된 카드만 중앙으로 끌어옵니다.</li><li>오른쪽의 <b>가능 원인 가설</b> 한 장을 선택합니다. 이 단계에서는 아직 확정 원인이 아닙니다.</li><li>연필로 “이 단서가 이 가설을 지지한다”는 관계를 직접 연결합니다.</li><li>단서 두 장 이상이 가설을 지지하면 채택하고, 다음 제어 경로·추적 실험에서 입증하거나 기각합니다.</li></ol></aside>}
       <aside className="evidenceInventory"><h2>관찰된 현상 · 계측 단서</h2><p>주행 현상과 입력·명령·실제 반응을 구분</p><div>{scenario.evidence.map(card => <div key={card.id} className={selectedEvidence.includes(card.id) ? "used" : ""}><Polaroid id={card.id} title={card.label} value={card.value} kind={card.kind} selected={false} tool={boardTool} dragData={boardTool === "move" ? `evidence:${card.id}` : undefined} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>)}</div></aside>
       <section className={`caseCorkCanvas tool-${boardTool}`} ref={boardRef} onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={dropOnBoard} onPointerMove={event => { if (!threadDraft) return; const point = boardPoint(event.clientX, event.clientY); setThreadDraft(previous => { if (!previous) return previous; const last = previous.points.at(-1)!; return Math.hypot(point.x - last.x, point.y - last.y) < .45 ? previous : { ...previous, points: [...previous.points, point] }; }); }} onPointerUp={() => threadDraft && setThreadDraft(null)}>
+        <MeasureRail caseId={state.caseId} measured={measured} onMeasure={measure} />
         <div className="caseBoardTitle"><b>원인 가설 검토 보드</b><span>사실 단서와 가능 원인 가설을 놓고 지지 관계를 이으세요</span><em>{linkedEvidence.length} LINKED</em></div>
         <svg className={`evidenceThreads ${boardTool === "erase" ? "erasing" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none">{cause && selectedCards.filter(card => linkedEvidence.includes(card.id)).map(card => <path key={card.id} d={freehandPath(threadPaths[card.id] ?? [])} onPointerEnter={() => eraseThread(card.id)} onClick={() => eraseThread(card.id)} />)}{threadDraft && <path className="threadDraft" d={freehandPath(threadDraft.points)} />}</svg>
         {selectedCards.map((card, index) => { const pos = cardPositions[card.id] ?? { x: 12 + (index % 3) * 27, y: 12 + Math.floor(index / 3) * 42 }; const linked = linkedEvidence.includes(card.id); return <div className={`boardPinnedCard ${linked ? "threaded" : ""}`} draggable={boardTool === "move"} key={card.id} style={{ left: `${pos.x}%`, top: `${pos.y}%` }} onDragEnd={event => boardTool === "move" && movePinned(card.id, event)} onPointerDown={event => beginThread(card.id, event)}><Polaroid id={card.id} title={card.label} value={card.value} kind={card.kind} selected tool={boardTool} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>; })}
         {cause && (() => { const pos = cardPositions[`cause:${cause.id}`] ?? { x: 76, y: 34 }; return <div className="boardCausePin freePosition" draggable={boardTool === "move"} style={{ left: `${pos.x}%`, top: `${pos.y}%` }} onDragEnd={event => boardTool === "move" && movePinned(`cause:${cause.id}`, event)} onPointerUp={finishThread}><Polaroid id={cause.id} title={cause.label} value={cause.desc} kind="HYPOTHESIS" selected tool={boardTool} onZoom={() => setZoomCard({ id: cause.id, label: cause.label, value: cause.desc, kind: "HYPOTHESIS" })} /></div>; })()}
         {!selectedCards.length && <div className="emptyCaseBoard"><b>① 증거 사진을 이곳으로 끌어오세요</b><span>② 원인 후보도 끌어온 뒤 ③ 연필로 압정 사이를 잇습니다</span></div>}
       </section>
-      <aside className="causeCandidates"><h2>가능 원인 가설</h2><p>검증할 가설 한 장을 보드에 배치</p>{scenario.hypotheses.map(item => <div key={item.id} className={selectedHypothesis === item.id ? "selected" : ""}><Polaroid id={item.id} title={item.label} value={item.desc} kind="원인 가설" selected={false} tool={boardTool} dragData={boardTool === "move" ? `cause:${item.id}` : undefined} onZoom={() => setZoomCard({ id: item.id, label: item.label, value: item.desc, kind: "원인 가설" })} /></div>)}</aside>
+      <aside className="causeCandidates"><h2>가능 원인 가설</h2><p>검증할 가설 한 장을 보드에 배치</p>{scenario.hypotheses.map(item => { const verdict = verdictFor(rail, measured, item.id); return <div key={item.id} className={`${selectedHypothesis === item.id ? "selected" : ""} ${verdict ? `verdict-${verdict}` : ""}`}>{verdict && <span className={`verdictStamp ${verdict}`}>{verdict === "rebut" ? "반박" : "유력"}</span>}<Polaroid id={item.id} title={item.label} value={item.desc} kind="원인 가설" selected={false} tool={boardTool} dragData={boardTool === "move" ? `cause:${item.id}` : undefined} onZoom={() => setZoomCard({ id: item.id, label: item.label, value: item.desc, kind: "원인 가설" })} /></div>; })}</aside>
       <footer className="boardDecisionBar"><span className="boardFeedback">{feedback || "성공 조건: 가능 원인 가설 1장 + 이를 지지하는 사실 단서 2장 이상의 직접 연결"}</span><button className="primary" disabled={linkedEvidence.length < 2 || !selectedHypothesis} onClick={() => send({ type: "OPEN_WIRING" })}>{linkedEvidence.length < 2 ? `단서 연결 ${linkedEvidence.length}/2` : "가설 채택 · 제어 경로 검증 →"}</button></footer>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={() => { send({ type: "SOLVE_BOARD" }); setLinkedEvidence(state.caseId === "propulsion" ? ["pedal_raw", "pedal_processed", "torque_cmd"] : state.caseId === "thermal" ? ["motor_temp", "fan_command", "fan_actual"] : ["brake_request", "regen_request", "brake_actual"]); }}>정답 보기</button>

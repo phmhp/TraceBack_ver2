@@ -213,3 +213,25 @@ button:not(:disabled):active { scale: .93; transition-duration: .06s; }
 .garageV2 .softwareView .simulinkFlow > .softwarePhysicalBoundary, .garageV2 .softwareView .simulinkFlow > .simulinkScope { display: none !important; }
 .garageV2 .softwareView .simulinkSvgWrap { flex: 1 1 auto; padding-top: 34px; }
 .garageV2 .softwareView .simulinkSvg { max-height: none; }
+
+/* ── memo board: signal measurement rail + verdict stamps ── */
+.measureRail { position: absolute; left: 10px; right: 10px; top: 8px; z-index: 6; display: flex; align-items: stretch; gap: 0; padding: 6px 8px; border-radius: 14px; background: #fffaf0f2; border: 2px solid #e2c88c; box-shadow: 0 3px 0 #d3b26e; }
+.railTitle { align-self: center; font-size: 12px; font-weight: 900; color: #9a6418; white-space: nowrap; margin-right: 8px; }
+.railWire { align-self: center; flex: 0 0 18px; height: 4px; border-radius: 2px; background: #d8ccb2; }
+.railWire.ok { background: #3f9b7d; }
+.railWire.bad { background: #e0483c; }
+.railStop { position: relative; flex: 1 1 0; min-width: 0; display: grid; justify-items: center; gap: 1px; padding: 5px 4px; border-radius: 12px; border: 2px dashed #d9c79c; background: #fff; font: inherit; color: inherit; cursor: pointer; }
+.railStop small { font-size: 10.5px; font-weight: 800; color: #7b6a48; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.railStop b { font-size: 14px; white-space: nowrap; }
+.railStop b.tap { font-size: 12px; color: #c0782a; }
+.railStop em { font-style: normal; font-size: 10px; color: #8a7a55; white-space: nowrap; }
+.railStop.ok { border: 2px solid #3f9b7d; background: #eaf6f0; cursor: default; animation: vrPop .3s cubic-bezier(.2,1.8,.4,1); }
+.railStop.bad { border: 2px solid #e0483c; background: #fdeeed; cursor: default; animation: vrPop .3s cubic-bezier(.2,1.8,.4,1); }
+.railStop.first { box-shadow: 0 0 0 4px #e0483c55; }
+.firstFlag { position: absolute; top: -13px; right: -6px; padding: 2px 7px; border-radius: 999px; background: #e0483c; color: #fff; font-size: 10.5px; font-weight: 900; white-space: nowrap; transform: rotate(6deg); animation: vrStamp .45s both cubic-bezier(.2,1.8,.4,1); }
+.boardV3 .caseBoardTitle { top: 84px !important; }
+.causeCandidates > div { position: relative; }
+.verdictStamp { white-space: nowrap; position: absolute; z-index: 5; top: 26%; left: 50%; padding: 3px 12px; border: 3px solid; border-radius: 8px; font: 900 18px/1 "TraceRounded", system-ui; transform: translateX(-50%) rotate(-12deg); background: #ffffffd9; pointer-events: none; animation: vrStamp .45s both cubic-bezier(.2,1.8,.4,1); }
+.verdictStamp.rebut { color: #c0392b; border-color: #c0392b; }
+.verdictStamp.likely { color: #2f7d5b; border-color: #2f7d5b; }
+.causeCandidates > div.verdict-rebut { opacity: .62; filter: grayscale(.4); }
