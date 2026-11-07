@@ -49,7 +49,7 @@ const CASES: Record<CaseId, CaseData> = {
       { id: "accel", label: "차량 가속", img: CAR, zone: "차량", ref: 2.8, run: 1.2, unit: "m/s²", status: "bad", t: 60, causes: ["motor_tq", "cluster", "regen"], ev: "pedal_raw" },
       { id: "motor_tq", label: "모터 힘", img: B("motor_actual"), zone: "부품", ref: 204, run: 91, unit: "Nm", status: "bad", t: 30, causes: ["batt_i", "can_cmd", "motor_temp"], ev: "motor_actual" },
       { id: "can_cmd", label: "CAN 토크 명령", img: B("torque_cmd"), zone: "CAN", ref: 204, run: 92, unit: "Nm", status: "bad", t: 20, causes: ["inv_i", "gateway", "vcu_in"], ev: "torque_cmd" },
-      { id: "vcu_in", label: "VCU 페달 처리값", img: B("pedal_processed"), zone: "제어기", ref: 60, run: 27, unit: "%", status: "bad", t: 10, causes: ["aps", "brake_sw", "gear"], ev: "pedal_processed" },
+      { id: "vcu_in", label: "VCU 페달 처리값", img: B("pedal_processed"), zone: "제어기", ref: 60, run: 27, unit: "%", status: "bad", t: 10, causes: ["aps", "brake_sw", "gear", "bms_lim", "temp_lim"], ev: "pedal_processed" },
       // traps: abnormal, but they changed LATER than the domino they are offered for
       { id: "cluster", label: "계기판 출력 게이지", img: ECU, zone: "차량", ref: 60, run: 27, unit: "%", status: "bad", t: 70 },
       { id: "batt_i", label: "배터리 방전 전류", img: E("bms"), zone: "부품", ref: 180, run: 85, unit: "A", status: "bad", t: 40 },
@@ -57,8 +57,10 @@ const CASES: Record<CaseId, CaseData> = {
       OK("aps", "가속 페달 센서", B("pedal_raw"), "센서", 60, "%"),
       OK("brake_sw", "브레이크 스위치", E("brake_pedal"), "센서", "꺼짐", ""),
       OK("gear", "기어 위치", SENSOR, "센서", "D", ""),
+      OK("bms_lim", "BMS 허용 출력", E("bms"), "제어기", 160, "kW"),
+      OK("temp_lim", "온도 보호 제한", B("thermal_protection"), "제어기", "없음", ""),
       OK("regen", "회생 제동", B("regen_request"), "제어기", 0, "%"),
-      OK("motor_temp", "모터 온도", B("motor_temp"), "부품", 62, "°C", "tol", 60),
+      OK("motor_temp", "모터 온도", B("motor_temp"), "부품", 62, "°C"),
       OK("gateway", "게이트웨이 전달", ATLAS(1), "CAN", 100, "%"),
     ],
     zoom: {
@@ -74,18 +76,20 @@ const CASES: Record<CaseId, CaseData> = {
     req: "요구사항: 냉각수가 65°C를 넘으면 냉각 팬을 100%로 돌려야 한다.",
     doms: [
       { id: "accel", label: "차량 가속", img: CAR, zone: "차량", ref: 2.8, run: 1.9, unit: "m/s²", status: "bad", t: 72, causes: ["derate", "regen", "warn_lamp"] },
-      { id: "derate", label: "출력 허용", img: B("thermal_protection"), zone: "제어기", ref: 100, run: 62, unit: "%", status: "bad", t: 70, causes: ["batt_out", "motor_temp", "air_temp"], ev: "thermal_protection" },
+      { id: "derate", label: "출력 허용", img: B("thermal_protection"), zone: "제어기", ref: 100, run: 62, unit: "%", status: "bad", t: 70, causes: ["batt_out", "motor_temp", "bms_req"], ev: "thermal_protection" },
       { id: "motor_temp", label: "모터 온도", img: B("motor_temp"), zone: "부품", ref: 70, run: 96, unit: "°C", status: "bad", t: 55, causes: ["coolant", "inv_temp", "pump"] },
       { id: "coolant", label: "냉각수 온도", img: E("motor_temp_sensor"), zone: "센서", ref: 65, run: 78, unit: "°C", status: "bad", t: 40, causes: ["batt_temp", "coolant_lv", "fan_rpm"], ev: "motor_temp" },
-      { id: "fan_rpm", label: "냉각 팬 회전", img: E("cooling_fan"), zone: "부품", ref: 1850, run: 0, unit: "rpm", status: "bad", t: 0, causes: ["fan_cmd", "fan_power", "fan_block"], ev: "fan_actual" },
+      { id: "fan_rpm", label: "냉각 팬 회전", img: E("cooling_fan"), zone: "부품", ref: 1850, run: 0, unit: "rpm", status: "bad", t: 0, causes: ["fan_cmd", "fan_pwm", "fan_power", "fan_block"], ev: "fan_actual" },
       { id: "warn_lamp", label: "냉각 경고등", img: ECU, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 75 },
       { id: "batt_out", label: "배터리 출력", img: E("bms"), zone: "부품", ref: 160, run: 100, unit: "kW", status: "bad", t: 71 },
       { id: "inv_temp", label: "인버터 온도", img: E("mcu"), zone: "부품", ref: 60, run: 84, unit: "°C", status: "bad", t: 60 },
       { id: "batt_temp", label: "배터리 온도", img: E("bms"), zone: "센서", ref: 30, run: 41, unit: "°C", status: "bad", t: 50 },
       { ...OK("fan_cmd", "팬 명령 (Thermal ECU)", E("thermal_ecu"), "제어기", 100, "%"), ev: "fan_command" },
-      OK("fan_power", "팬 전원", ATLAS(5), "부품", 12, "V"),
-      OK("fan_block", "팬 막힘", RADIATOR, "부품", "없음", ""),
-      OK("pump", "냉각수 펌프", RADIATOR, "부품", 12, "L/min", "tol", 11.8),
+      OK("fan_pwm", "팬 커넥터 PWM 신호", ATLAS(5), "부품", 100, "%"),
+      OK("fan_power", "팬 커넥터 전압", ATLAS(5), "부품", 12, "V"),
+      OK("fan_block", "팬 걸림 (이물질)", RADIATOR, "부품", "없음", ""),
+      OK("pump", "냉각수 펌프 유량", RADIATOR, "부품", 12, "L/min"),
+      OK("bms_req", "BMS 출력 제한 요청", E("bms"), "제어기", "없음", ""),
       OK("coolant_lv", "냉각수 양", RADIATOR, "부품", 100, "%"),
       OK("air_temp", "바깥 기온", SENSOR, "센서", 25, "°C", "tol", 26),
       OK("regen", "회생 제동", B("regen_request"), "제어기", 0, "%"),
@@ -105,7 +109,7 @@ const CASES: Record<CaseId, CaseData> = {
     doms: [
       { id: "stop", label: "정지 거리", img: CAR, zone: "차량", ref: 32, run: 58, unit: "m", status: "bad", t: 3, causes: ["decel", "road", "rear_warn"] },
       { id: "decel", label: "차량 감속", img: B("brake_request"), zone: "차량", ref: 3.2, run: 1.4, unit: "m/s²", status: "bad", t: 0.2, causes: ["pitch", "caliper", "regen"] },
-      { id: "caliper", label: "캘리퍼 압력", img: B("brake_actual"), zone: "부품", ref: 42, run: 8, unit: "bar", status: "bad", t: 0.1, causes: ["p_cmd", "pad_temp", "bpp"], ev: "brake_actual" },
+      { id: "caliper", label: "캘리퍼 압력", img: B("brake_actual"), zone: "부품", ref: 42, run: 8, unit: "bar", status: "bad", t: 0.1, causes: ["p_cmd", "pad_temp", "bpp", "fluid"], ev: "brake_actual" },
       { id: "rear_warn", label: "후방 추돌 경고", img: ECU, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 3.2 },
       { id: "pitch", label: "차체 앞 쏠림", img: CAR, zone: "차량", ref: 3, run: 1.2, unit: "°", status: "bad", t: 0.4 },
       { id: "pad_temp", label: "브레이크 패드 온도", img: ATLAS(7), zone: "부품", ref: 180, run: 60, unit: "°C", status: "bad", t: 0.5 },
@@ -113,6 +117,7 @@ const CASES: Record<CaseId, CaseData> = {
       OK("bpp", "브레이크 페달", E("brake_pedal"), "센서", 55, "%"),
       { ...OK("regen", "회생 제동", B("regen_request"), "제어기", 22, "%"), ev: "regen_request" },
       OK("road", "노면 마찰", CAR, "차량", 0.8, "μ"),
+      OK("fluid", "브레이크액 양", ATLAS(8), "부품", 100, "%"),
     ],
     zoom: {
       where: "캘리퍼", kind: "hw",
@@ -295,7 +300,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
           </div>
           <span className="dtTlEdge">나중에 달라짐 ⏱</span>
         </div>
-        <div className="dtCands">{candidates.map(id => {
+        <div className={`dtCands ${candidates.length > 3 ? "many" : ""}`}>{candidates.map(id => {
           const d = dom(id); const open = checked.includes(id);
           const tileState: TileState = !open ? "hidden" : traps.includes(id) ? "trap" : d.status === "bad" ? "clue" : d.status === "tol" ? "tol" : "normal";
           return <div key={id} className={`dtCand ${shake === id ? "shake" : ""}`}>
@@ -306,7 +311,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
         })}</div>
         <div className="dtCall">
           {allOpen && !earlierBad
-            ? <button className="dtFirst" onClick={callFirst}>앞쪽에 먼저 달라진 게 없어 → 🎯 {cur.label}{josa(cur.label, "이", "가")} 시작점!</button>
+            ? <button className="dtFirst" onClick={callFirst}>들어오는 입력이 모두 정상 → 🎯 {cur.label}{josa(cur.label, "이", "가")} 시작점!</button>
             : <span className="dtTip">사진을 눌러 측정 · 원인은 결과보다 <b>먼저</b> 달라져요</span>}
         </div>
       </section>}
@@ -336,7 +341,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
       <div className="dtHow">
         <div><span className="pic">📸</span><b>1. 사진 측정</b><small>기준과 같은지, 언제 달라졌는지</small></div>
         <div><span className="pic">⏱</span><b>2. 먼저 달라진 쪽이 원인</b><small>나중에 달라진 건 결과(함정)</small></div>
-        <div><span className="pic">🎯</span><b>3. 시작점 찾기</b><small>앞쪽이 모두 정상일 때</small></div>
+        <div><span className="pic">🎯</span><b>3. 시작점 찾기</b><small>입력이 모두 정상인데 출력만 다를 때</small></div>
       </div>
       <p className="dtHowNote">막대: <i className="dash" /> 기준 · <i className="fill" /> 이번 주행 · 틀리면 ♥이 줄어요</p>
       <button onClick={() => setHelp(false)}>시작!</button>
