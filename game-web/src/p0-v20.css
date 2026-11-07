@@ -794,3 +794,12 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 .dtTip b { color: var(--clueDeep); }
 .dtQuestion { gap: 4px; }
 .dtTlMark.late em { top: 16px !important; }
+
+/* race: PRND selector */
+.raceTripHud .prnd { display: inline-flex; gap: 2px; align-items: center; }
+.raceTripHud .prnd i { font-style: normal; width: 18px; text-align: center; border-radius: 5px; opacity: .45; }
+.raceTripHud .prnd i.on { opacity: 1; background: #ffd56b; color: #3b2f25; }
+.gearPrompt { position: absolute; z-index: 20; left: 50%; top: 34%; transform: translateX(-50%); padding: 10px 18px; border-radius: 999px; background: #fffaf0; border: 3px solid #e2c88c; box-shadow: 0 6px 0 #d3b26e; font: 800 16px Pretendard, system-ui; color: #3b2f25; animation: dtPulse 1.2s ease-in-out infinite; }
+.gearPrompt kbd { padding: 1px 8px; border-radius: 6px; background: #3b2f25; color: #fff; font: 900 14px Pretendard, system-ui; } .gearPrompt b { color: #e05a3a; }
+.gearToast { position: absolute; z-index: 21; left: 50%; top: 44%; transform: translateX(-50%); padding: 8px 16px; border-radius: 12px; background: #2f4a44; color: #fff; font: 800 14px Pretendard, system-ui; animation: eeTagIn .3s ease-out, gearOut .4s 2.2s forwards; pointer-events: none; }
+@keyframes gearOut { to { opacity: 0; } }

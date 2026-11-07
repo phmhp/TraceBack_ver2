@@ -901,7 +901,7 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
         <div className="heistFrameRail">{heistCaptions.map((caption, index) => <i key={caption} className={index < heistFrame ? "done" : index === heistFrame ? "active" : ""} />)}</div>
         <div className="heistCaption"><small>HEIST CUTSCENE · {heistFrame + 1}/8</small><b>{heistCaptions[heistFrame]}</b><span>{ready ? "루와 밍이 차에 탔습니다. 이제 직접 운전합니다." : "금고에서 도주 차량까지 실제 장면이 이어집니다."}</span></div>
       </section>
-      <section className="briefingPanel heistPanel"><small>GETAWAY CONTROLS</small><h1>부잣집 탈출 완료<br />해안 도로로 도주!</h1><div className="briefingChecklist"><span><i>W / S</i><b>가속 · 브레이크</b></span><span><i>A / D</i><b>부드러운 조향</b></span><span><i>Q / E</i><b>기어 내림 · 올림</b></span></div><div className="briefingStatus"><span><small>DRIVE</small><b>D · 단일 감속기 · 회생 0–3</b></span><span><small>POLICE</small><b>출발 후 뒤에서 합류</b></span><span><small>COURSE</small><b>CURVED COAST RUN</b></span></div><button className="primary" disabled={!ready} onClick={() => send({ type: "BEGIN_RACE" })}>{ready ? "3 · 2 · 1 도주 시작 →" : `${heistCaptions[heistFrame]}…`}</button></section>
+      <section className="briefingPanel heistPanel"><small>GETAWAY CONTROLS</small><h1>부잣집 탈출 완료<br />해안 도로로 도주!</h1><div className="briefingChecklist"><span><i>W / S</i><b>가속 · 브레이크</b></span><span><i>A / D</i><b>부드러운 조향</b></span><span><i>1~4 · Q / E</i><b>기어 P·R·N·D · 회생 단계</b></span></div><div className="briefingStatus"><span><small>DRIVE</small><b>D · 단일 감속기 · 회생 0–3</b></span><span><small>POLICE</small><b>출발 후 뒤에서 합류</b></span><span><small>COURSE</small><b>CURVED COAST RUN</b></span></div><button className="primary" disabled={!ready} onClick={() => send({ type: "BEGIN_RACE" })}>{ready ? "3 · 2 · 1 도주 시작 →" : `${heistCaptions[heistFrame]}…`}</button></section>
     </main>
   </div>;
 }
@@ -1189,7 +1189,7 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
     </group>})}
     {[300, 620, 920].map(s => { const f = trackFrame(s); const missionSignalRed = s === 620 && sim.distance >= 540 && sim.distance <= 612.5; return <group key={`junction-${s}`} position={[f.x, .025, f.z]} rotation={[0, f.yaw, 0]}>
       {Array.from({ length: 9 }, (_, index) => <mesh key={index} rotation={[-Math.PI / 2, 0, 0]} position={[-6.4 + index * 1.6, .015, 0]}><planeGeometry args={[.72, 4.2]} /><meshStandardMaterial color="#f5efe2" /></mesh>)}
-      {[-7.1, 7.1].map(x => <group key={x} position={[x, 2.25, -2.8]}><mesh><boxGeometry args={[.15, 4.5, .15]} /><meshStandardMaterial color="#303b39" metalness={.65} /></mesh><RoundedBox args={[.6, 1.45, .35]} radius={.12} position={[0, 1.7, 0]}><meshStandardMaterial color="#25302e" /></RoundedBox>{[-.42, 0, .42].map((y, n) => { const lit = missionSignalRed ? n === 0 : n === 2; const lamp = missionSignalRed ? "#ff554d" : "#50d47a"; return <mesh key={y} position={[0, 1.7 + y, -.2]}><sphereGeometry args={[.14, 18, 12]} /><meshStandardMaterial color={lit ? lamp : "#473f3b"} emissive={lit ? lamp : "#000"} emissiveIntensity={lit ? 2.4 : 0} /></mesh>; })}</group>)}
+      {[-7.1, 7.1].map(x => <group key={x} position={[x, 2.25, -2.8]}><mesh><boxGeometry args={[.15, 4.5, .15]} /><meshStandardMaterial color="#303b39" metalness={.65} /></mesh><RoundedBox args={[.6, 1.45, .35]} radius={.12} position={[0, 1.7, 0]}><meshStandardMaterial color="#25302e" /></RoundedBox>{[.42, 0, -.42].map((y, n) => { const lit = missionSignalRed ? n === 0 : n === 2; const lamp = missionSignalRed ? "#ff3b30" : "#3ee072"; return <mesh key={y} position={[0, 1.7 + y, .2]}><sphereGeometry args={[.17, 18, 12]} /><meshStandardMaterial color={lit ? lamp : "#473f3b"} emissive={lit ? lamp : "#000"} emissiveIntensity={lit ? 2.4 : 0} /></mesh>; })}</group>)}
     </group>; })}
     <RoadsideEnvironment />
     <TrafficFleet sim={sim} />
@@ -1256,6 +1256,9 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const [sim, setSim] = useState<DriveSim>(() => ({ speed: 0, lane: 0, steer: 0, distance: state.raceDistance, gap: state.policeGapMeters, heat: state.caseId === "thermal" ? 66 : 36, elapsed: state.raceElapsedSeconds }));
   // EVs use a single-speed reduction gear: no gear steps. Q/E set the regen level (0–3).
   const [regen, setRegen] = useState(1);
+  // Shift-by-wire selector: P/R/N/D on keys 1–4 with the usual interlocks.
+  const [gear, setGear] = useState<"P" | "R" | "N" | "D">(mode === "normal" ? "P" : "D");
+  const [gearToast, setGearToast] = useState<{ text: string; id: number } | null>(null);
   const [impact, setImpact] = useState(0);
   const [impactMessage, setImpactMessage] = useState("가드레일 접촉 · 속도 감소 및 차체 반발");
   const [parking, setParking] = useState(false);
@@ -1287,6 +1290,16 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       if (!event.repeat && event.key.toLowerCase() === "q") setRegen(value => Math.max(0, value - 1));
       if (!event.repeat && event.key.toLowerCase() === "e") setRegen(value => Math.min(3, value + 1));
       if (!event.repeat && event.key.toLowerCase() === "r" && driveMission === "restart") setDriveMission("done");
+      const wanted = ({ "1": "P", "2": "R", "3": "N", "4": "D" } as const)[event.key as "1" | "2" | "3" | "4"];
+      if (!event.repeat && wanted) {
+        const moving = simRef.current.speed > 3;
+        const brakeHeld = keys.current.has("s") || keys.current.has("arrowdown");
+        const toast = (text: string) => { setGearToast({ text, id: Date.now() }); play("error"); };
+        if (wanted === "P" && moving) toast("주행 중에는 P로 바꿀 수 없어요 · 변속 인터록");
+        else if (wanted === "R" && moving) toast("앞으로 달리는 중엔 R로 못 바꿔요");
+        else if ((wanted === "D" || wanted === "R") && !moving && !brakeHeld && gear !== "N") toast("브레이크(S)를 밟은 채로 변속해요");
+        else { setGear(wanted); play("pop", wanted === "D" ? 1.2 : .9); setGearToast(null); }
+      }
       if (event.key === "Escape") {
         const current = simRef.current;
         send({ type: "SYNC_RACE", distance: current.distance, gap: current.gap, elapsed: current.elapsed });
@@ -1301,16 +1314,16 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       setSim(previous => {
         const k = keys.current;
         const allowed = countdown === 0;
-        const throttle = allowed && (k.has("w") || k.has("arrowup"));
+        const throttle = allowed && gear === "D" && (k.has("w") || k.has("arrowup"));
         const braking = k.has("s") || k.has("arrowdown");
         // Motor characteristic: full torque at low speed, then constant power (accel falls with speed).
         const topSpeed = 165;
         let speed = previous.speed;
         if (throttle) speed += 46 * Math.min(1, 70 / Math.max(speed, 1)) * dt;
-        else speed -= [2.15, 5.5, 9, 13][regen] * dt; // coasting: regen level sets the deceleration
+        else speed -= (gear === "N" ? 1.6 : [2.15, 5.5, 9, 13][regen]) * dt; // coasting: regen level sets the deceleration (none in N)
         if (braking) speed -= 62 * dt;
         speed = THREE.MathUtils.clamp(speed, 0, topSpeed);
-        if (!allowed || parking || driveMission === "restart" || waterFall) speed = THREE.MathUtils.damp(speed, 0, 6.2, dt);
+        if (!allowed || parking || driveMission === "restart" || waterFall || gear === "P" || gear === "R") speed = THREE.MathUtils.damp(speed, 0, 6.2, dt);
         if (mode === "assist") speed = Math.min(speed || (allowed && !parking ? 27 : 0), 30);
         // Faults appear only under the driving condition that exposes them
         // (= the reproduction condition the player later carries to the board).
@@ -1321,7 +1334,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
           speed = Math.min(previous.speed + (speed - previous.speed) * .45, Math.max(previous.speed, 55)); // pedal signal scaled to 45%
         }
         const derating = inClimbZone && previous.heat >= 80;
-        if (derating) speed = Math.min(speed, 38);
+        if (derating) speed = Math.min(speed, 55);
         const firstSymptom = inOvertakeZone && zoneThrottle.current > .25;
         const secondSymptom = derating;
         const steerInput = (k.has("a") || k.has("arrowleft") ? -1 : 0) + (k.has("d") || k.has("arrowright") ? 1 : 0);
@@ -1399,7 +1412,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     };
     frame = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(frame); removeEventListener("keydown", down); removeEventListener("keyup", up); };
-  }, [countdown, driveMission, regen, mode, parking, send, state.caseId, state.completedCases, state.lastRepairDistance, state.lastRepairElapsedSeconds, waterFall]);
+  }, [countdown, driveMission, regen, gear, mode, parking, send, state.caseId, state.completedCases, state.lastRepairDistance, state.lastRepairElapsedSeconds, waterFall]);
   useEffect(() => {
     if (mode !== "resume" || state.caseId !== "propulsion" || driveMission !== "idle" || sim.distance < 550) return;
     setDriveMission("red");
@@ -1450,7 +1463,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const zone = mode === "normal" && sim.distance >= OVERTAKE_ZONE[0] - 40 && sim.distance < OVERTAKE_ZONE[1]
     ? { icon: "🏁", title: "추월 구간", text: "W를 끝까지 밟아 추격차를 따돌려!" }
     : mode === "resume" && state.caseId === "propulsion" && sim.distance >= CLIMB_ZONE[0] - 40 && sim.distance < CLIMB_ZONE[1]
-      ? { icon: "⛰️", title: "오르막 고부하 구간", text: "속도를 유지하며 계속 밟아 올라가자!" }
+      ? { icon: "🔥", title: "연속 고부하 구간", text: "계속 밟아 속도 유지! 모터·냉각 온도를 지켜봐" }
       : null;
   useEffect(() => {
     if (mode !== "assist" || parking || sim.distance < assistTarget) return;
@@ -1475,18 +1488,20 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     <JourneyProgress scene={mode === "ship" ? "SHIP_ESCAPE" : "CHASE_NORMAL"} />
     <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button><div><small>{mode === "ship" ? "FINAL RUN" : "CHAPTER 04"}</small><b>{mode === "assist" ? "LIMITED DRIVE" : "ESCAPE RUN"}</b></div></div>
     <PursuitRouteBar distance={sim.distance} gap={sim.gap} />
-    <div className="raceTripHud"><span><small>ELAPSED</small><b>{formatRaceTime(sim.elapsed)}</b></span><span><small>DRIVE · 회생 Q/E</small><b>D · 회생 {regen}</b></span><em>회생제동 단계 {regen} · Q 약하게 / E 강하게</em></div>
+    <div className="raceTripHud"><span><small>ELAPSED</small><b>{formatRaceTime(sim.elapsed)}</b></span><span><small>DRIVE · 회생 Q/E · 기어 1~4</small><b className="prnd">{(["P", "R", "N", "D"] as const).map(g => <i key={g} className={gear === g ? "on" : ""}>{g}</i>)} · 회생 {regen}</b></span><em>회생제동 단계 {regen} · Q 약하게 / E 강하게</em></div>
+    {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>S</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
+    {gearToast && <div className="gearToast" key={gearToast.id}>{gearToast.text}</div>}
     <div className="cockpitGauge"><small>SPEED</small><b>{Math.round(sim.speed)}</b><span>km/h</span><div><i style={{ width: `${Math.min(100, sim.speed)}%` }} /></div><em>{state.caseId === "thermal" ? `${Math.round(sim.heat)}°C` : "HV READY"}</em></div>
     <RearMirror3D gap={sim.gap} visible={policeInWorld} />
     <div className="raceMiniMap"><b>LIVE CURVE MAP</b><svg viewBox="0 0 90 100"><path d="M45 98 C20 83 72 70 42 55 S16 30 48 8" /><circle className="cop" cx={mapPolice.x} cy={mapPolice.y} r="4" /><circle className="me" cx={mapPlayer.x} cy={mapPlayer.y} r="4.5" /></svg><small><i /> 자차 <em /> 경찰</small></div>
     <div className="raceControls keyBar">
       <span><kbd>W</kbd><em>가속</em></span><span><kbd>S</kbd><em>브레이크</em></span><span><kbd>A</kbd><kbd>D</kbd><em>조향</em></span>
-      <span><kbd>Q</kbd><kbd>E</kbd><em>회생 −/+</em></span><span><kbd>R</kbd><em>재시동</em></span><span><kbd className="wide">Esc</kbd><em>멈춤</em></span>
+      <span><kbd>1</kbd><kbd>4</kbd><em>P R N D</em></span><span><kbd>Q</kbd><kbd>E</kbd><em>회생 −/+</em></span><span><kbd>R</kbd><em>재시동</em></span><span><kbd className="wide">Esc</kbd><em>멈춤</em></span>
     </div>
     {mode === "normal" && (countdown > 0 || sim.speed < 3) && sim.distance < 40 && <div className="keyGuideCard" aria-label="조작법">
       <b>조작법</b>
       <div className="wasd"><kbd className="k-w">W</kbd><kbd className="k-a">A</kbd><kbd className="k-s">S</kbd><kbd className="k-d">D</kbd></div>
-      <ul><li><kbd>W</kbd> 가속 · <kbd>S</kbd> 브레이크</li><li><kbd>A</kbd><kbd>D</kbd> 좌우 조향</li><li><kbd>Q</kbd><kbd>E</kbd> 회생제동 약하게/강하게</li><li><kbd>R</kbd> 멈췄을 때 READY 재시동</li></ul>
+      <ul><li><kbd>W</kbd> 가속 · <kbd>S</kbd> 브레이크</li><li><kbd>A</kbd><kbd>D</kbd> 좌우 조향</li><li><kbd>1</kbd>~<kbd>4</kbd> 기어 P·R·N·D (S 밟고)</li><li><kbd>Q</kbd><kbd>E</kbd> 회생제동 약하게/강하게</li><li><kbd>R</kbd> 멈췄을 때 READY 재시동</li></ul>
     </div>}
     {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
     {(countdown > 0 || goFlash) && <div className="startCountdown"><small>GET READY</small><b>{goFlash ? "GO!" : countdown}</b></div>}
@@ -1502,7 +1517,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
 
 // Driving zones on the existing course where each fault shows up [start, fallback trigger] in metres.
 const OVERTAKE_ZONE = [150, 330] as const;
-const CLIMB_ZONE = [720, 920] as const;
+const CLIMB_ZONE = [760, 960] as const; // sustained high-load section (cooling must keep up)
 
 // Warning lamp the driver sees for each case (generic EV cluster behaviour).
 const faultLamp: Record<CaseId, { icon: string; glyph: string; label: string; note: string }> = {
