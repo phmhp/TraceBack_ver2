@@ -540,3 +540,103 @@ kbd.wide { min-width: 34px; }
 
 /* Korean text wraps only at spaces (no mid-word breaks) */
 body, button, p, li, span, b, small, em, h1, h2, h3 { word-break: keep-all; overflow-wrap: break-word; }
+
+/* ===== Memo board v4: trace fallen dominoes backward ===== */
+.dtBoard { position: fixed; inset: 0; display: grid; grid-template-rows: auto auto 1fr; font-family: Pretendard, system-ui, sans-serif; color: #3b2f25; }
+.dtBoard > .sceneBackdrop { position: fixed; inset: 0; z-index: 0; }
+.dtBoard > header, .dtBoard > .dtLayout, .dtBoard > div:not(.sceneBackdrop):not(.dtModal):not(.replayModal) { position: relative; z-index: 1; }
+.dtLayout { margin: 8px 18px 14px; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 14px; border-radius: 22px; background: #fff8ecf2; border: 3px solid #e2c88c; box-shadow: 0 6px 0 #d3b26e, 0 18px 40px #0003; }
+.dtHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.dtSteps { display: flex; gap: 6px; flex-wrap: wrap; }
+.dtSteps span { display: flex; align-items: center; gap: 6px; padding: 5px 12px 5px 6px; border-radius: 999px; background: #f1e6d0; color: #a08a6a; font: 800 13px Pretendard, system-ui; }
+.dtSteps span i { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #fff; font-style: normal; font-size: 12px; }
+.dtSteps span.now { background: #ffd56b; color: #6b4300; } .dtSteps span.done { background: #cdeccf; color: #2e7d32; }
+.dtButtons { display: flex; gap: 6px; align-items: center; }
+.dtButtons > button, .dtMode button, .dtModal button, .dtFollow, .dtNext, .dtFirst, .dtBudget button { padding: 7px 14px; border-radius: 999px; border: 2px solid #c0782a; background: #fff; color: #9a5a14; font: 800 13px Pretendard, system-ui; cursor: pointer; box-shadow: 0 3px 0 #c0782a; white-space: nowrap; transition: transform .12s; }
+.dtButtons > button:active, .dtFollow:active, .dtFirst:active, .dtNext:active { transform: translateY(2px) scale(.96); box-shadow: 0 1px 0 #c0782a; }
+.dtMode { display: flex; border-radius: 999px; overflow: hidden; }
+.dtMode button { box-shadow: none; border-radius: 0; padding: 6px 12px; }
+.dtMode button:first-child { border-radius: 999px 0 0 999px; } .dtMode button:last-child { border-radius: 0 999px 999px 0; border-left: 0; }
+.dtMode button.on { background: #c0782a; color: #fff; }
+.dtZones { display: flex; align-items: center; justify-content: center; gap: 6px; font: 800 12px Pretendard, system-ui; color: #b9a582; }
+.dtZones span { padding: 3px 12px; border-radius: 8px; border: 2px dashed #e0cfa8; }
+.dtZones span.seen { border-style: solid; color: #c0392b; border-color: #f0b4a8; background: #fff0ec; }
+.dtZones span.now { border-style: solid; color: #fff; background: #e05a3a; border-color: #e05a3a; }
+.dtZones i { font-style: normal; color: #d9c49a; }
+.dtChain { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 14px 10px 10px; border-radius: 18px; background: repeating-linear-gradient(90deg, #f3e3c2 0 2px, transparent 2px 28px), #fbefd8; border: 2px solid #ead6ae; overflow-x: auto; }
+.dtChainHint { font: 800 11px Pretendard, system-ui; color: #b9a582; white-space: nowrap; }
+.dtChainItem { position: relative; transition: transform .2s; }
+.dtChainItem.current { transform: scale(1.04); }
+.dtBadge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 2; padding: 2px 8px; border-radius: 999px; background: #6b4f2a; color: #fff; font: 900 11px Pretendard, system-ui; font-style: normal; white-space: nowrap; }
+.dtBadge.red { background: #e05a3a; }
+.dtArrow { width: 26px; height: 4px; border-radius: 2px; background: #e0cfa8; position: relative; flex: none; }
+.dtArrow::after { content: ""; position: absolute; right: -4px; top: -5px; border: 7px solid transparent; border-left-color: #e0cfa8; border-right: 0; }
+.dtArrow.lit { background: linear-gradient(90deg, #ffb36b, #e05a3a); } .dtArrow.lit::after { border-left-color: #e05a3a; }
+.dtTile { width: 150px; min-height: 150px; border-radius: 16px; background: #fff; border: 3px solid #e2c88c; box-shadow: 0 5px 0 #d3b26e; display: grid; transition: transform .45s cubic-bezier(.3,1.6,.5,1), box-shadow .3s, border-color .3s; transform-origin: 50% 100%; }
+.dtTile.small { width: 118px; min-height: 118px; }
+.dtTile.small .dtIcon { font-size: 26px; } .dtTile.small b { font-size: 12px; }
+.dtTile.click { cursor: pointer; } .dtTile.click:hover { transform: translateY(-4px) rotate(-1deg); }
+.dtTile.t-fallen { border-color: #e05a3a; box-shadow: 0 5px 0 #b8432a; transform: rotate(-9deg) translateY(4px); background: #fff3ef; }
+.dtTile.t-standing { border-color: #6dbb72; box-shadow: 0 5px 0 #4f9a55; }
+.dtTile.t-wobble { border-color: #e9b949; box-shadow: 0 5px 0 #c99a2c; animation: dtWobble 1.6s ease-in-out infinite; }
+@keyframes dtWobble { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+.dtTile.t-hidden { background: repeating-linear-gradient(45deg, #f7e7c4 0 10px, #fbefd6 10px 20px); border-style: dashed; }
+.dtFace, .dtBack { display: grid; justify-items: center; align-content: center; gap: 5px; padding: 10px 8px; text-align: center; }
+.dtFace b { font: 900 13px Pretendard, system-ui; line-height: 1.3; }
+.dtIcon { font-size: 34px; line-height: 1; }
+.dtBack span { font: 900 40px "TraceRounded", system-ui; color: #c0782a; line-height: 1; }
+.dtBack small { font: 800 12px Pretendard, system-ui; color: #6b4f2a; }
+.dtBack em { font: 800 11px Pretendard, system-ui; font-style: normal; color: #fff; background: #c0782a; padding: 3px 10px; border-radius: 999px; }
+.dtGauge { width: 100%; display: grid; gap: 3px; }
+.dtTrack { position: relative; height: 12px; border-radius: 6px; background: #f1e6d0; overflow: hidden; }
+.dtTrack i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; }
+.dtTrack i.ref { border: 2px dashed #8a7550; background: transparent; z-index: 2; box-sizing: border-box; }
+.dtTrack i.run { background: #6dbb72; transition: width .6s; }
+.g-tol .dtTrack i.run { background: #e9b949; } .g-bad .dtTrack i.run { background: #e05a3a; }
+.dtGaugeTxt { font: 700 10.5px Pretendard, system-ui; color: #8a7550; } .dtGaugeTxt b { color: #3b2f25; }
+.dtQuestion { display: grid; justify-items: center; gap: 12px; }
+.dtQuestion h2 { margin: 0; font: 900 20px "TraceRounded", system-ui; }
+.dtQuestion h2 b { color: #e05a3a; }
+.dtCands { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+.dtCand { display: grid; justify-items: center; gap: 8px; }
+.dtFollow { background: #e05a3a; color: #fff; border-color: #b8432a; box-shadow: 0 3px 0 #b8432a; }
+.dtClear { font: 800 12px Pretendard, system-ui; color: #4f9a55; padding: 6px 0; }
+.dtCall { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.dtFirst { background: #ffd56b; border-color: #c0782a; color: #6b4300; padding: 9px 20px; font-size: 14px; }
+.dtBudget { display: flex; gap: 6px; align-items: center; font: 800 13px Pretendard, system-ui; color: #c0782a; letter-spacing: 1px; }
+.dtZoom { display: grid; gap: 10px; justify-items: center; }
+.dtZoom h2 { margin: 0; font: 900 18px "TraceRounded", system-ui; }
+.dtFlowRow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.dtFlowRow small { width: 38px; font: 900 12px Pretendard, system-ui; color: #a08a6a; }
+.dtFlowRow i { font-style: normal; color: #c0782a; font-weight: 900; }
+.dtBlk { display: grid; gap: 2px; min-width: 110px; padding: 8px 10px; border-radius: 12px; background: #fff; border: 2px solid #e2c88c; font: 700 12px Pretendard, system-ui; text-align: center; color: #3b2f25; }
+.dtBlk.ref { background: #f4f9f4; border-color: #b9dcbb; border-style: dashed; }
+button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; } button.dtBlk:hover { transform: translateY(-2px); }
+.dtBlk em { font-style: normal; font-weight: 900; color: #8a7550; }
+.dtBlk.part { background: #fff6e6; }
+.dtBlk.right { border-color: #e05a3a; background: #ffece6; animation: dtPop .4s; } .dtBlk.wrong { animation: dtShake .4s; opacity: .6; }
+.dtImpact { display: grid; gap: 8px; justify-items: center; padding: 12px 16px; border-radius: 16px; background: #fff; border: 2px dashed #e0b07a; }
+.dtImpact h3 { margin: 0; font: 900 14px Pretendard, system-ui; }
+.dtImpact > div { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.dtImpact > div span { padding: 5px 12px; border-radius: 999px; background: #fff0ec; border: 2px solid #f0b4a8; font: 800 12px Pretendard, system-ui; }
+.dtStars { color: #f0a020; font-size: 20px; letter-spacing: 2px; }
+.dtNext { background: #6dbb72; border-color: #4f9a55; color: #fff; box-shadow: 0 3px 0 #4f9a55; padding: 9px 22px; font-size: 14px; }
+.dtBubble { display: flex; gap: 10px; align-items: center; align-self: center; max-width: 640px; margin-top: auto; padding: 8px 16px 8px 8px; border-radius: 999px; background: #fff; border: 2px solid #e2c88c; }
+.dtBubble img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
+.dtBubble p { margin: 0; font: 700 14px/1.45 Pretendard, system-ui; } .dtBubble b { margin-right: 8px; color: #c0782a; }
+.shake { animation: dtShake .4s; }
+@keyframes dtShake { 0%,100% { translate: 0; } 25% { translate: -6px; } 75% { translate: 6px; } }
+@keyframes dtPop { 50% { transform: scale(1.08); } }
+.dtModal { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: #1d2a2acc; }
+.dtModal article { width: min(560px, 92vw); padding: 22px 24px; border-radius: 22px; background: #fffaf0; border: 3px solid #e2c88c; box-shadow: 0 18px 40px #0005; display: grid; gap: 14px; }
+.dtModal h2 { margin: 0; font: 900 19px "TraceRounded", system-ui; text-align: center; }
+.dtHow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.dtHow > div { display: grid; justify-items: center; gap: 4px; padding: 12px 6px; border-radius: 14px; background: #fff; border: 2px solid #ead6ae; text-align: center; }
+.dtHow .pic { font-size: 34px; height: 44px; display: grid; place-items: center; }
+.dtHow b { font: 900 13px Pretendard, system-ui; } .dtHow small { font: 700 11.5px Pretendard, system-ui; color: #8a7550; }
+.dtHowNote { margin: 0; text-align: center; font: 700 12px Pretendard, system-ui; color: #8a7550; }
+.dtHowNote i { display: inline-block; width: 28px; height: 10px; border-radius: 5px; vertical-align: middle; }
+.dtHowNote i.dash { border: 2px dashed #8a7550; } .dtHowNote i.fill { background: #e05a3a; }
+.dtModal button { justify-self: center; }
+.dtLayout > * { flex: none; }
+.dtChain { padding: 22px 12px 16px; }
