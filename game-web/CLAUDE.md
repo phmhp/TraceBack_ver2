@@ -61,6 +61,11 @@
 - Control Software(view 2): `src/features/garage/SimulinkDiagram.tsx` — 로직 단계 키워드로 블록 종류 결정(맵·MIN·PI·1/z·상태기·스위치·비교), 병렬(A/B)·합류(MIN+CAN)·폐루프(Σ+피드백)·재귀(자기 루프), SW 컴포넌트 점선 서브시스템.
 - 메모판: `MEASURE_RAIL`(사건별 측정 지점·정상값·✓/✗), 처음 어긋남 표시, 가설 자동 "반박/유력" 도장(`verdictFor`). 기존 드래그·실 연결·성공 조건은 그대로.
 
+## 2026-11-07 4차 반영
+- 레이스 긴장 알림: 생선 말풍선(`public/assets/ui/bubble-fish-*.svg`, `.fishAlert`), 좌·우만, 고장 순간·경찰 근접만. 충돌은 효과음만.
+- 메모판: 미션 "어디서 처음 어긋났을까?" + 측정 기회 3번(`MEASURE_BUDGET`), 측정 +1은 HINT 이벤트(−5m), 별점. 연필 버그(제목이 카드 덮음, 실이 놓기 가로챔) 수정. 폴라로이드 그림: 주행 현상=`public/assets/board-photos/`, 계측=측정값 화면, 가설=부품 컷아웃(`SYMPTOM_PHOTO`/`SUSPECT_PART`).
+- 퍼즐: 선 아래 신호 값(`SIGNAL_VALUE`), 요구사항 줄 ✓(`REQ_OF_STEP`), 함정 블록 메시지(`TRAP_MSG`).
+
 ## 남은 일 (우선순위 순)
 1. 생성 이미지가 들어오면 메모판을 아틀라스 대신 개별 증거 이미지 파일로 전환. (부품 모델 차고·벤치 연결은 완료)
 2. Day 2~6: 레이스에 driverInput 연결, 단계별 시뮬레이션, 차고·벤치 공용 부품 에셋, Tier C 부품 직접 모델링(규격은 `docs/TIER_C_ASSET_PLAN.md` 4절).
