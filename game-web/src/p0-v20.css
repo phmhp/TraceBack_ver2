@@ -640,3 +640,12 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; } button.dtBlk:hove
 .dtModal button { justify-self: center; }
 .dtLayout > * { flex: none; }
 .dtChain { padding: 22px 12px 16px; }
+
+/* E/E blueprint: gradient signal-flow arrows (blue input → red vehicle response) */
+.eeBlueprint { position: relative; }
+.eeFlow { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: visible; }
+.eeFlowBase { fill: none; stroke-width: 4; stroke-linecap: round; opacity: .85; }
+.eeFlowRun { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 3 14; opacity: .9; animation: eeFlowRun 1s linear infinite; }
+.eeFlow g.hot .eeFlowBase { stroke-width: 6; opacity: 1; }
+@keyframes eeFlowRun { to { stroke-dashoffset: -17; } }
+.eeChip { position: relative; z-index: 4; }
