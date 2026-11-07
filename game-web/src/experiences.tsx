@@ -1766,6 +1766,21 @@ export function RestoredPuzzleVisual({ caseId, running, works, reference }: { ca
   </section>;
 }
 
+// Signal value leaving each block (shown on the wire), trap-block reactions, and
+// which requirement row each block of the correct path implements.
+const SIGNAL_VALUE: Record<CaseId, Record<string, string>> = {
+  propulsion: { aps: "60%", adapter: "60% ✓", map100: "204 Nm", can: "204 Nm", vcu: "204 Nm" },
+  thermal: { temp: "78.4°C", filter: "78.4°C", threshold: "팬 ON", pwm: "100%", thermalecu: "PWM 100%" },
+  brake: { pedal: "55%", request: "3.2 m/s²", blend: "회생+마찰", pressure: "42 bar", brakeecu: "42 bar" },
+};
+const TRAP_MSG: Record<string, string> = {
+  map45: "🕵️ 이 블록이 범인! 페달 60%를 27%로 줄여서 토크가 92 Nm밖에 안 나와",
+  forceoff: "🕵️ 이 블록이 범인! 온도가 높아도 팬을 강제로 꺼 버려",
+  regenonly: "🕵️ 이 블록이 범인! 회생만 쓰고 모자란 제동력을 마찰로 채우지 않아",
+  logger: "📝 기록 전용 블록이라 신호를 바꾸지 않아. 경로에는 안 넣어도 돼",
+};
+const REQ_OF_STEP = [0, 1, 2, 3, 3, 4]; // correct path index → requirement row
+
 export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const config = puzzleConfig[state.caseId];
   const perspective = puzzlePerspective[state.caseId];
@@ -1813,20 +1828,23 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
     const targetIndex = config.correct.indexOf(to);
     if (sourceIndex < 0 || targetIndex !== sourceIndex + 1) {
       setPuzzleFeedback("이 두 조각은 홈 방향 또는 제어 순서가 맞지 않습니다.");
+      play("error");
       setSource(""); setWireDraft(null);
       return;
     }
     const target = nodes.find(node => node.id === to);
     const points = wireDraft && target ? [...wireDraft.points, { x: target.x + 12, y: target.y + 70 }] : undefined;
     setEdges(previous => [...previous.filter(edge => edge.to !== to), { from: source, to, points }]);
-    setPuzzleFeedback("홈과 순서가 맞았습니다. 다음 끊긴 경로를 이어 보세요.");
+    setPuzzleFeedback(`연결 성공! 신호가 ${SIGNAL_VALUE[state.caseId][source] ?? ""} 로 흘러가요`);
+    play("success");
     setSource(""); setWireDraft(null);
   };
   const chooseWireNode = (node: LogicNode) => {
     if (wireTool !== "pencil") return;
     if (source) { connect(node.id); return; }
     if (config.correct.indexOf(node.id) < 0) {
-      setPuzzleFeedback("오류 후보와 기록 블록은 정상 경로에 연결되지 않습니다.");
+      setPuzzleFeedback(TRAP_MSG[node.id] ?? "오류 후보와 기록 블록은 정상 경로에 연결되지 않습니다.");
+      play("error");
       return;
     }
     setSource(node.id);
@@ -1848,13 +1866,14 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
     const pointer = clientX !== undefined && clientY !== undefined ? localPoint(clientX, clientY) : null;
     const draggedNode = pointer ? { ...storedNode, x: THREE.MathUtils.clamp(pointer.x - dragging.dx / view.scale, 5, 1075), y: THREE.MathUtils.clamp(pointer.y - dragging.dy / view.scale, 5, 525) } : storedNode;
     if (!gapIndexes.includes(gapIndex)) {
-      if (gapIndexes.some(index => Math.hypot(draggedNode.x - flowSlots[index].x, draggedNode.y - flowSlots[index].y) < 130)) setPuzzleFeedback("이 조각의 홈은 빈 경로와 맞지 않습니다.");
+      if (gapIndexes.some(index => Math.hypot(draggedNode.x - flowSlots[index].x, draggedNode.y - flowSlots[index].y) < 130)) { setPuzzleFeedback(TRAP_MSG[draggedNode.id] ?? "이 조각의 홈은 빈 경로와 맞지 않습니다."); play("error"); }
       return;
     }
     const slot = flowSlots[gapIndex];
     if (Math.hypot(draggedNode.x - slot.x, draggedNode.y - slot.y) >= 130) return;
     setNodes(previous => previous.map(node => node.id === dragging.id ? { ...node, ...slot } : node));
     setPuzzleFeedback(`${draggedNode.label} 조각이 맞는 홈에 끼워졌습니다.`);
+    play("squish");
   };
   const solvePuzzle = () => {
     const solved = spreadNodes().map(node => { const index = config.correct.indexOf(node.id); return index >= 0 ? { ...node, ...flowSlots[index] } : node; });
@@ -1875,14 +1894,14 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
     <GameHeader chapter="CONTROL PATH RESTORATION" title="제어 경로 복원" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <div className="wiringTitle"><div><small>CONTROL PATH RESTORATION · GUIDED FUNCTION SLICE</small><h1><em className="puzzlePerspectiveTag" onMouseEnter={() => setHelpOpen(true)} onMouseLeave={() => setHelpOpen(false)} onFocus={() => setHelpOpen(true)}>{perspective.active} 수준</em><span>{mission.domain} 도메인 · {mission.feature}</span></h1><p><b>관찰 입력</b> {mission.input}<i>→</i><b>관찰 출력</b> {mission.output}</p></div><span>{source ? `${nodes.find(node => node.id === source)?.label} → 다음 카드` : `빈칸 ${gapIds.length}개 · 확대 ${Math.round(view.scale * 100)}%`}</span><div className="wiringToolbox"><button className={wireTool === "move" ? "active" : ""} onClick={() => { setWireTool("move"); setSource(""); setWireDraft(null); }}><img src={`${A}cursor-hand-open-v1.png`} alt="" /><small>이동</small></button><button className={wireTool === "pencil" ? "active" : ""} onClick={() => setWireTool("pencil")}><img src={`${A}detective-pencil-v1.png`} alt="" /><small>배선</small></button><button className={wireTool === "erase" ? "active" : ""} onClick={() => { setWireTool("erase"); setSource(""); setWireDraft(null); }}><img src={`${A}detective-eraser-v1.png`} alt="" /><small>지우개</small></button></div><button onClick={() => setHelpOpen(value => !value)}>도움말</button><button onClick={() => setRulesOpen(value => !value)}>규칙</button><button className="wiringHint" disabled={seconds < 60 || hintUsed} onClick={() => send({ type: "HINT", key: hintKey })}>{hintUsed ? `힌트: ${gapIds.join(" → ")}` : seconds < 60 ? `힌트 ${60 - seconds}초` : "힌트 · -5m"}</button><button onClick={() => { setNodes(spreadNodes()); setEdges(starterEdges()); setSource(""); setWireDraft(null); setView({ x: 0, y: 0, scale: initialWireScale() }); }}>초기화</button></div>
     {helpOpen && <aside className="perspectiveHelp"><button onClick={() => setHelpOpen(false)}>×</button><b>완성된 핵심 흐름의 빈칸 두 곳만 복원합니다</b><p><strong>현재 관점</strong> {perspective.active} · {perspective.depth}</p><p><strong>경계</strong> {perspective.input} → {perspective.middle} → {perspective.output}</p><p><strong>주의</strong> HW가 반드시 양끝일 필요는 없습니다. 이번 고장과 직접 연결된 기능 경계만 봅니다.</p></aside>}
-      {rulesOpen && <aside className="wiringRules"><button className="wiringRulesClose" onClick={() => setRulesOpen(false)} aria-label="규칙 닫기">×</button><b>배선 퍼즐 규칙</b><ol><li>이미 고정된 흐름 사이의 빈칸 두 곳을 채웁니다.</li><li>아래 느슨한 카드 중 맞는 두 장만 빈칸 가까이 끌면 자리에 붙습니다.</li><li>연필로 끊긴 구간을 직접 그어 연결합니다.</li><li>오류 후보와 기록 블록은 사용하지 않아도 됩니다.</li><li>손은 이동·확대, 지우개는 선 삭제만 담당합니다.</li></ol></aside>}
+      {rulesOpen && <aside className="wiringRules"><button className="wiringRulesClose" onClick={() => setRulesOpen(false)} aria-label="규칙 닫기">×</button><b>배선 퍼즐 규칙</b><ol><li>선이 이어지면 아래에 <b>신호 값</b>이 흘러요(예: 60% → 204 Nm). 오른쪽 요구사항 줄은 맞게 이어질 때마다 ✓가 켜져요.</li><li>아래에 섞인 <b>함정 블록</b>을 눌러 보면 그 블록이 신호에 무슨 짓을 하는지 알려 줘요.</li><li>이미 고정된 흐름 사이의 빈칸 두 곳을 채웁니다.</li><li>아래 느슨한 카드 중 맞는 두 장만 빈칸 가까이 끌면 자리에 붙습니다.</li><li>연필로 끊긴 구간을 직접 그어 연결합니다.</li><li>오류 후보와 기록 블록은 사용하지 않아도 됩니다.</li><li>손은 이동·확대, 지우개는 선 삭제만 담당합니다.</li></ol></aside>}
     <main className="eePuzzle">
-      <aside className="verticalRequirement"><small>REQUIREMENT FLOW</small>{config.requirement.map((item, index) => <React.Fragment key={item}><div><span>{index === 0 ? "INPUT" : index === 1 ? "IF" : index === 3 ? "THEN" : index === 4 ? "OUTPUT" : "CONTROL"}</span><b>{item}</b></div>{index < config.requirement.length - 1 && <i>↓</i>}</React.Fragment>)}</aside>
+      <aside className="verticalRequirement"><small>REQUIREMENT FLOW</small>{config.requirement.map((item, index) => { const steps = REQ_OF_STEP.map((row, k) => row === index ? k : -1).filter(k => k >= 0); const done = steps.every(k => k === 0 ? edges.some(edge => edge.from === config.correct[0]) : edges.some(edge => edge.to === config.correct[k] && edge.from === config.correct[k - 1])); return <React.Fragment key={item}><div className={done ? "reqDone" : ""}>{done && <em className="reqTick">✓</em>}<span>{index === 0 ? "INPUT" : index === 1 ? "IF" : index === 3 ? "THEN" : index === 4 ? "OUTPUT" : "CONTROL"}</span><b>{item}</b></div>{index < config.requirement.length - 1 && <i>↓</i>}</React.Fragment>; })}</aside>
       <section className={`wireCanvas tool-${wireTool} ${eraser ? "erasing" : ""}`} ref={canvasRef} onContextMenu={event => event.preventDefault()} onWheel={event => { event.preventDefault(); setView(previous => ({ ...previous, scale: THREE.MathUtils.clamp(previous.scale * (event.deltaY > 0 ? .9 : 1.1), .48, 1.5) })); }} onPointerDown={event => { if (event.button === 2) setPanning({ x: event.clientX, y: event.clientY, ox: view.x, oy: view.y }); }} onPointerMove={event => { if (!canvasRef.current) return; if (panning) { setView(previous => ({ ...previous, x: panning.ox + event.clientX - panning.x, y: panning.oy + event.clientY - panning.y })); return; } const point = localPoint(event.clientX, event.clientY); if (wireTool === "pencil" && wireDraft) setWireDraft(previous => { if (!previous) return previous; const last = previous.points.at(-1)!; return Math.hypot(point.x - last.x, point.y - last.y) < 7 ? previous : { points: [...previous.points, point] }; }); if (!dragging) return; setNodes(previous => previous.map(node => node.id === dragging.id ? { ...node, x: THREE.MathUtils.clamp(point.x - dragging.dx / view.scale, 5, 1075), y: THREE.MathUtils.clamp(point.y - dragging.dy / view.scale, 5, 525) } : node)); }} onPointerUp={event => { snapDraggedNode(event.clientX, event.clientY); setDragging(null); setPanning(null); }} onPointerLeave={event => { snapDraggedNode(event.clientX, event.clientY); setDragging(null); setPanning(null); }}>
         <div className="wireWorld" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}>
         <div className="canvasGrid" />
         {gapIndexes.map(index => { const slot = flowSlots[index]; const node = nodes.find(item => item.id === config.correct[index]); const filled = Boolean(node && Math.hypot(node.x - slot.x, node.y - slot.y) < 8); return <div key={index} className={`guidedLogicSlot ${filled ? "filled" : ""}`} style={{ left: slot.x, top: slot.y }}><b>빈칸 {index - 1}</b><span>{config.correct[index] === gapIds[0] ? "판단·변환" : "명령·전달"}</span></div>; })}
-        <svg viewBox="0 0 1000 560">{edges.map((edge, index) => { const a = nodes.find(node => node.id === edge.from); const b = nodes.find(node => node.id === edge.to); if (!a || !b) return null; const x1 = a.x + 128, y1 = a.y + 70, x2 = b.x + 12, y2 = b.y + 70, direction = index % 2 ? 1 : -1; const d = edge.points?.length ? curveFromPoints(edge.points) : `M ${x1} ${y1} C ${x1 + 55} ${y1 + 45 * direction}, ${x2 - 55} ${y2 - 45 * direction}, ${x2} ${y2}`; return <path key={`${edge.from}-${edge.to}`} className="wormWire" d={d} onPointerEnter={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} onClick={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} />; })}{source && wireDraft && <path className="wormWire wireDraft" d={curveFromPoints(wireDraft.points)} />}</svg>
+        <svg viewBox="0 0 1000 560">{edges.map((edge, index) => { const a = nodes.find(node => node.id === edge.from); const b = nodes.find(node => node.id === edge.to); if (!a || !b) return null; const x1 = a.x + 128, y1 = a.y + 70, x2 = b.x + 12, y2 = b.y + 70, direction = index % 2 ? 1 : -1; const d = edge.points?.length ? curveFromPoints(edge.points) : `M ${x1} ${y1} C ${x1 + 55} ${y1 + 45 * direction}, ${x2 - 55} ${y2 - 45 * direction}, ${x2} ${y2}`; const pill = SIGNAL_VALUE[state.caseId][edge.from]; return <g key={`${edge.from}-${edge.to}`}>{pill && <g className="wirePill" transform={`translate(${(x1 + x2) / 2} ${(y1 + y2) / 2 + 92})`}><path d="M0 -24 L0 -12" className="pillStem" /><rect x={-38} y={-12} width={76} height={24} rx={12} /><text textAnchor="middle" y={5}>{pill}</text></g>}<path className="wormWire" d={d} onPointerEnter={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} onClick={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} /></g>; })}{source && wireDraft && <path className="wormWire wireDraft" d={curveFromPoints(wireDraft.points)} />}</svg>
         {nodes.map((node) => { const correctIndex = config.correct.indexOf(node.id); const locked = correctIndex >= 0 && !gapIndexes.includes(correctIndex); const edgeClass = correctIndex >= 0 ? puzzleEdgeClass(correctIndex, config.correct.length) : "edge-mismatch"; return <div className={`logicNode puzzlePiece ${edgeClass} ${node.kind.toLowerCase()} ${source === node.id ? "source" : ""} ${locked ? "locked" : ""}`} style={{ left: node.x, top: node.y }} key={node.id} onDoubleClick={event => { event.stopPropagation(); if (wireTool === "move") setZoomNode(node); }} onClick={event => { event.stopPropagation(); chooseWireNode(node); }} onPointerDown={event => { if (locked || wireTool !== "move" || event.button !== 0) return; const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect(); setDragging({ id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top }); (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId); }}>
           {node.kind === "HW" ? <div className={`logicNodePhoto componentAssetPhoto asset-${componentAtlasCell[node.id] ?? 2}`}><small>HW · REAL PART</small><em>{perspective.active.includes("E/E") ? "E/E 아키텍처" : "물리 플랜트"}</em></div> : <div className="logicNodePhoto simulinkNodeArt"><small>SW · SIMULINK BLOCK</small><em>SW 로직</em><b>f(u)</b><i /><i /><i /></div>}<div className="logicNodeCaption"><b>{node.label}</b><span>{node.detail}</span></div>
         </div>; })}

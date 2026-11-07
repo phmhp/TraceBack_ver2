@@ -257,3 +257,13 @@ button:not(:disabled):active { scale: .93; transition-duration: .06s; }
 .polaroidCaption { min-width: 0; overflow: hidden; }
 .polaroidCaption b { display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: keep-all; }
 .polaroidCaption span, .polaroidCaption small { display: block !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── wiring puzzle: values on wires, requirement ticks ── */
+.wirePill rect { fill: #fffaf0; stroke: #e07a2c; stroke-width: 2.5; }
+.wirePill text { font: 900 13px Pretendard, system-ui, sans-serif; fill: #8a4a14; }
+.wirePill { animation: vrPop .35s cubic-bezier(.2,1.8,.4,1); }
+.verticalRequirement > div { position: relative; transition: background .2s; }
+.verticalRequirement > div.reqDone { background: #e6f5ec !important; border-color: #3f9b7d !important; }
+.reqTick { position: absolute; right: 6px; top: 4px; font-style: normal; font-weight: 900; color: #2f7d5b; animation: vrStamp .4s both cubic-bezier(.2,1.8,.4,1); }
+.wireCanvas svg { overflow: visible; }
+.wirePill .pillStem { stroke: #e07a2c; stroke-width: 2; stroke-dasharray: 3 3; }
