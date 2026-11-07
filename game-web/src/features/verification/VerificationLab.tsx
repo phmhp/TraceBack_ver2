@@ -31,12 +31,12 @@ const experimentConfig: Record<CaseId, ExperimentConfig> = {
   propulsion: {
     requirementId: "REQ-DRV-01",
     requirement: "APS 60%에서 요청 토크 204 Nm가 생성되어야 한다.",
-    missionTitle: "신호등 출발 가속을 그대로 재현하라",
+    missionTitle: "추월 구간 가속을 그대로 재현하라",
     missionBrief: "정차 후 녹색 신호가 켜진 순간의 페달 램프 입력을 재현하고, 요청 토크가 처음 작아지는 경계를 찾습니다.",
-    precondition: "READY · D · 차속 0 km/h · 브레이크 해제",
+    precondition: "READY · D · 차속 60 km/h · 브레이크 해제",
     stimuli: [
       { label: "무입력 유지", hint: "기준 상태만 확인", sequence: "0% · 3 s" },
-      { label: "출발 가속", hint: "주행 기록과 동일", sequence: "0→60% / 0.3 s · 3 s 유지" },
+      { label: "추월 가속", hint: "주행 기록과 동일", sequence: "0→60% / 0.3 s · 3 s 유지" },
       { label: "급가속", hint: "상한 포화만 확인", sequence: "0→100% / 0.1 s" },
     ],
     target: 1,
@@ -340,7 +340,8 @@ function VerificationReport({ caseId, config, works, actual, onDone, onClose }: 
   </div>;
 }
 
-export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
+/** Previous bench layout (lens tabs + side-by-side visuals). Kept for reference, no longer routed. */
+export function TwinBenchClassic({ state, send }: { state: Campaign; send: Send }) {
   const requestedTab = new URLSearchParams(location.search).get("tab") as BenchTab | null;
   const [tab, setTab] = useState<BenchTab>(requestedTab && lenses.some(item => item.id === requestedTab) ? requestedTab : "sw");
   const [stimulus, setStimulus] = useState<number | null>(null);
@@ -455,6 +456,175 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     </main>
     {reportOpen && <VerificationReport caseId={state.caseId} config={config} works={works} actual={observedActual} onClose={() => setReportOpen(false)} onDone={() => send({ type: "BENCH_RESULT", pass: works, causeCorrect: correctCause })} />}
     {helpOpen && <aside className="verificationRules" role="dialog" aria-modal="true"><button onClick={() => setHelpOpen(false)} aria-label="도움말 닫기">×</button><small>HOW TO VALIDATE</small><h2>주행 사건을 하나의 시험 케이스로 재현합니다</h2><ol><li><b>미션 초기조건</b>을 확인합니다. 기어·READY·차속·온도처럼 결과를 바꾸는 조건입니다.</li><li><b>시간 시퀀스</b>를 선택합니다. 단일 값이 아니라 변화율과 유지시간까지 사건 기록과 맞춰야 합니다.</li><li><b>관측쌍</b>을 정합니다. 경계 앞·뒤 값을 동시에 비교해야 최초 불일치를 좁힐 수 있습니다.</li><li>실행 후 SW·ECU·시스템·차량 탭에서 <b>같은 TC의 인가점과 관측점이 어떻게 달라지는지</b> 확인합니다.</li></ol><p>정답을 외우는 문제가 아니라, 증상을 재현할 조건과 결함을 분리할 측정 위치를 고르는 검증 미션입니다.</p></aside>}
+    <button className="secretSolve" title="개발용 정답 적용" onClick={revealAnswer}>정답 보기</button>
+  </div>;
+}
+
+
+// ===== Bench v4: one question per step =====
+// 1 재현 입력 → 2 관측 경계 → 3 고치기 전 실행(FAIL 재현) → 4 고치기 → 5 다시 실행(PASS)·회귀·검증 단계
+const CHAIN_PHOTO: Record<CaseId, [string, string, string]> = {
+  propulsion: ["accel_pedal", "vcu", "traction_motor"],
+  thermal: ["motor_temp_sensor", "thermal_ecu", "cooling_fan"],
+  brake: ["brake_pedal", "brake_ecu", "brake_caliper"],
+};
+const WAVES: Record<CaseId, string[]> = {
+  propulsion: ["M4 30 H76", "M4 30 H18 L28 12 H76", "M4 30 H16 L19 4 H76"],
+  thermal: ["M4 20 H76", "M4 20 H38 L42 16 H76", "M4 26 H14 C40 24 52 10 76 6"],
+  brake: ["M4 30 H20 L36 26 H76", "M4 30 H18 L30 14 H76", "M4 30 H16 L19 4 H76"],
+};
+type Fix = { label: string; img: string; ok: boolean; why: string };
+const FIXES: Record<CaseId, Fix[]> = {
+  propulsion: [
+    { label: "토크 지도 값을 2.2배로 키워 보상", img: "/assets/board-photos/torque_cmd.png", ok: false, why: "증상만 가리는 땜질이야. 다른 페달 위치에선 토크가 너무 커져서 새 고장이 생겨!" },
+    { label: "끼어든 '보정 계수 ×0.45' 블록 제거", img: "/assets/board-photos/pedal_processed.png", ok: true, why: "맞아! 원인(설계에 없는 블록)을 없애서 기준 설계와 똑같게 만들었어." },
+    { label: "모터 최대 출력 한계 올리기", img: "/assets/ending-thumbs/traction_motor.png", ok: false, why: "모터 한계는 원인이 아니었어. 안전 여유만 줄어들어!" },
+  ],
+  thermal: [
+    { label: "팬 명령을 항상 100%로 고정", img: "/assets/ending-thumbs/thermal_ecu.png", ok: false, why: "명령은 이미 100%였어. 팬이 안 도는 건 명령 문제가 아니야!" },
+    { label: "출력 제한(보호) 기능 끄기", img: "/assets/board-photos/thermal_protection.png", ok: false, why: "위험해! 보호 기능은 고장이 아니라 과열을 막아 준 거야. 끄면 모터가 손상돼." },
+    { label: "냉각 팬 모터 교체", img: "/assets/ending-thumbs/cooling_fan.png", ok: true, why: "맞아! 명령·전원·신호가 다 정상인데 안 돈 팬 모터 자체를 바꿨어." },
+  ],
+  brake: [
+    { label: "캘리퍼·유압 라인 수리", img: "/assets/ending-thumbs/brake_caliper.png", ok: true, why: "맞아! 명령은 42 bar로 정상이었으니 압력이 새는 유압·캘리퍼를 고쳐야 해." },
+    { label: "회생 제동을 더 세게 설정", img: "/assets/board-photos/regen_request.png", ok: false, why: "회생 제동은 배터리가 꽉 차면 줄어들어. 마찰 제동 고장을 가릴 뿐이야!" },
+    { label: "압력 명령을 5배로 키우기", img: "/assets/ending-thumbs/brake_ecu.png", ok: false, why: "명령은 정상이었어. 키우면 고친 뒤엔 과한 압력으로 바퀴가 잠길 수 있어!" },
+  ],
+};
+const STEP_NAMES = ["재현 입력", "관측 경계", "고치기 전 실행", "고치기", "다시 실행 · 회귀"];
+
+export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
+  const caseId = state.caseId;
+  const config = experimentConfig[caseId];
+  const scenario = SCENARIOS[caseId];
+  const correctCause = state.hypothesis[caseId] === scenario.root;
+  const expectedProgram = caseId === "propulsion" ? "nominal" : caseId === "thermal" ? "thermal_closed_loop" : "blended_brake";
+  const [step, setStep] = useState(0);
+  const [stimulus, setStimulus] = useState<number | null>(null);
+  const [probe, setProbe] = useState<ProbeId | null>(null);
+  const [fix, setFix] = useState<number | null>(null);
+  const [run, setRun] = useState<"idle" | "running" | "done">("idle");
+  const [level, setLevel] = useState<BenchTab | null>(null);
+  const [regDone, setRegDone] = useState(0);
+  const [bubble, setBubble] = useState("메모판에서 찾은 고장을 시험 케이스로 재현해 보자. 먼저 주행 기록과 같은 입력을 골라!");
+  const [mistakes, setMistakes] = useState(0);
+  const fixed = step >= 4;
+  const photos = CHAIN_PHOTO[caseId];
+  const regression: string[] = (() => { try { const fromBoard = JSON.parse(sessionStorage.getItem(`tb-impact-${caseId}`) ?? "null"); return Array.isArray(fromBoard) && fromBoard.length ? fromBoard : regressionTests[caseId]; } catch { return regressionTests[caseId]; } })();
+  const check = levelCheck[caseId];
+  const nope = (text: string) => { setBubble(text); setMistakes(value => value + 1); play("error"); };
+
+  const pickStimulus = (index: number) => {
+    setStimulus(index);
+    if (index !== config.target) { nope(`'${config.stimuli[index].label}' 입력으로는 사건이 재현되지 않아. 주행 기록(${config.missionTitle.replace(/하라$/, "")})과 같은 입력을 골라 봐.`); return; }
+    play("stamp"); setBubble(`좋아! ${config.stimuli[index].sequence} — 사건과 같은 입력이야. 이제 어디를 지켜볼지 정하자.`);
+    window.setTimeout(() => setStep(1), 650);
+  };
+  const pickProbe = (id: ProbeId) => {
+    setProbe(id);
+    if (id !== config.probe) { nope(id === "input" ? "입력은 메모판에서 이미 정상이었어. 입력만 보면 차이를 못 잡아!" : "그 지점만으로는 기대값과 실제값의 차이를 확실히 못 갈라. 메모판에서 처음 달라진 곳을 떠올려 봐!"); return; }
+    play("stamp"); setBubble(`맞아, ${config.probeCopy[id]}를 지켜보면 차이가 바로 보여. 고치기 전에 먼저 돌려서 이 시험이 고장을 잡는지 확인하자!`);
+    window.setTimeout(() => setStep(2), 650);
+  };
+  const execute = (after: boolean) => {
+    setRun("running"); play("zip");
+    window.setTimeout(() => {
+      setRun("done");
+      if (!after) { play("error"); setBubble(`FAIL! 기대 ${config.expected}인데 실제 ${config.faultyActual}. 시험이 고장을 제대로 잡았어. 이제 고치자!`); }
+      else {
+        play("stamp"); window.setTimeout(() => play("success"), 150);
+        setBubble(`PASS! 기대 ${config.expected} = 실제 ${config.healthyActual}. 이제 함께 쓰러졌던 곳도 다시 확인(회귀 검증)하자.`);
+        regression.forEach((_, index) => window.setTimeout(() => { setRegDone(index + 1); play("pop", 1 + index * .1); }, 700 + index * 420));
+      }
+    }, 1300);
+  };
+  const pickFix = (index: number) => {
+    setFix(index);
+    const item = FIXES[caseId][index];
+    if (!item.ok) { nope(item.why); return; }
+    play("squish"); setBubble(item.why + " 고친 설계로 같은 시험을 다시 돌려 보자.");
+    if (state.program[caseId] !== expectedProgram) send({ type: "COMPILE", program: expectedProgram });
+    window.setTimeout(() => { setStep(4); setRun("idle"); }, 700);
+  };
+  const pickLevel = (id: BenchTab) => {
+    setLevel(id);
+    if (id === check.answer) { play("success"); setBubble(check.why); } else { play("error"); setBubble(check.wrong); }
+  };
+  const finish = () => send({ type: "BENCH_RESULT", pass: true, causeCorrect: correctCause });
+  const revealAnswer = () => { send({ type: "DEV_SOLVE" }); setStimulus(config.target); setProbe(config.probe); setFix(FIXES[caseId].findIndex(item => item.ok)); setStep(4); setRun("done"); setRegDone(regression.length); setLevel(check.answer); };
+
+  const after = step >= 4;
+  const actual = after ? config.healthyActual : config.faultyActual;
+  const showResult = run === "done" && (step === 2 || step === 4);
+  const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
+
+  return <div className="vbBench">
+    <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
+    <GameHeader chapter="MING'S TRACE LAB" title="정상 기준 추적 실험" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <main className="vbLayout">
+      <header className="vbHead">
+        <div className="vbReq"><small>{config.requirementId}</small><b>{config.requirement}</b></div>
+        <ol className="vbSteps">{STEP_NAMES.map((name, index) => <li key={name} className={index < step ? "done" : index === step ? "now" : ""}><i>{index < step ? "✓" : index + 1}</i>{name}</li>)}</ol>
+      </header>
+
+      {/* the test bench: input → controller → output, with the probe marker */}
+      <section className={`vbRig ${run === "running" ? "running" : ""}`}>
+        {photos.map((photo, index) => <React.Fragment key={photo}>
+          {index > 0 && <i className="vbWire"><em /></i>}
+          <div className={`vbPart ${probe && ({ input: 0, control: 1, output: 2 } as const)[probe] === index ? "probed" : ""} ${fixed && index === (caseId === "propulsion" ? 1 : 2) ? "fixed" : ""}`}>
+            <img src={`/assets/ending-thumbs/${photo}.png`} alt="" />
+            <small>{["입력", "제어기", "출력"][index]}</small>
+            <b>{config.probeCopy[(["input", "control", "output"] as const)[index]]}</b>
+            {probe && ({ input: 0, control: 1, output: 2 } as const)[probe] === index && <span className="vbProbe">🔍 관측</span>}
+            {fixed && index === (caseId === "propulsion" ? 1 : 2) && <span className="vbFixTag">🔧 수리됨</span>}
+          </div>
+        </React.Fragment>)}
+        {stimulus !== null && <div className="vbStim"><svg viewBox="0 0 80 34"><path d={WAVES[caseId][stimulus]} /></svg><span>{config.stimuli[stimulus].sequence}</span></div>}
+      </section>
+
+      <section className="vbStage">
+        {step === 0 && <>
+          <h2>🧪 사건을 재현할 <b>사건 재현 입력</b>은?</h2>
+          <p className="vbSub">주행 기록: {config.missionTitle} · 초기조건 {config.precondition}</p>
+          <div className="vbChoices">{config.stimuli.map((item, index) => <button key={item.label} className={stimulus === index ? index === config.target ? "right" : "wrong" : ""} onClick={() => pickStimulus(index)}>
+            <svg viewBox="0 0 80 34"><path d={WAVES[caseId][index]} /></svg><b>{item.label}</b><em>{item.sequence}</em>
+          </button>)}</div>
+        </>}
+        {step === 1 && <>
+          <h2>🔍 <b>차이를 잡을 관측 경계</b>는 어디?</h2>
+          <p className="vbSub">기대값과 실제값이 처음 달라지는 곳을 지켜봐야 해요</p>
+          <div className="vbChoices">{probeOptions.map((item, index) => <button key={item.id} className={probe === item.id ? item.id === config.probe ? "right" : "wrong" : ""} onClick={() => pickProbe(item.id)}>
+            <img src={`/assets/ending-thumbs/${photos[index]}.png`} alt="" /><b>{item.icon} {item.label}</b><em>{config.probeCopy[item.id]}</em>
+          </button>)}</div>
+        </>}
+        {(step === 2 || step === 4) && <>
+          <h2>{step === 2 ? "▶ 고치기 전에 먼저 돌려 보기" : "▶ 고친 설계로 다시 돌려 보기"}</h2>
+          <p className="vbSub">{step === 2 ? "시험이 고장을 잡는지(FAIL이 나오는지) 먼저 확인해요" : "같은 시험 케이스 · 같은 입력 · 같은 관측 위치"}</p>
+          <div className="vbRun">
+            <div className="vbMeter"><small>기대 (요구사항)</small><div><i style={{ width: "80%" }} /></div><b>{config.expected}</b></div>
+            <div className={`vbMeter actual ${run === "done" ? after ? "pass" : "fail" : ""}`}><small>실제 ({config.probeCopy[config.probe]})</small><div><i style={{ width: run === "idle" ? "0%" : run === "running" ? "45%" : after ? "79%" : `${caseId === "thermal" ? 2 : caseId === "brake" ? 15 : 36}%` }} /></div><b>{run === "done" ? actual : "…"}</b></div>
+            {showResult && <span className={`vbStamp ${after ? "pass" : "fail"}`}>{after ? "PASS" : "FAIL"}</span>}
+          </div>
+          {showResult && !after && <p className="vbMismatch"><small>FIRST MISMATCH</small><b>{config.mismatch}</b></p>}
+          {run !== "done" && <button className="vbGo" disabled={run === "running"} onClick={() => execute(after)}>{run === "running" ? "시험 중…" : "▶ 실행"}</button>}
+          {showResult && !after && <button className="vbGo" onClick={() => { setStep(3); setRun("idle"); setBubble("어떻게 고칠까? 원인을 없애는 방법을 골라야 해. 증상만 가리는 땜질은 안 돼!"); }}>🔧 고치러 가기 →</button>}
+          {showResult && after && <div className="vbAfter">
+            <div className="vbReg"><b>🔁 회귀 검증 · 함께 쓰러졌던 곳</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>
+            {regDone >= regression.length && <div className="vbLevel"><b>🏷 이 고장은 어느 검증 단계에서 <u>처음</u> 잡을 수 있었을까?</b><div>{LEVELS.map(item => <button key={item.id} className={level === item.id ? item.id === check.answer ? "right" : "wrong" : ""} onClick={() => pickLevel(item.id)}><i>{item.icon}</i><b>{item.name}</b><small>{item.sub}</small></button>)}</div></div>}
+            {level === check.answer && <div className="vbDone"><span><small>방금 사용한 검증 사고법</small><b>{config.technique}</b></span><b className="vbStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b><button className="vbGo" onClick={finish}>검증 완료 · 수리 적용 →</button></div>}
+          </div>}
+        </>}
+        {step === 3 && <>
+          <h2>🔧 어떻게 고칠까?</h2>
+          <p className="vbSub">원인을 없애야 해요 · 증상만 가리는 방법은 다른 고장을 만들어요</p>
+          <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}>
+            <img src={item.img} alt="" /><b>{item.label}</b>
+          </button>)}</div>
+        </>}
+      </section>
+
+      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>밍</b>{bubble}</p></div>
+    </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={revealAnswer}>정답 보기</button>
   </div>;
 }
