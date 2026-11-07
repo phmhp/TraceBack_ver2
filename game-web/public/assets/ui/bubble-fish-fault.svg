@@ -1,9 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 140">
-  <g fill="#fff8e7" stroke="#4a3a2c" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M40 70 L8 38 C4 34 4 30 10 30 C22 32 36 46 48 60 Z"/>
-    <path d="M40 70 L8 102 C4 106 4 110 10 110 C22 108 36 94 48 80 Z"/>
-    <path d="M46 70 C70 30 110 14 150 14 C188 14 216 38 230 70 C216 102 188 126 150 126 C110 126 70 110 46 70 Z"/>
-  </g>
-  <path d="M176 22 C162 46 162 94 176 118" fill="none" stroke="#4a3a2c" stroke-width="4.5" stroke-linecap="round"/>
-  <path d="M184 60 L196 72 M196 60 L184 72" stroke="#4a3a2c" stroke-width="4.5" stroke-linecap="round"/>
+  <g fill="#4a3a2c" stroke="#4a3a2c" stroke-width="10" stroke-linejoin="round"><path d="M44 70 C34 54 16 50 12 60 C10 65 16 68 22 70 C16 72 10 75 12 80 C16 90 34 86 44 70 Z"/><path d="M38 70 C60 30 104 16 146 16 C190 16 222 40 230 70 C222 100 190 124 146 124 C104 124 60 110 38 70 Z"/></g>
+  <g fill="#fff8e7"><path d="M44 70 C34 54 16 50 12 60 C10 65 16 68 22 70 C16 72 10 75 12 80 C16 90 34 86 44 70 Z"/><path d="M38 70 C60 30 104 16 146 16 C190 16 222 40 230 70 C222 100 190 124 146 124 C104 124 60 110 38 70 Z"/></g>
+  <path d="M175 55 L189 69 M189 55 L175 69" stroke="#4a3a2c" stroke-width="5" stroke-linecap="round"/>
 </svg>

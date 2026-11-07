@@ -468,7 +468,7 @@ function Title({
         </button>
       </div>
       <div className="keyHelp">
-        SPACE 또는 클릭으로 시작
+        Enter · SPACE 또는 클릭으로 시작
       </div>
     </div>
   );
@@ -510,7 +510,7 @@ function Prologue({ send }: { send: React.Dispatch<any> }) {
         action={
           <ActionButton
             tone="primary"
-            keyHint="SPACE"
+            keyHint="Enter"
             onClick={() => slide < 2 ? setSlide(slide + 1) : send({ type: "CONTINUE_PROLOGUE" })}
           >계속</ActionButton>
         }
@@ -1468,7 +1468,7 @@ function App() {
     return frame(<RaceExperience state={state} send={send} mode="ship" />);
   if (state.scene === "FAULT_CUE")
     return frame(<FaultDialogue state={state} send={send} />);
-  if (state.scene === "BOARD") return frame(<SuspectBoard state={state} send={send} />);
+  if (state.scene === "BOARD") return frame(<InvestigationBoard state={state} send={send} />); // SuspectBoard (용의자 메모판) kept for reference
   if (state.scene === "WIRING") return frame(<WiringPuzzle state={state} send={send} />);
   if (state.scene === "TWIN_BENCH") return frame(<TwinBenchExperience state={state} send={send} />);
   if (state.scene === "VERIFY_FAIL")

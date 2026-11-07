@@ -34,7 +34,7 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
   }, [ready, requestedFrame]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.code !== "Space" || !ready) return;
+      if ((event.code !== "Space" && event.key !== "Enter") || !ready) return;
       event.preventDefault();
       beginRace();
     };
@@ -60,7 +60,7 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
           <div><dt>목표</dt><dd>해적선 갑판까지 도주</dd></div>
         </dl>
         <button className="primary" disabled={!ready} onClick={beginRace}>{ready ? "도주 시작" : "잠시 후 탑승 장면"}<i>→</i></button>
-        {ready && <em>SPACE 또는 클릭</em>}
+        {ready && <em>Enter 또는 클릭</em>}
       </aside>
     </main>
   </div>;
