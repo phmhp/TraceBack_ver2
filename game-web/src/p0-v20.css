@@ -866,3 +866,9 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 .vbBubble { display: flex; gap: 10px; align-items: center; justify-self: center; max-width: min(720px, 100%); padding: 5px 16px 5px 5px; border-radius: 999px; background: #fff; border: 2px solid #e2c88c; }
 .vbBubble img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; } .vbBubble p { margin: 0; font: 700 13px/1.4 Pretendard, system-ui; } .vbBubble b { margin-right: 8px; color: #c0782a; }
 .vbStamp { right: -78px !important; top: 50% !important; transform: translateY(-50%) rotate(8deg) !important; }
+
+/* race HUD: fixed instruments stay put; all message cards stack in one column */
+.raceFeed { position: absolute; z-index: 30; left: 50%; top: 128px; transform: translateX(-50%); width: min(460px, 46vw); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+.raceFeed > * { position: relative !important; inset: auto !important; left: auto !important; right: auto !important; top: auto !important; bottom: auto !important; transform: none !important; margin: 0 !important; max-width: 100% !important; box-sizing: border-box; }
+.raceFeed > .gearToast { animation: eeTagIn .3s ease-out, gearOut .4s 2.2s forwards; }
+.raceV2 .raceMiniMap { bottom: 62px !important; }

@@ -1478,7 +1478,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const routeProgress = Math.min(100, sim.distance / (TRACK_LENGTH / 100));
   const playerMarker = Math.max(5, routeProgress);
   const policeProgress = Math.max(1, Math.min(96, playerMarker - Math.max(4, sim.gap / 9)));
-  const mapPoint = (progress: number) => ({ x: 45 + Math.sin(progress / 12) * 18 + Math.sin(progress / 29) * 8, y: 92 - progress * .78 });
+  const mapPoint = (progress: number) => { const d = progress / 100 * TRACK_LENGTH; return { x: 45 + trackFrame(d).x * 3.4, y: 94 - progress * .86 }; };
   const mapPlayer = mapPoint(routeProgress);
   const mapPolice = mapPoint(policeProgress);
   const policeJoined = mode !== "normal" || (sim.elapsed >= 3 && sim.distance >= 45);
@@ -1489,11 +1489,9 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button><div><small>{mode === "ship" ? "FINAL RUN" : "CHAPTER 04"}</small><b>{mode === "assist" ? "LIMITED DRIVE" : "ESCAPE RUN"}</b></div></div>
     <PursuitRouteBar distance={sim.distance} gap={sim.gap} />
     <div className="raceTripHud"><span><small>ELAPSED</small><b>{formatRaceTime(sim.elapsed)}</b></span><span><small>DRIVE · 회생 Q/E · 기어 1~4</small><b className="prnd">{(["P", "R", "N", "D"] as const).map(g => <i key={g} className={gear === g ? "on" : ""}>{g}</i>)} · 회생 {regen}</b></span><em>회생제동 단계 {regen} · Q 약하게 / E 강하게</em></div>
-    {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>S</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
-    {gearToast && <div className="gearToast" key={gearToast.id}>{gearToast.text}</div>}
     <div className="cockpitGauge"><small>SPEED</small><b>{Math.round(sim.speed)}</b><span>km/h</span><div><i style={{ width: `${Math.min(100, sim.speed)}%` }} /></div><em>{state.caseId === "thermal" ? `${Math.round(sim.heat)}°C` : "HV READY"}</em></div>
     <RearMirror3D gap={sim.gap} visible={policeInWorld} />
-    <div className="raceMiniMap"><b>LIVE CURVE MAP</b><svg viewBox="0 0 90 100"><path d="M45 98 C20 83 72 70 42 55 S16 30 48 8" /><circle className="cop" cx={mapPolice.x} cy={mapPolice.y} r="4" /><circle className="me" cx={mapPlayer.x} cy={mapPlayer.y} r="4.5" /></svg><small><i /> 자차 <em /> 경찰</small></div>
+    <div className="raceMiniMap"><b>LIVE CURVE MAP</b><svg viewBox="0 0 90 100"><path d={MINIMAP_PATH} /><circle className="cop" cx={mapPolice.x} cy={mapPolice.y} r="4" /><circle className="me" cx={mapPlayer.x} cy={mapPlayer.y} r="4.5" /></svg><small><i /> 자차 <em /> 경찰</small></div>
     <div className="raceControls keyBar">
       <span><kbd>W</kbd><em>가속</em></span><span><kbd>S</kbd><em>브레이크</em></span><span><kbd>A</kbd><kbd>D</kbd><em>조향</em></span>
       <span><kbd>1</kbd><kbd>4</kbd><em>P R N D</em></span><span><kbd>Q</kbd><kbd>E</kbd><em>회생 −/+</em></span><span><kbd>R</kbd><em>재시동</em></span><span><kbd className="wide">Esc</kbd><em>멈춤</em></span>
@@ -1503,18 +1501,25 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       <div className="wasd"><kbd className="k-w">W</kbd><kbd className="k-a">A</kbd><kbd className="k-s">S</kbd><kbd className="k-d">D</kbd></div>
       <ul><li><kbd>W</kbd> 가속 · <kbd>S</kbd> 브레이크</li><li><kbd>A</kbd><kbd>D</kbd> 좌우 조향</li><li><kbd>1</kbd>~<kbd>4</kbd> 기어 P·R·N·D (S 밟고)</li><li><kbd>Q</kbd><kbd>E</kbd> 회생제동 약하게/강하게</li><li><kbd>R</kbd> 멈췄을 때 READY 재시동</li></ul>
     </div>}
-    {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
     {(countdown > 0 || goFlash) && <div className="startCountdown"><small>GET READY</small><b>{goFlash ? "GO!" : countdown}</b></div>}
     {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="바짝 붙었어!" sound="siren" />}
     {symptom && <ComicBurst tone="fault" side="right" image={mode === "normal" ? "/assets/ending-thumbs/accel_pedal.png" : "/assets/ending-thumbs/cooling_fan.png"} title={mode === "normal" ? "힘이 없어!" : "과열!"} sound="alarm" />}
-    {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i>{zone.icon}</i><span><small>DRIVING ZONE</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
-    {symptom && <div className="faultBeacon" role="alert"><span /><div><small>VEHICLE WARNING</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "온도 상승 · 보호 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
-    {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
-    {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>DRIVING MISSION · 다음 검증용 주행 로그</small><b>{driveMission === "red" ? "적색 신호 정지 · 제동 시퀀스 기록" : "정차 후 READY 재인가 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(612-sim.distance))}m · S로 부드럽게 제동 · 정지선 이탈 금지` : "이 재출발 기록이 열관리 고장 재현 미션의 초기조건이 됩니다"}</span></div>}
-    {mode === "ship" && sim.distance >= TRACK_LENGTH - 230 && <div className="finalRampCommit"><small>FINAL DOCK</small><b>{deckSettled ? "갑판 정차 완료 · 탈출 성공" : sim.distance >= DECK_TOUCH ? "해적선 갑판 착지 · 자동 감속" : sim.distance >= RAMP_START ? "실물 오르막 램프 진입" : "해적선 연결 램프 접근"}</b><span>{sim.distance >= RAMP_END && sim.distance < DECK_TOUCH ? "차량 도약 중 · 측면 카메라" : sim.distance >= DECK_TOUCH ? "네 바퀴 착지 확인 · 엔딩 전환 준비" : "중앙 유도 · 램프와 갑판 충돌면 활성"}</span></div>}
+    {/* every message card lives in one column under the mirror, so cards never overlap */}
+    <div className="raceFeed">
+      {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>S</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
+      {gearToast && <div className="gearToast" key={gearToast.id}>{gearToast.text}</div>}
+      {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
+      {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i>{zone.icon}</i><span><small>DRIVING ZONE</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
+      {symptom && <div className="faultBeacon" role="alert"><span /><div><small>VEHICLE WARNING</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "온도 상승 · 보호 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
+      {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
+      {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>DRIVING MISSION · 다음 검증용 주행 로그</small><b>{driveMission === "red" ? "적색 신호 정지 · 제동 시퀀스 기록" : "정차 후 READY 재인가 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(612-sim.distance))}m · S로 부드럽게 제동 · 정지선 이탈 금지` : "이 재출발 기록이 열관리 고장 재현 미션의 초기조건이 됩니다"}</span></div>}
+      {mode === "ship" && sim.distance >= TRACK_LENGTH - 230 && <div className="finalRampCommit"><small>FINAL DOCK</small><b>{deckSettled ? "갑판 정차 완료 · 탈출 성공" : sim.distance >= DECK_TOUCH ? "해적선 갑판 착지 · 자동 감속" : sim.distance >= RAMP_START ? "실물 오르막 램프 진입" : "해적선 연결 램프 접근"}</b><span>{sim.distance >= RAMP_END && sim.distance < DECK_TOUCH ? "차량 도약 중 · 측면 카메라" : sim.distance >= DECK_TOUCH ? "네 바퀴 착지 확인 · 엔딩 전환 준비" : "중앙 유도 · 램프와 갑판 충돌면 활성"}</span></div>}
+    </div>
   </div>;
 }
 
+// Minimap path sampled from the same track function the car uses (markers always sit on it).
+const MINIMAP_PATH = Array.from({ length: 51 }, (_, i) => { const progress = i * 2; const d = progress / 100 * TRACK_LENGTH; return `${i ? "L" : "M"}${(45 + trackFrame(d).x * 3.4).toFixed(1)} ${(94 - progress * .86).toFixed(1)}`; }).join(" ");
 // Driving zones on the existing course where each fault shows up [start, fallback trigger] in metres.
 const OVERTAKE_ZONE = [150, 330] as const;
 const CLIMB_ZONE = [760, 960] as const; // sustained high-load section (cooling must keep up)
