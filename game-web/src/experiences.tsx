@@ -13,7 +13,7 @@ import { ComicBurst } from "./ui/ComicBurst";
 import { play } from "./ui/sfx";
 import { ECUS } from "./sim/components";
 import { getComponent } from "./sim/registry";
-import { Picto, SimulinkDiagram, blockKind } from "./features/garage/SimulinkDiagram";
+import { Picto, SimulinkDiagram, blockKind, plainText } from "./features/garage/SimulinkDiagram";
 import { EeBlueprint } from "./features/garage/EeBlueprint";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
@@ -1845,7 +1845,7 @@ const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNo
     requirement: ["APS 입력 0~100%", "IF 신호 유효", "페달 맵·가용토크", "THEN CAN 토크 명령", "모터 실제 토크"],
     blocks: [
       { id: "aps", label: "APS 이중 센서", kind: "HW", detail: "운전자 페달 입력" }, { id: "adapter", label: "APS Signal Adapter", kind: "SW", detail: "범위·상관성 진단" },
-      { id: "map100", label: "Driver Torque Map 100%", kind: "SW", detail: "정상 토크 변환" }, { id: "map45", label: "Legacy Scale 45%", kind: "SW", detail: "오류 후보 블록" },
+      { id: "map100", label: "Driver Torque Map", kind: "SW", detail: "페달 %를 토크로 바꾸는 표" }, { id: "map45", label: "Torque Scale ×0.45", kind: "SW", detail: "페달 값에 0.45를 곱하는 보정" },
       { id: "can", label: "CAN Torque Command", kind: "SW", detail: "VCU→Inverter 명령" }, { id: "vcu", label: "VCU Controller", kind: "HW", detail: "SW 실행 제어기" },
       { id: "inverter", label: "Inverter + PMSM", kind: "HW", detail: "전류·모터 토크" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
     ], correct: ["aps", "adapter", "map100", "can", "vcu", "inverter"], program: "nominal", faulty: "underreport_45pct",
@@ -1854,7 +1854,7 @@ const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNo
     requirement: ["냉각수 온도 입력", "IF 65°C 초과", "히스테리시스 판단", "THEN Fan PWM", "팬 실제 회전"],
     blocks: [
       { id: "temp", label: "Coolant Temp Sensor", kind: "HW", detail: "냉각수 NTC 온도 입력" }, { id: "filter", label: "Temperature Filter", kind: "SW", detail: "센서 노이즈 제거" },
-      { id: "threshold", label: "65°C Hysteresis", kind: "SW", detail: "ON/OFF 기준" }, { id: "forceoff", label: "Fan Force-OFF", kind: "SW", detail: "오류 후보 블록" },
+      { id: "threshold", label: "65°C Hysteresis", kind: "SW", detail: "ON/OFF 기준" }, { id: "forceoff", label: "Fan Force-OFF", kind: "SW", detail: "팬 명령을 끄기로 고정" },
       { id: "pwm", label: "Fan PWM Command", kind: "SW", detail: "냉각 명령 생성" }, { id: "thermalecu", label: "Thermal ECU", kind: "HW", detail: "SW 실행·출력" },
       { id: "fan", label: "Cooling Fan + Feedback", kind: "HW", detail: "회전·RPM 피드백" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
     ], correct: ["temp", "filter", "threshold", "pwm", "thermalecu", "fan"], program: "thermal_closed_loop", faulty: "open_loop_fan",
@@ -1863,7 +1863,7 @@ const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNo
     requirement: ["제동 페달 입력", "IF 감속 요청", "회생 한계 계산", "THEN 마찰 보상", "휠 감속 응답"],
     blocks: [
       { id: "pedal", label: "Brake Pedal Sensor", kind: "HW", detail: "운전자 감속 의도" }, { id: "request", label: "Brake Force Request", kind: "SW", detail: "요구 제동력" },
-      { id: "blend", label: "Regen/Friction Blend", kind: "SW", detail: "회생·마찰 배분" }, { id: "regenonly", label: "Regen Only", kind: "SW", detail: "오류 후보 블록" },
+      { id: "blend", label: "Regen/Friction Blend", kind: "SW", detail: "회생·마찰 배분" }, { id: "regenonly", label: "Regen Only", kind: "SW", detail: "회생 제동만 사용" },
       { id: "pressure", label: "Pressure Command", kind: "SW", detail: "캘리퍼 압력" }, { id: "brakeecu", label: "Brake ECU", kind: "HW", detail: "휠 제어기" },
       { id: "caliper", label: "Caliper + Wheel", kind: "HW", detail: "마찰 제동 응답" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
     ], correct: ["pedal", "request", "blend", "pressure", "brakeecu", "caliper"], program: "blended_brake", faulty: "friction_only",
@@ -1875,10 +1875,16 @@ const PART_PHOTO: Record<string, string> = {
   aps: "accel_pedal", vcu: "vcu", inverter: "traction_motor", temp: "motor_temp_sensor", thermalecu: "thermal_ecu",
   fan: "cooling_fan", pedal: "brake_pedal", brakeecu: "brake_ecu", caliper: "brake_caliper",
 };
-function PiecePicture({ node }: { node: { id: string; label: string; kind: string } }) {
+// SW blocks run inside a controller: show that controller's generated photo with a small logic badge.
+const SW_ATLAS: Record<CaseId, number> = { propulsion: 1, thermal: 5, brake: 8 }; // cells of the 3×3 evidence atlas
+const swLogicKind = (label: string) => /Adapter|진단/.test(label) ? "check" : /Map|Scale/.test(label) ? "lut" : /Filter/.test(label) ? "delay" : /Hysteresis/.test(label) ? "state" : /Force|Only|Gate/.test(label) ? "switch" : /Blend|Request/.test(label) ? "min" : blockKind(label);
+function PiecePicture({ node, caseId }: { node: { id: string; label: string; kind: string }; caseId: CaseId }) {
+  const cell = SW_ATLAS[caseId];
   return <div className={`logicNodePhoto piecePicture ${node.kind === "HW" ? "hw" : "sw"}`}>
-    {node.kind === "HW" && PART_PHOTO[node.id] ? <img src={`/assets/ending-thumbs/${PART_PHOTO[node.id]}.png`} alt="" draggable={false} /> : <Picto kind={/Adapter|Sensor Check|진단/.test(node.label) ? "check" : /Map|Scale/.test(node.label) ? "lut" : /Filter/.test(node.label) ? "delay" : /Hysteresis/.test(node.label) ? "state" : /Force|Only|Gate/.test(node.label) ? "switch" : /Blend|Request/.test(node.label) ? "min" : blockKind(node.label)} />}
-    <small>{node.kind === "HW" ? "부품" : "SW 블록"}</small>
+    {node.kind === "HW" && PART_PHOTO[node.id]
+      ? <img src={`/assets/ending-thumbs/${PART_PHOTO[node.id]}.png`} alt="" draggable={false} />
+      : <><i className="swPhoto" style={{ backgroundPosition: `${(cell % 3) * 50}% ${Math.floor(cell / 3) * 50}%` }} /><span className="swBadge"><Picto kind={swLogicKind(node.label) as Parameters<typeof Picto>[0]["kind"]} /></span></>}
+    <small>{node.kind === "HW" ? "부품" : "SW 로직"}</small>
   </div>;
 }
 
@@ -1918,9 +1924,9 @@ const SIGNAL_VALUE: Record<CaseId, Record<string, string>> = {
   brake: { pedal: "55%", request: "3.2 m/s²", blend: "회생+마찰", pressure: "42 bar", brakeecu: "42 bar" },
 };
 const TRAP_MSG: Record<string, string> = {
-  map45: "🕵️ 이 블록이 범인! 페달 60%를 27%로 줄여서 토크가 92 Nm밖에 안 나와",
-  forceoff: "🕵️ 이 블록이 범인! 온도가 높아도 팬을 강제로 꺼 버려",
-  regenonly: "🕵️ 이 블록이 범인! 회생만 쓰고 모자란 제동력을 마찰로 채우지 않아",
+  map45: "요구사항과 달라요: 페달 값을 0.45배로 줄여서 토크가 모자라요. 정상 기준에는 안 맞아요.",
+  forceoff: "요구사항과 달라요: 온도가 높아도 팬을 꺼 버려요. 정상 기준에는 안 맞아요.",
+  regenonly: "요구사항과 달라요: 회생 제동만 쓰고 모자란 힘을 마찰 제동으로 채우지 않아요.",
   logger: "📝 기록 전용 블록이라 신호를 바꾸지 않아. 경로에는 안 넣어도 돼",
 };
 const REQ_OF_STEP = [0, 1, 2, 3, 3, 4];
@@ -1954,7 +1960,7 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const config = puzzleConfig[state.caseId];
   const perspective = puzzlePerspective[state.caseId];
   const mission = puzzleMission[state.caseId];
-  const flowSlots = config.correct.map((_, index) => ({ x: 24 + index * 156, y: 105 }));
+  const flowSlots = config.correct.map((_, index) => ({ x: 40 + index * 116, y: 112 }));
   const gapIndexes = [2, 3];
   const gapIds = gapIndexes.map(index => config.correct[index]);
   const spreadNodes = () => {
@@ -1962,7 +1968,7 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
     return config.blocks.map(block => {
       const correctIndex = config.correct.indexOf(block.id);
       if (correctIndex >= 0 && !gapIndexes.includes(correctIndex)) return { ...block, ...flowSlots[correctIndex] };
-      const position = { x: 90 + looseIndex * 220, y: 300 };
+      const position = { x: 60 + looseIndex * 190, y: 318 };
       looseIndex += 1;
       return { ...block, ...position };
     });
@@ -1980,8 +1986,9 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
     const fit = () => {
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect || !rect.width) return;
-      const scale = Math.min(rect.width / 990, rect.height / 400, 1.1);
-      setView({ scale, x: (rect.width - 990 * scale) / 2, y: (rect.height - 400 * scale) / 2 - 80 * scale });
+      // world content: x 20–880, y 70–490
+      const scale = Math.min(rect.width / 880, rect.height / 430, 1.15);
+      setView({ scale, x: (rect.width - 860 * scale) / 2 - 20 * scale, y: (rect.height - 420 * scale) / 2 - 70 * scale });
     };
     const timer = window.setTimeout(fit, 50);
     addEventListener("resize", fit);
@@ -2089,10 +2096,12 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
       <section className={`wireCanvas tool-${wireTool} ${eraser ? "erasing" : ""}`} ref={canvasRef} onContextMenu={event => event.preventDefault()} onWheel={event => { event.preventDefault(); setView(previous => ({ ...previous, scale: THREE.MathUtils.clamp(previous.scale * (event.deltaY > 0 ? .9 : 1.1), .48, 1.5) })); }} onPointerDown={event => { if (event.button === 2) setPanning({ x: event.clientX, y: event.clientY, ox: view.x, oy: view.y }); }} onPointerMove={event => { if (!canvasRef.current) return; if (panning) { setView(previous => ({ ...previous, x: panning.ox + event.clientX - panning.x, y: panning.oy + event.clientY - panning.y })); return; } const point = localPoint(event.clientX, event.clientY); if (wireTool === "pencil" && wireDraft) setWireDraft(previous => { if (!previous) return previous; const last = previous.points.at(-1)!; return Math.hypot(point.x - last.x, point.y - last.y) < 7 ? previous : { points: [...previous.points, point] }; }); if (!dragging) return; setNodes(previous => previous.map(node => node.id === dragging.id ? { ...node, x: THREE.MathUtils.clamp(point.x - dragging.dx / view.scale, 5, 1075), y: THREE.MathUtils.clamp(point.y - dragging.dy / view.scale, 5, 525) } : node)); }} onPointerUp={event => { snapDraggedNode(event.clientX, event.clientY); setDragging(null); setPanning(null); }} onPointerLeave={event => { snapDraggedNode(event.clientX, event.clientY); setDragging(null); setPanning(null); }}>
         <div className="wireWorld" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}>
         <div className="canvasGrid" />
+        <div className="puzzleTray" style={{ left: flowSlots[0].x - 6, top: flowSlots[0].y - 12, width: (flowSlots.length - 1) * 116 + 146, height: 158 }}><span>정상 기준 퍼즐판</span></div>
+        <div className="spareTray" style={{ left: 40, top: 300, width: 800, height: 178 }}><span>남은 조각 · 끌어서 빈칸에 끼워 보세요</span></div>
         {gapIndexes.map(index => { const slot = flowSlots[index]; const node = nodes.find(item => item.id === config.correct[index]); const filled = Boolean(node && Math.hypot(node.x - slot.x, node.y - slot.y) < 8); return <div key={index} className={`guidedLogicSlot ${filled ? "filled" : ""}`} style={{ left: slot.x, top: slot.y }}><b>빈칸 {index - 1}</b><span>{config.correct[index] === gapIds[0] ? "판단·변환" : "명령·전달"}</span></div>; })}
         <svg viewBox="0 0 1000 560">{edges.map((edge, index) => { const a = nodes.find(node => node.id === edge.from); const b = nodes.find(node => node.id === edge.to); if (!a || !b) return null; const x1 = a.x + 128, y1 = a.y + 70, x2 = b.x + 12, y2 = b.y + 70, direction = index % 2 ? 1 : -1; const d = edge.points?.length ? curveFromPoints(edge.points) : `M ${x1} ${y1} C ${x1 + 55} ${y1 + 45 * direction}, ${x2 - 55} ${y2 - 45 * direction}, ${x2} ${y2}`; const pill = SIGNAL_VALUE[state.caseId][edge.from]; return <g key={`${edge.from}-${edge.to}`}>{pill && <g className="wirePill" transform={`translate(${(x1 + x2) / 2} ${(y1 + y2) / 2 + 92})`}><path d="M0 -24 L0 -12" className="pillStem" /><rect x={-38} y={-12} width={76} height={24} rx={12} /><text textAnchor="middle" y={5}>{pill}</text></g>}<path className="wormWire" d={d} onPointerEnter={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} onClick={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} /></g>; })}{source && wireDraft && <path className="wormWire wireDraft" d={curveFromPoints(wireDraft.points)} />}</svg>
-        {nodes.map((node) => { const correctIndex = config.correct.indexOf(node.id); const locked = correctIndex >= 0 && !gapIndexes.includes(correctIndex); const inFlow = locked || flowSlots.some(slot => Math.hypot(node.x - slot.x, node.y - slot.y) < 8); const edgeClass = !inFlow ? "edge-square" : correctIndex >= 0 ? puzzleEdgeClass(correctIndex, config.correct.length) : "edge-mismatch"; return <div className={`logicNode puzzlePiece ${edgeClass} ${node.kind.toLowerCase()} ${source === node.id ? "source" : ""} ${locked ? "locked" : ""}`} style={{ left: node.x, top: node.y, ...(PIECE_IO[state.caseId][node.id] && inFlow ? { clipPath: piecePath(PIECE_IO[state.caseId][node.id]) } : {}) }} title={[PIECE_IO[state.caseId][node.id]?.in && `들어오는 신호: ${NUB_NAME[PIECE_IO[state.caseId][node.id].in!]}`, PIECE_IO[state.caseId][node.id]?.out && `나가는 신호: ${NUB_NAME[PIECE_IO[state.caseId][node.id].out!]}`].filter(Boolean).join(" · ")} key={node.id} onDoubleClick={event => { event.stopPropagation(); if (wireTool === "move") setZoomNode(node); }} onClick={event => { event.stopPropagation(); chooseWireNode(node); }} onPointerDown={event => { if (locked || wireTool !== "move" || event.button !== 0) return; const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect(); setDragging({ id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top }); (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId); }}>
-          <PiecePicture node={node} /><div className="logicNodeCaption"><b>{node.label}</b><span>{node.detail}</span></div>
+        {nodes.map((node) => { const correctIndex = config.correct.indexOf(node.id); const locked = correctIndex >= 0 && !gapIndexes.includes(correctIndex); const inFlow = locked || flowSlots.some(slot => Math.hypot(node.x - slot.x, node.y - slot.y) < 8); const edgeClass = !inFlow ? "edge-square" : correctIndex >= 0 ? puzzleEdgeClass(correctIndex, config.correct.length) : "edge-mismatch"; return <div className={`logicNode puzzlePiece ${edgeClass} ${node.kind.toLowerCase()} ${source === node.id ? "source" : ""} ${locked ? "locked" : ""}`} style={{ left: node.x, top: node.y, ...({ "--piece": PIECE_IO[state.caseId][node.id] && inFlow ? piecePath(PIECE_IO[state.caseId][node.id]) : "none" } as React.CSSProperties) }} title={[PIECE_IO[state.caseId][node.id]?.in && `들어오는 신호: ${NUB_NAME[PIECE_IO[state.caseId][node.id].in!]}`, PIECE_IO[state.caseId][node.id]?.out && `나가는 신호: ${NUB_NAME[PIECE_IO[state.caseId][node.id].out!]}`].filter(Boolean).join(" · ")} key={node.id} onDoubleClick={event => { event.stopPropagation(); if (wireTool === "move") setZoomNode(node); }} onClick={event => { event.stopPropagation(); chooseWireNode(node); }} onPointerDown={event => { if (locked || wireTool !== "move" || event.button !== 0) return; const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect(); setDragging({ id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top }); (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId); }}>
+          <PiecePicture node={node} caseId={state.caseId} /><div className="logicNodeCaption"><b>{node.label}</b><span>{node.detail}</span></div>
         </div>; })}
         </div>
         <div className="canvasHelp">조각을 끌어 빈칸에 끼우면 자동으로 이어져요 · 홈 모양 = 신호 종류(● % · ■ 힘·토크 · ⚡ 통신 명령 · ∿ PWM · ▶ 온도·압력) · 휠: 확대 · 우클릭 드래그: 작업대 이동</div>
@@ -2100,7 +2109,17 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={solvePuzzle}>정답 보기</button>
     <div className="wiringFooter"><span>{puzzleFeedback}</span><button className="primary" disabled={!ready} onClick={() => { send({ type: "COMPILE", program: isCorrect ? config.program : config.faulty }); send({ type: "OPEN_BOARD" }); }}>정상 기준 완성 → 메모판에서 비교</button></div>
-    {zoomNode && <div className="evidenceZoom logicZoom" onClick={() => setZoomNode(null)}><article className="logicZoomCard" onClick={event => event.stopPropagation()}><button onClick={() => setZoomNode(null)}>×</button>{zoomNode.kind === "HW" ? <div className={`logicNodePhoto componentAssetPhoto asset-${componentAtlasCell[zoomNode.id] ?? 2}`}><small>HW · REAL PART</small></div> : <div className="logicNodePhoto simulinkNodeArt"><small>SW · CONTROL LOGIC</small><b>f(u)</b><i /><i /><i /></div>}<div className="logicZoomCopy"><small>{zoomNode.kind === "HW" ? "실물 부품 경계" : "제어 로직 블록"}</small><h2>{zoomNode.label}</h2><p>{zoomNode.detail}</p></div></article></div>}
+    {zoomNode && (() => { const io = PIECE_IO[state.caseId][zoomNode.id] ?? {}; const value = SIGNAL_VALUE[state.caseId][zoomNode.id]; return <div className="pieceZoom" onClick={() => setZoomNode(null)}><article className="pieceZoomCard" onClick={event => event.stopPropagation()}>
+      <button className="pieceZoomClose" onClick={() => setZoomNode(null)}>×</button>
+      <div className="pieceZoomStage"><div className={`logicNode puzzlePiece ${zoomNode.kind.toLowerCase()}`} style={{ "--piece": piecePath(io) } as React.CSSProperties}><PiecePicture node={zoomNode} caseId={state.caseId} /><div className="logicNodeCaption"><b>{zoomNode.label}</b><span>{zoomNode.detail}</span></div></div></div>
+      <div className="pieceZoomText">
+        <small>{zoomNode.kind === "HW" ? "부품 (하드웨어)" : "SW 로직 블록"}</small><h2>{zoomNode.label}</h2>
+        <p className="pzDo">💡 {zoomNode.detail}{zoomNode.kind === "SW" ? ` · ${plainText(zoomNode.label, swLogicKind(zoomNode.label) as Parameters<typeof plainText>[1])}` : ""}</p>
+        <div className="pzIo"><span><em>받는 신호</em>{io.in ? NUB_NAME[io.in] : "운전자·실제 상황"}</span><i>→</i><span><em>보내는 신호</em>{io.out ? NUB_NAME[io.out] : "차량 반응"}</span></div>
+        {value && <p className="pzVal">요구사항대로라면 여기서 <b>{value}</b></p>}
+        <p className="pzTip">조각 옆 홈 모양 = 주고받는 신호 종류예요.</p>
+      </div>
+    </article></div>; })()}
   </div>;
 }
 
