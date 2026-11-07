@@ -55,7 +55,8 @@ test("diagnosis stays evidence-led and the restored logic uses compatible jigsaw
 });
 
 test("garage learning lets players pull parts out and the v16 layout protects readable surfaces", () => {
-  assert.match(garage, /빼 보기 실험/);
+  assert.match(garage, /② 빼 보기/);
+  assert.match(garage, /범인 찾기/);
   assert.match(garage, /RemovedPartMarker/);
   assert.match(layout, /\.garagePredictionChoices/);
   assert.match(layout, /\.reasoningMicroRail/);
