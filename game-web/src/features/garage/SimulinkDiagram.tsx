@@ -52,7 +52,7 @@ export function plainText(label: string, kind: Kind) {
 }
 
 /** Small pictograms instead of math symbols. */
-function Picto({ kind }: { kind: Kind }) {
+export function Picto({ kind }: { kind: Kind }) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 2.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   return <svg viewBox="0 0 32 32" className="picto" aria-hidden="true">
     {kind === "check" && <><path d="M16 4 L26 8 V15 C26 22 21 26 16 28 C11 26 6 22 6 15 V8 Z" {...common} /><path d="M11 16 L15 20 L21 12" {...common} /></>}

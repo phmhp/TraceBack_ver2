@@ -683,3 +683,18 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 .dtMapNote { margin: 0; display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; font: 700 12px Pretendard, system-ui; color: #8a7550; }
 @media (max-width: 760px) { .dtSteps { display: none; } }
 .dtChip.clue { background: var(--clueBg); border: 2px solid var(--clue); color: var(--clueDeep); }
+
+/* Puzzle: whole part photo inside the piece's safe area (nubs never cut it), no red pen wires */
+.wiringV2 .puzzlePiece .piecePicture { position: relative; height: 74px !important; margin: 4px 20px 0 !important; padding: 4px; border-radius: 10px; background: #fff; display: grid !important; place-items: center; overflow: hidden; background-image: none !important; box-sizing: border-box; }
+.wiringV2 .puzzlePiece .piecePicture img { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
+.wiringV2 .puzzlePiece .piecePicture.sw { background: #f3effa; }
+.wiringV2 .puzzlePiece .piecePicture.sw svg { width: 52px; height: 52px; }
+.wiringV2 .puzzlePiece .piecePicture small { position: absolute; left: 4px; top: 3px; padding: 1px 5px; border-radius: 5px; background: #263a36c9; color: #fff; font: 800 8px Pretendard, system-ui; }
+.wiringV2 .puzzlePiece .logicNodeCaption { padding: 4px 20px 0 !important; }
+.wiringV2 .wormWire { stroke: transparent !important; }
+.wiringV2 .wirePill .pillStem { display: none; }
+.wiringV2 .puzzlePiece .piecePicture.sw { color: #6a54a0; }
+.wiringV2 .puzzlePiece .logicNodeCaption b { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.2; }
+.wiringV2 .puzzlePiece.edge-square { border-radius: 12px !important; }
+.wiringV2 .puzzlePiece.edge-square::before, .wiringV2 .puzzlePiece.edge-square::after { display: none !important; }
+.wiringV2 .logicNode.puzzlePiece.edge-square { clip-path: none !important; }

@@ -13,7 +13,7 @@ import { ComicBurst } from "./ui/ComicBurst";
 import { play } from "./ui/sfx";
 import { ECUS } from "./sim/components";
 import { getComponent } from "./sim/registry";
-import { SimulinkDiagram } from "./features/garage/SimulinkDiagram";
+import { Picto, SimulinkDiagram, blockKind } from "./features/garage/SimulinkDiagram";
 import { EeBlueprint } from "./features/garage/EeBlueprint";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
@@ -1816,6 +1816,18 @@ const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNo
   },
 };
 
+// Real part photos (whole object visible, kept inside the piece's safe area) and plain-language pictos for SW
+const PART_PHOTO: Record<string, string> = {
+  aps: "accel_pedal", vcu: "vcu", inverter: "traction_motor", temp: "motor_temp_sensor", thermalecu: "thermal_ecu",
+  fan: "cooling_fan", pedal: "brake_pedal", brakeecu: "brake_ecu", caliper: "brake_caliper",
+};
+function PiecePicture({ node }: { node: { id: string; label: string; kind: string } }) {
+  return <div className={`logicNodePhoto piecePicture ${node.kind === "HW" ? "hw" : "sw"}`}>
+    {node.kind === "HW" && PART_PHOTO[node.id] ? <img src={`/assets/ending-thumbs/${PART_PHOTO[node.id]}.png`} alt="" draggable={false} /> : <Picto kind={/Adapter|Sensor Check|진단/.test(node.label) ? "check" : /Map|Scale/.test(node.label) ? "lut" : /Filter/.test(node.label) ? "delay" : /Hysteresis/.test(node.label) ? "state" : /Force|Only|Gate/.test(node.label) ? "switch" : /Blend|Request/.test(node.label) ? "min" : blockKind(node.label)} />}
+    <small>{node.kind === "HW" ? "부품" : "SW 블록"}</small>
+  </div>;
+}
+
 const puzzleEdgeClass = (index: number, total: number) => {
   if (index === 0) return "edge-flat-tab";
   if (index === total - 1) return "edge-notch-flat";
@@ -2025,8 +2037,8 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
         <div className="canvasGrid" />
         {gapIndexes.map(index => { const slot = flowSlots[index]; const node = nodes.find(item => item.id === config.correct[index]); const filled = Boolean(node && Math.hypot(node.x - slot.x, node.y - slot.y) < 8); return <div key={index} className={`guidedLogicSlot ${filled ? "filled" : ""}`} style={{ left: slot.x, top: slot.y }}><b>빈칸 {index - 1}</b><span>{config.correct[index] === gapIds[0] ? "판단·변환" : "명령·전달"}</span></div>; })}
         <svg viewBox="0 0 1000 560">{edges.map((edge, index) => { const a = nodes.find(node => node.id === edge.from); const b = nodes.find(node => node.id === edge.to); if (!a || !b) return null; const x1 = a.x + 128, y1 = a.y + 70, x2 = b.x + 12, y2 = b.y + 70, direction = index % 2 ? 1 : -1; const d = edge.points?.length ? curveFromPoints(edge.points) : `M ${x1} ${y1} C ${x1 + 55} ${y1 + 45 * direction}, ${x2 - 55} ${y2 - 45 * direction}, ${x2} ${y2}`; const pill = SIGNAL_VALUE[state.caseId][edge.from]; return <g key={`${edge.from}-${edge.to}`}>{pill && <g className="wirePill" transform={`translate(${(x1 + x2) / 2} ${(y1 + y2) / 2 + 92})`}><path d="M0 -24 L0 -12" className="pillStem" /><rect x={-38} y={-12} width={76} height={24} rx={12} /><text textAnchor="middle" y={5}>{pill}</text></g>}<path className="wormWire" d={d} onPointerEnter={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} onClick={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} /></g>; })}{source && wireDraft && <path className="wormWire wireDraft" d={curveFromPoints(wireDraft.points)} />}</svg>
-        {nodes.map((node) => { const correctIndex = config.correct.indexOf(node.id); const locked = correctIndex >= 0 && !gapIndexes.includes(correctIndex); const edgeClass = correctIndex >= 0 ? puzzleEdgeClass(correctIndex, config.correct.length) : "edge-mismatch"; return <div className={`logicNode puzzlePiece ${edgeClass} ${node.kind.toLowerCase()} ${source === node.id ? "source" : ""} ${locked ? "locked" : ""}`} style={{ left: node.x, top: node.y, ...(PIECE_IO[state.caseId][node.id] ? { clipPath: piecePath(PIECE_IO[state.caseId][node.id]) } : {}) }} title={[PIECE_IO[state.caseId][node.id]?.in && `들어오는 신호: ${NUB_NAME[PIECE_IO[state.caseId][node.id].in!]}`, PIECE_IO[state.caseId][node.id]?.out && `나가는 신호: ${NUB_NAME[PIECE_IO[state.caseId][node.id].out!]}`].filter(Boolean).join(" · ")} key={node.id} onDoubleClick={event => { event.stopPropagation(); if (wireTool === "move") setZoomNode(node); }} onClick={event => { event.stopPropagation(); chooseWireNode(node); }} onPointerDown={event => { if (locked || wireTool !== "move" || event.button !== 0) return; const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect(); setDragging({ id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top }); (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId); }}>
-          {node.kind === "HW" ? <div className={`logicNodePhoto componentAssetPhoto asset-${componentAtlasCell[node.id] ?? 2}`}><small>HW · REAL PART</small><em>{perspective.active.includes("E/E") ? "E/E 아키텍처" : "물리 플랜트"}</em></div> : <div className="logicNodePhoto simulinkNodeArt"><small>SW · SIMULINK BLOCK</small><em>SW 로직</em><b>f(u)</b><i /><i /><i /></div>}<div className="logicNodeCaption"><b>{node.label}</b><span>{node.detail}</span></div>
+        {nodes.map((node) => { const correctIndex = config.correct.indexOf(node.id); const locked = correctIndex >= 0 && !gapIndexes.includes(correctIndex); const inFlow = locked || flowSlots.some(slot => Math.hypot(node.x - slot.x, node.y - slot.y) < 8); const edgeClass = !inFlow ? "edge-square" : correctIndex >= 0 ? puzzleEdgeClass(correctIndex, config.correct.length) : "edge-mismatch"; return <div className={`logicNode puzzlePiece ${edgeClass} ${node.kind.toLowerCase()} ${source === node.id ? "source" : ""} ${locked ? "locked" : ""}`} style={{ left: node.x, top: node.y, ...(PIECE_IO[state.caseId][node.id] && inFlow ? { clipPath: piecePath(PIECE_IO[state.caseId][node.id]) } : {}) }} title={[PIECE_IO[state.caseId][node.id]?.in && `들어오는 신호: ${NUB_NAME[PIECE_IO[state.caseId][node.id].in!]}`, PIECE_IO[state.caseId][node.id]?.out && `나가는 신호: ${NUB_NAME[PIECE_IO[state.caseId][node.id].out!]}`].filter(Boolean).join(" · ")} key={node.id} onDoubleClick={event => { event.stopPropagation(); if (wireTool === "move") setZoomNode(node); }} onClick={event => { event.stopPropagation(); chooseWireNode(node); }} onPointerDown={event => { if (locked || wireTool !== "move" || event.button !== 0) return; const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect(); setDragging({ id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top }); (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId); }}>
+          <PiecePicture node={node} /><div className="logicNodeCaption"><b>{node.label}</b><span>{node.detail}</span></div>
         </div>; })}
         </div>
         <div className="canvasHelp">조각을 끌어 빈칸에 끼우면 자동으로 이어져요 · 홈 모양 = 신호 종류(● % · ■ 힘·토크 · ⚡ 통신 명령 · ∿ PWM · ▶ 온도·압력) · 휠: 확대 · 우클릭 드래그: 작업대 이동</div>
