@@ -1160,8 +1160,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const keys = useRef(new Set<string>());
   const collisionCooldown = useRef(0);
   const zoneThrottle = useRef(0); // seconds of full throttle inside the overtake zone
-  const [crashFlash, setCrashFlash] = useState(0);
-  useEffect(() => { if (!impact) return; setCrashFlash(impact); const timer = window.setTimeout(() => setCrashFlash(0), 1100); return () => clearTimeout(timer); }, [impact]);
+  useEffect(() => { if (impact) play("crash"); }, [impact]);
   const simRef = useRef(sim);
   useEffect(() => { simRef.current = sim; }, [sim]);
   useEffect(() => {
@@ -1377,8 +1376,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     <div className="raceControls"><b>W/S</b> 가속·제동 <b>A/D</b> 조향 <b>Q/E</b> 회생 단계 <b>R</b> READY 재시동</div>
     {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
     {(countdown > 0 || goFlash) && <div className="startCountdown"><small>GET READY</small><b>{goFlash ? "GO!" : countdown}</b></div>}
-    {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="삐뽀삐뽀!" sound="siren" />}
-    {crashFlash > 0 && <ComicBurst key={crashFlash} tone="crash" side="top" title="쾅!" sound="crash" />}
+    {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="바짝 붙었어!" sound="siren" />}
     {symptom && <ComicBurst tone="fault" side="right" image={mode === "normal" ? "/assets/ending-thumbs/accel_pedal.png" : "/assets/ending-thumbs/cooling_fan.png"} title={mode === "normal" ? "힘이 없어!" : "과열!"} sound="alarm" />}
     {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i>{zone.icon}</i><span><small>DRIVING ZONE</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
     {symptom && <div className="faultBeacon" role="alert"><span /><div><small>VEHICLE WARNING</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "온도 상승 · 보호 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}

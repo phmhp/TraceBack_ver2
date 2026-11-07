@@ -115,30 +115,27 @@
 button { transition: scale .22s cubic-bezier(.2, 1.9, .35, 1); }
 button:not(:disabled):active { scale: .93; transition-duration: .06s; }
 
-/* ── comic burst: racing-game dash-in alert ── */
-.comicBurst { position: fixed; z-index: 80; width: 300px; height: 190px; display: grid; place-items: center; pointer-events: none; animation: burstDash 2.2s cubic-bezier(.2, .9, .3, 1) both; }
-.comicBurst .burstBg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.comicBurstBody { position: relative; display: flex; align-items: center; gap: 10px; margin-top: -4px; }
-.comicBurstBody b { white-space: nowrap; font: 900 33px/1 "TraceRounded", system-ui; letter-spacing: -.01em; color: #fff; -webkit-text-stroke: 6px #241a14; paint-order: stroke fill; text-shadow: 0 4px 0 #241a14; }
-.tone-police .comicBurstBody b { color: #3d8bff; }
-.tone-crash .comicBurstBody b { color: #ffd84d; font-size: 40px; }
-.tone-fault .comicBurstBody b { color: #ff5a4a; }
-.burstIcon { width: 86px; height: 64px; object-fit: contain; animation: burstJiggle .5s .4s ease-in-out 3; }
-.tone-crash .burstIcon { width: 52px; height: 52px; }
-.burstShot { position: relative; width: 92px; height: 92px; }
-.burstShot > img:first-child { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 0 #0003); }
-.burstBadge { position: absolute; right: -14px; top: -16px; width: 40px; height: 40px; animation: burstJiggle .5s .4s ease-in-out 3; }
-.comicBurst.side-left { left: 6px; top: 40%; transform-origin: left center; --dash-from: -130%; }
-.comicBurst.side-right { right: 6px; top: 32%; transform-origin: right center; --dash-from: 130%; }
-.comicBurst.side-top { left: 50%; top: 140px; margin-left: -150px; --dash-from: -40%; }
-@keyframes burstDash {
-  0% { transform: translateX(var(--dash-from)) skewX(-14deg) scale(1.25, .7); opacity: 0; }
-  14% { transform: translateX(4%) skewX(6deg) scale(.92, 1.12); opacity: 1; }
-  22% { transform: translateX(-2%) skewX(-2deg) scale(1.04, .97); }
-  30%, 78% { transform: none; opacity: 1; }
-  100% { transform: translateX(calc(var(--dash-from) * -1)) skewX(14deg) scale(1.2, .75); opacity: 0; }
+/* ── tension alert: small fish speech bubble at the left/right edge ── */
+.fishAlert { position: fixed; z-index: 80; width: 214px; height: 92px; pointer-events: none; animation: fishIn 2.8s cubic-bezier(.25, 1.3, .4, 1) both; }
+.fishAlert .fishShape { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 4px 0 #4a3a2c33); }
+.fishAlert.side-right .fishShape { transform: scaleX(-1); }
+.fishBody { position: absolute; top: 18%; bottom: 18%; left: 25%; right: 13%; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.fishAlert.side-right .fishBody { left: 13%; right: 25%; }
+.fishBody b { white-space: nowrap; font: 900 18px/1 "TraceRounded", system-ui; color: #3b2f25; }
+.tone-fault .fishBody b { color: #c0392b; }
+.tone-police .fishBody b { color: #2f5fb0; }
+.fishIcon { width: 40px; height: 30px; object-fit: contain; flex: none; }
+.fishPart { width: 38px; height: 38px; object-fit: contain; flex: none; }
+.fishAlert.side-left { left: 14px; top: 46%; --from: -120%; }
+.fishAlert.side-right { right: 14px; top: 38%; --from: 120%; }
+@keyframes fishIn {
+  0% { transform: translateX(var(--from)) rotate(-4deg); opacity: 0; }
+  12% { transform: translateX(calc(var(--from) * -.05)) rotate(2deg); opacity: 1; }
+  20% { transform: translateX(0) rotate(0); }
+  45% { transform: translateY(-3px); }
+  70% { transform: translateY(2px); opacity: 1; }
+  100% { transform: translateX(var(--from)); opacity: 0; }
 }
-@keyframes burstJiggle { 50% { transform: rotate(-8deg) scale(1.08); } }
 
 /* ── sound toggle ── */
 .soundToggle { position: fixed; right: 12px; bottom: 12px; z-index: 90; display: flex; gap: 6px; }

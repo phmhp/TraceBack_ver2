@@ -8,18 +8,18 @@ type BurstTone = "police" | "crash" | "fault";
 const ICON: Record<BurstTone, string> = { police: "/assets/ui/icon-police.svg", crash: "/assets/ui/icon-crash.svg", fault: "/assets/ui/icon-skull.svg" };
 
 /**
- * Racing-game style alert: dashes in from the screen edge with squash & overshoot,
- * holds briefly, then dashes out. Title is one short word (no wrapping).
- * `image` shows only the object (transparent cut-out), with the tone icon as a badge.
+ * Tension alert shown only at the left/right screen edge: a small fish-shaped
+ * speech bubble (tail toward the edge) that slides in, bobs, then slides out.
+ * One short word + one small picture (icon or a transparent part cut-out).
  */
 export function ComicBurst({ tone, side = "right", title, image, sound }: {
-  tone: BurstTone; side?: "left" | "right" | "top"; title: string; image?: string; sound?: Parameters<typeof play>[0];
+  tone: Exclude<BurstTone, "crash">; side?: "left" | "right"; title: string; image?: string; sound?: Parameters<typeof play>[0];
 }) {
   useEffect(() => { if (sound) play(sound); }, [sound]);
-  return <div className={`comicBurst tone-${tone} side-${side}`} role="status" aria-label={title}>
-    <img className="burstBg" src={`/assets/ui/burst-${tone}.svg`} alt="" />
-    <div className="comicBurstBody">
-      {image ? <span className="burstShot"><img src={image} alt="" /><img className="burstBadge" src={ICON[tone]} alt="" /></span> : <img className="burstIcon" src={ICON[tone]} alt="" />}
+  return <div className={`fishAlert tone-${tone} side-${side}`} role="status" aria-label={title}>
+    <img className="fishShape" src={`/assets/ui/bubble-fish-${tone}.svg`} alt="" />
+    <div className="fishBody">
+      <img className={image ? "fishPart" : "fishIcon"} src={image ?? ICON[tone]} alt="" />
       <b>{title}</b>
     </div>
   </div>;
