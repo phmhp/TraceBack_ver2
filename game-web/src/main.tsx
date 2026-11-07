@@ -50,6 +50,8 @@ import "./v18.css";
 import "./ending-v19.css";
 import "./p0-v20.css";
 import { BustedEnding, WantedEnding } from "./ui/CaseFileEnding";
+import { SoundToggle } from "./ui/ComicBurst";
+import { installGlobalSfx } from "./ui/sfx";
 const A = "/assets/";
 type Sim = {
   speed: number;
@@ -1485,10 +1487,11 @@ const VehicleShowroom = import.meta.env.DEV
 const PartShowroom = import.meta.env.DEV
   ? React.lazy(() => import("./features/parts/PartShowroom").then(module => ({ default: module.PartShowroom })))
   : null;
+installGlobalSfx();
 createRoot(document.getElementById("root")!).render(
   devShowroom && VehicleShowroom
     ? <React.Suspense fallback={null}><VehicleShowroom /></React.Suspense>
     : devPartShowroom && PartShowroom
       ? <React.Suspense fallback={null}><PartShowroom /></React.Suspense>
-      : <GameStage><App /></GameStage>,
+      : <><GameStage><App /></GameStage><SoundToggle /></>,
 );

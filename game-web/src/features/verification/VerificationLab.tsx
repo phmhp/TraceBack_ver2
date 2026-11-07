@@ -3,6 +3,7 @@ import type { Campaign, CaseId } from "../../game/runtime";
 import { SCENARIOS } from "../../game/scenarios";
 import { BenchVisual, EmbeddedBench3D, RestoredPuzzleVisual, type BenchTab } from "../../experiences";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
+import { play } from "../../ui/sfx";
 
 type Send = React.Dispatch<any>;
 type ProbeId = "input" | "control" | "output";
@@ -307,6 +308,7 @@ const regressionTests: Record<CaseId, string[]> = {
 function VerificationReport({ caseId, config, works, actual, onDone, onClose }: { caseId: CaseId; config: ExperimentConfig; works: boolean; actual: string; onDone: () => void; onClose: () => void }) {
   const [pick, setPick] = useState<BenchTab | null>(null);
   const check = levelCheck[caseId];
+  React.useEffect(() => { const timer = window.setTimeout(() => play("stamp"), 420); return () => clearTimeout(timer); }, []);
   const correct = pick === check.answer;
   return <div className="vrOverlay" role="dialog" aria-modal="true">
     <div className="vrCard">
@@ -324,7 +326,7 @@ function VerificationReport({ caseId, config, works, actual, onDone, onClose }: 
       </section>
       <section className="vrLevels">
         <h3>🔍 이 고장은 어느 검증 단계에서 <u>처음</u> 잡을 수 있을까?</h3>
-        <div className="vrLevelRow">{LEVELS.map(level => <button key={level.id} className={`${pick === level.id ? (level.id === check.answer ? "is-right" : "is-wrong") : ""} ${pick && level.id === check.answer ? "is-answer" : ""}`} onClick={() => setPick(level.id)}>
+        <div className="vrLevelRow">{LEVELS.map(level => <button key={level.id} className={`${pick === level.id ? (level.id === check.answer ? "is-right" : "is-wrong") : ""} ${pick && level.id === check.answer ? "is-answer" : ""}`} onClick={() => { setPick(level.id); window.setTimeout(() => play(level.id === check.answer ? "success" : "error"), 60); }}>
           <i>{level.icon}</i><b>{level.name}</b><small>{level.sub}</small>
         </button>)}</div>
         {pick && <div className={`vrBubble ${correct ? "ok" : "hint"}`}><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>밍</b>{correct ? check.why : check.wrong}</p></div>}
