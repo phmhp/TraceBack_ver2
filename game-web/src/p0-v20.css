@@ -542,7 +542,6 @@ kbd.wide { min-width: 34px; }
 body, button, p, li, span, b, small, em, h1, h2, h3 { word-break: keep-all; overflow-wrap: break-word; }
 
 /* E/E blueprint: gradient signal-flow arrows (blue input → red vehicle response) */
-.eeBlueprint { position: relative; }
 .eeFlow { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: visible; }
 .eeFlowBase { fill: none; stroke-width: 4; stroke-linecap: round; opacity: .85; }
 .eeFlowRun { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 3 14; opacity: .9; animation: eeFlowRun 1s linear infinite; }
@@ -698,3 +697,34 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 .wiringV2 .puzzlePiece.edge-square { border-radius: 12px !important; }
 .wiringV2 .puzzlePiece.edge-square::before, .wiringV2 .puzzlePiece.edge-square::after { display: none !important; }
 .wiringV2 .logicNode.puzzlePiece.edge-square { clip-path: none !important; }
+
+/* E/E step-by-step flow */
+.eeFlow g.later { opacity: .35; } .eeFlow g.done .eeFlowRun { opacity: .4; }
+.eeStepDot { stroke: #fff; stroke-width: 2; } .eeStepNum { fill: #fff; font: 900 10px Pretendard, system-ui; pointer-events: none; }
+.eeSignalTag { position: absolute; z-index: 6; transform: translate(-50%, 12px); padding: 3px 9px; border-radius: 999px; background: #2f4a44; color: #fff; font: 800 11px Pretendard, system-ui; white-space: nowrap; box-shadow: 0 3px 8px #0003; pointer-events: none; animation: eeTagIn .3s ease-out; }
+@keyframes eeTagIn { from { opacity: 0; translate: 0 -4px; } }
+.flowStepCard { display: grid; gap: 6px; margin-top: 6px; padding: 8px 12px; border-radius: 14px; background: #fff; border: 2px solid #e2c88c; box-shadow: 0 3px 0 #d3b26e; font-family: Pretendard, system-ui, sans-serif; }
+.flowStepHead { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.flowStepHead b { padding: 2px 8px; border-radius: 999px; background: #2f4a44; color: #fff; font-weight: 900; }
+.flowStepHead span { color: #8a7550; font-weight: 800; } .flowStepHead strong { font: 900 14px Pretendard, system-ui; color: #3b2f25; }
+.flowStepBody { display: grid; grid-template-columns: 1fr auto 1.5fr auto 1fr; align-items: stretch; gap: 6px; }
+.flowStepBody > i { align-self: center; font-style: normal; font-weight: 900; color: #c0782a; }
+.flowStepBody > div { display: grid; align-content: center; gap: 2px; padding: 6px 9px; border-radius: 10px; font-size: 12px; }
+.flowStepBody small { font-size: 10px; font-weight: 800; color: #8a7550; }
+.flowStepBody b { font-weight: 900; line-height: 1.3; }
+.flowStepBody em { font-style: normal; font-size: 10.5px; font-weight: 800; color: #4f6a94; }
+.fsIn { background: #eef4ff; border: 1px solid #c7d6f5; } .fsDo { background: #fff8e8; border: 1px solid #f0d9a6; } .fsOut { background: #fff0e6; border: 1px solid #f5c49a; } .fsOut.final { background: #ffe6e0; border-color: #e05a3a; }
+.flowStepNav { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.flowStepNav button { padding: 4px 12px; border-radius: 999px; border: 2px solid #c0782a; background: #fff; color: #9a5a14; font: 800 12px Pretendard, system-ui; cursor: pointer; box-shadow: 0 2px 0 #c0782a; }
+.flowStepNav button:disabled { opacity: .4; cursor: default; }
+.flowDots { display: flex; gap: 5px; } .flowDots i { width: 9px; height: 9px; border-radius: 50%; background: #e7dac0; cursor: pointer; } .flowDots i.done { background: #f2c653; } .flowDots i.on { background: #e05a3a; transform: scale(1.3); }
+.eeBlueprint { inset: 84px 14px 160px; grid-template-columns: 17% 1fr 17%; }
+.eeCore { grid-template-rows: auto auto auto auto; align-content: space-evenly; }
+.eeRow { align-items: start; }
+.eeEcu { padding: 5px 6px; min-height: 34px; }
+.eeCol { overflow: visible; }
+.eeChip { max-width: 100%; box-sizing: border-box; }
+.flowStepHead .flowStepNav { margin-left: auto; }
+.flowStepCard { padding: 6px 10px; gap: 5px; }
+.flowStepBody > div { padding: 4px 8px; }
+.eeBlueprint { bottom: 172px; }

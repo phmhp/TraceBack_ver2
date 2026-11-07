@@ -539,7 +539,7 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
   const sourceLevel = garageLayerSource[level] ?? 3;
   if (level === 1) {
     const chain = getFeatureLayer(domain, feature, 1);
-    return <div className="mechanismViewer eeView eeBlueprintView"><EeBlueprint chain={chain} roles={chain.map((label, index) => partRole(label, index, chain.length))} active={activeStep} removed={removed} onPick={onPick} /></div>;
+    return <div className="mechanismViewer eeView eeBlueprintView"><EeBlueprint chain={chain} roles={chain.map((label, index) => partRole(label, index, chain.length))} active={activeStep} removed={removed} onPick={onPick} signals={flowSignals(domain, feature, chain.length)} /></div>;
   }
   if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={activeStep} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
   return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
@@ -604,6 +604,50 @@ const ROLE_INTRO: Record<PartRole, string> = {
   actuator: "명령을 받아 실제로 움직이는 손발",
   result: "부품들이 함께 만든 차량의 실제 반응",
 };
+// What each step of the chain sends on (plain words + example unit), from the vehicle-level layer.
+const SIGNAL_UNIT: [RegExp, string][] = [[/페달|가속 의도|운전자 가속|조작/, "0~100%"], [/토크|힘|추진/, "Nm"], [/온도|열/, "°C"], [/압력|제동력/, "bar"], [/감속|가속/, "m/s²"], [/회전|속도|RPM/, "rpm"], [/전류/, "A"], [/전압|전력/, "V"], [/조향|각/, "°"], [/허용|판단|요구|요청|명령|선택/, "명령"]];
+const flowSignals = (domain: DomainId, feature: number, length: number) => {
+  const meanings = getFeatureLayer(domain, feature, 0);
+  return Array.from({ length }, (_, index) => meanings[Math.round(index * (meanings.length - 1) / Math.max(1, length - 1))]);
+};
+const unitOf = (text: string) => SIGNAL_UNIT.find(([pattern]) => pattern.test(text))?.[1] ?? "신호";
+const ROLE_DOES: Record<PartRole, (out: string) => string> = {
+  input: out => `실제 상황을 재서 ‘${out}’ 값을 전기 신호로 바꿔요`,
+  control: out => `받은 값으로 계산해서 ‘${out}’을(를) 정해요`,
+  network: out => `‘${out}’을(를) 메시지에 실어 다른 제어기로 배달해요`,
+  actuator: out => `명령대로 움직여서 ‘${out}’을(를) 실제로 만들어요`,
+  result: out => `최종 결과: 운전자가 ‘${out}’을(를) 느껴요`,
+};
+
+function FlowStepCard({ chain, signals, step, onStep }: { chain: string[]; signals: string[]; step: number; onStep: (index: number) => void }) {
+  const [auto, setAuto] = useState(false);
+  useEffect(() => {
+    if (!auto) return;
+    const timer = window.setTimeout(() => { if (step < chain.length - 1) onStep(step + 1); else setAuto(false); }, 2200);
+    return () => clearTimeout(timer);
+  }, [auto, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  const role = partRole(chain[step], step, chain.length);
+  const input = step === 0 ? "운전자·도로의 실제 상황" : signals[step - 1];
+  const output = signals[step];
+  return <div className="flowStepCard">
+    <div className="flowStepHead"><b>{step + 1}/{chain.length}단계</b><span>{ROLE_TEXT[role].tag}</span><strong>{chain[step]}</strong>
+      <div className="flowStepNav">
+        <button disabled={step === 0} onClick={() => onStep(step - 1)}>◀</button>
+        <span className="flowDots">{chain.map((_, index) => <i key={index} className={index === step ? "on" : index < step ? "done" : ""} onClick={() => onStep(index)} />)}</span>
+        <button disabled={step === chain.length - 1} onClick={() => onStep(step + 1)}>▶</button>
+        <button onClick={() => { if (step === chain.length - 1) onStep(0); setAuto(value => !value); }}>{auto ? "⏸ 멈춤" : "▶ 자동 재생"}</button>
+      </div>
+    </div>
+    <div className="flowStepBody">
+      <div className="fsIn"><small>받는 값</small><b>{input}</b>{step > 0 && <em>{unitOf(input)}</em>}</div>
+      <i>→</i>
+      <div className="fsDo"><small>하는 일</small><b>{ROLE_DOES[role](output)}</b></div>
+      <i>→</i>
+      <div className={`fsOut ${step === chain.length - 1 ? "final" : ""}`}><small>{step === chain.length - 1 ? "최종 출력" : "보내는 값"}</small><b>{output}</b><em>{unitOf(output)}</em></div>
+    </div>
+  </div>;
+}
+
 function PartIntroCard({ label, role, domain, onClose, onPull }: { label: string; role: PartRole; domain: DomainId; onClose: () => void; onPull: () => void }) {
   if (role === "control") return <ControllerCard label={label} onClose={onClose} onPull={onPull} />;
   const partId = partModelFor(domain, label);
@@ -648,7 +692,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const [removed, setRemoved] = useState<number | null>(null);
   const [triedRemovals, setTriedRemovals] = useState<Set<string>>(() => new Set());
   const [ecuCard, setEcuCard] = useState<number | null>(null);
-  const [labMode, setLabMode] = useState<"intro" | "pull" | "hunt">("intro");
+  const [labMode, setLabMode] = useState<"flow" | "intro" | "pull" | "hunt">("flow");
   // "범인 찾기" mini-game: one part is secretly missing, the player finds it from the clue.
   const [culprit, setCulprit] = useState<number | null>(null);
   const [guess, setGuess] = useState<{ index: number; right: boolean } | null>(null);
@@ -662,7 +706,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-${routeLevel}-${index}`));
   };
   useEffect(() => { setFeature(0); setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); }, [domain]);
-  useEffect(() => { setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("intro"); }, [feature, routeLevel]);
+  useEffect(() => { setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("flow"); }, [feature, routeLevel]);
   useEffect(() => {
     const flowLength = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
     const timer = window.setInterval(() => setActiveStep(value => (value + 1) % flowLength), 1450);
@@ -699,13 +743,14 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
           return <div className={`pullOutLab mode-${labMode}`}>
             <header>
               <nav className="labTabs">
+                <button className={labMode === "flow" ? "on" : ""} onClick={() => { setLabMode("flow"); setRemoved(null); setCulprit(null); setEcuCard(null); setActiveStep(0); }}>🧭 흐름 따라가기</button>
                 <button className={labMode === "intro" ? "on" : ""} onClick={() => { setLabMode("intro"); setRemoved(null); setCulprit(null); }}>① 부품 소개</button>
                 <button className={labMode === "pull" ? "on" : ""} onClick={() => { setLabMode("pull"); setCulprit(null); setEcuCard(null); }}>② 빼 보기</button>
                 <button className={labMode === "hunt" ? "on" : ""} onClick={startHunt}>③ 범인 찾기{caught ? ` · ${caught}` : ""}</button>
               </nav>
-              <em>{labMode === "intro" ? "부품을 눌러 무슨 일을 하는지 보세요" : labMode === "pull" ? "부품을 하나 빼면 차가 어떻게 될까?" : "밍의 퀴즈: 어느 부품이 빠졌을까?"}</em>
+              <em>{labMode === "flow" ? "입력 값이 부품을 하나씩 지나 출력이 되는 과정을 따라가요" : labMode === "intro" ? "부품을 눌러 무슨 일을 하는지 보세요" : labMode === "pull" ? "부품을 하나 빼면 차가 어떻게 될까?" : "밍의 퀴즈: 어느 부품이 빠졌을까?"}</em>
             </header>
-            <div className="pullOutChain">{chain.map((label, index) => { const role = partRole(label, index, chain.length); return <React.Fragment key={`${label}-${index}`}>
+            {labMode !== "flow" && <div className="pullOutChain">{chain.map((label, index) => { const role = partRole(label, index, chain.length); return <React.Fragment key={`${label}-${index}`}>
               {index > 0 && <i className={removed !== null && (removed === index || removed === index - 1) ? "broken" : ""}>→</i>}
               <button disabled={labMode === "hunt" || (role === "result" && labMode === "pull")} className={`${removed === index ? "is-out" : ""} ${ecuCard === index ? "is-open" : ""} role-${role}`} onClick={() => {
                 if (labMode === "intro") { setEcuCard(ecuCard === index ? null : index); setActiveStep(index); play("pop"); return; }
@@ -715,7 +760,8 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
                 <small>{ROLE_TEXT[role].tag}</small><b>{label}</b>
                 <em>{labMode === "intro" ? "소개" : labMode === "hunt" ? "?" : removed === index ? "↩ 다시 끼우기" : role === "result" ? "결과" : "빼 보기"}</em>
               </button>
-            </React.Fragment>; })}</div>
+            </React.Fragment>; })}</div>}
+            {labMode === "flow" && <FlowStepCard chain={chain} signals={flowSignals(domain, feature, chain.length)} step={Math.min(activeStep, chain.length - 1)} onStep={index => { setActiveStep(index); play("pop", 1 + index * .08); }} />}
             {labMode === "intro" && ecuCard !== null && <PartIntroCard label={chain[ecuCard]} role={partRole(chain[ecuCard], ecuCard, chain.length)} domain={domain} onClose={() => setEcuCard(null)} onPull={() => { setLabMode("pull"); pullOut(ecuCard); }} />}
             {labMode === "pull" && removed !== null && <PullOutBubble domain={domain} label={chain[removed]} role={partRole(chain[removed], removed, chain.length)} />}
             {labMode === "hunt" && culprit !== null && <div className="pullOutBubble huntQuiz"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><div>

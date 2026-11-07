@@ -16,8 +16,8 @@ const ECU_BOXES = [
   { id: "dcu", label: "변속·클러스터", row: 0, col: 3, match: /Cluster|PRND/ },
 ];
 
-export function EeBlueprint({ chain, roles, active, removed, onPick }: {
-  chain: string[]; roles: Role[]; active: number; removed: number | null; onPick?: (index: number) => void;
+export function EeBlueprint({ chain, roles, active, removed, onPick, signals }: {
+  chain: string[]; roles: Role[]; active: number; removed: number | null; onPick?: (index: number) => void; signals?: string[];
 }) {
   // place each part of the selected chain on the blueprint
   const sensors = chain.map((label, i) => ({ label, i })).filter(item => roles[item.i] === "input");
@@ -26,7 +26,7 @@ export function EeBlueprint({ chain, roles, active, removed, onPick }: {
   const ecuParts = (box: (typeof ECU_BOXES)[number]) => chain.map((label, i) => ({ label, i })).filter(item => roles[item.i] === "control" && box.match.test(item.label));
   // flow arrows: measure every chip and connect them in signal order (input → control → CAN → part → car)
   const box = useRef<HTMLDivElement>(null);
-  const [paths, setPaths] = useState<{ d: string; i: number; x1: number; y1: number; x2: number; y2: number }[]>([]);
+  const [paths, setPaths] = useState<{ d: string; i: number; x1: number; y1: number; x2: number; y2: number; mx: number; my: number }[]>([]);
   const [size, setSize] = useState({ w: 1, h: 1 });
   useLayoutEffect(() => {
     const measure = () => {
@@ -45,7 +45,7 @@ export function EeBlueprint({ chain, roles, active, removed, onPick }: {
         const x2 = horizontal ? bc.x - dir * b.width / 2 : bc.x, y2 = horizontal ? bc.y : bc.y - dir * b.height / 2;
         const k = horizontal ? Math.max(24, Math.abs(x2 - x1) / 2) : Math.max(18, Math.abs(y2 - y1) / 2);
         const d = horizontal ? `M${x1} ${y1} C${x1 + dir * k} ${y1} ${x2 - dir * k} ${y2} ${x2} ${y2}` : `M${x1} ${y1} C${x1} ${y1 + dir * k} ${x2} ${y2 - dir * k} ${x2} ${y2}`;
-        next.push({ d, i, x1, y1, x2, y2 });
+        next.push({ d, i, x1, y1, x2, y2, mx: (x1 + x2) / 2, my: (y1 + y2) / 2 });
       }
       setPaths(next);
     };
@@ -62,11 +62,13 @@ export function EeBlueprint({ chain, roles, active, removed, onPick }: {
         {paths.map(p => <linearGradient key={p.i} id={`eeG${p.i}`} gradientUnits="userSpaceOnUse" x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2}><stop offset="0" stopColor={`hsl(${hue(p.i)} 75% 55%)`} /><stop offset="1" stopColor={`hsl(${hue(p.i + 1)} 75% 55%)`} /></linearGradient>)}
         {paths.map(p => <marker key={p.i} id={`eeM${p.i}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill={`hsl(${hue(p.i + 1)} 75% 50%)`} /></marker>)}
       </defs>
-      {paths.map(p => <g key={p.i} className={p.i + 1 === active || p.i === active ? "hot" : ""}>
+      {paths.map(p => <g key={p.i} className={p.i === active ? "hot" : p.i < active ? "done" : "later"}>
         <path d={p.d} className="eeFlowBase" stroke={`url(#eeG${p.i})`} markerEnd={`url(#eeM${p.i})`} />
         <path d={p.d} className="eeFlowRun" style={{ animationDelay: `${p.i * -0.25}s` }} />
+        <circle cx={p.mx} cy={p.my} r="9" className="eeStepDot" fill={`hsl(${hue(p.i)} 70% 48%)`} /><text x={p.mx} y={p.my + 3.5} textAnchor="middle" className="eeStepNum">{p.i + 1}</text>
       </g>)}
     </svg>
+    {signals && paths.filter(p => p.i === active).map(p => <span key={p.i} className="eeSignalTag" style={{ left: p.mx, top: p.my }}>✉ {signals[p.i]}</span>)}
     <div className="eeCol eeSensors"><small>센서 · 운전자 입력</small>{sensors.map(chip)}</div>
     <div className="eeCore">
       {[0, 1].map(row => <div key={row} className="eeRow">{ECU_BOXES.filter(box => box.row === row).map(box => { const parts = ecuParts(box); return <div key={box.id} className={`eeEcu ${parts.length ? "lit" : ""}`}><b>{box.label}</b>{parts.map(chip)}</div>; })}</div>)}
