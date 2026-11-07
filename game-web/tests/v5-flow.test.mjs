@@ -18,8 +18,9 @@ test("pursuit state persists across investigation and guarantees two required fa
   assert.match(runtime, /raceDistance: number/);
   assert.match(runtime, /policeGapMeters: number/);
   assert.match(runtime, /s\.completedCases\.length < 2 \? 10 : 0/);
-  assert.match(experience, /mode === "normal" && sim\.distance >= 260/);
-  assert.match(experience, /state\.caseId === "propulsion" && sim\.distance >= 830/);
+  // Faults appear under driving conditions, with a distance fallback so both always happen.
+  assert.match(experience, /zoneThrottle\.current >= 1\.8 \|\| sim\.distance >= OVERTAKE_ZONE\[1\]/);
+  assert.match(experience, /sim\.heat >= 84 \|\| sim\.distance >= CLIMB_ZONE\[1\]/);
   assert.match(runtime, /const routeGate = s\.caseId === "propulsion" \? 540/);
   assert.match(runtime, /policeGapMeters <= 0 \? enter\(s, "CAUGHT"\)/);
   assert.match(runtime, /nextScore = correct \? 20 : -20/);

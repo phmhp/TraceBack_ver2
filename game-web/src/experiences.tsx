@@ -1072,6 +1072,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const assistTarget = state.raceDistance + 42;
   const keys = useRef(new Set<string>());
   const collisionCooldown = useRef(0);
+  const zoneThrottle = useRef(0); // seconds of full throttle inside the overtake zone
   const simRef = useRef(sim);
   useEffect(() => { simRef.current = sim; }, [sim]);
   useEffect(() => {
@@ -1117,10 +1118,18 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         speed = THREE.MathUtils.clamp(speed, 0, topSpeed);
         if (!allowed || parking || driveMission === "restart" || waterFall) speed = THREE.MathUtils.damp(speed, 0, 6.2, dt);
         if (mode === "assist") speed = Math.min(speed || (allowed && !parking ? 27 : 0), 30);
-        const firstSymptom = mode === "normal" && previous.distance >= 210;
-        const secondSymptom = mode === "resume" && state.caseId === "propulsion" && previous.distance >= 780;
-        if (firstSymptom) speed = Math.min(speed, 31);
-        if (secondSymptom) speed = Math.min(speed, 38);
+        // Faults appear only under the driving condition that exposes them
+        // (= the reproduction condition the player later carries to the board).
+        const inOvertakeZone = mode === "normal" && previous.distance >= OVERTAKE_ZONE[0];
+        const inClimbZone = mode === "resume" && state.caseId === "propulsion" && previous.distance >= CLIMB_ZONE[0];
+        if (inOvertakeZone && throttle) {
+          zoneThrottle.current += dt;
+          speed = Math.min(previous.speed + (speed - previous.speed) * .45, Math.max(previous.speed, 55)); // pedal signal scaled to 45%
+        }
+        const derating = inClimbZone && previous.heat >= 80;
+        if (derating) speed = Math.min(speed, 38);
+        const firstSymptom = inOvertakeZone && zoneThrottle.current > .25;
+        const secondSymptom = derating;
         const steerInput = (k.has("a") || k.has("arrowleft") ? -1 : 0) + (k.has("d") || k.has("arrowright") ? 1 : 0);
         const steerTarget = steerInput * THREE.MathUtils.clamp(.14 + speed / 220, .14, .43);
         const steer = THREE.MathUtils.damp(previous.steer, steerTarget, steerInput ? 7.5 : 4.8, dt);
@@ -1188,7 +1197,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
           : allowed && policeHasJoined
             ? THREE.MathUtils.clamp(previous.gap + (speed - policeSpeed) * dt / 3.6, floor, 220)
             : previous.gap;
-        const heat = THREE.MathUtils.clamp(previous.heat + (secondSymptom ? speed * dt * .055 : -dt * .7), 35, 94);
+        const heat = THREE.MathUtils.clamp(previous.heat + (inClimbZone ? (throttle ? (12 + speed * .2) * dt : -dt * .4) : -dt * .7), 35, 94);
         const elapsed = previous.elapsed + (allowed ? dt : 0);
         return { speed, lane, steer, distance, gap, heat, elapsed };
       });
@@ -1225,14 +1234,14 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   // instance so speed/camera continuity is preserved. Reset only the segment
   // gate when the mode changes; otherwise the resume fault event permanently
   // blocks the later deck-arrival event.
-  useEffect(() => { fired.current = false; }, [mode]);
+  useEffect(() => { fired.current = false; zoneThrottle.current = 0; }, [mode]);
   useEffect(() => {
     if (fired.current) return;
     if (sim.gap <= 0) {
       fired.current = true; send({ type: "CAUGHT" });
-    } else if (mode === "normal" && sim.distance >= 260) {
+    } else if (mode === "normal" && (zoneThrottle.current >= 1.8 || sim.distance >= OVERTAKE_ZONE[1])) {
       fired.current = true; send({ type: "FAULT_CUE", caseId: "propulsion", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
-    } else if (mode === "resume" && state.caseId === "propulsion" && sim.distance >= 830) {
+    } else if (mode === "resume" && state.caseId === "propulsion" && (sim.heat >= 84 || sim.distance >= CLIMB_ZONE[1])) {
       fired.current = true; send({ type: "FAULT_CUE", caseId: "thermal", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
     } else if (mode === "resume" && state.caseId === "thermal" && sim.distance >= 1050) {
       fired.current = true; send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "START_FINAL_ESCAPE" });
@@ -1243,7 +1252,12 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       send({ type: "FINISH_ESCAPE", distance: sim.distance, gap: Math.max(10, sim.gap), elapsed: sim.elapsed });
     }
   }, [deckSettled, mode, send, sim.distance, sim.elapsed, sim.gap, state.caseId, state.lastRepairDistance, state.lastRepairElapsedSeconds]);
-  const symptom = (mode === "normal" && sim.distance >= 210) || (mode === "resume" && state.caseId === "propulsion" && sim.distance >= 780);
+  const symptom = (mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80);
+  const zone = mode === "normal" && sim.distance >= OVERTAKE_ZONE[0] - 40 && sim.distance < OVERTAKE_ZONE[1]
+    ? { icon: "🏁", title: "추월 구간", text: "W를 끝까지 밟아 추격차를 따돌려!" }
+    : mode === "resume" && state.caseId === "propulsion" && sim.distance >= CLIMB_ZONE[0] - 40 && sim.distance < CLIMB_ZONE[1]
+      ? { icon: "⛰️", title: "오르막 고부하 구간", text: "속도를 유지하며 계속 밟아 올라가자!" }
+      : null;
   useEffect(() => {
     if (mode !== "assist" || parking || sim.distance < assistTarget) return;
     setParking(true);
@@ -1274,12 +1288,17 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     <div className="raceControls"><b>W/S</b> 가속·제동 <b>A/D</b> 조향 <b>Q/E</b> 회생 단계 <b>R</b> READY 재시동</div>
     {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
     {(countdown > 0 || goFlash) && <div className="startCountdown"><small>GET READY</small><b>{goFlash ? "GO!" : countdown}</b></div>}
+    {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i>{zone.icon}</i><span><small>DRIVING ZONE</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
     {symptom && <div className="faultBeacon" role="alert"><span /><div><small>VEHICLE WARNING</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "온도 상승 · 보호 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
     {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
     {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>DRIVING MISSION · 다음 검증용 주행 로그</small><b>{driveMission === "red" ? "적색 신호 정지 · 제동 시퀀스 기록" : "정차 후 READY 재인가 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(612-sim.distance))}m · S로 부드럽게 제동 · 정지선 이탈 금지` : "이 재출발 기록이 열관리 고장 재현 미션의 초기조건이 됩니다"}</span></div>}
     {mode === "ship" && sim.distance >= TRACK_LENGTH - 230 && <div className="finalRampCommit"><small>FINAL DOCK</small><b>{deckSettled ? "갑판 정차 완료 · 탈출 성공" : sim.distance >= DECK_TOUCH ? "해적선 갑판 착지 · 자동 감속" : sim.distance >= RAMP_START ? "실물 오르막 램프 진입" : "해적선 연결 램프 접근"}</b><span>{sim.distance >= RAMP_END && sim.distance < DECK_TOUCH ? "차량 도약 중 · 측면 카메라" : sim.distance >= DECK_TOUCH ? "네 바퀴 착지 확인 · 엔딩 전환 준비" : "중앙 유도 · 램프와 갑판 충돌면 활성"}</span></div>}
   </div>;
 }
+
+// Driving zones on the existing course where each fault shows up [start, fallback trigger] in metres.
+const OVERTAKE_ZONE = [150, 330] as const;
+const CLIMB_ZONE = [720, 920] as const;
 
 // Warning lamp the driver sees for each case (generic EV cluster behaviour).
 const faultLamp: Record<CaseId, { icon: string; glyph: string; label: string; note: string }> = {

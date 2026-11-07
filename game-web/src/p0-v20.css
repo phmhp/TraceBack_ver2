@@ -102,3 +102,11 @@
 .pullOutBubble p { position: relative; }
 .garageV2 .mechanismViewer { isolation: isolate; }
 .pullOutLab { z-index: 30; }
+
+/* ── race: driving zone sign ── */
+.raceZoneSign { position: absolute; left: 50%; top: 92px; transform: translateX(-50%); z-index: 12; display: flex; align-items: center; gap: 10px; padding: 8px 16px 8px 10px; border-radius: 16px; background: #fff6d8; border: 3px solid #f0b13c; box-shadow: 0 5px 0 #c98a1c, 0 10px 20px #0004; color: #3a2a12; animation: zonePop .5s cubic-bezier(.2,1.8,.4,1); }
+.raceZoneSign i { font-style: normal; font-size: 28px; }
+.raceZoneSign small { display: block; font-size: 10px; font-weight: 800; letter-spacing: .12em; color: #b0711a; }
+.raceZoneSign b { display: block; font-size: 17px; }
+.raceZoneSign em { display: block; font-style: normal; font-size: 12px; font-weight: 700; }
+@keyframes zonePop { from { transform: translateX(-50%) scale(.6) rotate(-6deg); opacity: 0; } }
