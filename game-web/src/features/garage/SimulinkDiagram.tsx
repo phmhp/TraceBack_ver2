@@ -97,14 +97,10 @@ export function SimulinkDiagram({ logic, components, inputLabel, outputLabel, ac
   for (let i = 0; i < n - 1; i++) {
     const a = pos[i], b = pos[i + 1], live = activeStep > i ? "live" : "";
     if (a.row === b.row) wires.push({ d: `M${a.x + a.dir * bw / 2} ${a.y} H${b.x - a.dir * bw / 2}`, cls: `wire ${live}` });
-    else { const sideX = a.x + a.dir * (bw / 2 + 22); wires.push({ d: `M${a.x + a.dir * bw / 2} ${a.y} H${sideX} V${b.y} H${b.x + a.dir * bw / 2}`, cls: `wire ${live}` }); }
+    else { const sideX = a.x + a.dir * (colW / 2 + 3); /* outside the dashed frames */ wires.push({ d: `M${a.x + a.dir * bw / 2} ${a.y} H${sideX} V${b.y} H${b.x + a.dir * bw / 2}`, cls: `wire ${live}` }); }
   }
   const outX = last.dir > 0 ? W - 66 : 4;
   wires.push({ d: `M${last.x + last.dir * bw / 2} ${last.y} H${last.dir > 0 ? outX : outX + 62}`, cls: `wire ${activeStep >= n - 1 ? "live" : ""}` });
-  if (piIndex >= 0) {
-    const p = pos[piIndex], belowOut = last.y + 52;
-    wires.push({ d: `M${last.x} ${last.y + bh / 2} V${belowOut} H${p.x + 14} ${p.row === last.row ? "" : `V${p.y + bh / 2 + 70} `}V${p.y + bh / 2}`, cls: "wire feedback" });
-  }
   // component frames, split per row
   const frames: { name: string; x0: number; x1: number; y: number; showName: boolean }[] = [];
   components.forEach((name, ci) => {
@@ -127,7 +123,7 @@ export function SimulinkDiagram({ logic, components, inputLabel, outputLabel, ac
       </defs>
       {frames.map((frame, i) => <g key={`${frame.name}-${i}`}>
         <rect x={frame.x0} y={frame.y} width={frame.x1 - frame.x0} height={rowH - 16} rx={18} className="subsystem" />
-        <foreignObject x={frame.x0 + 8} y={frame.y + 8} width={frame.x1 - frame.x0 - 16} height={24}><div className="subsystemName">{frame.name}{frame.showName ? "" : " (이어서)"}</div></foreignObject>
+        <foreignObject x={frame.x0 + 8} y={frame.y + 8} width={frame.x1 - frame.x0 - 16} height={24}><div className="subsystemName">{frame.name}</div></foreignObject>
       </g>)}
       {parallel ? <>
         <foreignObject x={4} y={first.y - 46} width={62} height={30}><div className="portChip in">센서 A</div></foreignObject>
@@ -138,14 +134,15 @@ export function SimulinkDiagram({ logic, components, inputLabel, outputLabel, ac
       {logic.map((label, i) => {
         const kind = kinds[i], p = pos[i];
         return <g key={label} className={`block kind-${kind} ${activeStep === i ? "active" : ""}`}>
-          {kind === "min" && <><path d={`M${p.x} ${p.y - bh / 2 - 22} V${p.y - bh / 2}`} className="wire side" markerEnd="url(#arrow)" />
-            <foreignObject x={p.x + 6} y={p.y - bh / 2 - 24} width={colW / 2 + 10} height={20}><div className="sideNote">다른 제어기 한계</div></foreignObject></>}
+          {(kind === "min" || kind === "pi") && <>
+            <foreignObject x={p.x - 40} y={p.y - bh / 2 - 30} width={80} height={20}><div className={`fromTag ${kind}`}>{kind === "min" ? "CAN 한계" : "↩ 실제 값"}</div></foreignObject>
+            <path d={`M${p.x} ${p.y - bh / 2 - 10} V${p.y - bh / 2}`} className={`wire ${kind === "pi" ? "feedback" : "side"}`} markerEnd={`url(#${kind === "pi" ? "arrowFb" : "arrow"})`} />
+          </>}
           {(kind === "delay" || kind === "state") && <path d={`M${p.x + 24} ${p.y - bh / 2} C${p.x + 32} ${p.y - bh / 2 - 26}, ${p.x - 32} ${p.y - bh / 2 - 26}, ${p.x - 24} ${p.y - bh / 2}`} className="wire loop" markerEnd="url(#arrowFb)" />}
-          {kind === "pi" && <foreignObject x={p.x + 18} y={p.y + bh / 2 + 2} width={colW / 2 + 20} height={18}><div className="loopNote">↩ 실제 값 다시 비교</div></foreignObject>}
           <foreignObject x={p.x - bw / 2} y={p.y - bh / 2} width={bw} height={bh}>
             <div className="flowBlock"><Picto kind={kind} /><small>{KIND_TAG[kind]}</small></div>
           </foreignObject>
-          <foreignObject x={p.x - colW / 2 + 12} y={p.y + bh / 2 + (kind === "pi" ? 20 : 8)} width={colW - 24} height={60}>
+          <foreignObject x={p.x - colW / 2 + 12} y={p.y + bh / 2 + 8} width={colW - 24} height={60}>
             <div className="flowCaption"><b>{label}</b><span>{plainText(label, kind)}</span></div>
           </foreignObject>
         </g>;
