@@ -1463,28 +1463,28 @@ const componentCutoutCell: Record<string, number> = {
 
 // Picture inside a polaroid: driving-symptom photo, a small meter screen for
 // measured values (normal vs measured), or the suspect part for a hypothesis.
-const SYMPTOM_PHOTO: Record<string, string> = { pedal_raw: "pedal_raw", motor_temp: "motor_temp", brake_request: "brake_request" };
+const CARD_PHOTO: Record<string, string> = Object.fromEntries(["pedal_raw", "pedal_processed", "torque_cmd", "motor_actual", "motor_temp", "thermal_protection", "brake_request", "regen_request", "brake_actual"].map(id => [id, id]));
+const CARD_CUTOUT: Record<string, string> = { fan_command: "thermal_ecu", fan_actual: "cooling_fan" };
 const SUSPECT_PART: Record<string, string> = {
   gateway: "vcu", bms: "bms", motor: "traction_motor", sensor: "motor_temp_sensor", software_command: "thermal_ecu",
   fan_actuator: "cooling_fan", brake_actuator: "brake_caliper", regen_limit: "bms", pedal: "brake_pedal",
 };
-const railStopFor = (id: string) => Object.values(MEASURE_RAIL).flatMap(rail => rail.stops).find(stop => stop.ev === id);
-function CardGraphic({ id, kind, masked = false }: { id: string; kind: string; masked?: boolean }) {
-  const tag = <span>{masked ? "미분류 단서" : kind === "HYPOTHESIS" ? "원인 후보" : kind}</span>;
-  if (SYMPTOM_PHOTO[id]) return <div className="polaroidGraphic photoFill"><img src={`/assets/board-photos/${SYMPTOM_PHOTO[id]}.png`} alt="" />{tag}</div>;
-  if (SUSPECT_PART[id]) return <div className="polaroidGraphic partFill"><img src={`/assets/ending-thumbs/${SUSPECT_PART[id]}.png`} alt="" />{tag}</div>;
-  const stop = railStopFor(id);
-  if (stop) return <div className={`polaroidGraphic meterFill ${stop.ok ? "ok" : "bad"}`}>
-    <div className="meterScreen"><b className="measuredValue">{stop.value}<i>{stop.ok ? "✓" : "✗"}</i></b><small>정상 {stop.expect}</small></div>{tag}
-  </div>;
+type Reading = { value: string; ok: boolean };
+/** Photo of where the clue came from; a measured value appears as a sticker only after it is measured. */
+function CardGraphic({ id, kind, reading }: { id: string; kind: string; masked?: boolean; reading?: Reading }) {
+  const tag = <span className="cardKindTag">{kind === "HYPOTHESIS" ? "원인 후보" : kind}</span>;
+  const sticker = reading && <em className={`valueSticker ${reading.ok ? "ok" : "bad"}`}>{reading.ok ? "✓" : "✗"} {reading.value}</em>;
+  if (CARD_PHOTO[id]) return <div className="polaroidGraphic photoFill"><img src={`/assets/board-photos/${CARD_PHOTO[id]}.png`} alt="" />{tag}{sticker}</div>;
+  const part = SUSPECT_PART[id] ?? CARD_CUTOUT[id];
+  if (part) return <div className="polaroidGraphic partFill"><img src={`/assets/ending-thumbs/${part}.png`} alt="" />{tag}{sticker}</div>;
   const cell = evidenceAtlasCell[id] ?? 1;
   const column = cell % 4, row = Math.floor(cell / 4);
-  return <div className="polaroidGraphic evidenceAssetPhoto" style={{ "--evidence-x": `${column * 33.333}%`, "--evidence-y": `${row * 100}%` } as React.CSSProperties}>{tag}</div>;
+  return <div className="polaroidGraphic evidenceAssetPhoto" style={{ "--evidence-x": `${column * 33.333}%`, "--evidence-y": `${row * 100}%` } as React.CSSProperties}>{tag}{sticker}</div>;
 }
 
-function Polaroid({ id, title, value, kind, selected, picked = false, onToggle, onZoom, dragData, tool = "move" }: { id: string; title: string; value: string; kind: string; selected: boolean; picked?: boolean; onToggle?: () => void; onZoom?: () => void; dragData?: string; tool?: "move" | "thread" | "erase" | "pencil" }) {
+function Polaroid({ id, title, value, kind, selected, picked = false, onToggle, onZoom, dragData, tool = "move", reading }: { id: string; title: string; value: string; kind: string; selected: boolean; picked?: boolean; onToggle?: () => void; onZoom?: () => void; dragData?: string; tool?: "move" | "thread" | "erase" | "pencil"; reading?: Reading }) {
   return <button draggable={tool === "move" && Boolean(dragData)} onDragStart={event => { if (tool === "move" && dragData) { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", dragData); } }} onDoubleClick={event => { event.stopPropagation(); if (tool === "move") onZoom?.(); }} onClick={event => { event.stopPropagation(); if (tool === "move") onToggle?.(); }} className={`polaroidCard tool-${tool} ${selected ? "pinned" : ""} ${picked ? "picked" : ""}`}>
-    <i className="pushPin" /><CardGraphic id={id} kind={kind} masked={!selected} /><div className="polaroidCaption"><small>{selected ? kind : "미분류 카드"}</small><b>{title}</b><span>{value}</span></div>
+    <i className="pushPin" /><CardGraphic id={id} kind={kind} reading={reading} /><div className="polaroidCaption"><b>{title}</b><span>{value}</span></div>
   </button>;
 }
 
@@ -1589,6 +1589,7 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
   const [threadDraft, setThreadDraft] = useState<{ from: string; points: { x: number; y: number }[] } | null>(null);
   const [measured, setMeasured] = useState<number[]>([]);
   const [extraMeasures, setExtraMeasures] = useState(0);
+  const readingFor = (id: string): Reading | undefined => { const index = MEASURE_RAIL[state.caseId].stops.findIndex(stop => stop.ev === id); return index >= 0 && measured.includes(index) ? { value: MEASURE_RAIL[state.caseId].stops[index].value, ok: MEASURE_RAIL[state.caseId].stops[index].ok } : undefined; };
   const rail = MEASURE_RAIL[state.caseId];
   const measure = (index: number) => {
     const stop = rail.stops[index];
@@ -1679,12 +1680,12 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
         <li><b>유력</b> 가설을 코르크판으로 끌어오고, <b>✏️ 연필</b>로 증거 사진에서 가설 카드까지 쭉 그어 실로 이어요. (지우개로 실 삭제)</li>
         <li>증거 <b>2장 이상</b>을 이으면 다음 단계(경로 복원)로!</li>
       </ol><button onClick={() => setRulesOpen(false)}>알겠어!</button></aside>}
-      <aside className="evidenceInventory"><h2>관찰된 현상 · 계측 단서</h2><p>주행 현상과 입력·명령·실제 반응을 구분</p><div>{scenario.evidence.map(card => <div key={card.id} className={selectedEvidence.includes(card.id) ? "used" : ""}><Polaroid id={card.id} title={card.label} value={card.value} kind={card.kind} selected={false} tool={boardTool} dragData={boardTool === "move" ? `evidence:${card.id}` : undefined} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>)}</div></aside>
+      <aside className="evidenceInventory"><h2>관찰된 현상 · 계측 단서</h2><p>주행 현상과 입력·명령·실제 반응을 구분</p><div>{scenario.evidence.map(card => <div key={card.id} className={selectedEvidence.includes(card.id) ? "used" : ""}><Polaroid reading={readingFor(card.id)} id={card.id} title={card.label} value={card.value} kind={card.kind} selected={false} tool={boardTool} dragData={boardTool === "move" ? `evidence:${card.id}` : undefined} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>)}</div></aside>
       <section className={`caseCorkCanvas tool-${boardTool}`} ref={boardRef} onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={dropOnBoard} onPointerMove={event => { if (!threadDraft) return; const point = boardPoint(event.clientX, event.clientY); setThreadDraft(previous => { if (!previous) return previous; const last = previous.points.at(-1)!; return Math.hypot(point.x - last.x, point.y - last.y) < .45 ? previous : { ...previous, points: [...previous.points, point] }; }); }} onPointerUp={() => threadDraft && setThreadDraft(null)}>
         <MeasureRail caseId={state.caseId} measured={measured} budget={MEASURE_BUDGET + extraMeasures} onMeasure={measure} onBuy={() => { send({ type: "HINT", key: `${state.caseId}:measure${extraMeasures + 1}` }); setExtraMeasures(value => value + 1); play("squish"); }} />
         <div className="caseBoardTitle"><b>원인 가설 검토 보드</b><span>사실 단서와 가능 원인 가설을 놓고 지지 관계를 이으세요</span><em>{linkedEvidence.length} LINKED</em></div>
         <svg className={`evidenceThreads ${boardTool === "erase" ? "erasing" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none">{cause && selectedCards.filter(card => linkedEvidence.includes(card.id)).map(card => <path key={card.id} d={freehandPath(threadPaths[card.id] ?? [])} onPointerEnter={() => eraseThread(card.id)} onClick={() => eraseThread(card.id)} />)}{threadDraft && <path className="threadDraft" d={freehandPath(threadDraft.points)} />}</svg>
-        {selectedCards.map((card, index) => { const pos = cardPositions[card.id] ?? { x: 6 + (index % 3) * 24, y: 25 + Math.floor(index / 3) * 36 }; const linked = linkedEvidence.includes(card.id); return <div className={`boardPinnedCard ${linked ? "threaded" : ""}`} draggable={boardTool === "move"} key={card.id} style={{ left: `${pos.x}%`, top: `${pos.y}%` }} onDragEnd={event => boardTool === "move" && movePinned(card.id, event)} onPointerDown={event => beginThread(card.id, event)}><Polaroid id={card.id} title={card.label} value={card.value} kind={card.kind} selected tool={boardTool} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>; })}
+        {selectedCards.map((card, index) => { const pos = cardPositions[card.id] ?? { x: 6 + (index % 3) * 24, y: 25 + Math.floor(index / 3) * 36 }; const linked = linkedEvidence.includes(card.id); return <div className={`boardPinnedCard ${linked ? "threaded" : ""}`} draggable={boardTool === "move"} key={card.id} style={{ left: `${pos.x}%`, top: `${pos.y}%` }} onDragEnd={event => boardTool === "move" && movePinned(card.id, event)} onPointerDown={event => beginThread(card.id, event)}><Polaroid reading={readingFor(card.id)} id={card.id} title={card.label} value={card.value} kind={card.kind} selected tool={boardTool} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>; })}
         {cause && (() => { const pos = cardPositions[`cause:${cause.id}`] ?? { x: 78, y: 40 }; return <div className="boardCausePin freePosition" draggable={boardTool === "move"} style={{ left: `${pos.x}%`, top: `${pos.y}%` }} onDragEnd={event => boardTool === "move" && movePinned(`cause:${cause.id}`, event)} onPointerUp={finishThread}><Polaroid id={cause.id} title={cause.label} value={cause.desc} kind="HYPOTHESIS" selected tool={boardTool} onZoom={() => setZoomCard({ id: cause.id, label: cause.label, value: cause.desc, kind: "HYPOTHESIS" })} /></div>; })()}
         {!selectedCards.length && <div className="emptyCaseBoard"><b>① 증거 사진을 이곳으로 끌어오세요</b><span>② 원인 후보도 끌어온 뒤 ③ 연필로 압정 사이를 잇습니다</span></div>}
       </section>
@@ -1692,7 +1693,7 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
       <footer className="boardDecisionBar"><span className="boardFeedback">{feedback || "성공 조건: 가능 원인 가설 1장 + 이를 지지하는 사실 단서 2장 이상의 직접 연결"}</span><button className="primary" disabled={linkedEvidence.length < 2 || !selectedHypothesis} onClick={() => send({ type: "OPEN_WIRING" })}>{linkedEvidence.length < 2 ? `단서 연결 ${linkedEvidence.length}/2` : "가설 채택 · 제어 경로 검증 →"}</button></footer>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={() => { send({ type: "SOLVE_BOARD" }); setLinkedEvidence(state.caseId === "propulsion" ? ["pedal_raw", "pedal_processed", "torque_cmd"] : state.caseId === "thermal" ? ["motor_temp", "fan_command", "fan_actual"] : ["brake_request", "regen_request", "brake_actual"]); }}>정답 보기</button>
-    {zoomCard && <div className="evidenceZoom" onClick={() => setZoomCard(null)}><article onClick={event => event.stopPropagation()}><button onClick={() => setZoomCard(null)} aria-label="확대 카드 닫기">×</button><CardGraphic id={zoomCard.id} kind={zoomCard.kind} /><div className="zoomPolaroidCaption"><small>{zoomCard.kind}</small><h2>{zoomCard.label}</h2><p>{zoomCard.value}</p></div></article></div>}
+    {zoomCard && <div className="evidenceZoom" onClick={() => setZoomCard(null)}><article onClick={event => event.stopPropagation()}><button onClick={() => setZoomCard(null)} aria-label="확대 카드 닫기">×</button><CardGraphic id={zoomCard.id} kind={zoomCard.kind} reading={readingFor(zoomCard.id)} /><div className="zoomPolaroidCaption"><small>{zoomCard.kind}</small><h2>{zoomCard.label}</h2><p>{zoomCard.value}</p></div></article></div>}
     {replay && <div className="replayModal" onClick={() => setReplay(false)}><div onClick={event => event.stopPropagation()}><button onClick={() => setReplay(false)}>×</button><small>QUICK REPLAY · LAST 8.0 SEC</small><h2>고장 직전 실제 주행 재생</h2><ReplayRaceView caseId={state.caseId} /><div className="replaySignals"><span>운전자 입력<b>{state.caseId === "propulsion" ? "60%" : "주행 유지"}</b></span><span>차량 명령<b>{state.caseId === "propulsion" ? "27%" : "FAN ON"}</b></span><span>실제 반응<b>{state.caseId === "propulsion" ? "출력 저하" : "0 RPM"}</b></span></div><p>레이싱 당시 카메라·오픈카·추격차를 그대로 재생합니다. 원인명은 표시하지 않습니다.</p></div></div>}
   </div>;
 }
