@@ -10,6 +10,9 @@ import { DevRenderProbe } from "./features/vehicle/DevRenderProbe";
 import { FittedPart } from "./features/parts/PartModel";
 import { hasPartModel } from "./features/parts/partModels";
 import { ComicBurst } from "./ui/ComicBurst";
+import { play } from "./ui/sfx";
+import { ECUS } from "./sim/components";
+import { getComponent } from "./sim/registry";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
 
@@ -541,12 +544,12 @@ const partRole = (label: string, index: number, length: number): PartRole => {
   if (index === length - 1 && (/^(차량|차체|노면)/.test(label) || /(가속|감속|진로 변경|거동|안정|유지|고정|복원|저감|추진력|구동력)$/.test(label))) return "result";
   return "actuator";
 };
-const ROLE_TEXT: Record<PartRole, { tag: string; what: string; safe: string }> = {
-  input: { tag: "입력·센서", what: "운전자나 차의 상태를 알려 주는 눈·귀가 없어져서, 제어기가 무엇을 해야 할지 몰라요.", safe: "그래서 제어기는 '모르면 위험하지 않게'를 택해요: 기능을 막거나 출력을 줄이고 경고등을 켜요." },
-  control: { tag: "제어기(ECU)", what: "판단하는 두뇌가 없어서 입력은 들어와도 명령이 하나도 안 나가요.", safe: "다른 제어기들이 '응답 없음'을 알아채고 경고등을 켜고, 관련 기능은 정지해요." },
-  network: { tag: "통신(메시지)", what: "제어기끼리 주고받던 편지가 끊겨서, 받는 쪽은 최신 값을 모르게 돼요.", safe: "받는 쪽은 '통신 끊김(타임아웃)'으로 판단하고 정해진 안전한 기본값을 써요." },
-  actuator: { tag: "액추에이터·부품", what: "명령은 잘 나가는데 실제로 움직여 줄 손발이 없어서 차가 반응하지 않아요.", safe: "피드백이 없으면 제어기가 고장을 알아채고 경고등을 켜고 다른 수단으로 보완해요(가능한 경우)." },
-  result: { tag: "차량 반응", what: "이건 부품이 아니라 결과예요! 앞 부품을 빼 보면 이 결과가 어떻게 바뀌는지 볼 수 있어요.", safe: "" },
+const ROLE_TEXT: Record<PartRole, { tag: string; what: string; safe: string; clue: string }> = {
+  input: { tag: "입력·센서", what: "제어기가 상황을 몰라요", safe: "기능 제한 + 경고등", clue: "제어기는 멀쩡한데 들어오는 값이 0이래" },
+  control: { tag: "제어기(ECU)", what: "명령이 하나도 안 나가요", safe: "기능 정지 + 경고등", clue: "센서 값은 잘 오는데 아무 명령도 안 나간대" },
+  network: { tag: "통신(메시지)", what: "제어기끼리 소식이 끊겨요", safe: "안전한 기본값 사용", clue: "양쪽 제어기는 멀쩡한데 서로 연락이 끊겼대" },
+  actuator: { tag: "액추에이터·부품", what: "명령은 오는데 안 움직여요", safe: "고장 감지 + 경고등", clue: "명령은 100% 나갔는데 실제로는 안 움직였대" },
+  result: { tag: "차량 반응", what: "부품이 아니라 결과예요!", safe: "", clue: "" },
 };
 const DOMAIN_SYMPTOM: Record<DomainId, string> = {
   drive: "🚗 페달을 밟아도 가속이 안 되거나 약해져요",
@@ -562,7 +565,31 @@ function PullOutBubble({ domain, label, role }: { domain: DomainId; label: strin
   const text = ROLE_TEXT[role];
   return <div className="pullOutBubble" key={label}>
     <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />
-    <p><b>밍 · {label} 빠짐!</b>{text.what}{role !== "result" && <><span className="symptom">{DOMAIN_SYMPTOM[domain]}</span><span className="safe">🛡 {text.safe}</span></>}</p>
+    <p><b>{label} 빠짐!</b>{text.what}{role !== "result" && <span className="pullOutChips"><em>{DOMAIN_SYMPTOM[domain]}</em><em className="safe">🛡 {text.safe}</em></span>}</p>
+  </div>;
+}
+
+// Controller intro card: what it receives, what it does, what it commands (icon chips, no paragraphs).
+const ecuIdFor = (label: string) =>
+  /^VCU/.test(label) ? "vcu" : /MCU|인버터 ECU/.test(label) ? "mcu" : /^BMS/.test(label) ? "bms"
+    : /Thermal ECU/.test(label) ? "thermal_ecu" : /(Brake|ABS|ESC|Hydraulic) ECU/.test(label) ? "brake_ecu" : /EPS ECU/.test(label) ? "eps_ecu" : undefined;
+function ControllerCard({ label, onPull, onClose }: { label: string; onPull: () => void; onClose: () => void }) {
+  const ecu = ECUS.find(item => item.id === ecuIdFor(label));
+  const ko = (id: string) => getComponent(id)?.nameKo ?? id;
+  return <div className="ecuCard" role="dialog">
+    <button className="ecuClose" onClick={onClose} aria-label="닫기">×</button>
+    {ecu ? <img src={`/assets/ending-thumbs/${ecu.id}.png`} alt="" /> : <span className="ecuGeneric">🧠</span>}
+    <div>
+      <small>제어기 소개</small>
+      <b>{label}</b>
+      {ecu ? <>
+        <div className="ecuRow"><i>👀</i><span>{ecu.sensors.length ? ecu.sensors.map(id => <em key={id}>{ko(id)}</em>) : <em>다른 제어기의 메시지</em>}</span></div>
+        <div className="ecuRow"><i>🧠</i><span>{ecu.functions.map(item => <em key={item} className="do">{item}</em>)}</span></div>
+        <div className="ecuRow"><i>🦾</i><span>{ecu.actuators.length ? ecu.actuators.map(id => <em key={id}>{ko(id)}</em>) : <em>다른 제어기에 명령 전달</em>}</span></div>
+        <div className="ecuRow"><i>✉️</i><span>{ecu.interfaces.map(item => <em key={item} className="bus">{item}</em>)}</span></div>
+      </> : <div className="ecuRow"><i>🧠</i><span><em className="do">센서 값을 판단해 명령을 내리는 두뇌</em></span></div>}
+      <button className="ecuPull" onClick={onPull}>이 제어기 빼 보기</button>
+    </div>
   </div>;
 }
 
@@ -578,6 +605,11 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const [lessonHits, setLessonHits] = useState<Set<string>>(() => new Set());
   const [removed, setRemoved] = useState<number | null>(null);
   const [triedRemovals, setTriedRemovals] = useState<Set<string>>(() => new Set());
+  const [ecuCard, setEcuCard] = useState<number | null>(null);
+  // "범인 찾기" mini-game: one part is secretly missing, the player finds it from the clue.
+  const [culprit, setCulprit] = useState<number | null>(null);
+  const [guess, setGuess] = useState<{ index: number; right: boolean } | null>(null);
+  const [caught, setCaught] = useState(0);
   const content = domainContent[domain];
   const selectedFeature = featureFlows[domain][feature];
   const chain = getFeatureLayer(domain, feature, 1);
@@ -586,8 +618,8 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     setActiveStep(step);
     setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-${routeLevel}-${index}`));
   };
-  useEffect(() => { setFeature(0); setActiveStep(0); setRemoved(null); }, [domain]);
-  useEffect(() => { setActiveStep(0); setRemoved(null); }, [feature, routeLevel]);
+  useEffect(() => { setFeature(0); setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); }, [domain]);
+  useEffect(() => { setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); }, [feature, routeLevel]);
   useEffect(() => {
     const flowLength = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
     const timer = window.setInterval(() => setActiveStep(value => (value + 1) % flowLength), 1450);
@@ -608,19 +640,41 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
         <MechanismViewer domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
-        <div className="pullOutLab">
-          <header><small>🧪 빼 보기 실험</small><b>부품 하나를 빼면 차는 어떻게 될까?</b><em>{triedRemovals.size}개 실험함</em></header>
-          <div className="pullOutChain">{chain.map((label, index) => <React.Fragment key={`${label}-${index}`}>
-            {index > 0 && <i className={removed !== null && (removed === index || removed === index - 1) ? "broken" : ""}>→</i>}
-            <button className={`${removed === index ? "is-out" : ""} role-${partRole(label, index, chain.length)}`} onClick={() => {
-              const next = removed === index ? null : index;
-              setRemoved(next);
-              if (next !== null) { setActiveStep(index); setTriedRemovals(previous => new Set(previous).add(`${domain}-${feature}-${index}`)); }
-            }}><small>{ROLE_TEXT[partRole(label, index, chain.length)].tag}</small><b>{label}</b><em>{removed === index ? "↩ 다시 끼우기" : "빼 보기"}</em></button>
-          </React.Fragment>)}</div>
-          {removed !== null && <PullOutBubble domain={domain} label={chain[removed]} role={partRole(chain[removed], removed, chain.length)} />}
-          {removed === null && <p className="pullOutHint">부품을 눌러 빼 보세요. 3D에서도 그 부품이 사라져요.</p>}
-        </div>
+        {routeLevel === 1 && (() => {
+          const suspects = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
+          const startHunt = () => { const pick = suspects[Math.floor(Math.random() * suspects.length)]; setCulprit(pick.index); setGuess(null); setRemoved(null); setEcuCard(null); play("siren"); };
+          const pullOut = (index: number) => { setRemoved(index); setActiveStep(index); setEcuCard(null); setTriedRemovals(previous => new Set(previous).add(`${domain}-${feature}-${index}`)); play("squish"); };
+          const onChip = (index: number, role: PartRole) => {
+            if (culprit !== null && !guess?.right) {
+              const right = index === culprit;
+              setGuess({ index, right });
+              if (right) { setRemoved(index); setCaught(value => value + 1); window.setTimeout(() => { play("stamp"); play("success"); }, 60); } else play("error");
+              return;
+            }
+            if (removed === index) { setRemoved(null); return; }
+            if (role === "control") { setEcuCard(index); setRemoved(null); return; }
+            pullOut(index);
+          };
+          return <div className={`pullOutLab ${culprit !== null ? "is-hunt" : ""}`}>
+            <header>
+              <small>{culprit !== null ? "🕵️ 범인 찾기" : "🧪 빼 보기 실험"}</small>
+              <b>{culprit !== null ? "빠진 부품(범인)을 찾아라!" : "부품을 눌러 빼 보세요 · 제어기는 소개부터"}</b>
+              <em>{caught ? `검거 ${caught}` : `${triedRemovals.size}개 실험`}</em>
+              <button className="huntButton" onClick={culprit !== null && !guess?.right ? () => { setCulprit(null); setGuess(null); } : startHunt}>{culprit !== null && !guess?.right ? "그만하기" : guess?.right ? "한 번 더!" : "🕵️ 범인 찾기"}</button>
+            </header>
+            <div className="pullOutChain">{chain.map((label, index) => { const role = partRole(label, index, chain.length); return <React.Fragment key={`${label}-${index}`}>
+              {index > 0 && <i className={removed !== null && (removed === index || removed === index - 1) ? "broken" : ""}>→</i>}
+              <button disabled={role === "result" && culprit !== null} className={`${removed === index ? "is-out" : ""} ${guess && guess.index === index ? guess.right ? "is-caught" : "is-innocent" : ""} role-${role}`} onClick={() => onChip(index, role)}>
+                <small>{ROLE_TEXT[role].tag}</small><b>{label}</b>
+                <em>{culprit !== null && !guess?.right ? "범인?" : removed === index ? "↩ 다시 끼우기" : role === "control" ? "소개 보기" : role === "result" ? "결과" : "빼 보기"}</em>
+              </button>
+            </React.Fragment>; })}</div>
+            {culprit !== null && !guess?.right && <div className="pullOutBubble huntClue"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{guess ? "그 부품은 멀쩡해! 다시!" : "사건 발생!"}</b>{DOMAIN_SYMPTOM[domain]}<span className="pullOutChips"><em>🔎 {ROLE_TEXT[partRole(chain[culprit], culprit, chain.length)].clue}</em></span></p></div>}
+            {guess?.right && <div className="pullOutBubble huntClue"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>범인 검거! 🎉</b>{chain[guess.index]} — {ROLE_TEXT[partRole(chain[guess.index], guess.index, chain.length)].what}</p></div>}
+            {culprit === null && removed !== null && <PullOutBubble domain={domain} label={chain[removed]} role={partRole(chain[removed], removed, chain.length)} />}
+            {culprit === null && ecuCard !== null && <ControllerCard label={chain[ecuCard]} onClose={() => setEcuCard(null)} onPull={() => pullOut(ecuCard)} />}
+          </div>;
+        })()}
       </section>
       <aside className="domainFunctionShelf">
         <small>CORE CONTROL FUNCTIONS</small><h2>{content.label}의 주요 기능</h2>

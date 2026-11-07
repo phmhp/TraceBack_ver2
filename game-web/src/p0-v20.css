@@ -142,3 +142,30 @@ button:not(:disabled):active { scale: .93; transition-duration: .06s; }
 
 /* race: the 3D sky dome replaces the painted backdrop (no seam between 3D ground and picture) */
 .raceV2:not(.raceMode-ship) { background: linear-gradient(#6fb2e6, #cfe9ec 60%) !important; }
+
+/* garage v2: short chips, controller card, culprit hunt */
+.pullOutBubble p { font-size: 13px; }
+.pullOutChips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.pullOutChips em { font-style: normal; font-size: 11.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: #fff1e0; white-space: nowrap; }
+.pullOutChips em.safe { background: #e6f5ec; color: #2f7d5b; }
+.huntButton { padding: 4px 11px; border-radius: 999px; border: 2px solid #c0782a; background: #fff; color: #c0782a; font: inherit; font-size: 12px; font-weight: 900; cursor: pointer; box-shadow: 0 2px 0 #c0782a; }
+.pullOutLab.is-hunt { border-color: #e0a03c; background: #fff2d6f5; }
+.pullOutChain button.is-caught { border-color: #2f7d5b; background: #e6f5ec; animation: vrPop .4s cubic-bezier(.2,1.8,.4,1); }
+.pullOutChain button.is-innocent { border-color: #e2a29a; animation: vrShake .35s; }
+.ecuCard { position: absolute; left: 6px; right: 6px; bottom: calc(100% + 8px); display: flex; gap: 12px; align-items: center; padding: 10px 14px; border-radius: 18px; background: #fff; border: 2px solid #d9cdf0; box-shadow: 0 8px 20px #273d3333; animation: vrPop .35s cubic-bezier(.2,1.6,.4,1); }
+.ecuCard > img { width: 96px; height: 96px; object-fit: contain; flex: none; filter: drop-shadow(0 6px 6px #0002); }
+.ecuGeneric { font-size: 52px; width: 96px; text-align: center; }
+.ecuCard small { font-size: 11px; font-weight: 800; color: #7c5fb0; }
+.ecuCard b { display: block; font-size: 17px; margin-bottom: 4px; }
+.ecuRow { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+.ecuRow > i { font-style: normal; font-size: 16px; width: 22px; text-align: center; }
+.ecuRow span { display: flex; flex-wrap: wrap; gap: 4px; }
+.ecuRow em { font-style: normal; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #eef3ff; white-space: nowrap; }
+.ecuRow em.do { background: #f3eefc; color: #5b3f94; }
+.ecuRow em.bus { background: #fff4e0; color: #9a6418; }
+.ecuClose { position: absolute; right: 8px; top: 6px; border: 0; background: none; font-size: 18px; cursor: pointer; }
+.ecuPull { margin-top: 6px; padding: 5px 12px; border-radius: 999px; border: 0; background: #e0483c; color: #fff; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 3px 0 #a8302a; }
+.pullOutLab header { align-items: center; }
+.pullOutLab header small, .pullOutLab header em, .huntButton { white-space: nowrap; flex: none; }
+.pullOutLab header b { flex: 1; min-width: 0; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pullOutLab header em { margin-left: 0; }
