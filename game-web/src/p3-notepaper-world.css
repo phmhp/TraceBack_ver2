@@ -239,3 +239,14 @@ mark, .np-mark, .dtQuestion h2 b, .vbStage h2 b, .rpHead h1 em, .refPuzzle .rpHe
 .garageV2 + .stageHistoryNav { gap: 4px !important; }
 .garageV2 + .stageHistoryNav button { height: 34px !important; padding: 3px 9px !important; font-size: 12px !important; }
 .stageHistoryNav .stageBackButton, .stageHistoryNav .stageForwardButton { min-height: 0 !important; }
+/* race: regression drive after a repair */
+.raceFeed .regressionCard { display: flex; gap: 10px; align-items: center; padding: 9px 12px; border-radius: 6px; background: var(--np-paper, #fffdf6); border: 1.5px solid #8fbf9e; box-shadow: 0 2px 0 #8fbf9e, 0 6px 12px rgba(30,15,5,.18); color: #2f3b33; animation: npPop .25s ease-out; }
+.raceFeed .regressionCard.no { border-color: #d9a093; box-shadow: 0 2px 0 #d9a093, 0 6px 12px rgba(30,15,5,.18); }
+.raceFeed .regressionCard i { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 6px; background: #3f8a5c; color: #fff; }
+.raceFeed .regressionCard.no i { background: #c0574a; }
+.raceFeed .regressionCard i svg { width: 17px; height: 17px; }
+.raceFeed .regressionCard span { display: grid; gap: 1px; }
+.raceFeed .regressionCard small { font: 600 10px Pretendard, sans-serif; letter-spacing: .04em; color: #6c7d70; }
+.raceFeed .regressionCard b { font: 600 13.5px Pretendard, sans-serif; }
+.raceFeed .regressionCard em { font: 500 12.5px Pretendard, sans-serif; font-style: normal; }
+@keyframes npPop { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }

@@ -1593,6 +1593,33 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     }
   }, [deckSettled, mode, send, sim.distance, sim.elapsed, sim.gap, state.caseId, state.lastRepairDistance, state.lastRepairElapsedSeconds]);
   const symptom = (mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80);
+  // Regression drive after a repair: the same condition that exposed the fault is measured on the live race model.
+  // propulsion: full pedal for 1.5 s → measured acceleration vs this model's healthy value (46·min(1, 70/v) km/h/s; the fault scaled it by 0.45)
+  // thermal: sustained throttle for 2 s → coolant temperature and output limit (the fault had ≥ 84 °C and a 55 km/h limit)
+  const regRef = useRef<{ t: number; v: number } | null>(null);
+  const [regression, setRegression] = useState<{ ok: boolean; title: string; text: string } | null>(null);
+  useEffect(() => {
+    if (mode !== "resume" || regression) return;
+    const k = keys.current;
+    const throttle = k.has("w") || k.has("arrowup");
+    const braking = k.has("s") || k.has("arrowdown") || k.has(" ");
+    const inNextFault = state.caseId === "propulsion" && sim.distance >= CLIMB_ZONE[0] - 40;
+    if (!throttle || braking || inNextFault) { regRef.current = null; return; }
+    const now = performance.now();
+    if (!regRef.current) { if (state.caseId !== "propulsion" || sim.speed < 60) regRef.current = { t: now, v: sim.speed }; return; }
+    const held = (now - regRef.current.t) / 1000;
+    if (state.caseId === "propulsion" && held >= 1.5) {
+      const measured = (sim.speed - regRef.current.v) / held;
+      const mid = (sim.speed + regRef.current.v) / 2;
+      const expected = 46 * Math.min(1, 70 / Math.max(mid, 1));
+      const ok = measured >= expected * .85;
+      setRegression({ ok, title: "회귀 주행 · 가속 페달 끝까지 1.5초", text: `가속 ${measured.toFixed(0)} km/h/s · 정상 기준 ${expected.toFixed(0)} km/h/s · ${ok ? "증상 재발 없음" : "기준보다 낮음"}` });
+    } else if (state.caseId === "thermal" && held >= 2 && sim.speed > 40) {
+      const ok = sim.heat < 80;
+      setRegression({ ok, title: "회귀 주행 · 고속 연속 주행 2초", text: `냉각수 ${sim.heat.toFixed(0)}°C (고장 당시 84°C 이상) · ${ok ? "출력 제한 없음" : "온도 높음"}` });
+    }
+  }, [sim.speed]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!regression) return; play(regression.ok ? "correct" : "error"); const timer = window.setTimeout(() => setRegression(previous => previous && { ...previous, title: "" }), 7000); return () => clearTimeout(timer); }, [regression?.text]); // eslint-disable-line react-hooks/exhaustive-deps
   const zone = mode === "normal" && sim.distance >= OVERTAKE_ZONE[0] - 40 && sim.distance < OVERTAKE_ZONE[1]
     ? { icon: "finish" as IconName, title: "추월 구간", text: "W를 끝까지 밟아 추격차를 따돌려!" }
     : mode === "resume" && state.caseId === "propulsion" && sim.distance >= CLIMB_ZONE[0] - 40 && sim.distance < CLIMB_ZONE[1]
@@ -1642,6 +1669,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>↓</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
       {gearToast && <div className="gearToast" key={gearToast.id}>{gearToast.text}</div>}
       {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
+      {regression?.title && <div className={`regressionCard ${regression.ok ? "ok" : "no"}`} role="status"><i><Icon name="repeat" /></i><span><small>REGRESSION DRIVE · 같은 조건 재확인</small><b>{regression.title}</b><em>{regression.text}</em></span></div>}
       {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i><Icon name={zone.icon} /></i><span><small>DRIVING ZONE</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
       {symptom && <div className="faultBeacon" role="alert"><span /><div><small>VEHICLE WARNING</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "파워다운 표시등 · 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
       {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
