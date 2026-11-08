@@ -103,3 +103,32 @@ body:has(.refPuzzle + .stageHistoryNav .stageBackButton + .stageForwardButton) .
 body:has(.vbBench + .stageHistoryNav .stageBackButton + .stageForwardButton) .vbBench .compactRouteTracker { padding-left: 236px !important; }
 .dtBoard + .stageHistoryNav, .refPuzzle + .stageHistoryNav, .vbBench + .stageHistoryNav { gap: 6px !important; }
 .dtBoard + .stageHistoryNav .stageForwardButton, .refPuzzle + .stageHistoryNav .stageForwardButton, .vbBench + .stageHistoryNav .stageForwardButton { background: #fff8d6 !important; border-color: #e6cf7a !important; box-shadow: 0 2px 0 #e6cf7a !important; }
+
+/* puzzle: centred in its paper, help bubble, gap rows stand out */
+.refPuzzle .rpStage { display: grid !important; place-items: center !important; }
+.refPuzzle .rpSizer { position: relative; }
+.refPuzzle .rpWorld { position: absolute !important; left: 0 !important; top: 0 !important; transform-origin: 0 0 !important; }
+.rpPiece .rpHelp { position: absolute; z-index: 4; left: 28px; bottom: 8px; width: 20px; height: 20px; padding: 0; border: 1.5px solid #c9b79f; border-radius: 50%; background: #fffdf6; color: #7b6a5c; font: 700 11px Pretendard, system-ui; cursor: pointer; }
+.rpBubble { position: absolute; z-index: 30; width: 250px; translate: -50% 0; padding: 12px 14px 10px; border-radius: 6px; background: #fffdf6; color: #33291f; box-shadow: 0 1px 1px rgba(0,0,0,.16), 0 6px 14px rgba(30,15,5,.28); font: 500 12.5px/1.45 Pretendard, system-ui; }
+.rpBubble::before { content: ""; position: absolute; top: -7px; left: 50%; width: 12px; height: 12px; translate: -50% 0; rotate: 45deg; background: #fffdf6; box-shadow: -1px -1px 1px rgba(0,0,0,.06); }
+.rpBubble small { display: block; color: #d4473c; font-weight: 600; } .rpBubble b { display: block; margin: 2px 0 4px; font-size: 14px; font-weight: 600; }
+.rpBubble p { margin: 2px 0; } .rpBubble .rpSpec { padding: 4px 8px; border-radius: 4px; background: linear-gradient(transparent 50%, rgba(255,223,94,.7) 50%); font-weight: 600; }
+.rpBubble .rpFromLine { color: #7b6a5c; font-size: 11.5px; }
+.rpBubbleX { position: absolute; right: 6px; top: 4px; width: 22px; height: 22px; padding: 0; border: 0; background: transparent; font-size: 16px; color: #7b6a5c; cursor: pointer; }
+.refPuzzle .rpReq > div.gap { background: #fff1bf !important; box-shadow: inset 0 0 0 1.5px #e3bb45 !important; }
+.refPuzzle .rpReq > div.gap i { background: #d4a520 !important; }
+/* wide windows: keep the work papers at a readable width, centred */
+.dtLayout, .vbLayout { left: max(16px, calc(50% - 760px)) !important; right: max(16px, calc(50% - 760px)) !important; }
+.dtBoard .compactRouteTracker, .refPuzzle .compactRouteTracker, .vbBench .compactRouteTracker { left: max(16px, calc(50% - 760px)) !important; right: max(16px, calc(50% - 760px)) !important; }
+.refPuzzle .rpHead, .refPuzzle .rpMain, .refPuzzle .rpFoot { width: min(100% - 32px, 1520px) !important; margin-left: auto !important; margin-right: auto !important; box-sizing: border-box; }
+.refPuzzle .rpMain { padding-left: 0 !important; padding-right: 0 !important; }
+.refPuzzle .rpFoot { padding-right: 96px !important; }
+/* root-cause trace, last step: the boundary card replaces the big polaroid chain, so nothing overlaps */
+.dtLayout.phase-zoom .dtChain, .dtLayout.phase-done .dtChain { display: none !important; }
+.dtLayout.phase-zoom, .dtLayout.phase-done { grid-template-rows: auto minmax(0, 1fr) auto !important; }
+.dtZoom { align-content: center !important; }
+.dtImpact { padding: 10px 14px !important; gap: 8px !important; }
+.dtImpact > .dtFall { padding-top: 22px !important; }
+.vbGroup { font: 600 10.5px Pretendard, system-ui; color: #d4473c; }
+.rpBubble.up { translate: -50% -100%; }
+.rpBubble.up::before { top: auto; bottom: -7px; }

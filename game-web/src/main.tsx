@@ -468,18 +468,16 @@ function Title({
       <SceneBackdrop image={`${A}stitch23/menu-garage.png`} position="center" shade="soft" />
       <div className="cloud"><Icon name="cloud" /> 로컬 저장 · 교육 기록 준비</div>
       <div className="titleMenu">
-        <div className="eyebrow">레이싱 × 자동차 고장 추리</div>
+        <div className="eyebrow">자동차 고장 추적 · 레이싱 추리</div>
         <h1>
           <img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" />
           <span>TraceBack</span>
-          <small>CONTROL THE ESCAPE</small>
+          <small>증상에서 원인까지, 검증으로 증명하기</small>
         </h1>
         <button className="heroBtn" onClick={() => send({ type: "NEW_GAME" })}>
-          <i>▶</i>
           <span>
             <b>새 게임 시작</b>
           </span>
-          <em>›</em>
         </button>
       </div>
       <div className="keyHelp">
@@ -492,12 +490,13 @@ function Prologue({ send }: { send: React.Dispatch<any> }) {
   const [slide, setSlide] = useState(0);
   // story (see src/game/cast.ts): champions → swindled and framed → fired and broke → take it back → race to the ship
   const lines: [string, string, string][] = [
-    ["THE CHAMPIONS", DRIVER, `결승선 통과. ${ENGINEER}가 직접 만든 차로 시즌 최고 상금을 따냈다.`],
-    ["THE SWINDLE", ENGINEER, `그날 밤, 후원사 대표 ${VILLAIN}가 상금을 전부 빼돌렸다. 경기 조작 누명은 우리에게 씌워졌다.`],
-    ["THE FALL", DRIVER, "팀에서 잘리고 차고도 잃었다. 몇 년을 빈손으로 버텼다."],
-    ["THE PLAN", ENGINEER, `${VILLAIN}의 저택 금고에 우리 상금이 있다. 되찾고, 우리 차가 여전히 최고라는 것도 증명한다.`],
-    ["THE ROUTE", DRIVER, "탈출로는 항구 뒷길. 파라다이스로 가는 해적선이 떠나기 전에 도착한다."],
+    ["우승", "이야기", `${DRIVER}와 ${ENGINEER}는 직접 만든 차로 시즌 우승을 하고 최고 상금을 받았다.`],
+    ["누명", "이야기", `후원사 대표 ${VILLAIN}가 상금을 빼돌리고, 경기 조작 누명을 두 사람에게 씌웠다.`],
+    ["해고", "이야기", "두 사람은 팀에서 해고되었고, 오랫동안 일 없이 지냈다."],
+    ["계획", "이야기", `상금은 ${VILLAIN}의 저택 금고에 있다. 돈을 되찾고, 직접 만든 차로 실력을 증명하기로 했다.`],
+    ["목표", "이야기", "항구 뒷길로 달려 해적선에 오른다. 경찰이 따라오기 전에."],
   ];
+
   const images = [
     `${A}stitch23/prologue-race.png`,
     `${A}stitch23/prologue-loss.png`,

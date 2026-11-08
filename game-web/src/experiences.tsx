@@ -27,6 +27,8 @@ export type DomainId = "drive" | "brake" | "steer" | "gear" | "power" | "thermal
 // "도메인" here follows E/E architecture practice (not an ISO 26262 term): functions grouped by domain controller.
 const DOMAIN_GROUP: Record<DomainId, string> = { drive: "파워트레인", power: "파워트레인", gear: "파워트레인", thermal: "파워트레인", brake: "섀시", steer: "섀시", suspension: "섀시" };
 const DOMAIN_ICON: Record<DomainId, IconName> = { drive: "bolt", brake: "disc", steer: "wheel", power: "battery", gear: "shift", thermal: "thermo", suspension: "spring" };
+const SHOW_PULL_TABS = false; // "빼 보기"·"범인 찾기" hidden: they added tabs without a clear task (code kept)
+const garageAutoTour = false; // the old 1.45 s background tour fought the pause button
 const learningLayers = [
   // ISO 26262 abstraction: item (vehicle function) → system architecture (HW/SW elements) → SW architecture & unit design
   { name: "Vehicle / System", tag: "차량 기능 · 운전자 입력 → 차량 거동" },
@@ -612,11 +614,11 @@ const ecuIdFor = (label: string) =>
   /^VCU/.test(label) ? "vcu" : /MCU|인버터 ECU/.test(label) ? "mcu" : /^BMS/.test(label) ? "bms"
     : /Thermal ECU/.test(label) ? "thermal_ecu" : /(Brake|ABS|ESC|Hydraulic) ECU/.test(label) ? "brake_ecu" : /EPS ECU/.test(label) ? "eps_ecu" : undefined;
 const ROLE_INTRO: Record<PartRole, string> = {
-  input: "운전자나 차의 상태를 재서 제어기에 알려 주는 눈·귀",
-  control: "받은 값을 판단해 명령을 내리는 두뇌",
-  network: "제어기끼리 값을 주고받는 편지(통신 메시지)",
-  actuator: "명령을 받아 실제로 움직이는 손발",
-  result: "부품들이 함께 만든 차량의 실제 반응",
+  input: "물리량(페달 위치·온도·압력 등)을 측정해 전기 신호로 제어기에 보내는 센서",
+  control: "입력 신호로 계산·판단해 명령 값을 출력하는 제어기(ECU)",
+  network: "제어기 사이에서 값을 메시지로 전달하는 통신(CAN)",
+  actuator: "명령 값에 따라 토크·압력·회전을 만드는 구동 부품(액추에이터)",
+  result: "부품 동작으로 나타나는 차량의 실제 거동",
 };
 // What each step of the chain sends on (plain words + example unit), from the vehicle-level layer.
 const SIGNAL_UNIT: [RegExp, string][] = [[/페달|가속 의도|운전자 가속|조작/, "0~100%"], [/토크|힘|추진/, "Nm"], [/온도|열/, "°C"], [/압력|제동력/, "bar"], [/감속|가속/, "m/s²"], [/회전|속도|RPM/, "rpm"], [/전류/, "A"], [/전압|전력/, "V"], [/조향|각/, "°"], [/허용|판단|요구|요청|명령|선택/, "명령"]];
@@ -626,11 +628,11 @@ const flowSignals = (domain: DomainId, feature: number, length: number) => {
 };
 const unitOf = (text: string) => SIGNAL_UNIT.find(([pattern]) => pattern.test(text))?.[1] ?? "신호";
 const ROLE_DOES: Record<PartRole, (out: string) => string> = {
-  input: out => `실제 상황을 재서 ‘${out}’ 값을 전기 신호로 바꿔요`,
-  control: out => `받은 값으로 계산해서 ‘${out}’을(를) 정해요`,
-  network: out => `‘${out}’을(를) 메시지에 실어 다른 제어기로 배달해요`,
-  actuator: out => `명령대로 움직여서 ‘${out}’을(를) 실제로 만들어요`,
-  result: out => `최종 결과: 운전자가 ‘${out}’을(를) 느껴요`,
+  input: out => `측정한 물리량을 전기 신호(‘${out}’)로 변환해 출력`,
+  control: out => `입력 신호로 계산해 ‘${out}’ 명령 값을 출력`,
+  network: out => `‘${out}’ 값을 CAN 메시지로 다음 제어기에 전달`,
+  actuator: out => `명령 값에 따라 ‘${out}’을(를) 물리적으로 생성`,
+  result: out => `차량 거동으로 나타남: ‘${out}’`,
 };
 
 function FlowStepCard({ chain, signals, step, onStep }: { chain: string[]; signals: string[]; step: number; onStep: (index: number) => void }) {
@@ -687,7 +689,7 @@ function ControllerCard({ label, onPull, onClose }: { label: string; onPull: () 
         <div className="ecuRow"><i><Icon name="chip" /></i><span>{ecu.functions.map(item => <em key={item} className="do">{item}</em>)}</span></div>
         <div className="ecuRow"><i><Icon name="arm" /></i><span>{ecu.actuators.length ? ecu.actuators.map(id => <em key={id}>{ko(id)}</em>) : <em>다른 제어기에 명령 전달</em>}</span></div>
         <div className="ecuRow"><i>✉️</i><span>{ecu.interfaces.map(item => <em key={item} className="bus">{item}</em>)}</span></div>
-      </> : <div className="ecuRow"><i><Icon name="chip" /></i><span><em className="do">센서 값을 판단해 명령을 내리는 두뇌</em></span></div>}
+      </> : <div className="ecuRow"><i><Icon name="chip" /></i><span><em className="do">입력 신호로 계산·판단해 명령 값을 출력</em></span></div>}
       <button className="ecuPull" onClick={onPull}>이 제어기 빼 보기</button>
     </div>
   </div>;
@@ -727,6 +729,8 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   useEffect(() => { setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("flow"); }, [feature, routeLevel]);
   useEffect(() => {
     const flowLength = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
+    // steps advance only when the player moves them (no background auto-advance; the flow card has its own play/pause)
+    if (!garageAutoTour) return;
     const timer = window.setInterval(() => setActiveStep(value => (value + 1) % flowLength), 1450);
     return () => window.clearInterval(timer);
   }, [domain, feature, routeLevel]);
@@ -735,15 +739,15 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     <GameHeader chapter="GARAGE · VEHICLE LOGIC LAB" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <nav className="garageLayerNav" aria-label="설계 추상화 단계">
       <small className="viewAxisLabel">차량 레이어 관점</small>
-      {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={routeLevel === index ? "active" : ""}>
-        <span>{String(index + 1).padStart(2, "0")}</span><b>{layer.name}</b><small>{layer.tag}</small>
+      {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={`${routeLevel === index ? "active" : ""} ${!chosen && index > 0 ? "needsDomain" : ""}`} title={!chosen && index > 0 ? "도메인을 먼저 고르면 열려요" : ""}>
+        <span>{String(index + 1).padStart(2, "0")}</span><b>{layer.name}</b><small>{!chosen && index > 0 ? "도메인을 고르면 열려요" : layer.tag}</small>
       </button>)}
     </nav>
     <main className="garageStudio">
       <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map((id, index) => <button key={id} className={chosen && domain === id ? "active" : ""} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span><Icon name={DOMAIN_ICON[id]} /></span><b>{domainContent[id].label}</b><small>{DOMAIN_GROUP[id]}</small></button>)}</nav>
       <section className="garageMechanismCard">
         {chosen ? <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
-          : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "한 차 안에 7개 도메인이 함께 있어요. 위에서 도메인을 고르면 그 도메인만 자세히 볼 수 있어요."}</p></header>}
+          : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위 탭에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레이어로 같은 기능을 다른 관점에서 봅니다."}</p></header>}
         <MechanismViewer key={chosen ? "domain" : "all"} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {chosen && routeLevel === 1 && (() => {
@@ -764,8 +768,8 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
               <nav className="labTabs">
                 <button className={labMode === "flow" ? "on" : ""} onClick={() => { setLabMode("flow"); setRemoved(null); setCulprit(null); setEcuCard(null); setActiveStep(0); }}><Icon name="compass" /> 흐름 따라가기</button>
                 <button className={labMode === "intro" ? "on" : ""} onClick={() => { setLabMode("intro"); setRemoved(null); setCulprit(null); }}>① 부품 소개</button>
-                <button className={labMode === "pull" ? "on" : ""} onClick={() => { setLabMode("pull"); setCulprit(null); setEcuCard(null); }}>② 빼 보기</button>
-                <button className={labMode === "hunt" ? "on" : ""} onClick={startHunt}>③ 범인 찾기{caught ? ` · ${caught}` : ""}</button>
+                {SHOW_PULL_TABS && <button className={labMode === "pull" ? "on" : ""} onClick={() => { setLabMode("pull"); setCulprit(null); setEcuCard(null); }}>② 빼 보기</button>}
+                {SHOW_PULL_TABS && <button className={labMode === "hunt" ? "on" : ""} onClick={startHunt}>③ 범인 찾기{caught ? ` · ${caught}` : ""}</button>}
               </nav>
               <em>{labMode === "flow" ? "입력 값이 부품을 하나씩 지나 출력이 되는 과정을 따라가요" : labMode === "intro" ? "부품을 눌러 무슨 일을 하는지 보세요" : labMode === "pull" ? "부품을 하나 빼면 차가 어떻게 될까?" : `${ENGINEER}의 문제: 빠진 부품을 찾아보세요`}</em>
             </header>

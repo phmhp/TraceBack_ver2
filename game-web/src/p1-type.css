@@ -7,7 +7,6 @@ html, body, body *:not(svg):not(path) {
   word-break: keep-all !important;
   overflow-wrap: break-word;
 }
-.titleScene .titleMenu h1 > span { font-family: "TraceRounded", Pretendard, sans-serif !important; }
 .rpDisplay, .vbVal, .vbMonitor header span { font-variant-numeric: tabular-nums; }
 h1, h2, h3, h4, b, strong, small, em, button, label, span, li, dt, dd { text-wrap: balance; }
 p { text-wrap: pretty; }

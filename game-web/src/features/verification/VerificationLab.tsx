@@ -546,13 +546,12 @@ function Trace({ sig, upto, fixed, probed }: { sig: Sig; upto: number; fixed: bo
 // Bench v6 (docs/VERIFICATION_FLOW_STANDARD.md §3–4):
 // 0 검증 레벨 → 1 시험 기법 → 2 정상 시나리오 vs 현장 기록 비교(프로브·🚩) → 3 고치기 → 4 다시 실행·회귀
 // ISO 26262 separates the test METHOD from how the test CASES are derived (Part 6 §9–11, Part 4 §7).
-type Method = "req" | "iface" | "inject" | "b2b";
+type Method = "req" | "iface" | "inject";
 type Deriv = "reqa" | "equiv" | "bound" | "guess" | "usecase";
 const METHODS: { id: Method; name: string; sub: string }[] = [
   { id: "req", name: "요구사항 기반 시험", sub: "요구사항이 말한 대로 동작하는지" },
   { id: "iface", name: "인터페이스 시험", sub: "주고받는 신호의 형식·범위·시점" },
   { id: "inject", name: "고장 주입 시험", sub: "일부러 고장을 넣고 반응 확인" },
-  { id: "b2b", name: "모델-코드 비교 (back-to-back)", sub: "설계 모델과 코드를 같은 입력으로" },
 ];
 const DERIVS: { id: Deriv; name: string; sub: string }[] = [
   { id: "reqa", name: "요구사항 분석", sub: "요구사항에서 입력·기대값을 뽑기" },
@@ -562,29 +561,30 @@ const DERIVS: { id: Deriv; name: string; sub: string }[] = [
   { id: "usecase", name: "운용 사용 사례 분석", sub: "실제로 쓰는 조건 그대로" },
 ];
 const TEST_ANSWER: Record<CaseId, { method: Method[]; deriv: Deriv[]; input: string; whyM: Record<Method, string>; whyD: Record<Deriv, string> }> = {
-  propulsion: { method: ["b2b", "req"], deriv: ["reqa", "equiv"], input: "페달 60% 계단 입력 · D단 · READY",
-    whyM: { b2b: "설계 모델과 코드를 같은 입력으로 돌려 비교하면, 설계에 없는 블록이 코드에 들어간 경우가 바로 드러나요.", req: "요구사항 '60% → 204 Nm'를 그대로 확인하는 방법이에요. 이번 구간에 맞아요.", iface: "신호 형식·범위 문제가 아니에요. 들어오는 값은 모두 정상이었어요.", inject: "고장 주입은 고장 감지·대응 기능을 확인할 때 써요. 지금은 정상 계산과 같은지부터 봐야 해요." },
+  propulsion: { method: ["req"], deriv: ["reqa", "equiv"], input: "페달 60% 계단 입력 · D단 · READY",
+    whyM: { req: "요구사항 '60% → 204 Nm'를 그대로 확인하는 방법이에요. 이번 구간에 맞아요.", iface: "신호 형식·범위 문제가 아니에요. 들어오는 값은 모두 정상이었어요.", inject: "고장 주입은 고장 감지·대응 기능을 확인할 때 써요. 지금은 정상 계산과 같은지부터 봐야 해요." },
     whyD: { reqa: "요구사항 '페달 60% → 204 Nm'에서 입력과 기대값을 바로 뽑을 수 있어요.", equiv: "페달 0·30·60·100%처럼 구간별 대표값을 넣는 방법이에요. 이번 결함도 잡혀요.", bound: "임계 근처 문제가 아니에요. 60%처럼 평범한 값에서도 달라졌어요.", guess: "경험에 기대기보다 요구사항이 분명하니 거기서 뽑는 게 근거가 있어요.", usecase: "실제 주행 조건에는 다른 요인이 섞여요. 계산 구간만 볼 때는 요구사항 값이 깔끔해요." } },
   thermal: { method: ["req"], deriv: ["usecase"], input: "장시간 고속 주행 · 냉각수 64 → 78°C",
-    whyM: { req: "'65°C를 넘으면 팬이 1850 rpm으로 돈다'는 요구가 실제 부품에서 지켜지는지 확인해요.", iface: "ECU 출력 신호(PWM·전원)는 정상이었어요. 형식 문제가 아니에요.", inject: "고장 주입은 '팬이 멈추면 SW가 감지·경고하는지' 볼 때 써요. 원인 확정에는 요구 동작 확인이 먼저예요.", b2b: "모델-코드 비교는 SW 계산을 볼 때 써요. 의심 구간은 실제 부품 쪽이에요." },
+    whyM: { req: "'65°C를 넘으면 팬이 1850 rpm으로 돈다'는 요구가 실제 부품에서 지켜지는지 확인해요.", iface: "ECU 출력 신호(PWM·전원)는 정상이었어요. 형식 문제가 아니에요.", inject: "고장 주입은 '팬이 멈추면 SW가 감지·경고하는지' 볼 때 써요. 원인 확정에는 요구 동작 확인이 먼저예요." },
     whyD: { usecase: "오래 고속으로 달린 조건을 그대로 만들어야 열이 쌓이고 팬이 켜져야 하는 상황이 생겨요.", reqa: "요구 값을 순간만 넣으면 온도가 오르기 전이라 팬이 켜질 조건이 안 만들어져요.", equiv: "온도 구간별 대표값은 판단 로직 확인용이에요. 열이 쌓이는 시간이 필요해요.", bound: "65°C 경계는 이미 넘었고 팬 명령도 100%였어요. 경계 판단 문제가 아니에요.", guess: "근거 없이 고르기보다 사건이 난 사용 조건을 재현하는 게 확실해요." } },
   brake: { method: ["req"], deriv: ["bound"], input: "페달 55% · 배터리 가득(회생 0) 경계",
-    whyM: { req: "'페달 55% → 3.2 m/s²' 요구가 실제 유압 경로에서 지켜지는지 확인해요.", iface: "압력 명령 신호는 42 bar로 정상이었어요. 형식 문제가 아니에요.", inject: "고장 주입은 누설을 감지·경고하는지 볼 때 써요. 원인 확정에는 요구 동작 확인이 먼저예요.", b2b: "모델-코드 비교는 SW 계산을 볼 때 써요. 의심 구간은 유압 부품 쪽이에요." },
+    whyM: { req: "'페달 55% → 3.2 m/s²' 요구가 실제 유압 경로에서 지켜지는지 확인해요.", iface: "압력 명령 신호는 42 bar로 정상이었어요. 형식 문제가 아니에요.", inject: "고장 주입은 누설을 감지·경고하는지 볼 때 써요. 원인 확정에는 요구 동작 확인이 먼저예요." },
     whyD: { bound: "배터리가 가득 차 회생이 0이 되는 경계에서는 마찰 제동이 전부를 맡아요. 유압 경로 문제가 가장 크게 드러나요.", reqa: "가능하지만 회생 제동이 일부를 메워 차이가 작게 보여요.", equiv: "대표값만으로는 회생이 섞여 마찰 쪽 차이가 흐려져요.", guess: "근거 없이 고르기보다 회생이 0이 되는 경계를 쓰는 게 확실해요.", usecase: "실제 주행 기록엔 회생이 섞여 마찰 쪽 차이가 흐려져요." } },
 };
 const SIM_INPUT: Record<Deriv, Tech> = { reqa: "req", equiv: "req", guess: "req", bound: "boundary", usecase: "soak" };
 // Verification levels (what is verified) — ISO 26262-6 §9, §10, §11 and ISO 26262-4 §7.
 // Test environments (where it runs: MIL/SIL/PIL/HIL/차량) are a separate axis, shown as chips.
-const LV: { id: Lv; name: string; std: string; env: string[]; scope: string }[] = [
-  { id: "unit", name: "단위 검증", std: "26262-6 · 9절", env: ["MIL", "SIL", "PIL"], scope: "SW 단위 하나의 입출력만 봐요. 다른 SW와 부품은 자극으로 대신해요." },
-  { id: "swint", name: "SW 통합 검증", std: "26262-6 · 10절", env: ["SIL", "PIL"], scope: "SW 컴포넌트 사이 인터페이스를 봐요. 부품은 시뮬레이션이에요." },
-  { id: "embedded", name: "임베디드 SW 시험", std: "26262-6 · 11절", env: ["PIL", "HIL"], scope: "실제 ECU에서 도는 SW를 봐요. 센서·부하·차량은 HIL이 시뮬레이션해요." },
-  { id: "vehicle", name: "시스템·차량 통합", std: "26262-4 · 7절", env: ["HIL+실부품", "차량"], scope: "실제 부품·여러 ECU·차량을 연결해요. HW·SW 통합 → 시스템 통합 → 차량 통합 순이에요." },
+// Names use one word ("시험") and say whether the level is SW (ISO 26262-6) or system (ISO 26262-4).
+const LV: { id: Lv; name: string; group: "SW 레벨" | "시스템 레벨"; std: string; env: string[]; scope: string }[] = [
+  { id: "unit", name: "SW 단위 시험", group: "SW 레벨", std: "26262-6 · 9절", env: ["MIL", "SIL", "PIL"], scope: "SW 단위 하나의 입출력만 봅니다. 다른 SW와 부품 대신 입력값을 직접 인가합니다." },
+  { id: "swint", name: "SW 통합 시험", group: "SW 레벨", std: "26262-6 · 10절", env: ["SIL", "PIL"], scope: "SW 컴포넌트 사이 인터페이스를 봅니다. 부품은 모델로 시뮬레이션합니다." },
+  { id: "embedded", name: "임베디드 SW 시험", group: "SW 레벨", std: "26262-6 · 11절", env: ["PIL", "HIL"], scope: "실제 ECU에서 도는 SW를 봅니다. 센서·부하·차량은 HIL이 시뮬레이션합니다." },
+  { id: "vehicle", name: "시스템 통합 시험", group: "시스템 레벨", std: "26262-4 · 7절", env: ["HIL+실부품", "차량"], scope: "실제 부품·여러 ECU·차량을 연결합니다. HW·SW 통합 → 시스템 통합 → 차량 통합 순입니다." },
 ];
 const LV_ANSWER: Record<CaseId, { answer: Lv; why: string }> = {
-  propulsion: { answer: "unit", why: "의심 구간이 VCU 안 SW 계산이에요. 그 SW 단위만 돌려 보는 단위 검증에서 바로 관찰할 수 있어요. 가장 싸고 빠른 레벨이에요." },
-  thermal: { answer: "vehicle", why: "의심 구간이 출력단 뒤 배선·팬 모터 같은 실제 부품이에요. 임베디드 SW 시험까지는 HIL이 팬을 시뮬레이션해서 고장이 안 보여요. 실제 부품을 연결하는 HW·SW 통합부터 관찰돼요." },
-  brake: { answer: "vehicle", why: "의심 구간이 유압 모듈·라인·캘리퍼 같은 실제 부품이에요. 임베디드 SW 시험까지는 유압을 시뮬레이션해서 안 보여요. 실제 유압 부품을 연결하는 HW·SW 통합부터 관찰돼요." },
+  propulsion: { answer: "unit", why: "의심 구간이 VCU 안 SW 계산이에요. 그 SW 단위에 입력값을 인가하는 SW 단위 시험에서 바로 관찰할 수 있어요. 가장 싸고 빠른 레벨이에요." },
+  thermal: { answer: "vehicle", why: "의심 구간이 출력단 뒤 배선·팬 모터 같은 실제 부품이에요. 임베디드 SW 시험까지는 HIL이 팬을 시뮬레이션해서 고장이 안 보여요. 실제 부품을 연결하는 시스템 통합 시험(HW·SW 통합)부터 관찰돼요." },
+  brake: { answer: "vehicle", why: "의심 구간이 유압 모듈·라인·캘리퍼 같은 실제 부품이에요. 임베디드 SW 시험까지는 유압을 시뮬레이션해서 안 보여요. 실제 유압 부품을 연결하는 시스템 통합 시험(HW·SW 통합)부터 관찰돼요." },
 };
 
 export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
@@ -718,7 +718,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       {step === 0 && <section className="vbStage">
         <h2><Icon name="tag" /> 이 구간을 <b>처음</b> 관찰할 수 있는 검증 레벨은?</h2>
         <p className="vbSub">{section ? `의심 구간: ${section}` : "앞 단계에서 좁힌 구간"} · 왼쪽일수록 범위가 좁고 싸고 빨라요</p>
-        <div className="vbChoices four vbLevels">{LV.map((item, index) => <React.Fragment key={item.id}>{index > 0 && <i className="vbLvArrow">→</i>}<button className={level === item.id ? item.id === lvAnswer.answer ? "right" : "wrong" : ""} onClick={() => pickLevel(item.id)}><b>{item.name}</b><em>{item.std}</em><span className="vbEnvRow">{item.env.map(env => <i key={env} className="vbEnv">{env}</i>)}</span></button></React.Fragment>)}</div>
+        <div className="vbChoices four vbLevels">{LV.map((item, index) => <React.Fragment key={item.id}>{index > 0 && <i className="vbLvArrow">→</i>}<button className={level === item.id ? item.id === lvAnswer.answer ? "right" : "wrong" : ""} onClick={() => pickLevel(item.id)}><small className="vbGroup">{item.group}</small><b>{item.name}</b><em>{item.std}</em><span className="vbEnvRow">{item.env.map(env => <i key={env} className="vbEnv">{env}</i>)}</span></button></React.Fragment>)}</div>
       </section>}
 
       {step === 1 && <section className="vbStage">

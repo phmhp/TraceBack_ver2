@@ -71,3 +71,40 @@ button.clayAction:active { transform: translateY(2px) !important; }
 button.clayAction .keycap, button.clayAction kbd { border-radius: 4px !important; background: var(--np-paper-2) !important; color: var(--np-ink) !important; }
 /* race: on narrow windows the regen hint chip would run under the rear mirror — the key bar already shows Q/E */
 @media (max-width: 1240px) { .raceV2 .raceTripHud > em { display: none !important; } }
+/* garage: layers that need a domain look locked, and the domain tabs pulse until one is chosen */
+.garageLayerNav button.needsDomain { opacity: .55 !important; cursor: not-allowed !important; }
+.garageV2 .domainTabs:not(:has(button.active)) button { animation: npPulse 1.6s ease-in-out infinite; }
+@keyframes npPulse { 50% { box-shadow: 0 0 0 3px rgba(255,223,94,.75), 0 2px 0 #e2d5c2; } }
+
+/* ---------- title: one taped note card ---------- */
+.titleScene > .sceneBackdrop { filter: blur(3px) brightness(.9); transform: scale(1.04); }
+.titleScene .titleMenu { border: 0 !important; border-radius: var(--np-r) !important; padding: 34px 40px 30px !important;
+  background: repeating-linear-gradient(180deg, transparent 0 27px, #d3e2f0 27px 28px), var(--np-paper) !important; box-shadow: var(--np-shadow) !important; color: var(--np-ink) !important; }
+.titleScene .titleMenu::before { content: ""; position: absolute; top: -9px; left: 50%; translate: -50% 0; width: 70px; height: 18px; border-radius: 2px; background: rgba(250,244,220,.7); box-shadow: 0 1px 1px rgba(0,0,0,.1); }
+.titleScene .titleMenu .eyebrow { color: var(--np-red) !important; font-weight: 600 !important; letter-spacing: .02em !important; background: none !important; border: 0 !important; box-shadow: none !important; }
+.titleScene .titleMenu h1 { color: var(--np-ink) !important; text-shadow: none !important; }
+.titleScene .titleMenu h1 > span { font-family: Pretendard, sans-serif !important; font-weight: 800 !important; letter-spacing: -.03em !important; color: var(--np-ink) !important; text-shadow: none !important; -webkit-text-stroke: 0 !important;
+  background: linear-gradient(transparent 58%, var(--np-yellow) 58% 92%, transparent 92%) !important; -webkit-background-clip: border-box !important; background-clip: border-box !important; -webkit-text-fill-color: currentColor !important; }
+.titleScene .titleMenu h1 > small { color: var(--np-soft) !important; font-weight: 500 !important; letter-spacing: 0 !important; }
+.titleScene .titleMenu h1 > img { border-radius: 50% !important; background: #fff !important; box-shadow: var(--np-shadow-sm) !important; }
+.titleScene .heroBtn { border: 2px solid var(--np-red) !important; border-radius: var(--np-r) !important; background: #fff6f3 !important; color: var(--np-red) !important; box-shadow: 0 3px 0 rgba(160,40,30,.3), 0 6px 10px rgba(60,20,10,.16) !important; justify-content: center !important; }
+.titleScene .heroBtn b { color: var(--np-red) !important; font-weight: 600 !important; }
+.titleScene .cloud, .titleScene .keyHelp { border: 0 !important; border-radius: var(--np-r) !important; background: var(--np-paper) !important; color: var(--np-soft) !important; box-shadow: var(--np-shadow-sm) !important; }
+
+/* ---------- history buttons (이전 단계 / 다음 단계), every screen ---------- */
+.stageHistoryNav .stageBackButton, .stageHistoryNav .stageForwardButton {
+  height: 30px !important; padding: 3px 10px !important; border: 1.5px solid #d9c9b3 !important; border-radius: var(--np-r) !important;
+  background: var(--np-paper) !important; color: var(--np-ink) !important; box-shadow: 0 2px 0 #d9c9b3, 0 4px 8px rgba(30,15,5,.15) !important;
+  font: 500 12px Pretendard, system-ui !important; backdrop-filter: none !important;
+}
+.stageHistoryNav .stageForwardButton { background: #fff8d6 !important; border-color: #e6cf7a !important; box-shadow: 0 2px 0 #e6cf7a, 0 4px 8px rgba(30,15,5,.15) !important; }
+/* garage: the nav sits above the layer list, which starts lower so they never overlap */
+.garageV2 + .stageHistoryNav { top: 80px !important; left: 14px !important; }
+.garageV2 .garageLayerNav { top: 120px !important; }
+
+/* ---------- note lines + highlighter on key words ---------- */
+.dtLayout, .vbLayout { background: repeating-linear-gradient(180deg, transparent 0 27px, rgba(150,180,210,.28) 27px 28px), var(--np-paper) !important; }
+.dtChain, .dtQuestion .dtCands, .dtImpact, .vbStage .vbChoices button, .vbMonitor { position: relative; z-index: 1; }
+mark, .np-mark, .dtQuestion h2 b, .vbStage h2 b, .rpHead h1 em, .refPuzzle .rpHead p b, .dtBBox b {
+  background: linear-gradient(transparent 56%, rgba(255,223,94,.85) 56% 92%, transparent 92%) !important; color: inherit !important; padding: 0 2px;
+}

@@ -84,7 +84,7 @@ type Def = { id: string; name: string; unit: string; max: number; src: string; m
 const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
   propulsion: {
     unit: [
-      { id: "aps", name: "입력 자극 · 페달", unit: "%", max: 100, src: "aps" },
+      { id: "aps", name: "입력값 인가 · 페달", unit: "%", max: 100, src: "aps" },
       { id: "filt", name: "입력 필터 출력", unit: "%", max: 100, src: "filt" },
       { id: "proc", name: "페달 처리값 (보정 후)", unit: "%", max: 100, src: "proc" },
       { id: "req", name: "페달 맵 · 토크 요청", unit: "Nm", max: 260, src: "req" },
@@ -110,7 +110,7 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
   },
   thermal: {
     unit: [
-      { id: "tin", name: "입력 자극 · 냉각수 온도", unit: "°C", max: 100, src: "tc", model: true },
+      { id: "tin", name: "입력값 인가 · 냉각수 온도", unit: "°C", max: 100, src: "tc", model: true },
       { id: "tf", name: "필터 출력", unit: "°C", max: 100, src: "tf", model: true },
       { id: "req", name: "히스테리시스 · 팬 요청", unit: "%", max: 110, src: "fanReq", model: true },
       { id: "duty", name: "PI 출력 PWM 비율", unit: "%", max: 110, src: "duty", model: true },
@@ -136,7 +136,7 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
   },
   brake: {
     unit: [
-      { id: "req", name: "입력 자극 · 제동 요구", unit: "m/s²", max: 4, src: "req", model: true },
+      { id: "req", name: "입력값 인가 · 제동 요구", unit: "m/s²", max: 4, src: "req", model: true },
       { id: "avail", name: "회생 가용량", unit: "m/s²", max: 4, src: "avail", model: true },
       { id: "fric", name: "잔여력 · 마찰 몫", unit: "m/s²", max: 4, src: "fric", model: true },
       { id: "cmd", name: "마찰 압력 명령", unit: "bar", max: 70, src: "cmd", model: true },

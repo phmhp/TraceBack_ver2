@@ -293,7 +293,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     return () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); };
   }, [thread?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { setMapOpen(false); setHelp(false); } };
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { setMapOpen(false); setHelp(false); } if (event.key === "Enter") setHelp(false); };
     addEventListener("keydown", onKey); return () => removeEventListener("keydown", onKey);
   }, []);
 
@@ -309,7 +309,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="ROOT CAUSE TRACE" title="원인 역추적" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
-    <main className="dtLayout">
+    <main className={`dtLayout phase-${phase}`}>
       <header className="dtHead">
         <button className="dtMapBtn" onClick={() => { setMapOpen(true); play("pop"); }}>
           <span className="dtMini">{ZONES.map(zone => <i key={zone} className={zone === cur.zone && !traced ? "now" : chain.some(id => dom(id).zone === zone) ? "seen" : ""} />)}</span>
@@ -374,10 +374,9 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
         {phase === "zoom" && <div className="dtSecChoices">{data.section.choices.map(c => <button key={c.label} className={zoomPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}>{c.label}</button>)}</div>}
         {phase === "done" && <div className="dtImpact">
           <DominoFall chain={ordered} traps={traps} parentOf={id => chain.find(c => causesOf(c).includes(id)) ?? data.start} labelOf={id => dom(id).label} />
-          <b><Icon name="clipboard" /> 함께 쓰러진 곳 = 고친 뒤 다시 확인할 곳 (영향도 분석 → 회귀 시험 목록)</b>
-          <div>{effects.map(d => <span key={d.id}>{d.label}</span>)}</div>
+          <b><Icon name="clipboard" /> 쓰러진 곳 = 고친 뒤 다시 시험할 곳 (회귀 시험 {effects.length}곳)</b>
           <b className="dtStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b>
-          <button className="dtNext" onClick={finish}>이 구간의 정상 동작 복원하기 →</button>
+          <button className="dtNext" onClick={finish}>다음: 요구사항 기반 로직 퍼즐 →</button>
         </div>}
       </section>}
 
