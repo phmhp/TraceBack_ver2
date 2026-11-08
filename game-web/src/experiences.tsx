@@ -901,7 +901,7 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
         <div className="heistFrameRail">{heistCaptions.map((caption, index) => <i key={caption} className={index < heistFrame ? "done" : index === heistFrame ? "active" : ""} />)}</div>
         <div className="heistCaption"><small>HEIST CUTSCENE · {heistFrame + 1}/8</small><b>{heistCaptions[heistFrame]}</b><span>{ready ? "루와 밍이 차에 탔습니다. 이제 직접 운전합니다." : "금고에서 도주 차량까지 실제 장면이 이어집니다."}</span></div>
       </section>
-      <section className="briefingPanel heistPanel"><small>GETAWAY CONTROLS</small><h1>부잣집 탈출 완료<br />해안 도로로 도주!</h1><div className="briefingChecklist"><span><i>W / S</i><b>가속 · 브레이크</b></span><span><i>A / D</i><b>부드러운 조향</b></span><span><i>1~4 · Q / E</i><b>기어 P·R·N·D · 회생 단계</b></span></div><div className="briefingStatus"><span><small>DRIVE</small><b>D · 단일 감속기 · 회생 0–3</b></span><span><small>POLICE</small><b>출발 후 뒤에서 합류</b></span><span><small>COURSE</small><b>CURVED COAST RUN</b></span></div><button className="primary" disabled={!ready} onClick={() => send({ type: "BEGIN_RACE" })}>{ready ? "3 · 2 · 1 도주 시작 →" : `${heistCaptions[heistFrame]}…`}</button></section>
+      <section className="briefingPanel heistPanel"><small>GETAWAY CONTROLS</small><h1>부잣집 탈출 완료<br />해안 도로로 도주!</h1><div className="briefingChecklist"><span><i>↑ / ↓</i><b>가속 · 브레이크</b></span><span><i>← / →</i><b>부드러운 조향</b></span><span><i>1~4 · Q / E</i><b>기어 P·R·N·D · 회생 패들</b></span></div><div className="briefingStatus"><span><small>DRIVE</small><b>D · 단일 감속기 · 회생 0–3</b></span><span><small>POLICE</small><b>출발 후 뒤에서 합류</b></span><span><small>COURSE</small><b>CURVED COAST RUN</b></span></div><button className="primary" disabled={!ready} onClick={() => send({ type: "BEGIN_RACE" })}>{ready ? "3 · 2 · 1 도주 시작 →" : `${heistCaptions[heistFrame]}…`}</button></section>
     </main>
   </div>;
 }
@@ -1286,19 +1286,25 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   }, [countdown]);
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
-      keys.current.add(event.key.toLowerCase());
-      if (!event.repeat && event.key.toLowerCase() === "q") setRegen(value => Math.max(0, value - 1));
-      if (!event.repeat && event.key.toLowerCase() === "e") setRegen(value => Math.min(3, value + 1));
-      if (!event.repeat && event.key.toLowerCase() === "r" && driveMission === "restart") setDriveMission("done");
-      const wanted = ({ "1": "P", "2": "R", "3": "N", "4": "D" } as const)[event.key as "1" | "2" | "3" | "4"];
+      const name = raceKey(event);
+      if (name.startsWith("arrow")) event.preventDefault();
+      keys.current.add(name);
+      // EV paddles: left (Q) = stronger regen, right (E) = weaker
+      if (!event.repeat && name === "q") setRegen(value => Math.min(3, value + 1));
+      if (!event.repeat && name === "e") setRegen(value => Math.max(0, value - 1));
+      if (!event.repeat && name === "r" && driveMission === "restart") { setDriveMission("done"); play("success"); }
+      const wanted = ({ "1": "P", "2": "R", "3": "N", "4": "D" } as const)[name as "1" | "2" | "3" | "4"];
       if (!event.repeat && wanted) {
         const moving = simRef.current.speed > 3;
         const brakeHeld = keys.current.has("s") || keys.current.has("arrowdown");
         const toast = (text: string) => { setGearToast({ text, id: Date.now() }); play("error"); };
         if (wanted === "P" && moving) toast("주행 중에는 P로 바꿀 수 없어요 · 변속 인터록");
         else if (wanted === "R" && moving) toast("앞으로 달리는 중엔 R로 못 바꿔요");
-        else if ((wanted === "D" || wanted === "R") && !moving && !brakeHeld && gear !== "N") toast("브레이크(S)를 밟은 채로 변속해요");
-        else { setGear(wanted); play("pop", wanted === "D" ? 1.2 : .9); setGearToast(null); }
+        else {
+          setGear(wanted); play("pop", wanted === "D" ? 1.2 : .9);
+          // real cars need the brake to leave P; here it is a tip, not a blocker
+          setGearToast(gear === "P" && !brakeHeld ? { text: "💡 실제 차는 브레이크를 밟고 P에서 변속해요", id: Date.now() } : null);
+        }
       }
       if (event.key === "Escape") {
         const current = simRef.current;
@@ -1306,7 +1312,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         send({ type: "PAUSE" });
       }
     };
-    const up = (event: KeyboardEvent) => keys.current.delete(event.key.toLowerCase());
+    const up = (event: KeyboardEvent) => keys.current.delete(raceKey(event));
     addEventListener("keydown", down); addEventListener("keyup", up);
     let last = performance.now(); let frame = 0;
     const loop = (now: number) => {
@@ -1488,25 +1494,25 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     <JourneyProgress scene={mode === "ship" ? "SHIP_ESCAPE" : "CHASE_NORMAL"} />
     <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button><div><small>{mode === "ship" ? "FINAL RUN" : "CHAPTER 04"}</small><b>{mode === "assist" ? "LIMITED DRIVE" : "ESCAPE RUN"}</b></div></div>
     <PursuitRouteBar distance={sim.distance} gap={sim.gap} />
-    <div className="raceTripHud"><span><small>ELAPSED</small><b>{formatRaceTime(sim.elapsed)}</b></span><span><small>DRIVE · 회생 Q/E · 기어 1~4</small><b className="prnd">{(["P", "R", "N", "D"] as const).map(g => <i key={g} className={gear === g ? "on" : ""}>{g}</i>)} · 회생 {regen}</b></span><em>회생제동 단계 {regen} · Q 약하게 / E 강하게</em></div>
+    <div className="raceTripHud"><span><small>ELAPSED</small><b>{formatRaceTime(sim.elapsed)}</b></span><span><small>DRIVE · 회생 Q/E · 기어 1~4</small><b className="prnd">{(["P", "R", "N", "D"] as const).map(g => <i key={g} className={gear === g ? "on" : ""}>{g}</i>)} · 회생 {regen}</b></span><em>회생제동 단계 {regen} · Q 강하게 / E 약하게</em></div>
     <div className="cockpitGauge"><small>SPEED</small><b>{Math.round(sim.speed)}</b><span>km/h</span><div><i style={{ width: `${Math.min(100, sim.speed)}%` }} /></div><em>{state.caseId === "thermal" ? `${Math.round(sim.heat)}°C` : "HV READY"}</em></div>
     <RearMirror3D gap={sim.gap} visible={policeInWorld} />
     <div className="raceMiniMap"><b>LIVE CURVE MAP</b><svg viewBox="0 0 90 100"><path d={MINIMAP_PATH} /><circle className="cop" cx={mapPolice.x} cy={mapPolice.y} r="4" /><circle className="me" cx={mapPlayer.x} cy={mapPlayer.y} r="4.5" /></svg><small><i /> 자차 <em /> 경찰</small></div>
     <div className="raceControls keyBar">
-      <span><kbd>W</kbd><em>가속</em></span><span><kbd>S</kbd><em>브레이크</em></span><span><kbd>A</kbd><kbd>D</kbd><em>조향</em></span>
-      <span><kbd>1</kbd><kbd>4</kbd><em>P R N D</em></span><span><kbd>Q</kbd><kbd>E</kbd><em>회생 −/+</em></span><span><kbd>R</kbd><em>재시동</em></span><span><kbd className="wide">Esc</kbd><em>멈춤</em></span>
+      <span><kbd>↑</kbd><em>가속</em></span><span><kbd>↓</kbd><em>브레이크</em></span><span><kbd>←</kbd><kbd>→</kbd><em>조향</em></span>
+      <span><kbd>1</kbd><kbd>4</kbd><em>P R N D</em></span><span><kbd>Q</kbd><kbd>E</kbd><em>회생 +/−</em></span><span><kbd>R</kbd><em>READY</em></span><span><kbd className="wide">Esc</kbd><em>멈춤</em></span>
     </div>
     {mode === "normal" && (countdown > 0 || sim.speed < 3) && sim.distance < 40 && <div className="keyGuideCard" aria-label="조작법">
       <b>조작법</b>
-      <div className="wasd"><kbd className="k-w">W</kbd><kbd className="k-a">A</kbd><kbd className="k-s">S</kbd><kbd className="k-d">D</kbd></div>
-      <ul><li><kbd>W</kbd> 가속 · <kbd>S</kbd> 브레이크</li><li><kbd>A</kbd><kbd>D</kbd> 좌우 조향</li><li><kbd>1</kbd>~<kbd>4</kbd> 기어 P·R·N·D (S 밟고)</li><li><kbd>Q</kbd><kbd>E</kbd> 회생제동 약하게/강하게</li><li><kbd>R</kbd> 멈췄을 때 READY 재시동</li></ul>
+      <div className="wasd"><kbd className="k-w">↑</kbd><kbd className="k-a">←</kbd><kbd className="k-s">↓</kbd><kbd className="k-d">→</kbd></div>
+      <ul><li><kbd>↑</kbd> 가속 · <kbd>↓</kbd> 브레이크</li><li><kbd>←</kbd><kbd>→</kbd> 좌우 조향 (WASD도 돼요)</li><li><kbd>1</kbd>~<kbd>4</kbd> 기어 P·R·N·D (↓ 밟고)</li><li><kbd>Q</kbd><kbd>E</kbd> 회생제동 패들 강하게/약하게</li><li><kbd>R</kbd> 멈췄을 때 READY(시동) 다시 켜기</li></ul>
     </div>}
     {(countdown > 0 || goFlash) && <div className="startCountdown"><small>GET READY</small><b>{goFlash ? "GO!" : countdown}</b></div>}
     {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="바짝 붙었어!" sound="siren" />}
     {symptom && <ComicBurst tone="fault" side="right" image={mode === "normal" ? "/assets/ending-thumbs/accel_pedal.png" : "/assets/ending-thumbs/cooling_fan.png"} title={mode === "normal" ? "힘이 없어!" : "과열!"} sound="alarm" />}
     {/* every message card lives in one column under the mirror, so cards never overlap */}
     <div className="raceFeed">
-      {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>S</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
+      {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>↓</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
       {gearToast && <div className="gearToast" key={gearToast.id}>{gearToast.text}</div>}
       {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
       {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i>{zone.icon}</i><span><small>DRIVING ZONE</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
@@ -1518,6 +1524,14 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   </div>;
 }
 
+/** Physical key position → name, so keys work in Korean (한글) input mode too. */
+const raceKey = (event: KeyboardEvent) => {
+  const code = event.code;
+  if (code.startsWith("Key")) return code.slice(3).toLowerCase();
+  if (code.startsWith("Digit")) return code.slice(5);
+  if (code.startsWith("Numpad") && /\d$/.test(code)) return code.slice(-1);
+  return code ? code.toLowerCase() : event.key.toLowerCase();
+};
 // Minimap path sampled from the same track function the car uses (markers always sit on it).
 const MINIMAP_PATH = Array.from({ length: 51 }, (_, i) => { const progress = i * 2; const d = progress / 100 * TRACK_LENGTH; return `${i ? "L" : "M"}${(45 + trackFrame(d).x * 3.4).toFixed(1)} ${(94 - progress * .86).toFixed(1)}`; }).join(" ");
 // Driving zones on the existing course where each fault shows up [start, fallback trigger] in metres.
