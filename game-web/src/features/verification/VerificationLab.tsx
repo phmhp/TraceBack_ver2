@@ -543,61 +543,62 @@ function Trace({ sig, upto, fixed, probed }: { sig: Sig; upto: number; fixed: bo
 
 // Bench v6 (docs/VERIFICATION_FLOW_STANDARD.md §3–4):
 // 0 검증 레벨 → 1 시험 기법 → 2 정상 시나리오 vs 현장 기록 비교(프로브·🚩) → 3 고치기 → 4 다시 실행·회귀
-const TECHS: { id: Tech; name: string; sub: string; icon: string }[] = [
-  { id: "req", name: "요구사항 기반 시험", sub: "요구 입력 → 기대 출력 그대로", icon: "📘" },
-  { id: "replay", name: "현장 기록 재생", sub: "사건 재현 입력: 주행 기록을 그대로", icon: "⏺" },
-  { id: "boundary", name: "경계값 시험", sub: "임계·한계 바로 위아래 값", icon: "↕" },
-  { id: "soak", name: "지속 부하 시험", sub: "높은 부하를 오래 유지", icon: "⏳" },
-  { id: "inject", name: "고장 주입", sub: "일부러 고장을 넣어 같은 증상 확인", icon: "💉" },
+// ISO 26262 separates the test METHOD from how the test CASES are derived (Part 6 §9–11, Part 4 §7).
+type Method = "req" | "iface" | "inject" | "b2b";
+type Deriv = "reqa" | "equiv" | "bound" | "guess" | "usecase";
+const METHODS: { id: Method; name: string; sub: string }[] = [
+  { id: "req", name: "요구사항 기반 시험", sub: "요구사항이 말한 대로 동작하는지" },
+  { id: "iface", name: "인터페이스 시험", sub: "주고받는 신호의 형식·범위·시점" },
+  { id: "inject", name: "고장 주입 시험", sub: "일부러 고장을 넣고 반응 확인" },
+  { id: "b2b", name: "모델-코드 비교 (back-to-back)", sub: "설계 모델과 코드를 같은 입력으로" },
 ];
-const TECH_ANSWER: Record<CaseId, { answer: Tech; input: string; why: Record<Tech, string> }> = {
-  propulsion: { answer: "req", input: "페달 60% 계단 입력 · D단 · READY", why: {
-    req: "요구가 '60% → 204 Nm'로 명확해요. 같은 입력을 기준 모델과 시험 대상에 넣으면 계산 구간의 차이가 바로 보여요.",
-    replay: "가능하지만 주행 기록에는 차속·노면 같은 다른 조건이 섞여 있어요. 계산 구간만 볼 때는 요구사항 입력이 더 깔끔해요.",
-    boundary: "임계 근처 문제가 아니에요. 60%처럼 평범한 값에서도 달라졌어요.",
-    soak: "시간이 지나야 생기는 문제가 아니에요. 밟자마자 달라졌어요.",
-    inject: "고장 주입은 원인 가설을 재현할 때 써요. 지금은 정상 계산과 같은지부터 봐야 해요.",
-  } },
-  thermal: { answer: "soak", input: "고온 부하 유지 · 냉각수 64 → 78°C", why: {
-    soak: "오래 달린 뒤 생긴 문제예요. 열 부하를 유지해야 팬이 켜져야 하는 조건이 만들어지고, 그때 팬 응답을 볼 수 있어요.",
-    req: "요구 입력을 순간만 넣으면 온도가 오르기 전이라 팬이 켜질 조건이 만들어지지 않아요.",
-    replay: "가능하지만 기록이 72초로 길고 다른 조건이 섞여 있어요. 같은 열 부하를 일정하게 유지하는 쪽이 원인 구간을 보기 쉬워요.",
-    boundary: "65°C 경계는 이미 넘었고 팬 명령도 100%였어요. 경계 판단 문제가 아니에요.",
-    inject: "고장 주입은 원인을 좁힌 뒤 '같은 증상이 나는지' 확인할 때 써요. 아직 어디서 갈라지는지부터 봐야 해요.",
-  } },
-  brake: { answer: "boundary", input: "페달 55% · 배터리 가득(회생 0) 경계", why: {
-    boundary: "배터리가 가득 차 회생이 0이 되는 경계에서는 마찰 제동이 전부를 맡아요. 유압 경로 문제가 가장 크게 드러나요.",
-    req: "가능하지만 회생 제동이 일부를 메워서 차이가 작게 보여요.",
-    replay: "기록에는 회생이 섞여 있어 마찰 쪽 차이가 흐려져요.",
-    soak: "오래 밟아야 생기는 문제가 아니에요. 밟자마자 압력이 모자랐어요.",
-    inject: "고장 주입은 원인을 좁힌 뒤 같은 증상이 나는지 확인할 때 써요.",
-  } },
+const DERIVS: { id: Deriv; name: string; sub: string }[] = [
+  { id: "reqa", name: "요구사항 분석", sub: "요구사항에서 입력·기대값을 뽑기" },
+  { id: "equiv", name: "동치 분할", sub: "같은 동작을 하는 값끼리 묶어 대표값" },
+  { id: "bound", name: "경계값 분석", sub: "한계·임계 바로 위아래" },
+  { id: "guess", name: "오류 추정", sub: "경험상 자주 틀리는 곳" },
+  { id: "usecase", name: "운용 사용 사례 분석", sub: "실제로 쓰는 조건 그대로" },
+];
+const TEST_ANSWER: Record<CaseId, { method: Method[]; deriv: Deriv[]; input: string; whyM: Record<Method, string>; whyD: Record<Deriv, string> }> = {
+  propulsion: { method: ["b2b", "req"], deriv: ["reqa", "equiv"], input: "페달 60% 계단 입력 · D단 · READY",
+    whyM: { b2b: "설계 모델과 코드를 같은 입력으로 돌려 비교하면, 설계에 없는 블록이 코드에 들어간 경우가 바로 드러나요.", req: "요구사항 '60% → 204 Nm'를 그대로 확인하는 방법이에요. 이번 구간에 맞아요.", iface: "신호 형식·범위 문제가 아니에요. 들어오는 값은 모두 정상이었어요.", inject: "고장 주입은 고장 감지·대응 기능을 확인할 때 써요. 지금은 정상 계산과 같은지부터 봐야 해요." },
+    whyD: { reqa: "요구사항 '페달 60% → 204 Nm'에서 입력과 기대값을 바로 뽑을 수 있어요.", equiv: "페달 0·30·60·100%처럼 구간별 대표값을 넣는 방법이에요. 이번 결함도 잡혀요.", bound: "임계 근처 문제가 아니에요. 60%처럼 평범한 값에서도 달라졌어요.", guess: "경험에 기대기보다 요구사항이 분명하니 거기서 뽑는 게 근거가 있어요.", usecase: "실제 주행 조건에는 다른 요인이 섞여요. 계산 구간만 볼 때는 요구사항 값이 깔끔해요." } },
+  thermal: { method: ["req"], deriv: ["usecase"], input: "장시간 고속 주행 · 냉각수 64 → 78°C",
+    whyM: { req: "'65°C를 넘으면 팬이 1850 rpm으로 돈다'는 요구가 실제 부품에서 지켜지는지 확인해요.", iface: "ECU 출력 신호(PWM·전원)는 정상이었어요. 형식 문제가 아니에요.", inject: "고장 주입은 '팬이 멈추면 SW가 감지·경고하는지' 볼 때 써요. 원인 확정에는 요구 동작 확인이 먼저예요.", b2b: "모델-코드 비교는 SW 계산을 볼 때 써요. 의심 구간은 실제 부품 쪽이에요." },
+    whyD: { usecase: "오래 고속으로 달린 조건을 그대로 만들어야 열이 쌓이고 팬이 켜져야 하는 상황이 생겨요.", reqa: "요구 값을 순간만 넣으면 온도가 오르기 전이라 팬이 켜질 조건이 안 만들어져요.", equiv: "온도 구간별 대표값은 판단 로직 확인용이에요. 열이 쌓이는 시간이 필요해요.", bound: "65°C 경계는 이미 넘었고 팬 명령도 100%였어요. 경계 판단 문제가 아니에요.", guess: "근거 없이 고르기보다 사건이 난 사용 조건을 재현하는 게 확실해요." } },
+  brake: { method: ["req"], deriv: ["bound"], input: "페달 55% · 배터리 가득(회생 0) 경계",
+    whyM: { req: "'페달 55% → 3.2 m/s²' 요구가 실제 유압 경로에서 지켜지는지 확인해요.", iface: "압력 명령 신호는 42 bar로 정상이었어요. 형식 문제가 아니에요.", inject: "고장 주입은 누설을 감지·경고하는지 볼 때 써요. 원인 확정에는 요구 동작 확인이 먼저예요.", b2b: "모델-코드 비교는 SW 계산을 볼 때 써요. 의심 구간은 유압 부품 쪽이에요." },
+    whyD: { bound: "배터리가 가득 차 회생이 0이 되는 경계에서는 마찰 제동이 전부를 맡아요. 유압 경로 문제가 가장 크게 드러나요.", reqa: "가능하지만 회생 제동이 일부를 메워 차이가 작게 보여요.", equiv: "대표값만으로는 회생이 섞여 마찰 쪽 차이가 흐려져요.", guess: "근거 없이 고르기보다 회생이 0이 되는 경계를 쓰는 게 확실해요.", usecase: "실제 주행 기록엔 회생이 섞여 마찰 쪽 차이가 흐려져요." } },
 };
-// Verification levels in the order their scope widens (ISO 26262-6 단위 → SW 통합 → 임베디드, then system/vehicle)
-const LV: { id: Lv; name: string; sub: string; icon: string; scope: string }[] = [
-  { id: "unit", name: "단위 검증", sub: "SW 블록 하나 · MIL/SIL", icon: "ƒ", scope: "블록 입출력만 보여요. 부품·다른 SW는 자극(입력)으로 대신해요." },
-  { id: "swint", name: "SW 통합 검증", sub: "여러 SW 컴포넌트 · SIL", icon: "⧉", scope: "SW 컴포넌트 사이 인터페이스가 보여요. 부품은 모델이에요." },
-  { id: "embedded", name: "임베디드 검증", sub: "실제 ECU + HIL", icon: "▣", scope: "실제 ECU의 핀·버스 신호와 HIL에 붙인 실제 부품이 보여요." },
-  { id: "vehicle", name: "차량 검증", sub: "여러 ECU · 실차", icon: "◉", scope: "차량 거동과 로거 신호만 보여요. 증상은 보이지만 위치는 흐려요." },
+const SIM_INPUT: Record<Deriv, Tech> = { reqa: "req", equiv: "req", guess: "req", bound: "boundary", usecase: "soak" };
+// Verification levels (what is verified) — ISO 26262-6 §9, §10, §11 and ISO 26262-4 §7.
+// Test environments (where it runs: MIL/SIL/PIL/HIL/차량) are a separate axis, shown as chips.
+const LV: { id: Lv; name: string; std: string; env: string[]; scope: string }[] = [
+  { id: "unit", name: "단위 검증", std: "26262-6 · 9절", env: ["MIL", "SIL", "PIL"], scope: "SW 단위 하나의 입출력만 봐요. 다른 SW와 부품은 자극으로 대신해요." },
+  { id: "swint", name: "SW 통합 검증", std: "26262-6 · 10절", env: ["SIL", "PIL"], scope: "SW 컴포넌트 사이 인터페이스를 봐요. 부품은 시뮬레이션이에요." },
+  { id: "embedded", name: "임베디드 SW 시험", std: "26262-6 · 11절", env: ["PIL", "HIL"], scope: "실제 ECU에서 도는 SW를 봐요. 센서·부하·차량은 HIL이 시뮬레이션해요." },
+  { id: "vehicle", name: "시스템·차량 통합", std: "26262-4 · 7절", env: ["HIL+실부품", "차량"], scope: "실제 부품·여러 ECU·차량을 연결해요. HW·SW 통합 → 시스템 통합 → 차량 통합 순이에요." },
 ];
 const LV_ANSWER: Record<CaseId, { answer: Lv; why: string }> = {
-  propulsion: { answer: "unit", why: "의심 구간이 VCU 안 SW 계산이에요. 그 블록만 돌려 보는 단위 검증에서 바로 관찰할 수 있어요. 가장 싸고 빠른 레벨이에요." },
-  thermal: { answer: "embedded", why: "의심 구간이 ECU 출력단·배선·팬 모터예요. SIL은 팬이 모델이라 고장이 안 보여요. 실제 ECU와 팬을 붙인 HIL(임베디드)에서 처음 관찰할 수 있어요." },
-  brake: { answer: "embedded", why: "의심 구간이 유압 모듈·라인·캘리퍼예요. SIL은 유압이 모델이라 안 보여요. 실제 유압 리그를 붙인 HIL(임베디드)에서 처음 관찰할 수 있어요." },
+  propulsion: { answer: "unit", why: "의심 구간이 VCU 안 SW 계산이에요. 그 SW 단위만 돌려 보는 단위 검증에서 바로 관찰할 수 있어요. 가장 싸고 빠른 레벨이에요." },
+  thermal: { answer: "vehicle", why: "의심 구간이 출력단 뒤 배선·팬 모터 같은 실제 부품이에요. 임베디드 SW 시험까지는 HIL이 팬을 시뮬레이션해서 고장이 안 보여요. 실제 부품을 연결하는 HW·SW 통합부터 관찰돼요." },
+  brake: { answer: "vehicle", why: "의심 구간이 유압 모듈·라인·캘리퍼 같은 실제 부품이에요. 임베디드 SW 시험까지는 유압을 시뮬레이션해서 안 보여요. 실제 유압 부품을 연결하는 HW·SW 통합부터 관찰돼요." },
 };
 
 export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
   const caseId = state.caseId;
   const config = experimentConfig[caseId];
   const scenario = SCENARIOS[caseId];
-  const tech = TECH_ANSWER[caseId];
+  const tech = TEST_ANSWER[caseId];
   const lvAnswer = LV_ANSWER[caseId];
   const correctCause = state.hypothesis[caseId] === scenario.root;
   const expectedProgram = caseId === "propulsion" ? "nominal" : caseId === "thermal" ? "thermal_closed_loop" : "blended_brake";
   const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ""; } catch { return ""; } })();
   const [step, setStep] = useState(0);
   const [level, setLevel] = useState<Lv | null>(null);
-  const [technique, setTechnique] = useState<Tech | null>(null);
+  const [method, setMethod] = useState<Method | null>(null);
+  const [deriv, setDeriv] = useState<Deriv | null>(null);
+  const technique: Tech | null = deriv ? SIM_INPUT[deriv] : null;
   const [probes, setProbes] = useState<string[]>([]); // "<level>:<signal id>"
   const [flag, setFlag] = useState<number | null>(null);
   const [fix, setFix] = useState<number | null>(null);
@@ -606,10 +607,10 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [ran, setRan] = useState<Lv | null>(null);
   const [simTab, setSimTab] = useState<Lv>("unit");
   const [regDone, setRegDone] = useState(0);
-  const [bubble, setBubble] = useState("앞에서 좁힌 구간을 검증할 차례예요. 먼저 이 구간을 관찰할 수 있는 가장 이른 검증 레벨을 고르세요.");
+  const [bubble, setBubble] = useState("앞에서 좁힌 구간을 검증할 차례예요. 이 구간을 처음 관찰할 수 있는 검증 레벨을 고르세요. 아래 칩은 그 레벨을 돌리는 시험 환경이에요.");
   const [mistakes, setMistakes] = useState(0);
   const fixed = step >= 4;
-  const sim = useMemo(() => simulate(caseId, technique ?? tech.answer, fixed), [caseId, technique, fixed, tech.answer]);
+  const sim = useMemo(() => simulate(caseId, technique ?? SIM_INPUT[tech.deriv[0]], fixed), [caseId, technique, fixed, tech.deriv]);
   const list = sim.levels[simTab];
   const chosenList = sim.levels[level ?? lvAnswer.answer];
   const first = firstMismatch(chosenList);
@@ -627,12 +628,18 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       return;
     }
     play("stamp"); setBubble(lvAnswer.why); setSimTab(id);
-    window.setTimeout(() => { setStep(1); setBubble("이 레벨에서 어떤 방법으로 시험할까요? 사건의 특징에 맞는 기법을 고르세요."); }, 900);
+    window.setTimeout(() => { setStep(1); setBubble("먼저 시험 방법을 고르고, 이어서 입력 값을 어떻게 뽑을지 고르세요."); }, 900);
   };
-  const pickTech = (id: Tech) => {
-    setTechnique(id);
-    if (id !== tech.answer) { nope(tech.why[id]); return; }
-    play("stamp"); setBubble(tech.why[id]);
+  const pickMethod = (id: Method) => {
+    setMethod(id);
+    if (!tech.method.includes(id)) { nope(tech.whyM[id]); return; }
+    play("stamp"); setBubble(tech.whyM[id] + " 이제 입력 값을 어떻게 뽑을지 고르세요.");
+  };
+  const pickDeriv = (id: Deriv) => {
+    if (!method || !tech.method.includes(method)) return;
+    setDeriv(id);
+    if (!tech.deriv.includes(id)) { nope(tech.whyD[id]); return; }
+    play("stamp"); setBubble(tech.whyD[id]);
     window.setTimeout(() => { setStep(2); setBubble("같은 입력을 정상 설계와 현장 대상에 함께 넣어 비교해요. 보고 싶은 신호에 🔌 프로브를 꽂고 실행하세요. 다른 레벨 탭도 열어 볼 수 있어요."); }, 900);
   };
   const key = (lv: Lv, i: number) => `${lv}:${sim.levels[lv][i].id}`;
@@ -688,12 +695,12 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     window.setTimeout(() => { setStep(4); setRan(null); setU(0); setSimTab(level ?? lvAnswer.answer); setProbes(sim.levels[level ?? lvAnswer.answer].map(item => `${level ?? lvAnswer.answer}:${item.id}`)); }, 700);
   };
   const finish = () => send({ type: "BENCH_RESULT", pass: true, causeCorrect: correctCause });
-  const revealAnswer = () => { send({ type: "DEV_SOLVE" }); setLevel(lvAnswer.answer); setSimTab(lvAnswer.answer); setTechnique(tech.answer); setFix(FIXES[caseId].findIndex(item => item.ok)); setStep(4); setU(1); setRan(lvAnswer.answer); setRegDone(regression.length); setProbes(sim.levels[lvAnswer.answer].map(item => `${lvAnswer.answer}:${item.id}`)); };
+  const revealAnswer = () => { send({ type: "DEV_SOLVE" }); setLevel(lvAnswer.answer); setSimTab(lvAnswer.answer); setMethod(tech.method[0]); setDeriv(tech.deriv[0]); setFix(FIXES[caseId].findIndex(item => item.ok)); setStep(4); setU(1); setRan(lvAnswer.answer); setRegDone(regression.length); setProbes(sim.levels[lvAnswer.answer].map(item => `${lvAnswer.answer}:${item.id}`)); };
   const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
-  const benchWorks = fixed || (simTab !== "embedded" && simTab !== "vehicle" ? firstMismatch(list) === null : false);
+  const benchWorks = fixed || firstMismatch(list) === null;
   const simVisual = simTab === "unit" || simTab === "swint" ? <RefPuzzleTrack key={simTab} mode={simTab === "unit" ? "unit" : "swint"} caseId={caseId} progress={u} fixed={fixed || firstMismatch(list) === null} running={running} />
     : simTab === "embedded" ? <EmbeddedBench3D caseId={caseId} running={running} works={benchWorks} />
-      : <BenchVisual tab="vehicle" caseId={caseId} running={running} works={fixed} />;
+      : caseId === "propulsion" ? <BenchVisual tab="vehicle" caseId={caseId} running={running} works={fixed} /> : <EmbeddedBench3D caseId={caseId} running={running} works={benchWorks} />;
   const ranHere = ran === simTab;
 
   return <div className="vbBench">
@@ -708,13 +715,14 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       {step === 0 && <section className="vbStage">
         <h2>🏷 이 구간을 <b>처음</b> 관찰할 수 있는 검증 레벨은?</h2>
         <p className="vbSub">{section ? `의심 구간: ${section}` : "앞 단계에서 좁힌 구간"} · 왼쪽일수록 범위가 좁고 싸고 빨라요</p>
-        <div className="vbChoices four vbLevels">{LV.map((item, index) => <React.Fragment key={item.id}>{index > 0 && <i className="vbLvArrow">→</i>}<button className={level === item.id ? item.id === lvAnswer.answer ? "right" : "wrong" : ""} onClick={() => pickLevel(item.id)}><i className="vbIcon">{item.icon}</i><b>{item.name}</b><em>{item.sub}</em></button></React.Fragment>)}</div>
+        <div className="vbChoices four vbLevels">{LV.map((item, index) => <React.Fragment key={item.id}>{index > 0 && <i className="vbLvArrow">→</i>}<button className={level === item.id ? item.id === lvAnswer.answer ? "right" : "wrong" : ""} onClick={() => pickLevel(item.id)}><b>{item.name}</b><em>{item.std}</em><span className="vbEnvRow">{item.env.map(env => <i key={env} className="vbEnv">{env}</i>)}</span></button></React.Fragment>)}</div>
       </section>}
 
       {step === 1 && <section className="vbStage">
-        <h2>🧪 어떤 방법으로 시험할까요?</h2>
+        <h2>어떻게 시험할까요?</h2>
         <p className="vbSub">사건 특징: {scenario.symptom}</p>
-        <div className="vbChoices five">{TECHS.map(item => <button key={item.id} className={technique === item.id ? item.id === tech.answer ? "right" : "wrong" : ""} onClick={() => pickTech(item.id)}><i className="vbIcon">{item.icon}</i><b>{item.name}</b><em>{item.sub}</em></button>)}</div>
+        <div className="vbAsk"><small>① 시험 방법</small><div className="vbChoices compact">{METHODS.map(item => <button key={item.id} className={method === item.id ? tech.method.includes(item.id) ? "right" : "wrong" : ""} onClick={() => pickMethod(item.id)}><b>{item.name}</b><em>{item.sub}</em></button>)}</div></div>
+        <div className={`vbAsk ${method && tech.method.includes(method) ? "" : "locked"}`}><small>② 테스트 케이스 도출 (입력 값을 뽑는 방법)</small><div className="vbChoices compact">{DERIVS.map(item => <button key={item.id} className={deriv === item.id ? tech.deriv.includes(item.id) ? "right" : "wrong" : ""} onClick={() => pickDeriv(item.id)}><b>{item.name}</b><em>{item.sub}</em></button>)}</div></div>
       </section>}
 
       {step === 3 && <section className="vbStage">
@@ -727,9 +735,9 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
 
       {(step === 2 || step === 4) && <section className="vbLab">
         <div className="vbSim">
-          <nav>{LV.map(tab => <button key={tab.id} className={`${simTab === tab.id ? "on" : ""} ${level === tab.id ? "chosen" : ""}`} onClick={() => { if (running) return; setSimTab(tab.id); setU(ran === tab.id ? 1 : 0); play("pop"); }}><b>{tab.name}</b><small>{level === tab.id ? "✓ 선택한 레벨" : tab.sub}</small></button>)}</nav>
+          <nav>{LV.map(tab => <button key={tab.id} className={`${simTab === tab.id ? "on" : ""} ${level === tab.id ? "chosen" : ""}`} onClick={() => { if (running) return; setSimTab(tab.id); setU(ran === tab.id ? 1 : 0); play("pop"); }}><b>{tab.name}</b><small>{tab.env.map(env => <i key={env} className="vbEnv">{env}</i>)}{level === tab.id ? " ✓" : ""}</small></button>)}</nav>
           <div className={`vbSimView ${running ? "running" : ""}`}>{simVisual}{ranHere && <span className={`vbStamp ${firstMismatch(list) === null ? "pass" : "fail"}`}>{firstMismatch(list) === null ? "PASS" : "FAIL"}</span>}</div>
-          <p className="vbScope">🔭 {LV[order(simTab)].scope}</p>
+          <p className="vbScope"><b>{LV[order(simTab)].std}</b> {LV[order(simTab)].scope}</p>
         </div>
         <div className="vbMonitor">
           <header><b>📟 신호 모니터 · 차이를 잡을 관측 경계 · {LV[order(simTab)].name}</b><span>⏱ {(u * sim.seconds).toFixed(1)} / {sim.seconds} {sim.timeUnit}</span></header>
@@ -748,7 +756,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         </div>
         {step === 4 && ran && <div className="vbAfter">
           <div className="vbReg"><b>🔁 회귀 시험 (영향 범위)</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>
-          {regDone >= regression.length && <div className="vbDone"><span><small>방금 사용한 검증 사고법</small><b>{LV[order(level ?? lvAnswer.answer)].name} · {TECHS.find(item => item.id === technique)?.name} → FIRST MISMATCH → 근본 수정 → 회귀</b></span><b className="vbStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b><button className="vbGo" onClick={finish}>검증 완료 · 수리 적용 →</button></div>}
+          {regDone >= regression.length && <div className="vbDone"><span><small>방금 사용한 검증 사고법</small><b>{LV[order(level ?? lvAnswer.answer)].name} · {METHODS.find(item => item.id === method)?.name} · {DERIVS.find(item => item.id === deriv)?.name} → FIRST MISMATCH → 근본 수정 → 회귀</b></span><b className="vbStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b><button className="vbGo" onClick={finish}>검증 완료 · 수리 적용 →</button></div>}
         </div>}
       </section>}
 

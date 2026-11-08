@@ -1130,3 +1130,9 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 /* no one-sided accent borders */
 .refPuzzle .rpReq > div { border-left: 0 !important; }
 .vbMonitor li.off { box-shadow: 0 0 0 2px #ff7a5966 !important; }
+.vbEnvRow { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.vbEnv { display: inline-block; margin-right: 3px; padding: 1px 6px; border-radius: 6px; background: #e9f1fb; color: #2f5f9a; font: 800 10.5px Pretendard, system-ui; font-style: normal; }
+.vbAsk { display: grid; gap: 6px; margin-top: 8px; } .vbAsk > small { font: 800 13px Pretendard, system-ui; color: #6d4a2a; text-align: center; }
+.vbAsk.locked { opacity: .4; pointer-events: none; }
+.vbChoices.compact button { width: clamp(130px, 13vw, 168px); padding: 8px 10px; }
+.vbScope b { margin-right: 6px; }

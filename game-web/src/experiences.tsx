@@ -22,10 +22,13 @@ const A = "/assets/";
 type Send = React.Dispatch<any>;
 export type DomainId = "drive" | "brake" | "steer" | "gear" | "power" | "thermal" | "suspension";
 
+// "도메인" here follows E/E architecture practice (not an ISO 26262 term): functions grouped by domain controller.
+const DOMAIN_GROUP: Record<DomainId, string> = { drive: "파워트레인", power: "파워트레인", gear: "파워트레인", thermal: "파워트레인", brake: "섀시", steer: "섀시", suspension: "섀시" };
 const learningLayers = [
-  { name: "Vehicle / System", tag: "운전자 입력·차량 기능·실제 거동" },
-  { name: "E/E Architecture", tag: "동일 위치의 센서·ECU·액추에이터" },
-  { name: "Control Software", tag: "핵심 제어 로직·상태·보호·출력" },
+  // ISO 26262 abstraction: item (vehicle function) → system architecture (HW/SW elements) → SW architecture & unit design
+  { name: "Vehicle / System", tag: "차량 기능 · 운전자 입력 → 차량 거동" },
+  { name: "E/E Architecture", tag: "시스템 구조 · 센서·ECU·액추에이터·통신" },
+  { name: "Control Software", tag: "SW 구조·단위 설계 · ECU 안 계산" },
 ] as const;
 
 // Garage navigation has three learning lenses.  The content model keeps a
@@ -734,7 +737,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       </button>)}
     </nav>
     <main className="garageStudio">
-      <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map((id, index) => <button key={id} className={chosen && domain === id ? "active" : ""} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span>{domainContent[id].icon}</span><b>{domainContent[id].label}</b><small>{index < 4 ? "필수" : "확장"}</small></button>)}</nav>
+      <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map((id, index) => <button key={id} className={chosen && domain === id ? "active" : ""} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span>{domainContent[id].icon}</span><b>{domainContent[id].label}</b><small>{DOMAIN_GROUP[id]}</small></button>)}</nav>
       <section className="garageMechanismCard">
         {chosen ? <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
           : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "한 차 안에 7개 도메인이 함께 있어요. 위에서 도메인을 고르면 그 도메인만 자세히 볼 수 있어요."}</p></header>}

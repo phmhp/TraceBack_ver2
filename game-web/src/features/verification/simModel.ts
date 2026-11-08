@@ -1,8 +1,9 @@
 // Small numeric models for the bench. Every run is actually computed step by step (dt = 5 ms of model time):
 // the reference run uses the healthy design, the field run injects the case's fault, the fixed run removes it.
-// Each verification level only exposes the signals it can really observe:
-//   단위(SW 블록 하나) → SW 통합(여러 SWC, 부품은 모델) → 임베디드(실제 ECU + HIL 부품) → 차량(여러 ECU·실차)
-// Unit / SW-integration runs use plant MODELS, so a hardware fault cannot show there (as in real SIL).
+// Levels follow ISO 26262: Part 6 단위 검증(9절) → SW 통합 검증(10절) → 임베디드 SW 시험(11절),
+// then Part 4 HW·SW 통합 → 시스템 통합 → 차량 통합 (one tab "시스템·차량 통합").
+// The test environment is a separate axis (MIL/SIL/PIL/HIL/차량). Up to the embedded SW test the plant
+// (sensors, loads, vehicle) is SIMULATED — a broken physical part only shows once real parts are integrated.
 import type { CaseId } from "../../game/runtime";
 
 export type Lv = "unit" | "swint" | "embedded" | "vehicle";
@@ -112,25 +113,25 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
       { id: "tin", name: "입력 자극 · 냉각수 온도", unit: "°C", max: 100, src: "tc", model: true },
       { id: "tf", name: "필터 출력", unit: "°C", max: 100, src: "tf", model: true },
       { id: "req", name: "히스테리시스 · 팬 요청", unit: "%", max: 110, src: "fanReq", model: true },
-      { id: "duty", name: "PI 출력 duty", unit: "%", max: 110, src: "duty", model: true },
+      { id: "duty", name: "PI 출력 PWM 비율", unit: "%", max: 110, src: "duty", model: true },
     ],
     swint: [
       { id: "temp", name: "온도 SWC 출력", unit: "°C", max: 100, src: "tf", model: true },
       { id: "req", name: "팬 요청 SWC", unit: "%", max: 110, src: "fanReq", model: true },
-      { id: "duty", name: "PWM 서비스 duty", unit: "%", max: 110, src: "duty", model: true },
+      { id: "duty", name: "PWM 서비스 비율", unit: "%", max: 110, src: "duty", model: true },
       { id: "rpmModel", name: "팬 모델 회전 (SIL)", unit: "rpm", max: 2100, src: "rpm", model: true },
     ],
     embedded: [
-      { id: "pinV", name: "온도 센서 핀 전압", unit: "V", max: 5, src: "pinV" },
-      { id: "pwm", name: "PWM 출력 핀 duty", unit: "%", max: 110, src: "duty" },
-      { id: "supply", name: "팬 전원 전압", unit: "V", max: 14, src: "supply" },
-      { id: "rpm", name: "팬 실제 회전 (HIL 실부품)", unit: "rpm", max: 2100, src: "rpm" },
+      { id: "pinV", name: "온도 센서 핀 전압", unit: "V", max: 5, src: "pinV", model: true },
+      { id: "pwm", name: "PWM 출력 핀 비율", unit: "%", max: 110, src: "duty", model: true },
+      { id: "supply", name: "팬 전원 전압", unit: "V", max: 14, src: "supply", model: true },
+      { id: "rpm", name: "팬 부하 모델 회전 (HIL)", unit: "rpm", max: 2100, src: "rpm", model: true },
     ],
     vehicle: [
+      { id: "rpm", name: "팬 실제 회전 (실부품 연결)", unit: "rpm", max: 2100, src: "rpm" },
       { id: "tc", name: "냉각수 온도", unit: "°C", max: 100, src: "tc" },
       { id: "tm", name: "모터 온도", unit: "°C", max: 110, src: "tm" },
       { id: "der", name: "출력 허용", unit: "%", max: 110, src: "der" },
-      { id: "acc", name: "차량 가속도", unit: "m/s²", max: 4, src: "acc" },
     ],
   },
   brake: {
@@ -147,16 +148,14 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
       { id: "valve", name: "밸브 PWM 명령", unit: "%", max: 110, src: "valve", model: true },
     ],
     embedded: [
-      { id: "cmd", name: "압력 명령 (ECU 출력)", unit: "bar", max: 70, src: "cmd" },
-      { id: "cur", name: "밸브 구동 전류", unit: "A", max: 1.5, src: "cur" },
-      { id: "line", name: "라인 압력 (HIL 유압 리그)", unit: "bar", max: 70, src: "line" },
-      { id: "cal", name: "캘리퍼 압력", unit: "bar", max: 70, src: "cal" },
+      { id: "cmd", name: "압력 명령 (ECU 출력)", unit: "bar", max: 70, src: "cmd", model: true },
+      { id: "cur", name: "밸브 구동 전류", unit: "A", max: 1.5, src: "cur", model: true },
+      { id: "line", name: "유압 모델 라인 압력 (HIL)", unit: "bar", max: 70, src: "line", model: true },
     ],
     vehicle: [
-      { id: "p", name: "페달 (로거)", unit: "%", max: 100, src: "p" },
-      { id: "regen", name: "회생 감속", unit: "m/s²", max: 4, src: "regen" },
+      { id: "cmd", name: "압력 명령 (ECU 출력)", unit: "bar", max: 70, src: "cmd" },
+      { id: "line", name: "실제 라인 압력 (실부품 연결)", unit: "bar", max: 70, src: "line" },
       { id: "dec", name: "차량 감속", unit: "m/s²", max: 4, src: "dec" },
-      { id: "spd", name: "차량 속도", unit: "km/h", max: 60, src: "spd" },
     ],
   },
 };

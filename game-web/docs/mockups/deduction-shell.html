@@ -3,82 +3,89 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>추리 단계 공통 화면 시안</title>
+<title>추리 단계 공통 화면 시안 v2</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
 <style>
+  /* v2: Frutiger Aero (glossy, bubbles, sky·leaf) + claymorphism (puffy controls). Opaque panels, compact type. */
   :root {
-    --cream: #fbf6e9; --paper: #fffdf6; --bark: #4b3a2a; --bark-soft: #7a6650;
-    --leaf: #5fbf8f; --leaf-deep: #3c9a6c; --sky: #8fd3e8; --sky-deep: #3f9bbd;
-    --sun: #f7d46b; --sun-deep: #d9a92a; --coral: #f2937e; --coral-deep: #d4614a;
-    --glass: rgba(255, 253, 246, .72); --r: 22px;
+    --ink: #2f3b33; --ink-soft: #66756b;
+    --leaf-2: #7ccc8a; --leaf-3: #3f9d5c;
+    --sun: #ffd86b; --coral: #ff8e7a; --coral-2: #d65a45;
   }
   * { box-sizing: border-box; font-family: Pretendard, system-ui, sans-serif; word-break: keep-all; }
-  body { margin: 0; color: var(--bark); background: #e9e1cc url("/assets/stitch23/investigation-lab.png") center/cover fixed; }
-  .stage { max-width: 1280px; height: calc(100vh - 40px); margin: 0 auto; padding: 14px; display: grid; grid-template-rows: 64px 52px 56px minmax(0, 1fr) 72px; gap: 10px; }
-  /* glass "jelly" surface: frosted, a top highlight, a soft coloured base shadow — no double borders */
-  .jelly { background: var(--glass); backdrop-filter: blur(14px) saturate(1.3); border-radius: var(--r);
-    box-shadow: inset 0 2px 0 rgba(255,255,255,.9), inset 0 -3px 0 rgba(140,110,70,.10), 0 10px 24px rgba(75,58,42,.16); }
-  .row { display: flex; align-items: center; gap: 12px; padding: 0 16px; }
-  .logo { font-weight: 800; font-size: 18px; } .logo i { display: inline-grid; place-items: center; width: 38px; height: 38px; margin-right: 8px; border-radius: 50%; background: var(--paper); font-style: normal; }
-  .stagePill { padding: 8px 14px; border-radius: 999px; background: var(--sun); font-weight: 800; font-size: 14px; box-shadow: inset 0 2px 0 #fff8, 0 3px 0 var(--sun-deep); }
-  .dots { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-  .dots b { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; font-size: 12px; background: #fff; color: var(--bark-soft); }
-  .dots b.done { background: var(--leaf); color: #fff; } .dots b.now { background: var(--coral); color: #fff; transform: scale(1.15); }
-  .pursuit { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; }
-  .track { position: relative; height: 14px; border-radius: 999px; background: #efe5cd; box-shadow: inset 0 2px 3px rgba(75,58,42,.15); }
-  .track .gap { position: absolute; left: 30%; width: 22%; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, var(--coral), var(--sun)); }
-  .track i { position: absolute; top: 50%; translate: -50% -50%; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: #fff; font-style: normal; font-size: 15px; box-shadow: 0 3px 6px rgba(0,0,0,.18); }
-  .gapNum { font-weight: 900; font-size: 20px; color: var(--coral-deep); } .gapNum small { font-size: 12px; color: var(--bark-soft); font-weight: 700; margin-right: 6px; }
-  .hearts { color: var(--coral); letter-spacing: 2px; }
+  h1, h2, b, span, button, small { text-wrap: balance; }
+  body { margin: 0; color: var(--ink); font-size: 13px; overflow: hidden;
+    background: radial-gradient(circle at 15% 20%, #ffffffaa 0 6%, transparent 7%), radial-gradient(circle at 82% 12%, #ffffff88 0 4%, transparent 5%),
+      radial-gradient(circle at 70% 85%, #ffffff66 0 5%, transparent 6%), linear-gradient(180deg, #bfe8f7 0%, #e6f6fb 55%, #d6f0cf 100%); }
+  .stage { max-width: 1180px; height: calc(100vh - 44px); margin: 0 auto; padding: 12px; display: grid; grid-template-rows: 48px 40px 42px minmax(0, 1fr) 58px; gap: 8px; }
+  /* glossy panel: nearly opaque white→sky body with a glass highlight band; no doubled outlines */
+  .aero { position: relative; border-radius: 16px; background: linear-gradient(180deg, #ffffff 0%, #f4fbfe 100%);
+    box-shadow: 0 1px 0 #ffffff inset, 0 0 0 1px rgba(120,170,190,.25), 0 6px 14px rgba(40,90,110,.12); overflow: hidden; }
+  .aero::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 46%; border-radius: 16px 16px 40% 40% / 16px 16px 14px 14px;
+    background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,0)); pointer-events: none; }
+  .aero > * { position: relative; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 0 14px; }
+  .logo { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 15px; } .logo img { width: 30px; }
+  /* clay chip / button: puffy with soft inner light and shade */
+  .clay { border: 0; border-radius: 999px; padding: 5px 11px; font-weight: 700; font-size: 12px; color: var(--ink); background: #fff; cursor: pointer;
+    box-shadow: inset 2px 2px 4px #ffffff, inset -2px -3px 5px rgba(60,90,80,.12), 0 2px 5px rgba(40,70,60,.14); }
+  .clay.sun { background: linear-gradient(180deg, #ffe590, var(--sun)); color: #5a4100; }
+  .clay.leaf { background: linear-gradient(180deg, #a6e5a8, var(--leaf-2)); color: #13401f; }
+  .clay.soft { background: #eef6ef; color: var(--ink-soft); }
+  .dots { margin-left: auto; display: flex; gap: 6px; } .dots i { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; font: 800 10px Pretendard; font-style: normal; background: #eef3f4; color: #8a9a94; box-shadow: inset 1px 1px 2px #fff, inset -1px -2px 3px rgba(0,0,0,.08); }
+  .dots i.done { background: linear-gradient(180deg, #9fe0a6, var(--leaf-2)); color: #fff; } .dots i.now { background: linear-gradient(180deg, #ffb2a3, var(--coral)); color: #fff; }
+  .dots img { width: 11px; filter: brightness(10); }
+  .pursuit { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; }
+  .gapNum { font-weight: 800; font-size: 15px; color: var(--coral-2); } .gapNum small { font-size: 11px; color: var(--ink-soft); margin-right: 4px; font-weight: 700; }
+  .track { position: relative; height: 10px; border-radius: 999px; background: #e3eef0; box-shadow: inset 1px 2px 3px rgba(40,70,80,.18); }
+  .track .gap { position: absolute; left: 30%; width: 22%; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, #ffb2a3, #ffe08a); }
+  .track img { position: absolute; top: 50%; translate: -50% -55%; width: 34px; }
+  .lives { display: flex; gap: 4px; align-items: center; } .lives b { width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffd3c9, var(--coral) 60%); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
   .mission { justify-content: space-between; }
-  .mission p { margin: 0; font-size: 17px; font-weight: 800; } .mission p em { font-style: normal; color: var(--leaf-deep); }
-  .steps { display: flex; gap: 6px; } .steps span { padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; background: #fff; color: var(--bark-soft); }
-  .steps span.now { background: var(--leaf); color: #fff; } .steps span.done { background: #e3f4ea; color: var(--leaf-deep); }
-  .ghost { padding: 8px 14px; border: 0; border-radius: 999px; background: #fff; font-weight: 800; color: var(--bark); cursor: pointer; box-shadow: 0 3px 0 #e2d6bb; }
-  .work { padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; min-height: 0; }
-  .board { border-radius: 18px; background: rgba(255,255,255,.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,.8); display: grid; place-items: center; color: var(--bark-soft); font-weight: 700; position: relative; overflow: hidden; }
-  .side { display: grid; align-content: start; gap: 10px; }
-  .side h3 { margin: 0 0 2px; font-size: 14px; color: var(--bark-soft); }
-  .chip { padding: 12px 14px; border-radius: 16px; background: #fff; font-size: 14px; font-weight: 600; line-height: 1.4; box-shadow: 0 3px 0 #ece2c9; }
-  .chip.ok { background: #e8f6ee; box-shadow: 0 3px 0 #c6e7d3; } .chip.bad { background: #fde9e4; box-shadow: 0 3px 0 #f4c7bb; }
-  .foot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 0 12px 0 16px; }
-  .ming { display: flex; gap: 12px; align-items: center; font-size: 15px; font-weight: 600; } .ming i { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50%; background: #fff; font-style: normal; flex: none; }
-  .ming b { color: var(--coral-deep); margin-right: 6px; }
-  /* squishy primary: presses down like a jelly key */
-  .cta { padding: 16px 26px; border: 0; border-radius: 20px; font-size: 16px; font-weight: 900; color: #fff; cursor: pointer;
-    background: linear-gradient(180deg, #7fd8aa, var(--leaf)); box-shadow: inset 0 2px 0 rgba(255,255,255,.6), 0 6px 0 var(--leaf-deep), 0 12px 18px rgba(60,154,108,.35);
-    transition: transform .12s cubic-bezier(.3,1.6,.5,1), box-shadow .12s; }
-  .cta:active { transform: translateY(5px) scale(1.03, .94); box-shadow: inset 0 2px 0 rgba(255,255,255,.6), 0 1px 0 var(--leaf-deep), 0 4px 8px rgba(60,154,108,.3); }
-  .swap { position: fixed; left: 50%; translate: -50% 0; bottom: 2px; display: flex; gap: 6px; z-index: 5; }
-  .swap button { padding: 8px 12px; border: 0; border-radius: 12px; background: #fff; font-weight: 800; cursor: pointer; }
-  .swap button.on { background: var(--bark); color: #fff; }
-  .note { position: fixed; left: 18px; bottom: 18px; max-width: 420px; padding: 10px 14px; border-radius: 14px; background: #fff; font-size: 13px; line-height: 1.5; box-shadow: 0 6px 16px rgba(0,0,0,.15); }
+  .mission p { margin: 0; font-size: 14px; font-weight: 700; } .mission p em { font-style: normal; color: var(--leaf-3); }
+  .steps { display: flex; gap: 5px; }
+  .work { padding: 12px; display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 12px; min-height: 0; }
+  .board { border-radius: 12px; background: linear-gradient(180deg, #f6fbf3, #edf7ea); box-shadow: inset 0 0 0 1px rgba(110,160,120,.18); display: grid; place-items: center; color: var(--ink-soft); font-weight: 600; }
+  .side { display: grid; align-content: start; gap: 6px; }
+  .side h3 { margin: 2px 0; font-size: 12px; color: var(--ink-soft); }
+  .note { padding: 8px 10px; border-radius: 12px; background: #fff; font-size: 12.5px; font-weight: 600; line-height: 1.4;
+    box-shadow: inset 2px 2px 3px #fff, inset -2px -2px 4px rgba(60,90,80,.08), 0 1px 3px rgba(40,70,60,.12); }
+  .note.ok { background: #eaf7ec; } .note.bad { background: #fff0ec; }
+  .foot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 0 8px 0 12px; }
+  .ming { display: flex; gap: 10px; align-items: center; font-size: 13px; font-weight: 600; } .ming img { width: 36px; } .ming b { color: var(--coral-2); margin-right: 4px; }
+  /* jelly primary: glossy clay that squashes when pressed */
+  .cta { border: 0; border-radius: 16px; padding: 10px 20px; font-size: 14px; font-weight: 800; color: #fff; cursor: pointer;
+    background: linear-gradient(180deg, #8fe0a0 0%, var(--leaf-2) 55%, #5bb36f 100%);
+    box-shadow: inset 0 2px 1px rgba(255,255,255,.75), inset 0 -3px 4px rgba(20,90,40,.25), 0 4px 0 var(--leaf-3), 0 8px 12px rgba(63,157,92,.3);
+    transition: transform .12s cubic-bezier(.3,1.7,.5,1), box-shadow .12s; }
+  .cta:active { transform: translateY(3px) scale(1.04, .93); box-shadow: inset 0 2px 1px rgba(255,255,255,.75), inset 0 -2px 3px rgba(20,90,40,.25), 0 1px 0 var(--leaf-3), 0 3px 6px rgba(63,157,92,.3); }
+  .swap { position: fixed; left: 50%; translate: -50% 0; bottom: 8px; display: flex; gap: 6px; }
+  .swap button.on { background: linear-gradient(180deg, #4b5a52, #2f3b33); color: #fff; }
 </style>
 </head>
 <body>
-<div class="swap"><button class="on" data-s="0">원인 역추적</button><button data-s="1">정상 동작 복원</button><button data-s="2">시뮬레이션 검증</button></div>
+<div class="swap"><button class="clay on" data-s="0">원인 역추적</button><button class="clay" data-s="1">정상 동작 복원</button><button class="clay" data-s="2">시뮬레이션 검증</button></div>
 <div class="stage">
-  <header class="jelly row"><span class="logo"><i>🐱</i>TraceBack</span><span class="stagePill" id="pill">4/8 원인 역추적</span>
-    <span class="dots"><b class="done">✓</b><b class="done">✓</b><b class="done">✓</b><b class="now" id="d4">4</b><b id="d5">5</b><b id="d6">6</b><b>7</b><b>8</b></span></header>
-  <section class="jelly row pursuit"><span class="gapNum"><small>추격차와</small>72 m</span><div class="track"><span class="gap"></span><i style="left:30%">🚓</i><i style="left:52%">🚗</i></div><span class="hearts">♥♥♥ ★★★</span></section>
-  <section class="jelly row mission"><p id="mission">이번 할 일 · <em>기준과 달라진 값</em>의 원인을 거꾸로 찾아요</p><span class="steps" id="steps"><span class="now">① 거꾸로 따라가기</span><span>② 의심 구간</span><span>③ 영향 범위</span></span><button class="ghost">방법 보기</button></section>
-  <main class="jelly work"><div class="board" id="board">도미노 줄 + 측정 카드 3장 (게임 영역)</div>
-    <aside class="side" id="side"><h3>단서</h3><div class="chip bad">차량 가속 · 기준 2.8 → 지금 1.2</div><div class="chip">카드를 눌러 측정해요</div></aside></main>
-  <footer class="jelly foot"><div class="ming"><i>🐱</i><span><b>밍</b><span id="ming">먼저 달라진 쪽이 원인이에요. 카드를 측정해 보세요.</span></span></div><button class="cta" id="cta">시작점 확정</button></footer>
+  <header class="aero row"><span class="logo"><img src="/assets/ui/icons/cat-ming.svg" alt="" />TraceBack</span><span class="clay sun" id="pill"></span><span class="dots" id="dots"></span></header>
+  <section class="aero row pursuit"><span class="gapNum"><small>추격차와</small>72 m</span><div class="track"><span class="gap"></span><img src="/assets/ui/icons/police-car.svg" style="left:30%" alt="" /><img src="/assets/ui/icons/getaway-car.svg" style="left:52%" alt="" /></div><span class="lives"><b></b><b></b><b></b></span></section>
+  <section class="aero row mission"><p id="mission"></p><span class="steps" id="steps"></span><button class="clay">방법 보기</button></section>
+  <main class="aero work"><div class="board" id="board"></div><aside class="side" id="side"></aside></main>
+  <footer class="aero foot"><div class="ming"><img src="/assets/ui/icons/cat-ming.svg" alt="" /><span><b>밍</b><span id="ming"></span></span></div><button class="cta" id="cta"></button></footer>
 </div>
 <script>
   const S = [
-    { pill: "4/8 원인 역추적", mission: "이번 할 일 · <em>기준과 달라진 값</em>의 원인을 거꾸로 찾아요", steps: ["① 거꾸로 따라가기", "② 의심 구간", "③ 영향 범위"], board: "도미노 줄 + 측정 카드 3장 (게임 영역)", side: '<h3>단서</h3><div class="chip bad">차량 가속 · 기준 2.8 → 지금 1.2</div><div class="chip">카드를 눌러 측정해요</div>', ming: "먼저 달라진 쪽이 원인이에요. 카드를 측정해 보세요.", cta: "시작점 확정", now: 4 },
-    { pill: "5/8 정상 동작 복원", mission: "이번 할 일 · 의심 구간이 <em>정상이라면</em> 어떻게 움직일지 조립해요", steps: ["① 빈칸 채우기", "② 실행해서 확인"], board: "퍼즐판 (입력 → 출력) + 남은 조각", side: '<h3>요구사항</h3><div class="chip ok">페달 60%는 토크 204 Nm</div><div class="chip">D단 · READY일 때만 통과</div><div class="chip">토크는 천천히 올린다</div>', ming: "빈칸 3곳을 채우고 실행하세요.", cta: "▶ 실행해서 확인", now: 5 },
-    { pill: "6/8 시뮬레이션 검증", mission: "이번 할 일 · <em>정상 설계와 현장 대상</em>을 같은 입력으로 비교해요", steps: ["① 레벨", "② 기법", "③ 비교", "④ 고치기", "⑤ 회귀"], board: "레벨 탭 + 시뮬레이션 화면", side: '<h3>신호 모니터</h3><div class="chip">입력 자극 · 60%</div><div class="chip bad">처리값 · 27% (기준 60%)</div>', ming: "가장 먼저 갈라진 신호에 깃발을 꽂으세요.", cta: "▶ 시험 실행", now: 6 },
+    { pill: "4/8 원인 역추적", mission: "<em>기준과 달라진 값</em>의 원인을 거꾸로 찾아요", steps: ["거꾸로 따라가기", "의심 구간", "영향 범위"], board: "도미노 줄 + 측정 카드 3장", side: '<h3>단서</h3><div class="note bad">차량 가속 · 기준 2.8 → 지금 1.2</div><div class="note">카드를 눌러 측정해요</div>', ming: "먼저 달라진 쪽이 원인이에요.", cta: "시작점 확정", now: 4 },
+    { pill: "5/8 정상 동작 복원", mission: "의심 구간이 <em>정상이라면</em> 어떻게 움직일지 조립해요", steps: ["빈칸 채우기", "실행해서 확인"], board: "퍼즐판 (입력 → 출력) + 남은 조각", side: '<h3>요구사항</h3><div class="note ok">페달 60%는 토크 204 Nm</div><div class="note">D단 · READY일 때만 통과</div><div class="note">토크는 천천히 올린다</div>', ming: "빈칸 3곳을 채우고 실행하세요.", cta: "실행해서 확인", now: 5 },
+    { pill: "6/8 시뮬레이션 검증", mission: "<em>정상 설계와 현장 대상</em>을 같은 입력으로 비교해요", steps: ["레벨", "방법", "비교", "고치기", "회귀"], board: "레벨 탭 (환경 칩) + 시뮬레이션 화면", side: '<h3>관측점</h3><div class="note">입력 자극 · 60%</div><div class="note bad">처리값 · 27% (기준 60%)</div>', ming: "가장 먼저 갈라진 신호에 깃발을 꽂으세요.", cta: "시험 실행", now: 6 },
   ];
-  document.querySelectorAll(".swap button").forEach(b => b.onclick = () => {
-    const s = S[+b.dataset.s];
-    document.querySelectorAll(".swap button").forEach(x => x.classList.toggle("on", x === b));
+  const render = k => {
+    const s = S[k];
     pill.textContent = s.pill; mission.innerHTML = s.mission; board.textContent = s.board; side.innerHTML = s.side; ming.textContent = s.ming; cta.textContent = s.cta;
-    steps.innerHTML = s.steps.map((t, i) => `<span class="${i === 0 ? "now" : ""}">${t}</span>`).join("");
-    [4, 5, 6].forEach(n => { const d = document.getElementById("d" + n); if (d) { d.className = n < s.now ? "done" : n === s.now ? "now" : ""; d.textContent = n < s.now ? "✓" : n; } });
-  });
+    steps.innerHTML = s.steps.map((t, i) => `<span class="clay ${i === 0 ? "leaf" : "soft"}">${i + 1} ${t}</span>`).join("");
+    dots.innerHTML = Array.from({ length: 8 }, (_, i) => { const n = i + 1; return n < s.now ? '<i class="done"><img src="/assets/ui/icons/check.svg" alt=""></i>' : `<i class="${n === s.now ? "now" : ""}">${n}</i>`; }).join("");
+  };
+  document.querySelectorAll(".swap button").forEach(b => b.onclick = () => { document.querySelectorAll(".swap button").forEach(x => x.classList.toggle("on", x === b)); render(+b.dataset.s); });
+  render(0);
 </script>
 </body>
 </html>
