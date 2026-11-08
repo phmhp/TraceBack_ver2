@@ -724,13 +724,13 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 /* the paper face = the piece body (x 12–128, y 6–134); tab and socket cut / extend from it */
 .wiringV2 .logicNode.puzzlePiece { background: #fff8e9 !important; }
 .wiringV2 .logicNode.puzzlePiece.edge-square { clip-path: inset(6px 12px 6px 12px round 12px) !important; }
-.puzzlePiece .piecePicture { position: absolute !important; left: 26px !important; right: 16px !important; top: 12px !important; width: auto !important; height: 70px !important; margin: 0 !important; padding: 3px !important; border-radius: 9px; background: #fff !important; background-image: none !important; display: grid !important; place-items: center; overflow: hidden; box-sizing: border-box; border: 1px solid #eadfc8; }
+.puzzlePiece .piecePicture { position: absolute !important; left: 26px !important; right: 26px !important; top: 12px !important; width: auto !important; height: 70px !important; margin: 0 !important; padding: 3px !important; border-radius: 9px; background: #fff !important; background-image: none !important; display: grid !important; place-items: center; overflow: hidden; box-sizing: border-box; border: 1px solid #eadfc8; }
 .puzzlePiece .piecePicture img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 .puzzlePiece .piecePicture .swPhoto { position: absolute !important; inset: 0 !important; display: block !important; width: auto !important; height: auto !important; border: 0 !important; background-image: url("/assets/traceback-engineering-evidence-atlas-v1.png"); background-size: 300% 300%; }
 .puzzlePiece .piecePicture .swBadge { position: absolute; right: 3px; bottom: 3px; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: #ffffffee; color: #6a54a0; box-shadow: 0 2px 4px #0003; }
 .puzzlePiece .piecePicture .swBadge svg { width: 21px; height: 21px; }
 .puzzlePiece .piecePicture small { position: absolute; left: 3px; top: 3px; padding: 1px 5px; border-radius: 5px; background: #263a36d9; color: #fff; font: 800 8px Pretendard, system-ui; }
-.puzzlePiece .logicNodeCaption { position: absolute !important; left: 26px !important; right: 16px !important; top: 86px !important; bottom: 10px !important; width: auto !important; height: auto !important; padding: 0 !important; display: grid; align-content: start; gap: 1px; text-align: left; }
+.puzzlePiece .logicNodeCaption { position: absolute !important; left: 26px !important; right: 26px !important; top: 86px !important; bottom: 10px !important; width: auto !important; height: auto !important; padding: 0 !important; display: grid; align-content: start; gap: 1px; text-align: left; }
 .puzzlePiece .logicNodeCaption b { font: 900 10px/1.15 Pretendard, system-ui !important; color: #2c2620; white-space: normal !important; overflow: hidden !important; text-overflow: clip !important; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .puzzlePiece .logicNodeCaption span { font: 700 8.5px/1.2 Pretendard, system-ui !important; color: #8a7a60; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .puzzlePiece.locked .piecePicture { border-color: #b9dcbb; }
@@ -918,3 +918,7 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 .dtCand.flipIn .dtPol { animation: dtFlip .45s cubic-bezier(.3,1.5,.5,1); }
 @keyframes dtFlip { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
 .dtArrow { height: 3px; background: #c0392b !important; } .dtArrow::after { border-left-color: #c0392b !important; }
+
+/* puzzle: same inner margin on every piece; help line stays below the spare tray */
+.wiringV2 .canvasHelp { font-size: 10px !important; padding: 3px 8px !important; opacity: .85; }
+.puzzlePiece .piecePicture small { font-size: 7.5px; }
