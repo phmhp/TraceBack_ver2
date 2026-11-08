@@ -231,3 +231,11 @@ mark, .np-mark, .dtQuestion h2 b, .vbStage h2 b, .rpHead h1 em, .refPuzzle .rpHe
 .partInspect .piPorts em.out { background: #f3e2dd; }
 .partInspect .piPorts em i { font-style: normal; opacity: .65; }
 .partInspect .piNote { margin: 14px 0 0; font-size: 12px; color: #8a6e67; }
+/* history buttons never grow wide (old min-width 112px pushed "다음 단계" over the garage domain tabs) */
+.stageHistoryNav { gap: 6px !important; }
+.stageHistoryNav .stageBackButton, .stageHistoryNav .stageForwardButton { min-width: 0 !important; width: auto !important; white-space: nowrap; }
+/* garage: back + forward stack inside the left column so they never reach the domain tabs */
+.garageV2 + .stageHistoryNav:has(.stageForwardButton) { flex-direction: row; max-width: calc(var(--garage-left, 236px) - 4px); }
+.garageV2 + .stageHistoryNav { gap: 4px !important; }
+.garageV2 + .stageHistoryNav button { height: 34px !important; padding: 3px 9px !important; font-size: 12px !important; }
+.stageHistoryNav .stageBackButton, .stageHistoryNav .stageForwardButton { min-height: 0 !important; }
