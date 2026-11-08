@@ -33,7 +33,7 @@ test("interaction rebuild keeps the requested core surfaces", () => {
   assert.match(experience, /chooseWireNode/);
   assert.match(experience, /정상 시나리오 설계/);
   assert.match(experience, /내가 만든 설계/);
-  assert.match(experience, /OTA 업데이트로 페달 신호 변환을 정상화했어/);
+  assert.match(experience, /검증을 통과한 SW를 OTA로 배포했어요/);
 });
 
 test("freeform detective board, race-quality replay, and polaroid wiring stay explicit", () => {
