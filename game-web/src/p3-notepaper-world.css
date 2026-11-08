@@ -185,3 +185,20 @@ mark, .np-mark, .dtQuestion h2 b, .vbStage h2 b, .rpHead h1 em, .refPuzzle .rpHe
 .garageV2 .garageFlowPanel .flowStepBody em { font: 500 11.5px Pretendard, system-ui; font-style: normal; color: var(--np-soft); }
 .garageV2 .garageFlowPanel .flowStepCard { position: static !important; inset: auto !important; top: auto !important; left: auto !important; right: auto !important; bottom: auto !important; margin: 0 !important; grid-column: 1 !important; height: auto !important; max-height: 100% !important; }
 .garageV2 .garageLayerNav { top: 132px !important; }
+
+/* Control SW: where this logic lives (like a Simulink model path) */
+.simulinkFlow .simPath { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 2px 0 6px; font-size: 12.5px; color: #5b4540; }
+.simulinkFlow .simPath > i { font-style: normal; opacity: .55; }
+.simulinkFlow .simPath button { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 6px; border: 1px solid #d9c3bd; background: #fffaf6; color: #6e4a44; font: 500 12.5px Pretendard, sans-serif; cursor: pointer; box-shadow: 0 1px 2px #6b453c22; }
+.simulinkFlow .simPath button:hover { background: #f7e7e2; }
+.simulinkFlow .simPath button.ecu { background: #f3e2dd; border-color: #c99d94; font-weight: 600; }
+.simulinkFlow .simPath button small { font-weight: 500; opacity: .7; }
+.simulinkFlow .simPath button svg { width: 14px; height: 14px; }
+.simulinkFlow .simPath .ecu.none { opacity: .7; }
+.simulinkFlow .simPath .swcs { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.simulinkFlow .simPath .swcs em { font-style: normal; padding: 3px 8px; border-radius: 6px; border: 1px dashed #b98f86; background: #fffdfb; }
+.simulinkFlow .simPath .swcs small { opacity: .6; margin-left: 2px; }
+.subsystemName i { font-style: normal; opacity: .65; margin-right: 4px; }
+.garageMechanismCard .simulinkFlow .simPath { margin-left: 232px; min-height: 28px; }
+.subsystemName.withOwner { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.15; font-size: 11px !important; }
+.subsystemName.withOwner i { display: block; font-size: 10px; }

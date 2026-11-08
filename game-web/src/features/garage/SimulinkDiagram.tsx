@@ -68,8 +68,8 @@ export function Picto({ kind }: { kind: Kind }) {
 
 export const KIND_TAG: Record<Kind, string> = { check: "확인", lut: "표 보기", min: "안전값 고르기", pi: "계속 맞추기", delay: "부드럽게", state: "상태 기억", switch: "통과 조건", calc: "계산" };
 
-export function SimulinkDiagram({ logic, components, inputLabel, outputLabel, activeStep }: {
-  logic: string[]; components: string[]; inputLabel: string; outputLabel: string; activeStep: number;
+export function SimulinkDiagram({ logic, components, inputLabel, outputLabel, activeStep, owner }: {
+  logic: string[]; components: string[]; inputLabel: string; outputLabel: string; activeStep: number; owner?: string;
 }) {
   const kinds = logic.map(blockKind);
   const parallel = kinds[0] === "check";
@@ -123,7 +123,7 @@ export function SimulinkDiagram({ logic, components, inputLabel, outputLabel, ac
       </defs>
       {frames.map((frame, i) => <g key={`${frame.name}-${i}`}>
         <rect x={frame.x0} y={frame.y} width={frame.x1 - frame.x0} height={rowH - 16} rx={18} className="subsystem" />
-        <foreignObject x={frame.x0 + 8} y={frame.y + 8} width={frame.x1 - frame.x0 - 16} height={24}><div className="subsystemName">{frame.name}</div></foreignObject>
+        <foreignObject x={frame.x0 + 8} y={frame.y + 8} width={frame.x1 - frame.x0 - 16} height={owner ? 36 : 24}><div className={`subsystemName ${owner ? "withOwner" : ""}`}>{owner && <i>{owner} /</i>}{frame.name}</div></foreignObject>
       </g>)}
       {parallel ? <>
         <foreignObject x={4} y={first.y - 46} width={62} height={30}><div className="portChip in">센서 A</div></foreignObject>

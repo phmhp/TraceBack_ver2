@@ -537,19 +537,41 @@ function MechanismModel({ domain, level, feature, activeStep, removed = null, sh
   return <EeArchitectureRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />;
 }
 
-function SimulinkFlow({ domain, feature, level, activeStep }: { domain: DomainId; feature: number; level: number; activeStep: number }) {
+// Which controller (from the E/E view of the same feature) runs this feature's SWCs.
+// Rule: the first controller in the E/E chain; explicit entries where the chain lists the
+// requesting ECU first but the logic runs in the next one. null = not tied to one controller.
+const CONTROLLER_RE = /ECU|VCU|BMS|OBC|MCU/;
+const OWNER_OVERRIDE: Partial<Record<string, string>> = { "drive-2": "인버터 ECU" };
+export function ownerController(domain: DomainId, feature: number): { name: string; index: number } | null {
+  const chain = getFeatureLayer(domain, feature, 1);
+  const forced = OWNER_OVERRIDE[`${domain}-${feature}`];
+  const index = forced ? chain.indexOf(forced) : chain.findIndex(label => CONTROLLER_RE.test(label));
+  return index < 0 ? null : { name: chain[index], index };
+}
+
+function SimulinkFlow({ domain, feature, level, activeStep, onJump }: { domain: DomainId; feature: number; level: number; activeStep: number; onJump?: (level: number, step: number) => void }) {
   const base = getFeatureLayer(domain, feature, level);
   const boundary = domainHardware[domain];
+  const owner = ownerController(domain, feature);
+  const swcs = getFeatureLayer(domain, feature, 2);
   return <div className={`simulinkFlow level-${level}`}>
+    <nav className="simPath" aria-label="이 로직이 있는 위치">
+      <button onClick={() => onJump?.(1, owner?.index ?? 0)} title="E/E 관점에서 위치 보기"><Icon name="layers" /> 차량 E/E 구조</button>
+      <i>›</i>
+      {owner ? <button className="ecu" onClick={() => onJump?.(1, owner.index)} title="E/E 관점에서 이 제어기 보기"><Icon name="chip" /> {owner.name} <small>제어기</small></button>
+        : <span className="ecu none">여러 부품에 나뉜 기능</span>}
+      <i>›</i>
+      <span className="swcs" title={swcs.join(" · ")}><em>SWC {swcs.length}개</em><small>점선 칸 = SWC</small></span>
+    </nav>
     <div className="simulinkToolbar"><b>CORE CONTROL · {domain.toUpperCase()}_{feature + 1}</b><span>LIVE INPUT</span><span>STATE / PROTECTION</span><span>10 ms</span></div>
     <div className="softwarePhysicalBoundary inputBoundary"><i /><small>PHYSICAL INPUT</small><b>{boundary.labels[0]}</b><em>입력 신호가 ECU로 이동</em></div>
-    <SimulinkDiagram logic={base} components={getFeatureLayer(domain, feature, 2)} inputLabel={boundary.labels[0]} outputLabel={boundary.labels[3]} activeStep={activeStep} />
+    <SimulinkDiagram logic={base} components={swcs} owner={owner?.name} inputLabel={boundary.labels[0]} outputLabel={boundary.labels[3]} activeStep={activeStep} />
     <div className="softwarePhysicalBoundary outputBoundary"><i /><small>PHYSICAL OUTPUT</small><b>{boundary.labels[3]}</b><em>명령이 실제 액추에이터를 구동</em></div>
     <div className="simulinkScope"><span>INPUT</span><svg viewBox="0 0 380 42"><path d="M0 30 L45 30 L48 8 L135 8 L138 24 L220 24 L225 12 L380 12" /></svg><b>OUTPUT</b></div>
   </div>;
 }
 
-function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, noDomain = false }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; noDomain?: boolean }) {
+function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, noDomain = false, onJump }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; noDomain?: boolean; onJump?: (level: number, step: number) => void }) {
   const [shell, setShell] = useState(false);
   const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "grid" : "one");
   const allDomains = view3d !== "one";
@@ -558,7 +580,7 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
     const chain = getFeatureLayer(domain, feature, 1);
     return <div className="mechanismViewer eeView eeBlueprintView"><EeBlueprint chain={chain} roles={chain.map((label, index) => partRole(label, index, chain.length))} active={activeStep} removed={removed} onPick={onPick} signals={flowSignals(domain, feature, chain.length)} /></div>;
   }
-  if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={activeStep} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
+  if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={activeStep} onJump={onJump} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
   return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
     <Canvas key={`${domain}-${feature}-${view3d}`} shadows camera={{ position: view3d === "grid" ? [7.2, 7.4, 9.4] : view3d === "overlay" ? [6.4, 4.6, 7.6] : [5.9, 3.35, 6.6], fov: 36 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
       {import.meta.env.DEV && <DevRenderProbe name="garage" />}
@@ -754,7 +776,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       <section className="garageMechanismCard">
         {chosen ? <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
           : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위 탭에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레이어로 같은 기능을 다른 관점에서 봅니다."}</p></header>}
-        <MechanismViewer key={chosen ? "domain" : "all"} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
+        <MechanismViewer key={chosen ? "domain" : "all"} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {chosen && routeLevel === 1 && (() => {
           const parts = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
