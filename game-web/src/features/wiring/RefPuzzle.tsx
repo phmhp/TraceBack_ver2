@@ -9,7 +9,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
-import { KIND_TAG, Picto, SimulinkDiagram, blockKind, plainText, type Kind } from "../garage/SimulinkDiagram";
+import { KIND_TAG, Picto, blockKind, plainText, type Kind } from "../garage/SimulinkDiagram";
 import { getFeatureLayer, piecePath, type DomainId, type Nub } from "../../experiences";
 
 type Send = React.Dispatch<any>;
@@ -27,8 +27,8 @@ const T = "/assets/ending-thumbs/", P = "/assets/board-photos/";
 const REF: Record<CaseId, Ref> = {
   propulsion: {
     domain: "구동", feature: "페달 → 토크 요청", ecu: "VCU", program: "nominal",
-    board: ["aps", "corr", "filter", "map", "permit", "min", "ramp", "out", "inv"], gaps: [3, 4, 5],
-    spares: ["map", "mapB", "permit", "est", "min"], joints: ["round", "round", "round", "square", "square", "square", "square", "zigzag"],
+    board: ["aps", "corr", "filter", "map", "permit", "min", "ramp", "out", "inv"], gaps: [3, 5, 6],
+    spares: ["ramp", "mapB", "min", "est", "map"], joints: ["round", "round", "round", "square", "square", "square", "square", "zigzag"],
     side: { pieces: ["bms"], into: 5, value: "한계 260 Nm" },
     req: [
       { text: "운전자가 가속 페달을 60% 밟는다 (센서 A·B)", slot: 0 },
@@ -46,7 +46,7 @@ const REF: Record<CaseId, Ref> = {
       filter: { id: "filter", label: "입력 필터", kind: "delay", out: "60%", from: "구동 · 운전자 토크 요청" },
       map: { id: "map", label: "페달 맵", tag: "표 A", kind: "lut", out: "204 Nm", from: "구동 · 운전자 토크 요청" },
       mapB: { id: "mapB", label: "페달 맵", tag: "표 B", kind: "lut", bad: "92 Nm", from: "구동 · 운전자 토크 요청",
-        why: "실행해 보니 92 Nm! 요구사항은 '60% → 204 Nm'이에요. 같은 '페달 맵'이라도 안에 든 표 값이 달라요." },
+        why: "실행 결과 92 Nm예요. 요구사항은 '60% → 204 Nm'이에요. 같은 '페달 맵'이라도 안에 든 표 값이 달라요." },
       permit: { id: "permit", label: "구동 허용", kind: "switch", out: "204 Nm · D", from: "구동 · 운전자 토크 요청" },
       min: { id: "min", label: "가용 토크 MIN", kind: "min", out: "204 Nm", from: "구동 · 운전자 토크 요청" },
       est: { id: "est", label: "토크 추정", kind: "calc", from: "구동 · 모터 토크 만들기 (인버터)",
@@ -60,8 +60,8 @@ const REF: Record<CaseId, Ref> = {
   },
   thermal: {
     domain: "열관리", feature: "출력 제한(보호) 판단", ecu: "Thermal ECU → VCU", program: "thermal_closed_loop",
-    board: ["coolant", "range", "filter", "max", "stage", "ramp", "vcu"], gaps: [2, 3, 4],
-    spares: ["max", "pi", "stage", "filter", "stageB"], joints: ["tri", "tri", "tri", "tri", "square", "square"],
+    board: ["coolant", "range", "filter", "max", "stage", "ramp", "vcu"], gaps: [2, 4, 5],
+    spares: ["stageB", "filter", "pi", "ramp", "stage"], joints: ["tri", "tri", "tri", "tri", "square", "square"],
     side: { pieces: ["motorT"], into: 3, value: "모터 96°C · 배터리 41°C" },
     req: [
       { text: "냉각수 온도를 잰다 (78°C)", slot: 0 },
@@ -79,7 +79,7 @@ const REF: Record<CaseId, Ref> = {
       max: { id: "max", label: "최대값 선택", kind: "min", out: "96°C (모터)", from: "열관리 · 온도 상태 만들기" },
       stage: { id: "stage", label: "단계 임계", tag: "표 A", kind: "switch", out: "출력 60%", from: "열관리 · 출력 제한(보호)" },
       stageB: { id: "stageB", label: "단계 임계", tag: "표 B", kind: "switch", bad: "출력 20%", from: "열관리 · 출력 제한(보호)",
-        why: "실행해 보니 출력 20%! 요구사항은 '90°C 넘으면 60%'예요. 같은 '단계 임계'라도 표 값이 달라요." },
+        why: "실행 결과 출력 20%예요. 요구사항은 '90°C를 넘으면 60%'예요. 같은 '단계 임계'라도 표 값이 달라요." },
       pi: { id: "pi", label: "PI 제어", kind: "pi", from: "열관리 · 펌프·팬 제어 (냉각)",
         why: "'PI 제어'는 펌프·팬을 목표 온도에 맞추는 냉각 기능 블록이에요. 출력을 줄일지 판단하는 경로에는 없어요." },
       ramp: { id: "ramp", label: "램프 제한", kind: "delay", out: "100% → 60% ↘", from: "열관리 · 출력 제한(보호)" },
@@ -90,8 +90,8 @@ const REF: Record<CaseId, Ref> = {
   },
   brake: {
     domain: "제동", feature: "회생 + 마찰 협조 제동", ecu: "Brake ECU", program: "blended_brake",
-    board: ["pedal", "recv", "rmin", "rest", "press", "caliper"], gaps: [2, 3, 4],
-    spares: ["press", "slip", "rmin", "pressB", "rest"], joints: ["round", "square", "square", "square", "tri"],
+    board: ["pedal", "recv", "rmin", "rest", "press", "caliper"], gaps: [1, 3, 4],
+    spares: ["press", "slip", "rest", "pressB", "recv"], joints: ["round", "square", "square", "square", "tri"],
     side: { pieces: ["bms", "avail"], into: 2, value: "회생 가능 1.1 m/s²" },
     req: [
       { text: "운전자가 브레이크를 55% 밟는다", slot: 0 },
@@ -108,7 +108,7 @@ const REF: Record<CaseId, Ref> = {
       rest: { id: "rest", label: "잔여력 계산", kind: "calc", out: "마찰 2.1", from: "제동 · 회생·마찰 협조" },
       press: { id: "press", label: "마찰 압력", tag: "표 A", kind: "lut", out: "42 bar", from: "제동 · 회생·마찰 협조" },
       pressB: { id: "pressB", label: "마찰 압력", tag: "표 B", kind: "lut", bad: "8 bar", from: "제동 · 회생·마찰 협조",
-        why: "실행해 보니 8 bar! 요구사항은 '2.1 m/s² → 42 bar'예요. 같은 '마찰 압력'이라도 표 값이 달라요." },
+        why: "실행 결과 8 bar예요. 요구사항은 '2.1 m/s² → 42 bar'예요. 같은 '마찰 압력'이라도 표 값이 달라요." },
       slip: { id: "slip", label: "슬립 임계", kind: "switch", from: "제동 · ABS 잠김 방지",
         why: "'슬립 임계'는 바퀴가 잠기려 할 때만 끼어드는 ABS 블록이에요. 평소 협조 제동 경로에는 없어요." },
       caliper: { id: "caliper", label: "캘리퍼 · 바퀴", kind: "hw", img: `${T}brake_caliper.png`, out: "감속 3.2 m/s² ✓", from: "제동 · 회생·마찰 협조" },
@@ -122,7 +122,7 @@ const REF: Record<CaseId, Ref> = {
 // SW blocks take the garage's own picto/tag rule, so the piece looks exactly like the garage block
 Object.values(REF).forEach(ref => Object.values(ref.blocks).forEach(b => { if (b.kind !== "hw") b.kind = blockKind(b.label); }));
 
-const PITCH = 116, PIECE = 140, MAIN_Y = 64, SIDE_Y = 250, SPARE_Y = 446, PAD = 24;
+const PITCH = 116, PIECE = 140, MAIN_Y = 92, SIDE_Y = 284, SPARE_Y = 476, PAD = 24;
 const doesOf = (b: Blk) => b.does ?? (b.kind === "hw" ? "실제 부품" : plainText(b.label, b.kind));
 const eunNeun = (word: string) => { const c = word.charCodeAt(word.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? "은" : "는"; };
 
@@ -150,7 +150,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const [picked, setPicked] = useState<string | null>(null);
   const [run, setRun] = useState<{ step: number; status: "running" | "fail" | "pass"; failAt?: number } | null>(null);
   const [fails, setFails] = useState(0);
-  const [msg, setMsg] = useState("왼쪽 요구사항을 읽고 빈칸 3곳에 조각을 끼운 다음 ▶ 실행해 봐. 다 차고에서 본 블록이야!");
+  const [msg, setMsg] = useState(`오른쪽 요구사항을 읽고 빈칸 ${ref.gaps.length}곳에 블록을 넣은 뒤 ▶ 실행하세요. 모두 차고 Control Software 화면에 있던 블록이에요.`);
   const [zoom, setZoom] = useState<Blk | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [scale, setScale] = useState(.8);
@@ -215,7 +215,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const start = () => {
     if (!filled || run?.status === "running") return;
     setRun({ step: 0, status: "running" }); play("zip");
-    setMsg("신호가 흘러가는 중… 값이 요구사항과 맞는지 지켜봐!");
+    setMsg("값이 흐르는 중이에요. 표시창 값이 요구사항과 맞는지 확인하세요.");
   };
   useEffect(() => {
     if (!run || run.status !== "running") return;
@@ -227,19 +227,20 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
         const b = ref.blocks[id], want = ref.req.find(r => r.slot === slot);
         setRun({ step: slot, status: "fail", failAt: slot }); setFails(f => f + 1); play("error");
         const trapHere = Boolean(b.bad) && ref.blocks[ref.board[slot]].label === b.label;
-        setMsg(b.why && (trapHere || !b.bad && !ref.board.includes(id)) ? b.why : `${slot + 1}번 칸 요구사항은 "${want?.text ?? "다음 단계"}"인데, '${b.label}'${eunNeun(b.label)} "${doesOf(b)}" 블록이라 값이 맞지 않아요.`);
+        setMsg(b.why && (trapHere || !b.bad && !ref.board.includes(id)) ? b.why : `${slot + 1}번 칸 요구사항은 "${want?.text ?? "다음 단계"}"예요. '${b.label}'${eunNeun(b.label)} "${doesOf(b)}" 블록이라 이 자리 값이 맞지 않아요.`);
         return;
       }
-      if (slot === n - 1) { setRun({ step: slot, status: "pass" }); play("success"); setMsg(`✓ 모든 요구사항 통과! 이게 이번 사건의 '정상 기준'이야. 메모판에서 실제 주행 값과 비교해 보자.`); return; }
+      if (slot === n - 1) { setRun({ step: slot, status: "pass" }); play("success"); setMsg("✓ 모든 요구사항을 만족해요. 이 값들이 이번 사건의 정상 기준이에요."); return; }
       play("pop", 1 + slot * .06);
       setRun({ step: slot + 1, status: "running" });
     }, run.step === 0 ? 350 : 520);
     return () => clearTimeout(timer);
   }, [run]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const solve = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, ref.board[g]]))); setRun(null); setMsg("정답 배치 완료. ▶ 실행으로 확인해 봐."); };
-  const reset = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, null]))); setRun(null); setPicked(null); setMsg("처음부터! 요구사항을 하나씩 읽어 봐."); play("squish"); };
-  const openNote = () => { if (!noteUsed) send({ type: "HINT", key: noteKey }); setNoteOpen(true); play("pop"); };
+  const solve = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, ref.board[g]]))); setRun(null); setMsg("정답 배치 완료. ▶ 실행으로 확인하세요."); };
+  const reset = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, null]))); setRun(null); setPicked(null); setMsg("초기화했어요. 요구사항을 하나씩 읽어 보세요."); play("squish"); };
+  const noteReady = fails > 0 || noteUsed;
+  const openNote = () => { if (!noteReady) return; if (!noteUsed) send({ type: "HINT", key: noteKey }); setNoteOpen(true); play("pop"); };
   const stars = fails === 0 ? 3 : fails === 1 ? 2 : 1;
   const reached = (slot: number) => run && (run.step > slot || (run.step === slot && run.status === "pass"));
   const valueAt = (slot: number) => {
@@ -263,11 +264,11 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const requirementDone = (slot: number) => Boolean(reached(slot));
   return <div className="refPuzzle">
     <SceneBackdrop image="/assets/stitch23/prologue-plan.png" position="center" shade="soft" />
-    <GameHeader chapter="BUILD THE REFERENCE" title="정상 기준 만들기" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="REQUIREMENT-BASED REFERENCE" title="요구사항 기반 정상 동작 복원" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <header className="rpHead">
-      <div><small>CONTROL SW · {ref.ecu} 안쪽</small><h1>{ref.domain} · {ref.feature}</h1><p>차고 <b>Control Software</b> 화면에서 본 블록으로 <b>정상일 때의 동작</b>을 다시 조립해요.</p></div>
+      <div><small>CONTROL SW · {ref.ecu} 안쪽</small><h1>{ref.domain} · {ref.feature}</h1><p>요구사항을 읽고, 차고 <b>Control Software</b>에서 본 블록으로 <b>정상일 때의 계산 흐름</b>을 복원해요.</p></div>
       <div className="rpTools">
-        <button onClick={openNote}>📒 차고 노트 다시 보기{noteUsed ? "" : " · -5m"}</button>
+        <button onClick={openNote} disabled={!noteReady} title={noteReady ? "" : "한 번 실행해 본 뒤 열 수 있어요"}>📒 차고 노트{noteUsed ? "" : noteReady ? " · -5m" : " · 실행 후"}</button>
         <button onClick={reset}>↺ 초기화</button>
       </div>
     </header>
@@ -280,7 +281,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       </aside>
       <section className="rpStage" ref={stage} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setDrag(null)}>
         <div className="rpWorld" style={{ width: W, height: H, transform: `scale(${scale})` }}>
-          <div className="rpTray main" style={{ left: slotX(0) - 14, top: MAIN_Y - 40, width: (n - 1) * PITCH + PIECE + 28, height: PIECE + 56 }}><span>정상 기준 퍼즐판 · 왼쪽 → 오른쪽으로 값이 흘러요</span></div>
+          <div className="rpTray main" style={{ left: slotX(0) - 14, top: MAIN_Y - 66, width: (n - 1) * PITCH + PIECE + 28, height: PIECE + 118 }}><span>입력 → 출력 · 표시창은 ▶ 실행할 때 채워져요</span></div>
           <div className="rpTray side" style={{ left: slotX(sideStart) - 10, top: SIDE_Y - 12, width: (ref.side.pieces.length - 1) * PITCH + PIECE + 20, height: PIECE + 24 }}><span>함께 들어오는 값</span></div>
           <div className="rpTray spare" style={{ left: PAD, top: SPARE_Y - 10, width: W - PAD * 2, height: PIECE + 30 }}><span>남은 조각 · 끌어서 빈칸에 · 두 번 누르면 크게 보기</span></div>
           {/* side input climbing into the merge block */}
@@ -302,7 +303,12 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
             return piece(b, pos.x, pos.y, { io: slot !== null && !dragging ? jointsIo(slot) : undefined, cls: `${dragging ? "dragging" : ""} ${picked === id ? "picked" : ""} ${run?.failAt === slot && slot !== null ? "fail" : ""}` });
           })}
           {/* values that flowed during ▶ run */}
-          {ref.board.map((_, slot) => { const v = valueAt(slot); return v && <span key={`v-${slot}`} className={`rpValue ${v.bad ? "bad" : ""}`} style={{ left: slotX(slot) + 70, top: MAIN_Y - 34 }}>{v.text}</span>; })}
+          {/* Simulink-style display blocks: the value leaving each block, filled while ▶ runs */}
+          {ref.board.map((_, slot) => { const v = valueAt(slot); const x = slot < n - 1 ? slotX(slot) + 128 : slotX(slot) + 70; return <React.Fragment key={`v-${slot}`}>
+            <i className="rpStem" style={{ left: x, top: slot === n - 1 ? MAIN_Y + PIECE - 6 : MAIN_Y - 22 }} />
+            <span className={`rpDisplay ${v ? v.bad ? "bad" : "ok" : ""} ${slot === 0 ? "first" : ""} ${slot === n - 1 ? "last" : ""}`} style={{ left: x, top: slot === n - 1 ? MAIN_Y + PIECE + 14 : MAIN_Y - 54 }}>{slot === 0 && <small>입력</small>}{slot === n - 1 && <small>출력</small>}{v ? v.text : "—"}</span>
+          </React.Fragment>; })}
+          {ref.board.slice(0, -1).map((_, slot) => <i key={`a-${slot}`} className="rpArrow" style={{ left: slotX(slot) + 128, top: MAIN_Y + 58 }}>▶</i>)}
           {run && <i className={`rpPulse ${run.status}`} style={{ left: slotX(run.step) + 70, top: MAIN_Y + 70 }} />}
         </div>
       </section>
@@ -328,11 +334,11 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
 
     {noteOpen && <div className="pieceZoom" onClick={() => setNoteOpen(false)}><article className="rpNote" onClick={event => event.stopPropagation()}>
       <button className="pieceZoomClose" onClick={() => setNoteOpen(false)}>×</button>
-      <small>📒 차고 노트 · Control Software</small><h2>차고에서 본 그림</h2>
-      {ref.notes.map(note => <section key={note.name}><b>{note.name}</b>
-        <SimulinkDiagram logic={getFeatureLayer(note.domain, note.feature, 3)} components={getFeatureLayer(note.domain, note.feature, 2)} inputLabel={getFeatureLayer(note.domain, note.feature, 0)[0]} outputLabel={getFeatureLayer(note.domain, note.feature, 0).at(-1)!} activeStep={-1} />
-      </section>)}
-      <p className="pzTip">차고 그림은 기능 전체예요. 이번 퍼즐판에는 이번 사건에 필요한 칸만 있어요. 표 값은 그림에 없으니 ▶ 실행으로 확인해요.</p>
+      <small>📒 차고 노트 · Control Software</small><h2>차고에서 본 블록 카드</h2>
+      <p className="pzTip">순서는 섞여 있어요. 각 블록이 하는 일만 다시 확인하고, 순서는 요구사항으로 판단하세요.</p>
+      {ref.notes.map(note => <section key={note.name}><b>{note.name}</b><div className="rpNoteCards">
+        {[...getFeatureLayer(note.domain, note.feature, 3)].sort((a, b) => a.localeCompare(b, "ko")).map(label => { const kind = blockKind(label); return <div key={label} className={`rpNoteCard kind-${kind}`}><div className="flowBlock"><Picto kind={kind} /><small>{KIND_TAG[kind]}</small></div><b>{label}</b><span>{plainText(label, kind)}</span></div>; })}
+      </div></section>)}
     </article></div>}
   </div>;
 }

@@ -67,7 +67,7 @@ const journeyStages = [
   { id: "garage", label: "차고지", detail: "차량 도메인 학습" },
   { id: "heist", label: "범행·도주", detail: "고양이 탑승과 출발" },
   { id: "race", label: "주행", detail: "코스 지점까지 도주" },
-  { id: "wiring", label: "정상 기준", detail: "요구사항대로 정상 로직 조립" },
+  { id: "wiring", label: "정상 동작", detail: "요구사항 기반 정상 동작 복원" },
   { id: "board", label: "메모판", detail: "기준과 비교해 시작점·영향 찾기" },
   { id: "bench", label: "V-모델 검증", detail: "SW·ECU·시스템·차량" },
   { id: "repair", label: "수리", detail: "검증 설계 적용" },

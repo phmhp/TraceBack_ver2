@@ -1013,3 +1013,51 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 .refPuzzle .rpTray.main span { left: auto; right: 10px; }
 .refPuzzle .rpTray.side span { top: 50%; bottom: auto; left: auto; right: calc(100% + 10px); transform: translateY(-50%); text-align: right; white-space: normal; width: 90px; line-height: 1.3; }
 .refPuzzle .rpTray.spare span { top: -26px; bottom: auto; color: #8a6a43; }
+/* garage: no ellipsis, readable labels, plain axis title */
+.garageLayerNav:before { content: "" !important; display: none !important; }
+.garageLayerNav button:after { content: none !important; display: none !important; }
+.garageV2 .viewAxisLabel { font-size: 12px !important; color: #6d4a2a !important; margin: 0 2px 4px !important; }
+.garageLayerNav button b, .garageLayerNav button small { word-break: keep-all !important; overflow-wrap: normal !important; white-space: normal !important; }
+.garageV2 .garageFlowPanel > small, .garageV2 .garageFlowPanel .flowRelationship, .garageV2 .garageFlowPanel button b, .garageV2 .garageFlowPanel button span, .garageV2 .domainFunctionShelf button b, .garageV2 .garageMechanismCard > header small { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; word-break: keep-all !important; display: block; }
+.garageV2 .garageFlowEmpty > div { min-height: 40px; }
+.garageV2 .garageFlowPanel { grid-template-rows: auto minmax(0, 1fr) !important; row-gap: 4px !important; }
+.garageV2 .garageFlowPanel > small { grid-column: 1 !important; grid-row: 1 !important; width: auto !important; max-width: none !important; height: auto !important; font-size: 12px !important; line-height: 1.3 !important; font-weight: 800; color: #6d4a2a; }
+.garageV2 .garageFlowPanel > div { grid-column: 1 !important; grid-row: 2 !important; }
+.garageV2 .garageFlowPanel > .garageProceed { grid-column: 2 !important; grid-row: 1 / 3 !important; }
+.garageV2 .garageFlowEmpty .flowRelationship { display: block !important; grid-column: 1; grid-row: 2; font-size: 13px; color: #5f6b62; }
+/* RefPuzzle v2.1: brighter, requirements on the right, display blocks */
+.refPuzzle .rpMain { grid-template-columns: minmax(0, 1fr) 270px; }
+.refPuzzle .rpReq { order: 2; background: #ffffff; border-color: #cfe0f2; box-shadow: 0 3px 0 #cfe0f2; }
+.refPuzzle .rpReq > small { color: #2f5f9a; font-size: 13px; }
+.refPuzzle .rpReq > div { background: #f4f8fc; border-left: 4px solid #cfe0f2; }
+.refPuzzle .rpReq > div.gap { background: #fff7e3; box-shadow: none; border-left-color: #f0b245; }
+.refPuzzle .rpReq > div.done { background: #e8f7ee; border-left-color: #4fae78; }
+.refPuzzle .rpReq > div.bad { background: #ffe9e5; border-left-color: #e0574a; box-shadow: none; }
+.refPuzzle .rpReq > div i { background: #9bb6d3; }
+.refPuzzle .rpHead, .refPuzzle .rpFoot { background: #ffffff; border-color: #cfe0f2; box-shadow: 0 3px 0 #cfe0f2; }
+.refPuzzle .rpHead small { color: #2f6fb5; }
+.refPuzzle .rpStage { background: #ffffff; border-color: #cfe0f2; background-image: radial-gradient(#dfe9f5 1px, transparent 1.2px); background-size: 22px 22px; }
+.refPuzzle .rpTray.main { border: 6px solid #f0b245; background: #fff8e6; box-shadow: 0 4px 0 #d8962a; }
+.refPuzzle .rpTray.main span { background: #f0b245; color: #4a3200; }
+.refPuzzle .rpTray.side { border-color: #8fb8e8; background: #eef5ff; }
+.refPuzzle .rpTray.side span { color: #3d6ea8; }
+.refPuzzle .rpTray.spare { border-color: #9fd0b6; background: #f3fbf6; }
+.refPuzzle .rpTray.spare span { color: #3f8a63; }
+.refPuzzle .rpPiece { background: #ffffff; filter: drop-shadow(0 3px 0 #c3ccd6) drop-shadow(0 8px 10px #1c2b3a22); }
+.refPuzzle .rpPiece.locked { background: #f7f9fc; }
+.refPuzzle .rpGap { background: #fff1cf; box-shadow: inset 0 0 0 3px #f0b245; }
+.refPuzzle .rpGap b { color: #d8962a; }
+.refPuzzle .rpGap small { color: #a9741d; }
+.refPuzzle .rpFoot .rpRun { background: #2f6fb5; border-color: #1f4f86; box-shadow: 0 3px 0 #1f4f86; color: #fff; }
+.refPuzzle .rpTools button:disabled { opacity: .5; cursor: not-allowed; }
+.rpDisplay { position: absolute; z-index: 8; transform: translateX(-50%); min-width: 54px; padding: 4px 8px; border-radius: 6px; background: #1f3346; border: 2px solid #3d5a76; color: #7f93a6; font: 800 12px/1.2 ui-monospace, "SF Mono", Menlo, monospace; text-align: center; white-space: nowrap; pointer-events: none; box-shadow: 0 2px 0 #0e1a24; }
+.rpDisplay small { display: block; font: 800 9px Pretendard, system-ui; color: #f0b245; }
+.rpDisplay.ok { color: #79f2b9; border-color: #3fae7d; animation: rpPop .25s ease-out; }
+.rpDisplay.bad { color: #ff9c90; border-color: #e0574a; background: #3a1f22; animation: rpPop .25s ease-out; }
+.rpStem { position: absolute; z-index: 7; width: 2px; height: 22px; margin-left: -1px; background: #3d5a76; pointer-events: none; }
+.rpArrow { position: absolute; z-index: 9; width: 20px; height: 20px; margin: -10px 0 0 -10px; display: grid; place-items: center; border-radius: 50%; background: #2f6fb5; color: #fff; font-size: 9px; font-style: normal; box-shadow: 0 2px 0 #1f4f86; pointer-events: none; }
+.rpNoteCards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.rpNoteCard { display: grid; justify-items: center; gap: 4px; padding: 10px; border-radius: 12px; background: #f7f9fc; text-align: center; }
+.rpNoteCard .flowBlock { width: 84px; height: 62px; }
+.rpNoteCard b { font: 900 14px Pretendard, system-ui; }
+.rpNoteCard span { font: 600 12.5px/1.35 Pretendard, system-ui; color: #5f6b72; word-break: keep-all; }

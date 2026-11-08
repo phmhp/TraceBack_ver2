@@ -10,7 +10,7 @@ import { DevRenderProbe } from "./features/vehicle/DevRenderProbe";
 import { FittedPart } from "./features/parts/PartModel";
 import { hasPartModel } from "./features/parts/partModels";
 import { ComicBurst } from "./ui/ComicBurst";
-import { play } from "./ui/sfx";
+import { play, setMusicScene } from "./ui/sfx";
 import { ECUS } from "./sim/components";
 import { getComponent } from "./sim/registry";
 import { Picto, SimulinkDiagram, blockKind, plainText } from "./features/garage/SimulinkDiagram";
@@ -480,7 +480,7 @@ function FullVehicleSystem({ domain, feature, activeStep, removed = null, shell 
 }
 
 // Whole vehicle: every domain's chain side by side (selected domain runs, others idle)
-function AllDomainsSystem({ domain, overlay = false }: { domain: DomainId; overlay?: boolean }) {
+function AllDomainsSystem({ domain, overlay = false }: { domain: DomainId | null; overlay?: boolean }) {
   const ids = Object.keys(domainContent) as DomainId[];
   const slot = (index: number): [number, number, number] => { const col = index % 4, row = Math.floor(index / 4); return [(col - (row ? 1 : 1.5)) * 3.4, 0, row * 3.3 - 1.65]; };
   // labels live outside the rigs so a slow part model never hides a name
@@ -493,11 +493,11 @@ function AllDomainsSystem({ domain, overlay = false }: { domain: DomainId; overl
   const spacer = <PartLabel className="labelSpacer" position={[0, -20, 0]}>{" "}</PartLabel>;
   if (overlay) return <group rotation={[0, -.18, 0]}>
     {spacer}{labels}
-    {ids.map((id, index) => <group key={id} position={[0, index * .02, 0]}><DomainFlowRig domain={id} feature={0} running={id === domain} /></group>)}
+    {ids.map((id, index) => <group key={id} position={[0, index * .02, 0]}><DomainFlowRig domain={id} feature={0} running={domain === null || id === domain} /></group>)}
   </group>;
   return <group>
     {spacer}{labels}
-    {ids.map((id, index) => <group key={id} position={slot(index)} scale={.78}><DomainFlowRig domain={id} feature={0} compact running={id === domain} /></group>)}
+    {ids.map((id, index) => <group key={id} position={slot(index)} scale={.78}><DomainFlowRig domain={id} feature={0} compact running={domain === null || id === domain} /></group>)}
   </group>;
 }
 
@@ -540,9 +540,9 @@ function SimulinkFlow({ domain, feature, level, activeStep }: { domain: DomainId
   </div>;
 }
 
-function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void }) {
+function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, noDomain = false }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; noDomain?: boolean }) {
   const [shell, setShell] = useState(false);
-  const [view3d, setView3d] = useState<"one" | "grid" | "overlay">("one");
+  const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "grid" : "one");
   const allDomains = view3d !== "one";
   const sourceLevel = garageLayerSource[level] ?? 3;
   if (level === 1) {
@@ -556,12 +556,12 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
       <color attach="background" args={["#eef5ef"]} />
       <hemisphereLight intensity={2.25} color="#fff8e5" groundColor="#6d8c7b" />
       <directionalLight castShadow position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
-      {allDomains && level === 0 ? <AllDomainsSystem domain={domain} overlay={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />}
+      {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />}
       <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={2.5} maxDistance={allDomains ? 22 : 10} maxPolarAngle={Math.PI * .49} target={[0, .65, 0]} />
     </Canvas>
     <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동</span>
     <div className="viewToggles">
-      {level === 0 && <span className="view3dSeg">{([["one", "🔎 이 도메인"], ["grid", "🧩 나란히"], ["overlay", "🚗 겹쳐 보기"]] as const).map(([id, label]) => <button key={id} className={`shellToggle ${view3d === id ? "on" : ""}`} onClick={() => setView3d(id)}>{label}</button>)}</span>}
+      {level === 0 && <span className="view3dSeg">{(noDomain ? [["grid", "🧩 나란히"], ["overlay", "🚗 겹쳐 보기"]] as const : [["one", "🔎 이 도메인"], ["grid", "🧩 나란히"], ["overlay", "🚗 겹쳐 보기"]] as const).map(([id, label]: readonly [string, string]) => <button key={id} className={`shellToggle ${view3d === id ? "on" : ""}`} onClick={() => setView3d(id as "one" | "grid" | "overlay")}>{label}</button>)}</span>}
       {!allDomains && <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}>🚗 차체 {shell ? "숨기기" : "보기"}</button>}
     </div>
   </div>;
@@ -693,7 +693,11 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const requestedView = Number(garageParams.get("view"));
   const requestedFeature = Number(garageParams.get("feature"));
   const [routeLevel, setRouteLevel] = useState(Number.isInteger(requestedView) ? THREE.MathUtils.clamp(requestedView, 0, 2) : 0);
-  const [domain, setDomain] = useState<DomainId>(requestedDomain && requestedDomain in domainContent ? requestedDomain : "drive");
+  const [domain, setDomainRaw] = useState<DomainId>(requestedDomain && requestedDomain in domainContent ? requestedDomain : "drive");
+  // the garage opens on the whole vehicle: every domain side by side, none selected yet
+  const [chosen, setChosen] = useState(Boolean(requestedDomain && requestedDomain in domainContent));
+  const [pickNotice, setPickNotice] = useState(false);
+  const setDomain = (id: DomainId) => { setDomainRaw(id); setChosen(true); setPickNotice(false); };
   const [feature, setFeature] = useState(Number.isInteger(requestedFeature) ? Math.max(0, requestedFeature) : 0);
   const [activeStep, setActiveStep] = useState(0);
   const [lessonHits, setLessonHits] = useState<Set<string>>(() => new Set());
@@ -708,7 +712,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const content = domainContent[domain];
   const selectedFeature = featureFlows[domain][feature];
   const chain = getFeatureLayer(domain, feature, 1);
-  const selectLevel = (level: number) => { setRouteLevel(level); setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-layer-${level}`)); };
+  const selectLevel = (level: number) => { if (!chosen && level > 0) { setPickNotice(true); play("error"); return; } setRouteLevel(level); setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-layer-${level}`)); };
   const inspectStep = (index: number, step: number) => {
     setActiveStep(step);
     setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-${routeLevel}-${index}`));
@@ -724,18 +728,19 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
     <GameHeader chapter="GARAGE · VEHICLE LOGIC LAB" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <nav className="garageLayerNav" aria-label="설계 추상화 단계">
-      <small className="viewAxisLabel">VIEWPOINT · 도메인과 독립된 관점 축</small>
+      <small className="viewAxisLabel">차량 레이어 관점</small>
       {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={routeLevel === index ? "active" : ""}>
         <span>{String(index + 1).padStart(2, "0")}</span><b>{layer.name}</b><small>{layer.tag}</small>
       </button>)}
     </nav>
     <main className="garageStudio">
-      <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map((id, index) => <button key={id} className={domain === id ? "active" : ""} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span>{domainContent[id].icon}</span><b>{domainContent[id].label}</b><small>{index < 4 ? "필수" : "확장"}</small></button>)}</nav>
+      <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map((id, index) => <button key={id} className={chosen && domain === id ? "active" : ""} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span>{domainContent[id].icon}</span><b>{domainContent[id].label}</b><small>{index < 4 ? "필수" : "확장"}</small></button>)}</nav>
       <section className="garageMechanismCard">
-        <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
-        <MechanismViewer domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
+        {chosen ? <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
+          : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "한 차 안에 7개 도메인이 함께 있어요. 위에서 도메인을 고르면 그 도메인만 자세히 볼 수 있어요."}</p></header>}
+        <MechanismViewer key={chosen ? "domain" : "all"} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
-        {routeLevel === 1 && (() => {
+        {chosen && routeLevel === 1 && (() => {
           const parts = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
           const pullOut = (index: number) => { setRemoved(index); setActiveStep(index); setEcuCard(null); setTriedRemovals(previous => new Set(previous).add(`${domain}-${feature}-${index}`)); play("squish"); };
           const startHunt = () => {
@@ -773,24 +778,26 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
             {labMode === "intro" && ecuCard !== null && <PartIntroCard label={chain[ecuCard]} role={partRole(chain[ecuCard], ecuCard, chain.length)} domain={domain} onClose={() => setEcuCard(null)} onPull={() => { setLabMode("pull"); pullOut(ecuCard); }} />}
             {labMode === "pull" && removed !== null && <PullOutBubble domain={domain} label={chain[removed]} role={partRole(chain[removed], removed, chain.length)} />}
             {labMode === "hunt" && culprit !== null && <div className="pullOutBubble huntQuiz"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><div>
-              <p><b>{guess?.right ? "정답! 범인 검거 🎉" : guess ? "땡! 그 부품은 멀쩡해" : "사건 발생! 어느 부품이 빠졌을까?"}</b>{DOMAIN_SYMPTOM[domain]}<span className="pullOutChips"><em>🔎 단서: {ROLE_TEXT[partRole(chain[culprit], culprit, chain.length)].clue}</em></span></p>
+              <p><b>{guess?.right ? "맞아요. 빠진 부품을 찾았어요" : guess ? "그 부품은 정상이에요" : "어느 부품이 빠졌는지 단서로 찾아보세요"}</b>{DOMAIN_SYMPTOM[domain]}<span className="pullOutChips"><em>🔎 단서: {ROLE_TEXT[partRole(chain[culprit], culprit, chain.length)].clue}</em></span></p>
               <div className="quizChoices">{parts.map(item => <button key={item.index} disabled={Boolean(guess?.right)} className={guess?.index === item.index ? guess.right ? "right" : "wrong" : guess?.right && item.index === culprit ? "right" : ""} onClick={() => answer(item.index)}>{item.label}</button>)}</div>
               {guess?.right && <button className="huntButton" onClick={startHunt}>한 번 더!</button>}
             </div></div>}
           </div>;
         })()}
       </section>
-      <aside className="domainFunctionShelf">
+      {!chosen && <aside className="domainFunctionShelf"><small>CORE CONTROL FUNCTIONS</small><h2>도메인을 골라 보세요</h2><div className="functionNote"><b>주요 기능</b><p>위 탭에서 도메인을 고르면 그 도메인의 주요 기능과 신호 흐름이 여기에 나와요.</p></div></aside>}
+      {!chosen && <section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → 제어기 → 출력 순서가 여기에 나와요.</b><div /><button className="garageProceed primary" onClick={() => send({ type: "START_RACE" })}>학습 마치고 도주 장면으로 →</button></section>}
+      {chosen && <aside className="domainFunctionShelf">
         <small>CORE CONTROL FUNCTIONS</small><h2>{content.label}의 주요 기능</h2>
         {content.functions.map((item, index) => <button key={item} className={feature === index ? "active" : ""} onClick={() => setFeature(index)}><span>{index + 1}</span><b>{item}</b><i>›</i></button>)}
         <div className="functionNote"><b>{content.functions[feature]}</b><p>{selectedFeature.summary}</p><small>주요 기능들은 서로 이어지는 단계가 아니라 같은 도메인 안의 형제 기능입니다.</small></div>
-      </aside>
-      <section className="garageFlowPanel">
+      </aside>}
+      {chosen && <section className="garageFlowPanel">
         <small>{content.functions[feature]} · {learningLayers[routeLevel].tag}</small>
         <b className="flowRelationship">{routeLevel === 2 ? "핵심 제어 SW를 물리 입력·출력 경계와 함께 추적" : "선택한 기능에 필요한 경계만 표시 · 단계 수는 기능마다 달라집니다"}</b>
         <div>{(routeLevel === 2 ? [getFeatureLayer(domain, feature, 1)[0], getFeatureLayer(domain, feature, 1).at(-1)!] : getFeatureLayer(domain, feature, garageLayerSource[routeLevel])).map((node, index, flow) => { const step = index ? (routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length - 1 : index) : 0; return <React.Fragment key={`${node}-${index}`}><button onClick={() => inspectStep(index, step)} className={`${index === 0 || index === flow.length - 1 ? "focus" : ""} ${(activeStep === index || routeLevel === 2 && index === 1 && activeStep === getFeatureLayer(domain, feature, 3).length - 1) ? "activeStep" : ""}`}><i>{index + 1}</i><b>{node}</b><span>{index === 0 ? "PHYSICAL INPUT" : index === flow.length - 1 ? "OUTPUT ACTUATOR" : routeLevel === 0 ? "VEHICLE FUNCTION" : "HW / ECU"}</span></button>{index < flow.length - 1 && <em>→</em>}</React.Fragment>; })}</div>
         <button className="garageProceed primary" onClick={() => send({ type: "START_RACE" })}>학습 마치고 도주 장면으로 →</button>
-      </section>
+      </section>}
     </main>
   </div>;
 }
@@ -1250,6 +1257,7 @@ function RearMirror3D({ gap, visible }: { gap: number; visible: boolean }) {
 }
 
 export function RaceExperience({ state, send, mode }: { state: Campaign; send: Send; mode: RaceMode }) {
+  useEffect(() => { setMusicScene("race"); return () => setMusicScene("calm"); }, []);
   const firstStart = mode === "normal" && state.raceDistance < 1;
   const [countdown, setCountdown] = useState(firstStart ? 3 : 0);
   const [goFlash, setGoFlash] = useState(false);
@@ -1508,8 +1516,8 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       <ul><li><kbd>↑</kbd> 가속 · <kbd>↓</kbd> 브레이크</li><li><kbd>←</kbd><kbd>→</kbd> 좌우 조향 (WASD도 돼요)</li><li><kbd>1</kbd>~<kbd>4</kbd> 기어 P·R·N·D (↓ 밟고)</li><li><kbd>Q</kbd><kbd>E</kbd> 회생제동 패들 강하게/약하게</li><li><kbd>R</kbd> 멈췄을 때 READY(시동) 다시 켜기</li></ul>
     </div>}
     {(countdown > 0 || goFlash) && <div className="startCountdown"><small>GET READY</small><b>{goFlash ? "GO!" : countdown}</b></div>}
-    {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="바짝 붙었어!" sound="siren" />}
-    {symptom && <ComicBurst tone="fault" side="right" image="/assets/ending-thumbs/accel_pedal.png" title={mode === "normal" ? "힘이 없어!" : "힘이 빠져!"} sound="alarm" />}
+    {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="경찰 차량 접근" sound="siren" />}
+    {symptom && <ComicBurst tone="fault" side="right" image="/assets/ending-thumbs/accel_pedal.png" title="가속 저하 발생" sound="alarm" />}
     {/* every message card lives in one column under the mirror, so cards never overlap */}
     <div className="raceFeed">
       {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>↓</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
@@ -1550,8 +1558,8 @@ export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) 
   const [dialogueSim, setDialogueSim] = useState<DriveSim>({ speed: state.caseId === "thermal" ? 38 : 31, lane: 0, steer: 0, distance: state.raceDistance, gap: state.policeGapMeters, heat: state.caseId === "thermal" ? 84 : 39, elapsed: state.raceElapsedSeconds });
   const scenario = SCENARIOS[state.caseId];
   const dialogue = [
-    { who: "드라이버 루", role: "DRIVER", text: "뭐야, 차 제대로 개조했다는 거 아니었어? 차 고장 나면 우리 다 끝장이야!", tone: "driver" },
-    { who: "엔지니어 밍", role: "ENGINEER", text: "헉, 큰일 났다! 기억이 잘 안 나는데… 일단 내가 고쳐볼게!", tone: "engineer" },
+    { who: "드라이버 루", role: "DRIVER", text: "페달은 끝까지 밟았는데 가속이 안 나와. 이 상태로는 못 따돌려.", tone: "driver" },
+    { who: "엔지니어 밍", role: "ENGINEER", text: "주행 기록은 남아 있어. 증상부터 정리하고 원인 범위를 좁혀 볼게.", tone: "engineer" },
   ];
   const advance = () => step === 0 ? setStep(1) : send({ type: "CONTINUE_FAULT" });
   useEffect(() => {

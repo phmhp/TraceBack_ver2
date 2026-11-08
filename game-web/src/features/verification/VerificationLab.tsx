@@ -286,7 +286,7 @@ const levelCheck: Record<CaseId, { answer: BenchTab; why: string; wrong: string 
   propulsion: {
     answer: "sw",
     why: "신호 변환 비율(보정값)이 SW 블록 안에 있으니까, SW만 돌려 보는 단위 검증에서 바로 잡혀! 가장 싸고 빠른 단계야.",
-    wrong: "그 단계에서도 보이긴 해. 그런데 원인이 SW 블록 안의 보정값이라 더 앞 단계에서 먼저 잡을 수 있어!",
+    wrong: "그 단계에서도 보여요. 다만 원인이 SW 블록 안의 보정값이라 더 이른 단계에서 잡을 수 있어요.",
   },
   thermal: {
     answer: "embedded",
@@ -477,18 +477,18 @@ type Fix = { label: string; img: string; ok: boolean; why: string };
 const FIXES: Record<CaseId, Fix[]> = {
   propulsion: [
     { label: "토크 지도 값을 2.2배로 키워 보상", img: "/assets/board-photos/torque_cmd.png", ok: false, why: "증상만 가리는 땜질이야. 다른 페달 위치에선 토크가 너무 커져서 새 고장이 생겨!" },
-    { label: "끼어든 '보정 계수 ×0.45' 블록 제거", img: "/assets/board-photos/pedal_processed.png", ok: true, why: "맞아! 원인(설계에 없는 블록)을 없애서 기준 설계와 똑같게 만들었어." },
-    { label: "모터 최대 출력 한계 올리기", img: "/assets/ending-thumbs/traction_motor.png", ok: false, why: "모터 한계는 원인이 아니었어. 안전 여유만 줄어들어!" },
+    { label: "끼어든 '보정 계수 ×0.45' 블록 제거", img: "/assets/board-photos/pedal_processed.png", ok: true, why: "원인(설계에 없는 블록)을 없애 기준 설계와 같게 만들었어요." },
+    { label: "모터 최대 출력 한계 올리기", img: "/assets/ending-thumbs/traction_motor.png", ok: false, why: "모터 한계는 원인이 아니에요. 안전 여유만 줄어들어요." },
   ],
   thermal: [
-    { label: "팬 명령을 항상 100%로 고정", img: "/assets/ending-thumbs/thermal_ecu.png", ok: false, why: "명령은 이미 100%였어. 팬이 안 도는 건 명령 문제가 아니야!" },
+    { label: "팬 명령을 항상 100%로 고정", img: "/assets/ending-thumbs/thermal_ecu.png", ok: false, why: "명령은 이미 100%였어요. 팬이 돌지 않는 건 명령 문제가 아니에요." },
     { label: "출력 제한(보호) 기능 끄기", img: "/assets/board-photos/thermal_protection.png", ok: false, why: "위험해! 보호 기능은 고장이 아니라 과열을 막아 준 거야. 끄면 모터가 손상돼." },
-    { label: "냉각 팬 모터 교체", img: "/assets/ending-thumbs/cooling_fan.png", ok: true, why: "맞아! 명령·전원·신호가 다 정상인데 안 돈 팬 모터 자체를 바꿨어." },
+    { label: "냉각 팬 모터 교체", img: "/assets/ending-thumbs/cooling_fan.png", ok: true, why: "명령·전원·신호가 모두 정상인데 돌지 않은 팬 모터 자체를 교체했어요." },
   ],
   brake: [
-    { label: "캘리퍼·유압 라인 수리", img: "/assets/ending-thumbs/brake_caliper.png", ok: true, why: "맞아! 명령은 42 bar로 정상이었으니 압력이 새는 유압·캘리퍼를 고쳐야 해." },
-    { label: "회생 제동을 더 세게 설정", img: "/assets/board-photos/regen_request.png", ok: false, why: "회생 제동은 배터리가 꽉 차면 줄어들어. 마찰 제동 고장을 가릴 뿐이야!" },
-    { label: "압력 명령을 5배로 키우기", img: "/assets/ending-thumbs/brake_ecu.png", ok: false, why: "명령은 정상이었어. 키우면 고친 뒤엔 과한 압력으로 바퀴가 잠길 수 있어!" },
+    { label: "캘리퍼·유압 라인 수리", img: "/assets/ending-thumbs/brake_caliper.png", ok: true, why: "명령은 42 bar로 정상이었으니 압력이 새는 유압·캘리퍼를 고쳐야 해요." },
+    { label: "회생 제동을 더 세게 설정", img: "/assets/board-photos/regen_request.png", ok: false, why: "회생 제동은 배터리가 가득 차면 줄어들어요. 마찰 제동 고장을 가릴 뿐이에요." },
+    { label: "압력 명령을 5배로 키우기", img: "/assets/ending-thumbs/brake_ecu.png", ok: false, why: "명령은 정상이었어요. 키우면 수리 후 과한 압력으로 바퀴가 잠길 수 있어요." },
   ],
 };
 const STEP_NAMES = ["재현 입력", "관측 경계", "고치기 전 실행", "고치기", "다시 실행 · 회귀"];
@@ -567,7 +567,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const pickStimulus = (index: number) => {
     setStimulus(index);
     if (index !== config.target) { nope(`'${config.stimuli[index].label}' 입력으로는 사건이 재현되지 않아. 주행 기록(${config.missionTitle.replace(/하라$/, "")})과 같은 입력을 골라 봐.`); return; }
-    play("stamp"); setBubble("좋아, 사건과 같은 입력이야! 이제 보고 싶은 신호에 🔌 프로브를 꽂고 시험을 돌려 봐.");
+    play("stamp"); setBubble("사건과 같은 입력이에요. 보고 싶은 신호에 🔌 프로브를 꽂고 시험을 실행하세요.");
     window.setTimeout(() => setStep(1), 600);
   };
   const toggleProbe = (index: number) => {
@@ -603,11 +603,11 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     const firstAt = divergeAt(signals.list[signals.first])!;
     const upstreamUnchecked = signals.list.slice(0, signals.first).some((_, i) => !probes.includes(i));
     if (at === null) { nope(`${sig.name}${eunNeun(sig.name)} 기준과 똑같이 움직였어. 갈라진 신호를 찾아봐!`); return; }
-    if (index !== signals.first && at > firstAt) { nope(`${sig.name}${eunNeun(sig.name)} ⏱ ${(at * signals.seconds).toFixed(1)}s에야 갈라졌어. 더 먼저 갈라진 신호가 있다면 이건 결과야. 빨간 세로선 위치를 비교해 봐!`); return; }
+    if (index !== signals.first && at > firstAt) { nope(`${sig.name}${eunNeun(sig.name)} ⏱ ${(at * signals.seconds).toFixed(1)}s에 갈라졌어요. 더 먼저 갈라진 신호가 있다면 이건 결과예요. 빨간 세로선 위치를 비교해 봐!`); return; }
     if (index !== signals.first) { nope(`${sig.name}도 다르긴 한데, 신호가 흐르는 더 앞쪽에서 이미 갈라졌어. 앞쪽 신호를 봐!`); return; }
-    if (upstreamUnchecked) { nope("앞쪽 신호를 다 확인하지 않았어. 거기서 먼저 갈라졌을 수도 있잖아? 앞쪽에도 프로브를 꽂고 다시 돌려 봐."); return; }
-    play("stamp"); setBubble(`맞아! ${sig.name}에서 처음 갈라졌어 — FIRST MISMATCH. 이제 고치러 가자!`);
-    window.setTimeout(() => { setStep(2); setBubble("어떻게 고칠까? 원인을 없애는 방법을 골라야 해. 증상만 가리는 땜질은 안 돼!"); }, 900);
+    if (upstreamUnchecked) { nope("앞쪽 신호를 모두 확인하지 않았어요. 거기서 먼저 갈라졌을 수 있어요. 앞쪽에도 프로브를 꽂고 다시 실행하세요."); return; }
+    play("stamp"); setBubble(`${sig.name}에서 처음 갈라졌어요 — FIRST MISMATCH. 이제 수정 방법을 고르세요.`);
+    window.setTimeout(() => { setStep(2); setBubble("원인을 없애는 방법을 고르세요. 증상만 가리는 임시 조치는 안 돼요."); }, 900);
   };
   const pickFix = (index: number) => {
     setFix(index);

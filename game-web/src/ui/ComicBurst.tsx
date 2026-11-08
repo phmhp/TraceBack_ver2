@@ -27,6 +27,7 @@ export function ComicBurst({ tone, side = "right", title, image, sound }: {
 
 export function SoundToggle() {
   const [prefs, setPrefs] = useState(soundPrefs);
+  useEffect(() => { const sync = () => setPrefs(soundPrefs()); addEventListener("tb-music-scene", sync); return () => removeEventListener("tb-music-scene", sync); }, []);
   return <div className="soundToggle">
     <button aria-label="효과음 켜기/끄기" className={prefs.sfx ? "on" : ""} onClick={() => { setSfx(!prefs.sfx); setPrefs(soundPrefs()); }}>{prefs.sfx ? "🔊" : "🔈"}</button>
     <button aria-label="배경음 켜기/끄기" className={prefs.music ? "on" : ""} onClick={() => { setMusic(!prefs.music); setPrefs(soundPrefs()); }}>🎵</button>

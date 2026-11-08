@@ -12,7 +12,7 @@ type Scenario = {
 
 export const SCENARIOS: Record<CaseId, Scenario> = {
   propulsion: {
-    title: "밟아도 차가 제대로 나가지 않는다",
+    title: "가속 페달 입력 대비 가속 성능 저하",
     chapter: "CASE 01 · ACCELERATION RESPONSE",
     symptom: "가속 페달을 절반 이상 밟았지만 차가 힘없이 천천히 가속합니다.",
     root: "gateway",
@@ -31,7 +31,7 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
     ],
   },
   thermal: {
-    title: "오래 달리자 힘이 빠지고 경고등이 켜졌다",
+    title: "장시간 고속 주행 후 출력 제한·경고등 점등",
     chapter: "CASE 02 · POWER DOWN",
     symptom: "고속으로 오래 달리자 파워다운 표시등이 켜지고 가속이 약해졌습니다.",
     root: "fan_actuator",
@@ -49,7 +49,7 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
     ],
   },
   brake: {
-    title: "브레이크를 밟아도 감속이 부족하다",
+    title: "제동 페달 입력 대비 감속 부족",
     chapter: "OPTIONAL · BRAKE RESPONSE",
     symptom: "브레이크 페달을 밟았지만 회생제동만 작동하고 마찰제동 반응이 약합니다.",
     root: "brake_actuator",

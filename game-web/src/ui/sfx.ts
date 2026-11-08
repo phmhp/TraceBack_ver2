@@ -6,8 +6,11 @@ type Sfx = "pop" | "squish" | "zip" | "stamp" | "success" | "error" | "siren" | 
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
-const prefs = { sfx: read("tb-sfx", true), music: read("tb-music-v2", false) };
+const prefs = { sfx: read("tb-sfx", true), music: read("tb-music-v2", false), raceMusic: read("tb-race-music", true) };
 let musicTimer: number | undefined;
+// "calm" = lab/garage music box (off by default), "race" = driving track (on by default)
+let musicScene: "calm" | "race" = "calm";
+const musicWanted = () => musicScene === "race" ? prefs.raceMusic : prefs.music;
 
 function read(key: string, fallback: boolean) {
   try { const value = localStorage.getItem(key); return value === null ? fallback : value === "1"; } catch { return fallback; }
@@ -99,9 +102,35 @@ function startMusic() {
 }
 function stopMusic() { if (musicTimer !== undefined) { clearInterval(musicTimer); musicTimer = undefined; } }
 
-export const soundPrefs = () => ({ ...prefs });
+// Driving track: 150 BPM minor groove (kick, off-beat hat, pulsing bass, short arpeggio), Am–F–G–Em.
+const RACE_CHORDS = [[220, 262, 330], [175, 220, 262], [196, 247, 294], [165, 196, 247]];
+function startRaceMusic() {
+  if (musicTimer !== undefined) return;
+  let step = 0; // 16th notes
+  const tick = () => {
+    const ac = audio();
+    if (!ac) return;
+    const t = ac.currentTime, beat = step % 16, chord = RACE_CHORDS[Math.floor(step / 16) % RACE_CHORDS.length];
+    if (beat % 4 === 0) tone("sine", 130, 42, t, .18, .32);                       // kick
+    if (beat % 4 === 2) noise(t, .04, .05, 7000);                                   // hat
+    if (beat === 4 || beat === 12) noise(t, .1, .09, 2200);                         // snare-ish
+    if (beat % 2 === 0) tone("sawtooth", chord[0] / 2, chord[0] / 2, t, .09, .05);  // pulsing bass
+    if (beat % 2 === 1 && step % 64 >= 32) tone("square", chord[(beat >> 1) % 3] * 2, chord[(beat >> 1) % 3] * 2, t, .06, .018); // arpeggio, every other phrase
+    step++;
+  };
+  musicTimer = window.setInterval(tick, 100);
+}
+function refreshMusic() {
+  stopMusic();
+  if (!musicWanted()) return;
+  if (musicScene === "race") startRaceMusic(); else startMusic();
+}
+/** Racing scenes call this on mount ("race") and unmount ("calm"). */
+export function setMusicScene(scene: "calm" | "race") { if (musicScene === scene) return; musicScene = scene; refreshMusic(); dispatchEvent(new Event("tb-music-scene")); }
+
+export const soundPrefs = () => ({ sfx: prefs.sfx, music: musicWanted() });
 export function setSfx(on: boolean) { prefs.sfx = on; write("tb-sfx", on); if (on) play("pop"); }
-export function setMusic(on: boolean) { prefs.music = on; write("tb-music-v2", on); if (on) startMusic(); else stopMusic(); }
+export function setMusic(on: boolean) { if (musicScene === "race") { prefs.raceMusic = on; write("tb-race-music", on); } else { prefs.music = on; write("tb-music-v2", on); } refreshMusic(); }
 
 let installed = false;
 /** Global feel: every button pops, dragging on the board/wiring canvas zips. */
@@ -111,10 +140,11 @@ export function installGlobalSfx() {
   let drawing = false, lastX = 0, lastY = 0, travelled = 0;
   addEventListener("pointerdown", event => {
     const target = event.target as HTMLElement | null;
-    if (prefs.music) startMusic(); // browsers need a user gesture before audio
+    if (musicWanted() && musicTimer === undefined) refreshMusic(); // browsers need a user gesture before audio
     if (target?.closest("button:not(:disabled)")) play("pop");
     if (target?.closest(".caseCorkCanvas, .wireCanvas")) { drawing = true; lastX = event.clientX; lastY = event.clientY; travelled = 0; }
   }, { capture: true });
+  addEventListener("keydown", () => { if (musicWanted() && musicTimer === undefined) refreshMusic(); }, { capture: true });
   addEventListener("pointermove", event => {
     if (!drawing) return;
     travelled += Math.hypot(event.clientX - lastX, event.clientY - lastY);

@@ -68,7 +68,7 @@ const CASES: Record<CaseId, CaseData> = {
       reference: [["페달 신호 읽기", "60%"], ["토크 지도", "204 Nm"], ["CAN 토크 명령", "204 Nm"]],
       run: [["페달 신호 읽기", "60%"], ["보정 계수 ×0.45", "27%"], ["토크 지도", "92 Nm"], ["CAN 토크 명령", "92 Nm"]],
       culprit: "보정 계수 ×0.45",
-      lesson: "기준 설계에 없는 '보정 계수 ×0.45' 블록이 끼어 있었어! 페달 값을 0.45배로 줄여 버린 잘못된 보정값이야.",
+      lesson: "기준 설계에 없는 '보정 계수 ×0.45' 블록이 들어가 있었어요. 페달 값을 0.45배로 줄이는 잘못된 보정값이에요.",
     },
   },
   thermal: {
@@ -100,7 +100,7 @@ const CASES: Record<CaseId, CaseData> = {
       run: [["온도 읽기", "78°C"], ["65°C 넘으면 켜기", "켜짐"], ["팬 명령", "100%"]],
       part: ["냉각 팬 모터", "1850 rpm", "0 rpm"],
       culprit: "냉각 팬 모터",
-      lesson: "SW는 기준대로 100% 명령을 냈어. 명령을 받은 팬(부품)이 안 돌았으니 범인은 HW야!",
+      lesson: "SW는 기준대로 100% 명령을 냈어요. 명령을 받은 팬(부품)이 돌지 않았으니 원인은 HW예요.",
     },
   },
   brake: {
@@ -125,7 +125,7 @@ const CASES: Record<CaseId, CaseData> = {
       run: [["제동 요청", "3.2 m/s²"], ["회생·마찰 나누기", "나눔"], ["압력 명령", "42 bar"]],
       part: ["캘리퍼·유압", "42 bar", "8 bar"],
       culprit: "캘리퍼·유압",
-      lesson: "제동 SW는 기준대로 42 bar를 명령했어. 실제 압력이 8 bar뿐이니 유압·캘리퍼(HW) 문제야!",
+      lesson: "제동 SW는 기준대로 42 bar를 명령했어요. 실제 압력이 8 bar뿐이니 유압·캘리퍼(HW) 문제예요.",
     },
   },
 };
@@ -206,7 +206,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     const d = dom(id);
     play("zip");
     window.setTimeout(() => play(d.status === "bad" ? "stamp" : "pop"), 160);
-    setBubble(d.status === "bad" ? `${d.label}도 기준과 달라! ⏱ ${fmt(d.t!)}${unit}에 달라지기 시작했어. ${cur.label}(⏱ ${fmt(cur.t!)}${unit})보다 먼저야, 나중이야?`
+    setBubble(d.status === "bad" ? `${d.label}도 기준과 달라요. ⏱ ${fmt(d.t!)}${unit}에 달라지기 시작했어요. ${cur.label}(⏱ ${fmt(cur.t!)}${unit})보다 먼저인가요, 나중인가요?`
       : d.status === "tol" ? `${d.label}${josa(d.label, "은", "는")} 아주 조금 달라. 허용 범위라 원인이 아니야.`
         : `${d.label}${josa(d.label, "은", "는")} 기준과 같아. 원인이 아니야.`);
   };
@@ -216,7 +216,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
       // trap: it changed AFTER the current domino → it is an effect, not the cause
       setTraps(previous => previous.includes(id) ? previous : [...previous, id]);
       setMistakes(value => value + 1);
-      nope(id, `앗, ${d.label}${josa(d.label, "은", "는")} ⏱ ${fmt(d.t!)}${unit}에 달라졌어. ${cur.label}(⏱ ${fmt(cur.t!)}${unit})보다 늦어! 원인은 결과보다 먼저 일어나야 해. 이건 ${cur.label} 때문에 생긴 영향이야.`);
+      nope(id, `${d.label}${josa(d.label, "은", "는")} ⏱ ${fmt(d.t!)}${unit}에 달라졌어. ${cur.label}(⏱ ${fmt(cur.t!)}${unit})보다 늦어! 원인은 결과보다 먼저 일어나야 해. 이건 ${cur.label} 때문에 생긴 영향이야.`);
       return;
     }
     play("squish");
