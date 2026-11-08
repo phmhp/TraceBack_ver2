@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>방향 B · 사건 서류</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+<style>
+  /* B: case-file desk — kraft envelope, ruled form lines, rubber stamps, paper clips; cute only in the cat and stickers */
+  * { box-sizing: border-box; font-family: Pretendard, system-ui, sans-serif; word-break: keep-all; }
+  body { margin: 0; height: 100vh; overflow: hidden; color: #3d2f24; font-size: 13px;
+    background: radial-gradient(circle at 30% 20%, #8a6a52 0, #5c4434 70%); }
+  .stage { max-width: 1160px; height: 100vh; margin: 0 auto; padding: 14px; display: grid; grid-template-rows: 44px minmax(0, 1fr) 62px; gap: 10px; }
+  .kraft { position: relative; background: #d8bf98 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .33 0 0 0 0 .2 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+    border-radius: 6px; box-shadow: 0 2px 0 #b89c74, 0 12px 24px rgba(20,10,0,.35); }
+  .top { display: flex; align-items: center; gap: 12px; padding: 0 14px; color: #f3e7d6; }
+  .top img { width: 30px; height: 30px; border-radius: 50%; background: #fff; object-fit: cover; }
+  .top b { font-weight: 600; } .tab { padding: 3px 10px; border: 1px solid #f3e7d6aa; border-radius: 4px; font-size: 12px; }
+  .gap { margin-left: auto; display: flex; align-items: center; gap: 8px; } .gap span { color: #ffb4a3; font-weight: 600; }
+  .gapbar { width: 220px; height: 6px; border-radius: 3px; background: #ffffff33; position: relative; } .gapbar i { position: absolute; left: 30%; width: 22%; top: 0; bottom: 0; background: #e6735e; border-radius: 3px; }
+  .file { display: grid; grid-template-columns: minmax(0, 1fr) 250px; grid-template-rows: auto minmax(0, 1fr); gap: 14px; padding: 20px 22px 16px; min-height: 0; }
+  .file h1 { grid-column: 1 / -1; margin: 0; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: .2em; }
+  .file h1 small { display: block; margin-top: 4px; letter-spacing: 0; font-size: 12px; font-weight: 500; color: #6b5440; }
+  .form { border: 1.5px solid #5c4434; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+  .form .head { display: grid; grid-template-columns: 90px 1fr 90px 1fr; border-bottom: 1.5px solid #5c4434; font-size: 12px; }
+  .form .head span { padding: 6px 8px; border-right: 1px solid #5c4434; } .form .head span:nth-child(odd) { background: #cdb08a; font-weight: 600; }
+  .form .body { position: relative; display: grid; place-items: center; color: #6b5440;
+    background: repeating-linear-gradient(180deg, transparent 0 27px, rgba(92,68,52,.35) 27px 28px); }
+  .side { display: grid; align-content: start; gap: 10px; }
+  .slip { position: relative; padding: 10px 12px; background: #fffaf0; border-radius: 2px; box-shadow: 0 2px 4px rgba(40,20,0,.25); font-weight: 500; transform: rotate(-1deg); }
+  .slip:nth-child(2) { transform: rotate(1.2deg); }
+  .slip::before { content: ""; position: absolute; top: -8px; left: 16px; width: 14px; height: 26px; border: 2.5px solid #9aa4ad; border-radius: 8px; border-bottom-color: transparent; }
+  .slip.bad { background: #fff1ec; }
+  .stamp { position: absolute; right: 28px; top: 16px; padding: 4px 10px; border: 2.5px solid #c8453a; border-radius: 6px; color: #c8453a; font-weight: 700; transform: rotate(-10deg); opacity: .85; }
+  .foot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 0 12px 0 14px; }
+  .ming { display: flex; gap: 10px; align-items: center; font-weight: 500; } .ming img { width: 40px; height: 40px; border-radius: 50%; background: #fff; object-fit: cover; } .ming b { color: #8c3b2e; font-weight: 600; margin-right: 4px; }
+  .btn { border: 0; border-radius: 8px; padding: 11px 22px; font-size: 14px; font-weight: 600; color: #fff7f4; cursor: pointer; background: #9b6b64; box-shadow: 0 3px 0 #7a514b; }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #7a514b; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <header class="top"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><b>TraceBack</b><span class="tab">사건 4/8 · 원인 역추적</span>
+    <span class="gap">추격차와 <span>72 m</span><span class="gapbar"><i></i></span></span></header>
+  <main class="kraft file"><h1>( 가속 저하 ) 事 件 記 錄<small>증상에서 거슬러 올라가 처음 어긋난 구간을 좁힙니다</small></h1>
+    <span class="stamp">조사 중</span>
+    <div class="form"><div class="head"><span>사건</span><span>가속 페달 입력 대비 가속 성능 저하</span><span>단계</span><span>1 거꾸로 따라가기</span></div><div class="body">도미노 줄 + 측정 카드 3장</div></div>
+    <aside class="side"><div class="slip bad">차량 가속 · 기준 2.8 → 1.2 m/s²</div><div class="slip">후보를 선택해 측정</div></aside></main>
+  <footer class="kraft foot"><div class="ming"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><span><b>밍</b>먼저 어긋난 값이 원인 쪽입니다. 측정 시각을 비교하세요.</span></div><button class="btn">시작점 확정</button></footer>
+</div>
+</body>
+</html>

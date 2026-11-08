@@ -11,6 +11,7 @@ import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
 import { KIND_TAG, Picto, blockKind, plainText, type Kind } from "../garage/SimulinkDiagram";
 import { getFeatureLayer, piecePath, type DomainId, type Nub } from "../../experiences";
+import { ENGINEER } from "../../game/cast";
 
 type Send = React.Dispatch<any>;
 type Blk = { id: string; label: string; kind: Kind | "hw"; ee?: boolean; img?: string; tag?: string; out?: string; bad?: string; why?: string; from: string; does?: string };
@@ -327,7 +328,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       </section>
     </main>
     <footer className="rpFoot">
-      <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>밍</b>{msg}</p></div>
+      <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{msg}</p></div>
       <span className="rpStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}<small>실행 실패 {fails}번</small></span>
       {/* one primary action at a time: run until it passes, then move on */}
       {run?.status === "pass"

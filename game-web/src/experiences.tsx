@@ -15,6 +15,7 @@ import { ECUS } from "./sim/components";
 import { getComponent } from "./sim/registry";
 import { Picto, SimulinkDiagram, blockKind, plainText } from "./features/garage/SimulinkDiagram";
 import { EeBlueprint } from "./features/garage/EeBlueprint";
+import { DRIVER, DUO, ENGINEER } from "./game/cast";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
 
@@ -764,7 +765,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
                 <button className={labMode === "pull" ? "on" : ""} onClick={() => { setLabMode("pull"); setCulprit(null); setEcuCard(null); }}>② 빼 보기</button>
                 <button className={labMode === "hunt" ? "on" : ""} onClick={startHunt}>③ 범인 찾기{caught ? ` · ${caught}` : ""}</button>
               </nav>
-              <em>{labMode === "flow" ? "입력 값이 부품을 하나씩 지나 출력이 되는 과정을 따라가요" : labMode === "intro" ? "부품을 눌러 무슨 일을 하는지 보세요" : labMode === "pull" ? "부품을 하나 빼면 차가 어떻게 될까?" : "밍의 퀴즈: 어느 부품이 빠졌을까?"}</em>
+              <em>{labMode === "flow" ? "입력 값이 부품을 하나씩 지나 출력이 되는 과정을 따라가요" : labMode === "intro" ? "부품을 눌러 무슨 일을 하는지 보세요" : labMode === "pull" ? "부품을 하나 빼면 차가 어떻게 될까?" : `${ENGINEER}의 문제: 빠진 부품을 찾아보세요`}</em>
             </header>
             {labMode !== "flow" && <div className="pullOutChain">{chain.map((label, index) => { const role = partRole(label, index, chain.length); return <React.Fragment key={`${label}-${index}`}>
               {index > 0 && <i className={removed !== null && (removed === index || removed === index - 1) ? "broken" : ""}>→</i>}
@@ -901,7 +902,7 @@ function HeistCutsceneScene({ onBeat, onDone }: { onBeat: (beat: number) => void
 export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) {
   const [ready, setReady] = useState(false);
   const [heistFrame, setHeistFrame] = useState(0);
-  const heistCaptions = ["부잣집 진입", "경보 패널 우회", "금고 발견", "현금·금괴 확보", "경보 발생!", "가방 들고 탈출", "도주 차량 탑승", "시동 완료 · 출발 준비"];
+  const heistCaptions = ["폭스의 저택 진입", "경보 패널 우회", "금고 발견", "빼앗긴 상금 회수", "경보 발생", "가방 들고 탈출", "직접 만든 차에 탑승", "시동 완료 · 출발 준비"];
   return <div className="driveBriefing heistIntro">
     <SceneBackdrop image={`${A}stitch23/prologue-night-drive.png`} position="center" shade="deep" />
     <GameHeader chapter="HEIST COMPLETE · GETAWAY" title="부잣집 탈출 작전" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
@@ -909,7 +910,7 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
       <section className="heistStage">
         <Canvas shadows camera={{position:[0,3.15,9.2],fov:45}} dpr={[1,1.35]} gl={{antialias:true,powerPreference:"high-performance"}}><HeistCutsceneScene onBeat={setHeistFrame} onDone={() => setReady(true)} /></Canvas>
         <div className="heistFrameRail">{heistCaptions.map((caption, index) => <i key={caption} className={index < heistFrame ? "done" : index === heistFrame ? "active" : ""} />)}</div>
-        <div className="heistCaption"><small>HEIST CUTSCENE · {heistFrame + 1}/8</small><b>{heistCaptions[heistFrame]}</b><span>{ready ? "루와 밍이 차에 탔습니다. 이제 직접 운전합니다." : "금고에서 도주 차량까지 실제 장면이 이어집니다."}</span></div>
+        <div className="heistCaption"><small>HEIST CUTSCENE · {heistFrame + 1}/8</small><b>{heistCaptions[heistFrame]}</b><span>{ready ? `${DUO}가 차에 탔습니다. 이제 직접 운전합니다.` : "금고에서 도주 차량까지 실제 장면이 이어집니다."}</span></div>
       </section>
       <section className="briefingPanel heistPanel"><small>GETAWAY CONTROLS</small><h1>부잣집 탈출 완료<br />해안 도로로 도주!</h1><div className="briefingChecklist"><span><i>↑ / ↓</i><b>가속 · 브레이크</b></span><span><i>← / →</i><b>부드러운 조향</b></span><span><i>1~4 · Q / E</i><b>기어 P·R·N·D · 회생 패들</b></span></div><div className="briefingStatus"><span><small>DRIVE</small><b>D · 단일 감속기 · 회생 0–3</b></span><span><small>POLICE</small><b>출발 후 뒤에서 합류</b></span><span><small>COURSE</small><b>CURVED COAST RUN</b></span></div><button className="primary" disabled={!ready} onClick={() => send({ type: "BEGIN_RACE" })}>{ready ? "3 · 2 · 1 도주 시작 →" : `${heistCaptions[heistFrame]}…`}</button></section>
     </main>
@@ -1560,8 +1561,8 @@ export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) 
   const [dialogueSim, setDialogueSim] = useState<DriveSim>({ speed: state.caseId === "thermal" ? 38 : 31, lane: 0, steer: 0, distance: state.raceDistance, gap: state.policeGapMeters, heat: state.caseId === "thermal" ? 84 : 39, elapsed: state.raceElapsedSeconds });
   const scenario = SCENARIOS[state.caseId];
   const dialogue = [
-    { who: "드라이버 루", role: "DRIVER", text: "페달은 끝까지 밟았는데 가속이 안 나와. 이 상태로는 못 따돌려.", tone: "driver" },
-    { who: "엔지니어 밍", role: "ENGINEER", text: "주행 기록은 남아 있어. 증상부터 정리하고 원인 범위를 좁혀 볼게.", tone: "engineer" },
+    { who: `드라이버 ${DRIVER}`, role: "DRIVER", text: "페달은 끝까지 밟았는데 가속이 안 나와. 이 상태로는 못 따돌려.", tone: "driver" },
+    { who: `엔지니어 ${ENGINEER}`, role: "ENGINEER", text: "주행 기록은 남아 있어. 증상부터 정리하고 원인 범위를 좁혀 볼게.", tone: "engineer" },
   ];
   const advance = () => step === 0 ? setStep(1) : send({ type: "CONTINUE_FAULT" });
   useEffect(() => {
@@ -2265,7 +2266,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
     <GameHeader chapter="MING'S V-MODEL LAB" title="요구사항 기반 V-모델 검증 실험실" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <main className="catLab">
-      <header className="labHeader"><div className="labCat"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span><b>엔지니어 밍의 3D 통합 실험실</b><small>같은 요구사항·시험 입력을 SW→ECU→시스템→차량 경계에서 비교합니다.</small></span></div><nav>{tabs.map(item => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><b>{item.label}</b><small>{item.desc}</small>{results[item.id] !== undefined && <i className={results[item.id] ? "ok" : "bad"} />}</button>)}</nav></header>
+      <header className="labHeader"><div className="labCat"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span><b>엔지니어 {ENGINEER}의 3D 통합 실험실</b><small>같은 요구사항·시험 입력을 SW→ECU→시스템→차량 경계에서 비교합니다.</small></span></div><nav>{tabs.map(item => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><b>{item.label}</b><small>{item.desc}</small>{results[item.id] !== undefined && <i className={results[item.id] ? "ok" : "bad"} />}</button>)}</nav></header>
       <div className="twinCompare"><TwinDesign title="정상 시나리오 설계" subtitle="REFERENCE DESIGN" tab={tab} caseId={state.caseId} running={running} works result={activeResult === undefined ? undefined : true} /><div className="versus"><span>동일 입력</span><b>VS</b><i /></div><TwinDesign title="내가 만든 설계" subtitle="PLAYER DESIGN" tab={tab} caseId={state.caseId} running={running} works={works} result={activeResult} /></div>
       {activeResult === false && <aside className="benchExplanation fail"><b>최초 불일치 경계 · {report.boundary}</b><p>{tab === "sw" ? "선택한 블록 또는 연결 순서 때문에 CONTROL 경계부터 기준 출력과 달라졌습니다." : tab === "embedded" ? "실 ECU의 I/O 또는 가상 Plant 피드백에서 명령과 반응이 갈라졌습니다." : tab === "system" ? "ECU 간 신호·기능 통합에서 요구 차량 기능이 성립하지 않았습니다." : "앞 단계의 차이가 누적되어 차량 시나리오 성능이 기준에 못 미칩니다."}</p></aside>}
       <div className="labConsole tcConsole"><section className="tcWorkbench"><header><small>TEST CASE · {report.id}</small><b>{tabs.find(item => item.id === tab)?.label} 경계 시험</b></header><div className="tcChoices"><span>기법</span><button className={testTechnique === "requirement" ? "active" : ""} onClick={() => setTestTechnique("requirement")}>요구사항 기반</button><button className={testTechnique === "boundary" ? "active" : ""} onClick={() => setTestTechnique("boundary")}>경계값</button><button className={testTechnique === "fault" ? "active" : ""} onClick={() => setTestTechnique("fault")}>고장 주입</button><span>인가값</span><button className={stimulus === "nominal" ? "active" : ""} onClick={() => setStimulus("nominal")}>정상값</button><button className={stimulus === "limit" ? "active" : ""} onClick={() => setStimulus("limit")}>한계값</button></div><dl><div><dt>INPUT</dt><dd>{stimulus === "nominal" ? report.expected.split("→")[0] : "경계 ±1 step"}</dd></div><div><dt>EXPECTED</dt><dd>{report.expected.split("→").at(-1)}</dd></div><div><dt>ACTUAL</dt><dd>{actualValue}</dd></div><div><dt>VERDICT</dt><dd>{activeResult === undefined ? "—" : activeResult ? "PASS" : "FAIL"}</dd></div></dl></section><button className="runLab" disabled={running} onClick={run}>{running ? "실험 중…" : `▶ ${tabs.find(item => item.id === tab)?.label} 시험 실행`}</button><button className="primary" disabled={!allRun} onClick={() => send({ type: "BENCH_RESULT", pass: works, causeCorrect: correctCause })}>{!allRun ? `검증 ${Object.keys(results).length}/4` : works ? "수리 적용으로 →" : "실패 원인 해설 보기 →"}</button></div>
@@ -2368,6 +2369,6 @@ function ShipJumpScene({ onBeat }: { onBeat: (beat: number) => void }) {
 export function ShipBoardingSequence({ send }: { send: Send }) {
   const [beat, setBeat] = useState(0);
   useEffect(() => { const endTimer = window.setTimeout(() => send({ type: "COMPLETE_ENDING" }), 5900); return () => window.clearTimeout(endTimer); }, [send]);
-  const captions = ["부두 끝 · 갑판이 올라간다!", "나무 연결판이 지렛대처럼 들린다", "루와 밍의 붉은 EV, 도약!", "측면 비행 · 경찰차는 부두에 멈춤", "해적선 갑판 안착 — 탈출 성공"];
+  const captions = ["부두 끝 · 갑판이 올라간다!", "나무 연결판이 지렛대처럼 들린다", `${DUO}의 붉은 EV, 도약`, "측면 비행 · 경찰차는 부두에 멈춤", "해적선 갑판 안착 — 탈출 성공"];
   return <div className={`shipBoarding shipJump beat-${beat}`}><Canvas shadows camera={{position:[0,3.35,12.8],fov:43}} dpr={[1,1.3]} gl={{antialias:true,powerPreference:"high-performance"}}><ShipJumpScene onBeat={setBeat} /></Canvas><div className="boardingCaption"><small>FINAL · THELMA-STYLE DOCK JUMP</small><h1>{captions[beat]}</h1><p>{beat < 4 ? "올라가는 나무 램프를 타고 해적선 갑판으로 날아갑니다." : "차량과 두 고양이가 모두 갑판에 안전하게 착지했습니다."}</p></div></div>;
 }

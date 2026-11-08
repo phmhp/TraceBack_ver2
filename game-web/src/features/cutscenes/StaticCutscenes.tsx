@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { Campaign } from "../../game/runtime";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
+import { DUO } from "../../game/cast";
 
 type Send = React.Dispatch<any>;
 const A = "/assets/";
@@ -9,8 +10,8 @@ const heistFrames = [
   {
     image: `${A}cutscene-heist-escape-v1.png`,
     eyebrow: "STORY CUT · 1/2",
-    title: "금괴 자루를 챙겨 저택을 빠져나왔다",
-    body: "루와 밍은 해안 도로에 세워 둔 붉은 EV로 달려간다.",
+    title: "폭스의 금고에서 상금을 되찾아 저택을 빠져나왔다",
+    body: `${DUO}는 해안 도로에 세워 둔 붉은 EV로 달려간다.`,
   },
   {
     image: `${A}cutscene-heist-board-v1.png`,

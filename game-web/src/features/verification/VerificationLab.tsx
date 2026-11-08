@@ -6,6 +6,7 @@ import { RefPuzzleTrack } from "../wiring/RefPuzzle";
 import { SAMPLES, divergeIndex, firstMismatch, simulate, type Lv, type Series, type Tech } from "./simModel";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
+import { ENGINEER } from "../../game/cast";
 
 type Send = React.Dispatch<any>;
 type ProbeId = "input" | "control" | "output";
@@ -331,7 +332,7 @@ function VerificationReport({ caseId, config, works, actual, onDone, onClose }: 
         <div className="vrLevelRow">{LEVELS.map(level => <button key={level.id} className={`${pick === level.id ? (level.id === check.answer ? "is-right" : "is-wrong") : ""} ${pick && level.id === check.answer ? "is-answer" : ""}`} onClick={() => { setPick(level.id); window.setTimeout(() => play(level.id === check.answer ? "success" : "error"), 60); }}>
           <i>{level.icon}</i><b>{level.name}</b><small>{level.sub}</small>
         </button>)}</div>
-        {pick && <div className={`vrBubble ${correct ? "ok" : "hint"}`}><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>밍</b>{correct ? check.why : check.wrong}</p></div>}
+        {pick && <div className={`vrBubble ${correct ? "ok" : "hint"}`}><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{correct ? check.why : check.wrong}</p></div>}
       </section>
       {works && <section className="vrRegression">
         <h3>🔁 메모판에서 찾은 영향 범위 다시 확인 (회귀 검증)</h3>
@@ -760,7 +761,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         </div>}
       </section>}
 
-      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>밍</b>{bubble}</p></div>
+      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={revealAnswer}>정답 보기</button>
   </div>;

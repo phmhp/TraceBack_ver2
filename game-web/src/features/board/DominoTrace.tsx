@@ -15,6 +15,7 @@ import { SCENARIOS } from "../../game/scenarios";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
 import { PursuitRouteBar, ReplayRaceView } from "../../experiences";
+import { ENGINEER } from "../../game/cast";
 
 type Send = React.Dispatch<any>;
 type Status = "ok" | "tol" | "bad";
@@ -379,7 +380,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
         </div>}
       </section>}
 
-      <div className="dtBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>밍</b>{bubble}</p></div>
+      <div className="dtBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>
     </main>
 
     {thread && <svg className="dtThread"><path d={`M${thread.x0} ${thread.y0} Q${(thread.x0 + thread.x) / 2} ${Math.max(thread.y0, thread.y) + 40} ${thread.x} ${thread.y}`} className={thread.hot ? "hot" : ""} /><circle cx={thread.x0} cy={thread.y0} r="7" /><circle cx={thread.x} cy={thread.y} r="5" className="tip" /></svg>}

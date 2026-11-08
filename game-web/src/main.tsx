@@ -1,4 +1,6 @@
 import { RefPuzzle } from "./features/wiring/RefPuzzle";
+import { DRIVER, ENGINEER, CAST } from "./game/cast";
+const VILLAIN = CAST.villain.name;
 import React, { useEffect, useReducer, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas, useFrame } from "@react-three/fiber";
@@ -485,30 +487,26 @@ function Title({
 }
 function Prologue({ send }: { send: React.Dispatch<any> }) {
   const [slide, setSlide] = useState(0);
-  const lines = [
-    [
-      "THE GLORIOUS PAST",
-      "“봤지, 밍? 우리가 해냈어!” 밤낮없이 차를 깎고 조율한 보람이 있어.",
-    ],
-    [
-      "THE RED SIGNAL",
-      "하지만 완성 직후, 정체불명의 차량들이 차고를 포위했다.",
-    ],
-    [
-      "THE ESCAPE PLAN",
-      "항구 4번 부두. 해적선이 떠나기 전에 모든 시스템을 복구해야 한다.",
-    ],
+  // story (see src/game/cast.ts): champions → swindled and framed → fired and broke → take it back → race to the ship
+  const lines: [string, string, string][] = [
+    ["THE CHAMPIONS", DRIVER, `결승선 통과. ${ENGINEER}가 직접 만든 차로 시즌 최고 상금을 따냈다.`],
+    ["THE SWINDLE", ENGINEER, `그날 밤, 후원사 대표 ${VILLAIN}가 상금을 전부 빼돌렸다. 경기 조작 누명은 우리에게 씌워졌다.`],
+    ["THE FALL", DRIVER, "팀에서 잘리고 차고도 잃었다. 몇 년을 빈손으로 버텼다."],
+    ["THE PLAN", ENGINEER, `${VILLAIN}의 저택 금고에 우리 상금이 있다. 되찾고, 우리 차가 여전히 최고라는 것도 증명한다.`],
+    ["THE ROUTE", DRIVER, "탈출로는 항구 뒷길. 파라다이스로 가는 해적선이 떠나기 전에 도착한다."],
   ];
   const images = [
     `${A}stitch23/prologue-race.png`,
     `${A}stitch23/prologue-loss.png`,
+    `${A}stitch23/prologue-loss.png`,
+    `${A}stitch23/prologue-plan.png`,
     `${A}stitch23/prologue-plan.png`,
   ];
   return (
     <div className="cinematic">
       <SceneBackdrop image={images[slide]} shade="deep" />
       <div className="cinTop">
-        <b>● ACT 00 // PROLOGUE [{slide + 1}/3]</b>
+        <b>ACT 00 // PROLOGUE [{slide + 1}/{lines.length}]</b>
         <span>{lines[slide][0]}</span>
         <button onClick={() => send({ type: "CONTINUE_PROLOGUE" })}>
           SKIP »
@@ -516,16 +514,16 @@ function Prologue({ send }: { send: React.Dispatch<any> }) {
       </div>
       <DialoguePanel
         portrait={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`}
-        speaker={slide === 1 ? "밍 (Ming)" : "루 (Lou)"}
+        speaker={lines[slide][1]}
         action={
           <ActionButton
             tone="primary"
             keyHint="Enter"
-            onClick={() => slide < 2 ? setSlide(slide + 1) : send({ type: "CONTINUE_PROLOGUE" })}
+            onClick={() => slide < lines.length - 1 ? setSlide(slide + 1) : send({ type: "CONTINUE_PROLOGUE" })}
           >계속</ActionButton>
         }
       >
-        {lines[slide][1]}
+        {lines[slide][2]}
       </DialoguePanel>
     </div>
   );
@@ -625,7 +623,7 @@ function Garage({
         <div className="catCoach">
           <img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} />
           <div>
-            <b>수석 엔지니어 밍</b>
+            <b>수석 엔지니어 {ENGINEER}</b>
             <p>{idx === 3 ? "설계 흐름을 확인했으면 실제 주행에서 증상을 만나보자냥!" : "입력에서 차량 반응까지 세 노드를 차례로 확인해보자냥."}</p>
           </div>
         </div>
@@ -1175,7 +1173,7 @@ function Bench({
       <main className="twin">
         <div className="benchCoach">
           <img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} />
-          <b>정비사 밍의 정밀 진단</b>
+          <b>정비사 {ENGINEER}의 정밀 진단</b>
           <p>동일 초기 상태와 입력으로 기준/사용자 모델을 비교한다냥.</p>
         </div>
         <Rig
