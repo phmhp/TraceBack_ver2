@@ -339,8 +339,6 @@ body:has(.vbBench + .stageHistoryNav .stageBackButton + .stageForwardButton) .vb
 .etFall::before { content: "출력에서 원인 쪽으로 거꾸로 쓰러진 경로 · 아래 줄은 함께 쓰러진 영향(회귀 시험)"; position: absolute; top: 8px; left: 12px; font: 600 12px Pretendard, system-ui; color: #7b6a5c; }
 
 /* ===== stage 2 v2: connection check, example input, expected-value card ===== */
-.refPuzzle.v2 .rpReq > div { grid-template-columns: 14px 1fr !important; }
-.refPuzzle.v2 .rpReq > div i { background: transparent !important; color: #9b6b64 !important; font-weight: 700; }
 .rpSpecLine { margin: 4px 0 8px; padding: 7px 9px; border-radius: 6px; background: #fff1bf; font: 500 12px/1.5 Pretendard, system-ui; color: #4b3a2f; }
 .rpSlider { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; min-width: 300px; padding: 6px 12px; border-radius: 6px; background: #fffdf6; box-shadow: 0 2px 0 #e3d3c3; }
 .rpSlider small { font: 600 12px Pretendard, system-ui; color: #7b6a5c; }
@@ -426,3 +424,6 @@ body:has(.vbBench + .stageHistoryNav .stageBackButton + .stageForwardButton) .vb
 .tbCarry .dtNext { justify-content: center; display: inline-flex; gap: 8px; }
 .tbCarry span.out { text-decoration: none; } .tbCarry span b { font-weight: 500; } .tbCarry span.out b { text-decoration: line-through; }
 .tbCarry span.out em { text-decoration: none; }
+.rpPiece .flowBlock .rpFace { white-space: nowrap; padding: 1px 5px; border-radius: 4px; background: #fff1bf; border: 1px solid #e3bb45; font: 700 10.5px Pretendard, system-ui !important; color: #5b4a12 !important; letter-spacing: -.2px; }
+.refPuzzle.v2 .rpReq > div.done i { background: #3f8a5c !important; color: #fff !important; }
+.rpPiece .flowBlock .rpFace { white-space: normal !important; max-width: 92%; text-align: center; font-size: 9.5px !important; line-height: 1.15; padding: 1px 3px; }

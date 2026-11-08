@@ -142,12 +142,14 @@ const unitOf = (out?: string) => (out?.match(/Nm|%|°C|bar|m\/s²|rpm/) ?? [""])
 const doesOf = (b: Blk) => b.does ?? (b.kind === "hw" ? "실제 부품" : plainText(b.label, b.kind));
 const eunNeun = (word: string) => { const c = word.charCodeAt(word.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? "은" : "는"; };
 
+// table/setting pieces show their values on the face, so same-name candidates are told apart by the requirement numbers
+const FACE: Record<string, string> = { map: "60% → 204 Nm", mapB: "60% → 92 Nm", hyst: "65°C 켜짐 · 60°C 꺼짐", hystB: "95°C 켜짐 · 90°C 꺼짐", press: "2.1 m/s² → 42 bar", pressB: "2.1 m/s² → 8 bar" };
 function PieceFace({ b }: { b: Blk }) {
   return <>
     {b.kind === "hw"
       ? <div className={`rpPic hw ${b.ee ? "ee" : ""}`}><img src={b.img} alt="" draggable={false} /><small>{b.ee ? "E/E" : "부품"}</small></div>
-      : <div className={`rpPic sw kind-${b.kind}`}><div className="flowBlock"><Picto kind={b.kind} /><small>{KIND_TAG[b.kind]}</small></div></div>}
-    {b.tag && <em className="rpTag">{b.tag}</em>}
+      : <div className={`rpPic sw kind-${b.kind}`}><div className="flowBlock"><Picto kind={b.kind} />{FACE[b.id] ? <small className="rpFace">{FACE[b.id]}</small> : <small>{KIND_TAG[b.kind]}</small>}</div></div>}
+    {b.tag && !FACE[b.id] && <em className="rpTag">{b.tag}</em>}
     <b className="rpLabel">{b.label}</b>
   </>;
 }
@@ -506,7 +508,6 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const stars = fails === 0 ? 3 : fails <= 2 ? 2 : 1;
   const sideLit = connected;
   const jointsIo = (slot: number) => ({ in: slot > 0 ? ref.joints[slot - 1] : undefined, out: slot < n - 1 ? ref.joints[slot] : undefined });
-  const reqs = [...ref.req].sort((a, b) => a.text.localeCompare(b.text, "ko")); // not in slot order: reading them is the puzzle
   const piece = (b: Blk, px: number, py: number, opts: { io?: { in?: Nub; out?: Nub }; locked?: boolean; cls?: string }) =>
     <div key={`${opts.locked ? "fixed" : "move"}-${b.id}`} className={`rpPiece ${b.kind === "hw" ? "hw" : "sw"} ${opts.locked ? "locked" : ""} ${opts.cls ?? ""}`}
       style={{ left: px, top: py, ...({ "--piece": opts.io ? piecePath(opts.io) : "inset(6px 12px 6px 12px round 12px)" } as React.CSSProperties) }}
@@ -519,7 +520,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
 
   return <div className="refPuzzle v2">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="REQUIREMENT-BASED LOGIC" title="요구사항 기반 로직 퍼즐" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="REQUIREMENT-BASED LOGIC" title="요구사항 기반 로직 퍼즐" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageIntro id="puzzle-v2" title="요구사항 기반 로직 퍼즐" goal="정상이라면 이 입력에 어떤 출력이 나와야 하는지 정합니다. 여기서 정한 값이 검증의 기준이 돼요." steps={[
       { icon: "puzzle", text: "빈칸에 조각을 끌어 넣고 '연결 확인'을 눌러요. 연결만 확인하고 값은 아직 판정하지 않아요." },
@@ -535,9 +536,8 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     </header>
     <main className="rpMain">
       <aside className="rpReq">
-        <small>요구사항</small>
-        <p className="rpSpecLine">{spec.text}</p>
-        {reqs.map(r => <div key={r.text}><i>·</i><span>{r.text}</span></div>)}
+        <small>요구사항 · 정상이면 이렇게</small>
+        {ref.req.map((r, k) => <div key={r.text} className={`${ref.gaps.includes(r.slot) ? "gap" : ""} ${confirmed ? "done" : ""}`}><i>{confirmed ? "✓" : k + 1}</i><span>{r.text}</span></div>)}
       </aside>
       <section className="rpStage" ref={stage} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setDrag(null)}>
         <div className="rpSizer" style={{ width: W * scale, height: H * scale }}><div className={`rpWorld ${connected ? "flowing" : ""}`} style={{ width: W, height: H, transform: `scale(${scale})` }}>
