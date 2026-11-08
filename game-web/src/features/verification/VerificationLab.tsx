@@ -573,6 +573,23 @@ const TEST_ANSWER: Record<CaseId, { method: Method[]; deriv: Deriv[]; input: str
     whyD: { bound: "배터리가 가득 차 회생이 0이 되는 경계에서는 마찰 제동이 전부를 맡아요. 유압 경로 문제가 가장 크게 드러나요.", reqa: "가능하지만 회생 제동이 일부를 메워 차이가 작게 보여요.", equiv: "대표값만으로는 회생이 섞여 마찰 쪽 차이가 흐려져요.", guess: "근거 없이 고르기보다 회생이 0이 되는 경계를 쓰는 게 확실해요.", usecase: "실제 주행 기록엔 회생이 섞여 마찰 쪽 차이가 흐려져요." } },
 };
 const SIM_INPUT: Record<Deriv, Tech> = { reqa: "req", equiv: "req", guess: "req", bound: "boundary", usecase: "soak" };
+// v7: only test-case derivations whose input really differs in the numeric model are offered, per case,
+// with the exact input that is applied (equivalence partitioning and error guessing are not performed, so not shown).
+const CASE_DERIVS: Record<CaseId, { id: Deriv; tech: Tech; input: string }[]> = {
+  propulsion: [
+    { id: "reqa", tech: "req", input: "페달 60% 계단 입력 (요구사항 값)" },
+    { id: "bound", tech: "boundary", input: "페달 100% (맵 최대 · 토크 한계 260 Nm)" },
+    { id: "usecase", tech: "replay", input: "추월 구간 주행 기록 (0 → 60% 밟기)" },
+  ],
+  thermal: [
+    { id: "reqa", tech: "req", input: "열 부하 높임 → 낮춤 (65°C 켜짐 · 60°C 꺼짐)" },
+    { id: "usecase", tech: "soak", input: "장거리 고속 주행 열 부하 (사건 조건)" },
+  ],
+  brake: [
+    { id: "reqa", tech: "req", input: "페달 55% · 회생 가능 (요구사항 값)" },
+    { id: "bound", tech: "boundary", input: "페달 55% · 배터리 가득, 회생 0 (경계)" },
+  ],
+};
 // Verification levels (what is verified) — ISO 26262-6 §9, §10, §11 and ISO 26262-4 §7.
 // Test environments (where it runs: MIL/SIL/PIL/HIL/차량) are a separate axis, shown as chips.
 // Names use one word ("시험") and say whether the level is SW (ISO 26262-6) or system (ISO 26262-4).
@@ -827,7 +844,9 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [regDone, setRegDone] = useState(0);
   const [bubble, setBubble] = useState("미션 A: 요구사항 입력을 넣어 요구사항대로 동작하는지 확인합니다. 시험 레벨과 입력을 고르고, 관측점을 꽂은 뒤 실행하세요.");
   const fixed = mission === "C" || mission === "done";
-  const sim = useMemo(() => simulate(caseId, SIM_INPUT[deriv], fixed), [caseId, deriv, fixed]);
+  const derivs = CASE_DERIVS[caseId];
+  const derivNow = derivs.find(item => item.id === deriv) ?? derivs[0];
+  const sim = useMemo(() => simulate(caseId, derivNow.tech, fixed), [caseId, derivNow.tech, fixed]);
   const list = sim.levels[level];
   const runKey = `${mission}:${level}:${deriv}`;
   const ran = ranKey === runKey;
@@ -930,7 +949,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     {mission !== "fix" && mission !== "done" && <>
       <button className={`v7Card ${phase === "level" ? "now" : ""}`} disabled={running || mission === "C"} onClick={() => setPhase("level")}><small>시험 레벨</small><b>{LV[order(level)].name}</b></button>
       <i>→</i>
-      <button className={`v7Card ${phase === "input" ? "now" : ""}`} disabled={running || mission === "C" || phase === "level"} onClick={() => setPhase("input")}><small>방법 · 입력값</small><b>{phase === "level" ? "?" : `${METHODS.find(m => m.id === method)?.name} · ${DERIVS.find(d => d.id === deriv)?.name}`}</b></button>
+      <button className={`v7Card ${phase === "input" ? "now" : ""}`} disabled={running || mission === "C" || phase === "level"} onClick={() => setPhase("input")}><small>입력값</small><b>{phase === "level" ? "?" : `${DERIVS.find(d => d.id === deriv)?.name}`}</b></button>
       <i>→</i>
       <span className={`v7Card ${phase === "lab" ? "now" : ""}`}><small>시험</small><b>{phase === "lab" ? `관측점 ${probeCount}/${PROBE_LIMIT}` : "?"}</b></span>
     </>}
@@ -965,9 +984,9 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         <div className="vbChoices four">{LV.map(item => <button key={item.id} className={level === item.id ? "on" : ""} onClick={() => pickLevel(item.id)}><small className="vbGroup">{item.group} · 비용 {LV_COST[item.id]}</small><b>{item.name}</b><em>{item.scope}</em></button>)}</div>
       </section> : phase === "input" && mission !== "C" && mission !== "done" ? <section className="vbStage">
         <p className="v7Goal">{missionGoal}</p>
-        <h2>어떤 방법과 입력값으로 시험할까요?</h2>
-        <div className="v7Methods">{METHODS.map(item => <button key={item.id} className={method === item.id ? "on" : ""} onClick={() => { setMethod(item.id); play("pop"); }}><b>{item.name}</b><small>{item.sub}</small></button>)}</div>
-        <div className="vbChoices five">{DERIVS.map(item => <button key={item.id} className={deriv === item.id ? "on" : ""} onClick={() => pickDeriv(item.id)}><b>{item.name}</b><em>{item.sub}</em></button>)}</div>
+        <h2>어떤 입력값으로 시험할까요?</h2>
+        <p className="vbSub">시험 방법: <b>요구사항 기반 시험</b> · 2단계에서 맞춘 정상 동작을 기대값으로 비교해요. 아래 입력은 고른 기법대로 실제로 인가돼요.</p>
+        <div className={`vbChoices ${derivs.length > 2 ? "four" : ""}`}>{derivs.map(item => { const info = DERIVS.find(d => d.id === item.id)!; return <button key={item.id} className={deriv === item.id ? "on" : ""} onClick={() => pickDeriv(item.id)}><small className="vbGroup">{info.name}</small><b>{item.input}</b><em>{info.sub}</em></button>; })}</div>
       </section> : <section className="v7Lab2">
         <div className="v7View">
           <div className={`vbSimView ${running ? "running" : ""}`}>{simVisual}{ran && lastVerdict && <span className={`vbStamp ${lastVerdict === "PASS" ? "pass" : lastVerdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastVerdict]}</span>}</div>

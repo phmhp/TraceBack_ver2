@@ -30,7 +30,8 @@ function integrate<S>(seconds: number, init: S, step: (s: S, t: number, dt: numb
 
 // ── 구동: 페달 → (필터 → [×0.45 끼어든 보정] → 페달 맵 → 허용 → MIN → 램프) → CAN → 인버터·모터 → 차량 ──
 function propulsion(tech: Tech, fault: boolean) {
-  const pedal = (t: number) => tech === "replay" ? (t < .1 ? 0 : Math.min(60, (t - .1) * 150) + Math.sin(t * 9) * 1.2) : t < .1 ? 0 : 60;
+  // req: 60 % step (requirement value) · boundary: 100 % step (top of the pedal map, torque limit 260 Nm) · replay: field ramp with driver wobble
+  const pedal = (t: number) => tech === "replay" ? (t < .1 ? 0 : Math.min(60, (t - .1) * 150) + Math.sin(t * 9) * 1.2) : t < .1 ? 0 : tech === "boundary" ? 100 : 60;
   return integrate(3, { filt: 0, ramp: 0, can: 0, mot: 0, v: 60 / 3.6, acc: 0, p: 0, proc: 0, req: 0, arb: 0 }, (s, t, dt) => {
     s.p = pedal(t);
     s.filt += (s.p - s.filt) * dt / .04;
