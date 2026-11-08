@@ -842,6 +842,89 @@ const DEFS: Record<string, Def> = {
     },
   },
 
+  // ── Thermal ──
+  // Radiator fan module (thermal/cooling_fan__REF.png): square black shroud with a round opening,
+  // four corner ears, motor hub on struts, seven swept blades that spin, pigtail connector bottom-right.
+  cooling_fan: {
+    ref: "thermal/cooling_fan__REF.png",
+    build: () => {
+      const W = .42, H = .38, R = .172;
+      const plate = roundRect(new THREE.Shape(), W, H, .02) as THREE.Shape;
+      plate.holes.push(circlePath(R));
+      const statics: Spec[] = [
+        S("plastic", extrude(plate, .01), [0, 0, -.02]),
+        S("plastic", torusZ(R + .002, .007, 56), [0, 0, -.012]), // rolled rim of the opening
+        // side walls of the shroud
+        S("plastic", box(W, .01, .05), [0, H / 2 - .005, -.04]),
+        S("plastic", box(W, .01, .05), [0, -H / 2 + .005, -.04]),
+        S("plastic", box(.01, H, .05), [W / 2 - .005, 0, -.04]),
+        S("plastic", box(.01, H, .05), [-W / 2 + .005, 0, -.04]),
+        // motor on the front (+Z), held by three struts
+        S("plastic", cylZ(.05, .045, 32), [0, 0, .015]),
+        S("plastic", cylZ(.044, .006, 32), [0, 0, .04]),
+        S("steel", cylZ(.008, .008, 12), [0, 0, .045]),
+        ...[0, 1, 2, 3].map(i => { const a = i / 4 * Math.PI * 2 + .4; return S("steel", screwHead(.004).rotateX(Math.PI / 2), [Math.cos(a) * .03, Math.sin(a) * .03, .044]); }),
+        ...[0, 1, 2].map(i => { const a = i / 3 * Math.PI * 2 - Math.PI / 2; return S("plastic", box(R - .045, .012, .008), [Math.cos(a) * (R + .045) / 2, Math.sin(a) * (R + .045) / 2, -.016], [0, 0, a]); }),
+        // pigtail: wire from the motor down to a sealed connector at the bottom-right corner
+        S("rubber", tube([[.03, -.035, .02], [.09, -.1, .01], [.13, -.15, 0], [.15, -.17, 0]], .004, 24)),
+        ...within(connector(.03, .022, .02, 2, 1), [.165, -.17, -.006]),
+        S("hvOrange", box(.012, .006, .004), [.165, -.17, .016]), // locking clip
+      ];
+      // corner ears with bolt holes
+      for (const sx of [-1, 1]) for (const sy of [-1, 1])
+        statics.push(S("plastic", ear(.03, .024, .006, .005), [sx * (W / 2 - .02), sy * (H / 2 + .012), -.04], [Math.PI / 2, 0, sy > 0 ? Math.PI : 0]));
+      // swept blades (spin about Z)
+      const blades: Spec[] = [S("plastic", cylZ(.036, .012, 24), [0, 0, .044])];
+      for (let i = 0; i < 7; i++) {
+        const blade = new THREE.Shape();
+        blade.moveTo(.045, -.012);
+        blade.quadraticCurveTo(.1, -.04, .162, -.01);
+        blade.quadraticCurveTo(.16, .03, .12, .05);
+        blade.quadraticCurveTo(.08, .03, .045, .016);
+        blade.lineTo(.045, -.012);
+        const g = extrude(blade, .003);
+        g.rotateX(.32); // blade pitch
+        g.rotateZ(i / 7 * Math.PI * 2);
+        blades.push(S("plastic", g, [0, 0, .004]));
+      }
+      return {
+        statics,
+        moving: [{ name: "blades", pivot: [0, 0, 0], axis: "z", mode: "spin", range: 1, specs: blades }],
+        anchors: { pwm_in: [.165, -.17, .016], speed_out: [.175, -.17, .016] },
+      };
+    },
+  },
+
+  // Electric coolant pump (thermal/cooling_pump__REF.png): stainless motor can on +X, black volute
+  // with an axial inlet on -X and a radial outlet pointing up, sealed connector on top, bolt-down foot.
+  cooling_pump: {
+    ref: "thermal/cooling_pump__REF.png",
+    build: () => {
+      const hose = (len: number, r: number): Spec[] => [
+        S("plastic", cyl(r, len, 24)),
+        S("plastic", cyl(r * 1.18, .006, 24), [0, len / 2 - .008, 0]), // bead that holds the hose
+      ];
+      const statics: Spec[] = [
+        S("steel", cylX(.038, .08, 36), [.05, 0, 0]),                  // motor can
+        S("plastic", cylX(.04, .01, 36), [.094, 0, 0]),                 // end cap
+        S("plastic", cylX(.05, .012, 36), [.006, 0, 0]),                // flange
+        S("plastic", cylX(.048, .035, 36, .04), [-.02, 0, 0]),          // volute
+        S("plastic", rbox(.03, .05, .05, .008), [-.015, .03, .025]),    // volute bulge toward the outlet
+        ...within(hose(.07, .014), [-.07, 0, 0], [0, 0, Math.PI / 2]), // axial inlet (-X)
+        ...within(hose(.06, .012), [-.02, .075, .02]),                  // radial outlet (up)
+        // connector on top of the motor can
+        S("plastic", rbox(.03, .016, .022, .003), [.06, .045, 0]),
+        ...within(connector(.022, .014, .014, 3, 1), [.06, .054, -.006]),
+        // foot with two bolt holes
+        S("plastic", box(.03, .04, .02), [.05, -.05, 0]),
+        S("plastic", ear(.03, .022, .006, .005), [.05, -.07, .01], [0, 0, 0]),
+        S("plastic", ear(.03, .022, .006, .005), [.05, -.07, -.01], [0, Math.PI, 0]),
+      ];
+      for (let i = 0; i < 4; i++) { const a = i / 4 * Math.PI * 2 + Math.PI / 4; statics.push(S("steel", screwHead(.004).rotateZ(Math.PI / 2), [.013, Math.cos(a) * .045, Math.sin(a) * .045])); }
+      return { statics, anchors: { cmd_in: [.06, .054, .014] } };
+    },
+  },
+
 };
 
 /** Parts modelled so far, in build order. */

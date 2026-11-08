@@ -394,7 +394,7 @@ function DomainSignature({ domain, activeStep }: { domain: DomainId; activeStep:
   if (domain === "thermal") return <group position={[0,.16,0]}>
     <group position={[-2.15,.55,0]} scale={.58}><HardwarePart kind="sensor" active={activeStep<2} partId={partModelFor("thermal", "NTC 센서")} /></group>
     <mesh position={[0,.44,0]} rotation={[0,0,Math.PI/2]}><torusGeometry args={[1.12,.13,18,60]} /><meshStandardMaterial color="#4d94aa" metalness={.44} roughness={.32} /></mesh>
-    <group position={[2.05,.55,0]} scale={.78}><HardwarePart kind="fan" active={activeStep>1} /></group>
+    <group position={[2.05,.55,0]} scale={.78}><HardwarePart kind="fan" active={activeStep>1} partId={partModelFor("thermal", "라디에이터 팬")} /></group>
     <SignalCable from={[-1.55,.62,.12]} to={[-.7,.62,.12]} color="#4b9dc1" /><SignalCable from={[.72,.62,.12]} to={[1.48,.62,.12]} color="#d77857" />
   </group>;
   if (domain === "suspension") return <group position={[0,.08,0]}>
