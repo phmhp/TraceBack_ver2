@@ -164,3 +164,33 @@ body:has(.vbBench + .stageHistoryNav .stageBackButton + .stageForwardButton) .vb
 .vbBench.v7 .vbMonitor ul { overflow-y: auto; }
 .vbBench.v7 .vbMonitorFoot { display: flex; gap: 8px; justify-content: flex-end; }
 @media (max-width: 1180px) { .v7Levels { grid-template-columns: 1fr; } .v7Todo ol { font-size: 11.5px; } }
+
+/* bench v7 step-by-step: plan cards stack up at the top; one step body at a time; no scrolling */
+.vbBench.v7 .vbLayout { grid-template-rows: auto minmax(0, 1fr) auto !important; overflow: hidden !important; }
+.v7Plan { position: relative; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.v7PlanMission { padding: 6px 12px; border-radius: 6px; background: #33291f; color: #ffdf5e; font: 600 13px Pretendard, system-ui; }
+.v7Plan > i { font-style: normal; color: #a99787; }
+.v7Card { display: grid; gap: 1px; padding: 5px 10px; min-width: 120px; border-radius: 6px; border: 1.5px solid #d9c9b3; background: #fffdf6; box-shadow: 0 2px 0 #d9c9b3; text-align: left; cursor: pointer; }
+.v7Card small { font: 500 10.5px Pretendard, system-ui; color: #7b6a5c; } .v7Card b { font: 600 12.5px Pretendard, system-ui; color: #33291f; }
+.v7Card.now { background: #ffdf5e; border-color: #e3bb45; box-shadow: 0 2px 0 #d4a520; }
+.v7Card:disabled { cursor: default; }
+.v7NoteBtn { margin-left: auto; padding: 6px 10px; border-radius: 6px; border: 1.5px solid #d9c9b3; background: #fffdf6; box-shadow: 0 2px 0 #d9c9b3; font: 500 12.5px Pretendard, system-ui; cursor: pointer; }
+.v7CostChip { padding: 6px 10px; border-radius: 6px; background: #fff1bf; font: 600 12.5px Pretendard, system-ui; } 
+.v7NotePop { position: absolute; z-index: 20; right: 90px; top: calc(100% + 6px); width: 360px; padding: 10px 12px; border-radius: 6px; background: repeating-linear-gradient(180deg, transparent 0 21px, rgba(150,180,210,.35) 21px 22px), #fffdf6; box-shadow: 0 6px 16px rgba(30,15,5,.25); }
+.v7NotePop p { margin: 0; font: 500 12px Pretendard, system-ui; color: #7b6a5c; }
+.v7NotePop ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.v7NotePop li { display: grid; grid-template-columns: 18px 1fr auto; gap: 6px; font: 500 12px/1.7 Pretendard, system-ui; }
+.v7NotePop li b { display: grid; place-items: center; width: 18px; height: 18px; margin-top: 2px; border-radius: 4px; background: #33291f; color: #ffdf5e; font-size: 10px; }
+.v7NotePop li.pass em { color: #3f8a5c; font-style: normal; font-weight: 600; } .v7NotePop li.fail em { color: #d4473c; font-style: normal; font-weight: 600; }
+.v7Goal { margin: 0; padding: 6px 12px; border-radius: 6px; background: #fff1bf; font: 500 13px/1.45 Pretendard, system-ui; }
+.vbBench.v7 .vbChoices button.on { background: #fff8d6; border-color: #e3bb45; }
+.vbBench.v7 .vbChoices.four button { width: clamp(170px, 19vw, 230px); }
+.vbBench.v7 .vbChoices button em { font-weight: 500; }
+.v7Methods { display: flex; gap: 8px; justify-content: center; }
+.v7Methods button { display: grid; gap: 1px; padding: 6px 12px; border-radius: 6px; border: 1.5px solid #d9c9b3; background: #fffdf6; box-shadow: 0 2px 0 #d9c9b3; cursor: pointer; }
+.v7Methods button b { font: 600 13px Pretendard, system-ui; } .v7Methods button small { font: 500 11px Pretendard, system-ui; color: #7b6a5c; }
+.v7Methods button.on { background: #ffdf5e; border-color: #e3bb45; box-shadow: 0 2px 0 #d4a520; }
+.v7Lab2 { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(320px, 1fr); gap: 12px; min-height: 0; }
+.v7Lab2 .vbMonitor { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; min-height: 0; overflow: hidden; border-radius: 6px !important; }
+.v7Lab2 .vbMonitor ul { overflow: hidden; }
+.vbBench.v7 .vbStamp { font-size: 54px !important; padding: 4px 22px !important; border-width: 6px !important; }

@@ -17,6 +17,7 @@ import { play } from "../../ui/sfx";
 import { PursuitRouteBar, ReplayRaceView } from "../../experiences";
 import { ENGINEER } from "../../game/cast";
 import { Icon, type IconName } from "../../ui/Icon";
+import { showVerdict } from "../../ui/Verdict";
 
 type Send = React.Dispatch<any>;
 type Status = "ok" | "tol" | "bad";
@@ -235,11 +236,12 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     if ((d.t ?? 0) > (cur.t ?? 0)) {
       // trap: it changed AFTER the current domino → it is an effect, not the cause
       setTraps(previous => previous.includes(id) ? previous : [...previous, id]);
+      showVerdict(false);
       setMistakes(value => value + 1);
       nope(id, `${d.label}${josa(d.label, "은", "는")} ${fmt(d.t!)}${unit}에 달라졌어요. ${cur.label}(${fmt(cur.t!)}${unit})보다 늦어요. 원인은 결과보다 먼저 일어나야 해요. 이건 ${cur.label} 때문에 생긴 영향이에요.`);
       return;
     }
-    play("squish");
+    showVerdict(true);
     setChain(previous => [...previous, id]);
     setBubble(`${d.label}${josa(d.label, "이", "가")} 더 먼저 달라졌어요. 이제 ${d.label}${josa(d.label, "이", "가")} 왜 달라졌는지 찾으세요.`);
   };
@@ -251,7 +253,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     window.setTimeout(() => { setPhase("zoom"); setBubble(`들어오는 값은 정상, ${dom(data.first).label}만 달라요. 어느 구간을 정밀 검증할지 고르세요.`); play("success"); }, 1000 + nextChain.length * 420);
   };
   const callFirst = () => {
-    if (current !== data.first) { nope(current, "아직 더 앞쪽에 달라진 값이 있어요."); return; }
+    if (current !== data.first) { showVerdict(false); nope(current, "아직 더 앞쪽에 달라진 값이 있어요."); return; }
     play("stamp");
     startCascade(chain);
   };
@@ -259,8 +261,8 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
   const pickSection = (label: string) => {
     const choice = data.section.choices.find(c => c.label === label)!;
     setZoomPick(label); setBubble(choice.why);
-    if (choice.ok) { play("stamp"); window.setTimeout(() => play("success"), 120); window.setTimeout(() => setPhase("done"), 700); }
-    else { setMistakes(value => value + 1); play("error"); }
+    if (choice.ok) { showVerdict(true); window.setTimeout(() => setPhase("done"), 900); }
+    else { setMistakes(value => value + 1); showVerdict(false); }
   };
   const revealAnswer = () => { setChain(route); setChecked(route.flatMap(id => causesOf(id))); setZoomPick(okSection.label); setPhase("done"); setFallIdx(route.length); setBubble(okSection.why); };
   // impact = everything that fell because of the first domino (chain effects + side effects found as traps)

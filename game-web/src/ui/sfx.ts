@@ -2,7 +2,7 @@
 // no licences). Soft, toy-like tones in the spirit of a cosy island game.
 // Sound and music each have an on/off switch saved per browser.
 
-type Sfx = "pop" | "squish" | "zip" | "stamp" | "success" | "error" | "siren" | "crash" | "alarm";
+type Sfx = "pop" | "squish" | "zip" | "stamp" | "success" | "error" | "siren" | "crash" | "alarm" | "beep" | "go" | "skid" | "correct" | "wrong";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -81,44 +81,52 @@ export function play(name: Sfx, pitch = 1) {
     case "error": tone("square", 220, 180, t, .14, .07); tone("square", 180, 140, t + .13, .18, .07); break;
     case "siren": for (let i = 0; i < 4; i++) tone("sawtooth", i % 2 ? 660 : 880, i % 2 ? 660 : 880, t + i * .22, .2, .035); break;
     case "crash": noise(t, .35, .5, 1800); tone("sine", 110, 45, t, .3, .35); break;
+    case "beep": tone("square", 660, 660, t, .14, .08); break;
+    case "go": tone("square", 1320, 1320, t, .35, .09); tone("sawtooth", 90, 260, t + .05, .7, .12); noise(t + .05, .5, .08, 1500); break;
+    case "skid": { const ac2 = audio(); if (!ac2 || !master) break; const len = .55, buf = ac2.createBuffer(1, Math.ceil(ac2.sampleRate * len), ac2.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.min(1, (d.length - i) / (d.length * .4));
+      const src = ac2.createBufferSource(), bp = ac2.createBiquadFilter(), g = ac2.createGain(); src.buffer = buf; bp.type = "bandpass"; bp.frequency.setValueAtTime(2600, t); bp.frequency.linearRampToValueAtTime(1700, t + len); bp.Q.value = 6; g.gain.value = .35;
+      src.connect(bp).connect(g).connect(master); src.start(t); break; }
+    case "correct": [523, 784, 1047].forEach((f, i) => tone("triangle", f, f, t + i * .07, .3, .18)); tone("sine", 140, 60, t, .3, .4); noise(t, .12, .25, 600); break;
+    case "wrong": tone("sawtooth", 220, 110, t, .45, .14); tone("square", 160, 90, t + .12, .45, .1); noise(t, .15, .3, 500); break;
     case "alarm": tone("square", 440, 440, t, .12, .06); tone("square", 440, 440, t + .2, .12, .06); tone("sine", 90, 60, t, .5, .2); break;
   }
 }
 
+// Music is scheduled on the audio clock a little ahead (look-ahead scheduler), so a busy 3D frame
+// or a throttled timer never makes it stutter or stop during the race.
+function scheduleLoop(stepSeconds: number, playStep: (step: number, at: number) => void) {
+  if (musicTimer !== undefined) return;
+  const ac = audio(); if (!ac) return;
+  let step = 0, next = ac.currentTime + .06;
+  musicTimer = window.setInterval(() => {
+    const now = ac.currentTime;
+    if (next < now - .3) next = now + .05; // fell far behind (tab was hidden): restart cleanly
+    while (next < now + .25) { playStep(step, next); step++; next += stepSeconds; }
+  }, 25);
+}
 // Music box loop: soft pentatonic phrase, low volume.
 const PHRASE = [523, 659, 784, 659, 880, 784, 659, 587, 523, 587, 659, 523, 440, 523, 587, 0];
 function startMusic() {
-  if (musicTimer !== undefined) return;
-  let step = 0;
-  const tick = () => {
-    const ac = audio();
-    if (!ac) return;
+  scheduleLoop(.3, (step, t) => {
     const note = PHRASE[step % PHRASE.length];
-    if (note) { tone("sine", note, note, ac.currentTime, .5, .045); tone("triangle", note * 2, note * 2, ac.currentTime, .25, .012); }
-    if (step % 4 === 0) tone("sine", PHRASE[step % PHRASE.length] / 2 || 262, 130, ac.currentTime, .6, .03);
-    step++;
-  };
-  musicTimer = window.setInterval(tick, 300);
+    if (note) { tone("sine", note, note, t, .5, .045); tone("triangle", note * 2, note * 2, t, .25, .012); }
+    if (step % 4 === 0) tone("sine", PHRASE[step % PHRASE.length] / 2 || 262, 130, t, .6, .03);
+  });
 }
 function stopMusic() { if (musicTimer !== undefined) { clearInterval(musicTimer); musicTimer = undefined; } }
 
 // Driving track: 150 BPM minor groove (kick, off-beat hat, pulsing bass, short arpeggio), Am–F–G–Em.
 const RACE_CHORDS = [[220, 262, 330], [175, 220, 262], [196, 247, 294], [165, 196, 247]];
 function startRaceMusic() {
-  if (musicTimer !== undefined) return;
-  let step = 0; // 16th notes
-  const tick = () => {
-    const ac = audio();
-    if (!ac) return;
-    const t = ac.currentTime, beat = step % 16, chord = RACE_CHORDS[Math.floor(step / 16) % RACE_CHORDS.length];
-    if (beat % 4 === 0) tone("sine", 130, 42, t, .18, .32);                       // kick
-    if (beat % 4 === 2) noise(t, .04, .05, 7000);                                   // hat
-    if (beat === 4 || beat === 12) noise(t, .1, .09, 2200);                         // snare-ish
-    if (beat % 2 === 0) tone("sawtooth", chord[0] / 2, chord[0] / 2, t, .09, .05);  // pulsing bass
-    if (beat % 2 === 1 && step % 64 >= 32) tone("square", chord[(beat >> 1) % 3] * 2, chord[(beat >> 1) % 3] * 2, t, .06, .018); // arpeggio, every other phrase
-    step++;
-  };
-  musicTimer = window.setInterval(tick, 100);
+  scheduleLoop(.1, (step, t) => {
+    const beat = step % 16, chord = RACE_CHORDS[Math.floor(step / 16) % RACE_CHORDS.length];
+    if (beat % 4 === 0) tone("sine", 130, 42, t, .18, .32);
+    if (beat % 4 === 2) noise(t, .04, .05, 7000);
+    if (beat === 4 || beat === 12) noise(t, .1, .09, 2200);
+    if (beat % 2 === 0) tone("sawtooth", chord[0] / 2, chord[0] / 2, t, .09, .05);
+    if (beat % 2 === 1 && step % 64 >= 32) tone("square", chord[(beat >> 1) % 3] * 2, chord[(beat >> 1) % 3] * 2, t, .06, .018);
+  });
 }
 function refreshMusic() {
   stopMusic();
@@ -152,4 +160,29 @@ export function installGlobalSfx() {
     if (travelled > 18) { play("zip", 1 + Math.min(1, travelled / 600)); travelled = 0; }
   });
   addEventListener("pointerup", () => { if (drawing) play("squish"); drawing = false; });
+}
+
+// Electric motor sound for the race: a low rumble plus a motor whine that rises with speed.
+let engine: { osc: OscillatorNode; whine: OscillatorNode; gain: GainNode; whineGain: GainNode; filter: BiquadFilterNode } | null = null;
+export function engineSet(speedKmh: number, throttle: number) {
+  if (!prefs.sfx) { engineStop(); return; }
+  const ac = audio(); if (!ac || !master) return;
+  if (!engine) {
+    const osc = ac.createOscillator(), whine = ac.createOscillator(), gain = ac.createGain(), whineGain = ac.createGain(), filter = ac.createBiquadFilter();
+    osc.type = "sawtooth"; whine.type = "sine"; filter.type = "lowpass"; filter.frequency.value = 500; gain.gain.value = 0; whineGain.gain.value = 0;
+    osc.connect(filter).connect(gain).connect(master); whine.connect(whineGain).connect(master); osc.start(); whine.start();
+    engine = { osc, whine, gain, whineGain, filter };
+  }
+  const t = ac.currentTime, v = Math.max(0, speedKmh);
+  engine.osc.frequency.setTargetAtTime(38 + v * 1.1 + throttle * 18, t, .08);
+  engine.filter.frequency.setTargetAtTime(380 + throttle * 900 + v * 4, t, .1);
+  engine.gain.gain.setTargetAtTime(v < 1 && throttle < .05 ? .0 : .035 + throttle * .07, t, .12);
+  engine.whine.frequency.setTargetAtTime(180 + v * 13, t, .08);
+  engine.whineGain.gain.setTargetAtTime(v < 1 ? 0 : .012 + Math.min(.03, v / 4000) + throttle * .012, t, .12);
+}
+export function engineStop() {
+  if (!engine || !ctx) return;
+  const t = ctx.currentTime, e = engine; engine = null;
+  e.gain.gain.setTargetAtTime(0, t, .05); e.whineGain.gain.setTargetAtTime(0, t, .05);
+  window.setTimeout(() => { try { e.osc.stop(); e.whine.stop(); } catch { /* already stopped */ } }, 300);
 }

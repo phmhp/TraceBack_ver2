@@ -13,6 +13,7 @@ import { KIND_TAG, Picto, blockKind, plainText, type Kind } from "../garage/Simu
 import { PursuitRouteBar, getFeatureLayer, piecePath, type DomainId, type Nub } from "../../experiences";
 import { ENGINEER } from "../../game/cast";
 import { Icon } from "../../ui/Icon";
+import { StageIntro, showVerdict } from "../../ui/Verdict";
 
 type Send = React.Dispatch<any>;
 type Blk = { id: string; label: string; kind: Kind | "hw"; ee?: boolean; spec?: string; img?: string; tag?: string; out?: string; bad?: string; why?: string; from: string; does?: string };
@@ -243,12 +244,12 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       const ok = id === ref.board[slot];
       if (!ok) {
         const b = ref.blocks[id], want = ref.req.find(r => r.slot === slot);
-        setRun({ step: slot, status: "fail", failAt: slot }); setFails(f => f + 1); play("error");
+        setRun({ step: slot, status: "fail", failAt: slot }); setFails(f => f + 1); showVerdict(false, "불일치");
         const trapHere = Boolean(b.bad) && ref.blocks[ref.board[slot]].label === b.label;
         setMsg(b.why && (trapHere || !b.bad && !ref.board.includes(id)) ? b.why : `${slot + 1}번 칸 요구사항은 "${want?.text ?? "다음 단계"}"예요. '${b.label}'${eunNeun(b.label)} "${doesOf(b)}" 블록이라 이 자리 값이 맞지 않아요.`);
         return;
       }
-      if (slot === n - 1) { setRun({ step: slot, status: "pass" }); play("success"); setMsg("✓ 모든 요구사항을 만족해요. 이 값들이 이번 사건의 정상 기준이에요."); return; }
+      if (slot === n - 1) { setRun({ step: slot, status: "pass" }); showVerdict(true, "통과"); setMsg("✓ 모든 요구사항을 만족해요. 이 값들이 이번 사건의 정상 기준이에요."); return; }
       play("pop", 1 + slot * .06);
       setRun({ step: slot + 1, status: "running" });
     }, run.step === 0 ? 350 : 520);
@@ -285,6 +286,11 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="REQUIREMENT-BASED LOGIC" title="요구사항 기반 로직 퍼즐" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
+    <StageIntro id="puzzle" title="요구사항 기반 로직 퍼즐" goal="의심 구간이 요구사항대로라면 어떤 블록이 어떤 순서로 있어야 하는지 맞춥니다." steps={[
+      { icon: "clipboard", text: "오른쪽 요구사항을 읽어요. 노란 줄이 이번에 맞춰야 할 칸이에요." },
+      { icon: "puzzle", text: "아래 남은 조각을 빈칸으로 끌어 넣어요. 조각의 ? 버튼을 누르면 하는 일과 표 값이 나와요." },
+      { icon: "monitor", text: "▶ 실행하면 값이 칸마다 흘러요. 요구사항과 처음 다른 칸에서 멈추면 그 칸을 다시 생각해요." },
+    ]} />
     <header className="rpHead">
       <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p>요구사항대로 동작하려면 어떤 블록이 어떤 순서로 있어야 하는지 맞춥니다. <b>값의 단위가 바뀌는 곳</b>(예: % → Nm)이 단서예요.</p></div>
       <div className="rpTools">

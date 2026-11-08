@@ -108,6 +108,8 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
   switch (event.type) {
     case "NEW_GAME":
       return enter(initialCampaign(), "PROLOGUE");
+    case "LOAD_SAVE":
+      return hydrateCampaign(event.save as Partial<Campaign>);
     case "CONTINUE_PROLOGUE":
       return s.scene === "PROLOGUE"
         ? enter(s, "GARAGE_L1")

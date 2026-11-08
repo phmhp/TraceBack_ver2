@@ -57,11 +57,12 @@ import "./p2-notepaper.css";
 import "./p3-notepaper-world.css";
 import { BustedEnding, WantedEnding } from "./ui/CaseFileEnding";
 import { SoundToggle } from "./ui/ComicBurst";
-import { installGlobalSfx, setMusicScene } from "./ui/sfx";
+import { installGlobalSfx, setMusic, setMusicScene, setSfx, soundPrefs } from "./ui/sfx";
 import { SuspectBoard } from "./features/board/SuspectBoard";
 import { DominoBoard } from "./features/board/DominoBoard";
 import { DominoTrace } from "./features/board/DominoTrace";
 import { Icon } from "./ui/Icon";
+import { VerdictLayer } from "./ui/Verdict";
 const A = "/assets/";
 type Sim = {
   speed: number;
@@ -105,8 +106,8 @@ function useCampaign() {
       });
     }
     try {
-      const r = localStorage.getItem("traceback-v16-save");
-      return r ? hydrateCampaign(JSON.parse(r)) : initialCampaign();
+      // always open on the title; a saved run is offered there as "이어하기"
+      return initialCampaign();
     } catch {
       return initialCampaign();
     }
@@ -463,10 +464,18 @@ function Title({
   state: Campaign;
   send: React.Dispatch<any>;
 }) {
+  const saved = (() => { try { const raw = localStorage.getItem("traceback-v16-save"); return raw ? JSON.parse(raw) as Partial<Campaign> : null; } catch { return null; } })();
+  const [panel, setPanel] = useState<"none" | "settings" | "keys">("none");
+  const [prefs, setPrefsState] = useState(soundPrefs());
+  const STAGE_NAME: Record<string, string> = { GARAGE_L1: "차고지", DRIVE_BRIEFING: "범행·도주", CHASE_NORMAL: "주행", FAULT_CUE: "주행", BOARD: "원인 역추적", WIRING: "로직 퍼즐", TWIN_BENCH: "검증", VERIFY_FAIL: "검증", REPAIR: "수리", CHASE_RESUME: "주행", SHIP_ESCAPE: "해적선", SHIP_BOARDING: "해적선" };
+  const savedLabel = saved?.scene && STAGE_NAME[saved.scene] ? `${STAGE_NAME[saved.scene]} 단계 · 추격차와 ${Math.round(saved.policeGapMeters ?? 0)}m` : null;
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => { if (event.key === "Enter" && panel === "none") { event.preventDefault(); if (savedLabel && saved) send({ type: "LOAD_SAVE", save: saved }); else send({ type: "NEW_GAME" }); } if (event.key === "Escape") setPanel("none"); };
+    addEventListener("keydown", key); return () => removeEventListener("keydown", key);
+  }, [panel, savedLabel]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="titleScene">
       <SceneBackdrop image={`${A}stitch23/menu-garage.png`} position="center" shade="soft" />
-      <div className="cloud"><Icon name="cloud" /> 로컬 저장 · 교육 기록 준비</div>
       <div className="titleMenu">
         <div className="eyebrow">자동차 고장 추적 · 레이싱 추리</div>
         <h1>
@@ -474,14 +483,22 @@ function Title({
           <span>TraceBack</span>
           <small>증상에서 원인까지, 검증으로 증명하기</small>
         </h1>
-        <button className="heroBtn" onClick={() => send({ type: "NEW_GAME" })}>
-          <span>
-            <b>새 게임 시작</b>
-          </span>
-        </button>
-      </div>
-      <div className="keyHelp">
-        Enter · SPACE 또는 클릭으로 시작
+        <nav className="titleActions">
+          {savedLabel && saved && <button className="heroBtn" onClick={() => send({ type: "LOAD_SAVE", save: saved })}><span><b>이어하기</b><small>{savedLabel}</small></span></button>}
+          <button className={savedLabel ? "titleBtn" : "heroBtn"} onClick={() => send({ type: "NEW_GAME" })}><span><b>새 게임 시작</b></span></button>
+          <div className="titleRow">
+            <button className="titleBtn" onClick={() => setPanel(panel === "settings" ? "none" : "settings")}>설정</button>
+            <button className="titleBtn" onClick={() => setPanel(panel === "keys" ? "none" : "keys")}>조작법</button>
+          </div>
+        </nav>
+        {panel === "settings" && <div className="titlePanel">
+          <label><input type="checkbox" checked={prefs.sfx} onChange={() => { setSfx(!prefs.sfx); setPrefsState(soundPrefs()); }} /> 효과음 (버튼·모터·제동·충돌)</label>
+          <label><input type="checkbox" checked={prefs.music} onChange={() => { setMusic(!prefs.music); setPrefsState(soundPrefs()); }} /> 배경음 (타이틀·차고)</label>
+          <small>레이싱 배경음은 주행 화면 오른쪽 아래 음표 버튼으로 켜고 끕니다.</small>
+        </div>}
+        {panel === "keys" && <div className="titlePanel keys">
+          <span><kbd>↑</kbd> 가속 · <kbd>↓</kbd> 브레이크</span><span><kbd>←</kbd><kbd>→</kbd> 조향</span><span><kbd>1</kbd>~<kbd>4</kbd> 기어 P·R·N·D</span><span><kbd>Q</kbd><kbd>E</kbd> 회생 제동 강·약</span><span><kbd>R</kbd> READY(시동)</span><span><kbd>Enter</kbd> 대화 넘기기 · 시작</span>
+        </div>}
       </div>
     </div>
   );
@@ -1461,7 +1478,7 @@ function Overlay({
 function App() {
   const [state, send] = useCampaign();
   const canGoBack = ["GARAGE_L1", "GARAGE_L2", "GARAGE_L3", "GARAGE_L4", "DRIVE_BRIEFING", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR"].includes(state.scene);
-  const frame = (view: React.ReactNode) => <>{view}{(canGoBack || state.forwardScene) && <nav className="stageHistoryNav" aria-label="단계 이동">{canGoBack && <button className="stageBackButton" onClick={() => send({ type: "NAV_BACK" })}><i>←</i><span>이전 단계</span></button>}{state.forwardScene && <button className="stageForwardButton" onClick={() => send({ type: "NAV_FORWARD" })}><span>다음 단계</span><i>→</i></button>}</nav>}</>;
+  const frame = (view: React.ReactNode) => <>{view}<VerdictLayer />{(canGoBack || state.forwardScene) && <nav className="stageHistoryNav" aria-label="단계 이동">{canGoBack && <button className="stageBackButton" onClick={() => send({ type: "NAV_BACK" })}><i>←</i><span>이전 단계</span></button>}{state.forwardScene && <button className="stageForwardButton" onClick={() => send({ type: "NAV_FORWARD" })}><span>다음 단계</span><i>→</i></button>}</nav>}</>;
   if (state.scene === "TITLE") return <Title state={state} send={send} />;
   if (state.scene === "PROLOGUE") return frame(<Prologue send={send} />);
   if (state.scene.startsWith("GARAGE"))

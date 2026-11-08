@@ -3,6 +3,7 @@ import type { Campaign, CaseId } from "../../game/runtime";
 import { SCENARIOS } from "../../game/scenarios";
 import { BenchVisual, EmbeddedBench3D, PursuitRouteBar, RestoredPuzzleVisual, type BenchTab } from "../../experiences";
 import { RefPuzzleTrack } from "../wiring/RefPuzzle";
+import { StageIntro, showVerdict } from "../../ui/Verdict";
 import { SAMPLES, divergeIndex, firstMismatch, simulate, type Lv, type Series, type Tech } from "./simModel";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
@@ -576,10 +577,10 @@ const SIM_INPUT: Record<Deriv, Tech> = { reqa: "req", equiv: "req", guess: "req"
 // Test environments (where it runs: MIL/SIL/PIL/HIL/차량) are a separate axis, shown as chips.
 // Names use one word ("시험") and say whether the level is SW (ISO 26262-6) or system (ISO 26262-4).
 const LV: { id: Lv; name: string; group: "SW 레벨" | "시스템 레벨"; std: string; env: string[]; scope: string }[] = [
-  { id: "unit", name: "SW 단위 시험", group: "SW 레벨", std: "26262-6 · 9절", env: ["MIL", "SIL", "PIL"], scope: "SW 단위 하나의 입출력만 봅니다. 다른 SW와 부품 대신 입력값을 직접 인가합니다." },
-  { id: "swint", name: "SW 통합 시험", group: "SW 레벨", std: "26262-6 · 10절", env: ["SIL", "PIL"], scope: "SW 컴포넌트 사이 인터페이스를 봅니다. 부품은 모델로 시뮬레이션합니다." },
-  { id: "embedded", name: "임베디드 SW 시험", group: "SW 레벨", std: "26262-6 · 11절", env: ["PIL", "HIL"], scope: "실제 ECU에서 도는 SW를 봅니다. 센서·부하·차량은 HIL이 시뮬레이션합니다." },
-  { id: "vehicle", name: "시스템 통합 시험", group: "시스템 레벨", std: "26262-4 · 7절", env: ["HIL+실부품", "차량"], scope: "실제 부품·여러 ECU·차량을 연결합니다. HW·SW 통합 → 시스템 통합 → 차량 통합 순입니다." },
+  { id: "unit", name: "SW 단위 시험", group: "SW 레벨", std: "26262-6 · 9절", env: ["MIL", "SIL", "PIL"], scope: "SW 단위 하나만 실행해요. 입력값을 직접 넣고 출력값을 봐요." },
+  { id: "swint", name: "SW 통합 시험", group: "SW 레벨", std: "26262-6 · 10절", env: ["SIL", "PIL"], scope: "여러 SW 컴포넌트를 연결해 실행해요. 부품은 모델이 대신해요." },
+  { id: "embedded", name: "임베디드 SW 시험", group: "SW 레벨", std: "26262-6 · 11절", env: ["PIL", "HIL"], scope: "실제 제어기에서 SW를 실행해요. 센서·부품은 시뮬레이터가 대신해요." },
+  { id: "vehicle", name: "시스템 통합 시험", group: "시스템 레벨", std: "26262-4 · 7절", env: ["HIL+실부품", "차량"], scope: "실제 부품·제어기·차량을 연결해 시험해요." },
 ];
 const LV_ANSWER: Record<CaseId, { answer: Lv; why: string }> = {
   propulsion: { answer: "unit", why: "의심 구간이 VCU 안 SW 계산이에요. 그 SW 단위에 입력값을 인가하는 SW 단위 시험에서 바로 관찰할 수 있어요. 가장 싸고 빠른 레벨이에요." },
@@ -800,6 +801,8 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const expectedProgram = caseId === "propulsion" ? "nominal" : caseId === "thermal" ? "thermal_closed_loop" : "blended_brake";
   const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ""; } catch { return ""; } })();
   const [mission, setMission] = useState<"A" | "B" | "fix" | "C" | "done">("A");
+  const [phase, setPhase] = useState<"level" | "input" | "lab">("level");
+  const [noteOpen, setNoteOpen] = useState(false);
   const [level, setLevel] = useState<Lv>("unit");
   const [method, setMethod] = useState<Method>("req");
   const [deriv, setDeriv] = useState<Deriv>("reqa");
@@ -827,9 +830,9 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const regression: string[] = (() => { try { const fromBoard = JSON.parse(sessionStorage.getItem(`tb-impact-${caseId}`) ?? "null"); return Array.isArray(fromBoard) && fromBoard.length ? fromBoard : regressionTests[caseId]; } catch { return regressionTests[caseId]; } })();
   const sample = (arr: number[]) => arr[Math.min(arr.length - 1, Math.round(u * (arr.length - 1)))];
 
-  const pickLevel = (id: Lv) => { if (running) return; setLevel(id); setU(0); setFlag(null); play("pop"); };
+  const pickLevel = (id: Lv) => { if (running) return; setLevel(id); setU(0); setFlag(null); play("pop"); setPhase("input"); };
   const pickDeriv = (id: Deriv) => {
-    if (running) return; setDeriv(id); setU(0); play("pop");
+    if (running) return; setDeriv(id); setU(0); play("pop"); setPhase("lab");
     if (mission === "A" && !REQ_DERIV.includes(id)) setBubble("이 입력은 실제 사용 조건이에요. 미션 A(요구사항대로 동작하나)보다는 미션 B(고장 재현)에 맞아요. 그래도 실행은 할 수 있어요.");
     else if (mission === "B" && REQ_DERIV.includes(id) && id !== "bound") setBubble("요구사항 입력은 정상 동작 확인용이에요. 고장을 재현하려면 사건이 난 조건(운용 사용 사례·경계값)을 쓰는 게 좋아요.");
   };
@@ -873,22 +876,22 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     const first = firstMismatch(list);
     const sig = list[i];
     if (first === null) return;
-    if (i !== first) { setBubble(`${sig.name}${eunNeun(sig.name)} 가장 먼저 갈라진 신호가 아니에요. 빨간 세로선이 가장 왼쪽에 있는 신호를 찾으세요.`); play("error"); return; }
+    if (i !== first) { setBubble(`${sig.name}${eunNeun(sig.name)} 가장 먼저 갈라진 신호가 아니에요. 빨간 세로선이 가장 왼쪽에 있는 신호를 찾으세요.`); showVerdict(false); return; }
     const upstreamProbed = first === 0 || list.slice(0, first).some((_, k) => probes.includes(key(k)));
-    if (!upstreamProbed) { setBubble("앞쪽 신호를 하나도 보지 않아서, 여기서 처음 갈라졌는지 확신할 수 없어요. 앞쪽에 관측점을 하나 꽂고 다시 실행하세요."); play("error"); return; }
-    if (sig.id !== ROOT_SIGNAL[caseId]) { setBubble(`이 레벨에서 처음 갈라진 곳은 ${sig.name}예요. 하지만 이 레벨에서는 그 앞의 계산이나 부품을 볼 수 없어요. 더 안쪽을 관찰할 수 있는 레벨에서 다시 확인하세요.`); play("error"); return; }
-    play("stamp"); setBubble(`${sig.name}에서 처음 갈라졌어요. 원인이 확정됐어요. 원인을 없애는 수정을 고르세요.`);
+    if (!upstreamProbed) { setBubble("앞쪽 신호를 하나도 보지 않아서, 여기서 처음 갈라졌는지 확신할 수 없어요. 앞쪽에 관측점을 하나 꽂고 다시 실행하세요."); showVerdict(false); return; }
+    if (sig.id !== ROOT_SIGNAL[caseId]) { setBubble(`이 레벨에서 처음 갈라진 곳은 ${sig.name}예요. 하지만 이 레벨에서는 그 앞의 계산이나 부품을 볼 수 없어요. 더 안쪽을 관찰할 수 있는 레벨에서 다시 확인하세요.`); showVerdict(false, "더 안쪽"); return; }
+    showVerdict(true, "원인 확정"); setBubble(`${sig.name}에서 처음 갈라졌어요. 원인이 확정됐어요. 원인을 없애는 수정을 고르세요.`);
     window.setTimeout(() => setMission("fix"), 900);
   };
   const pickFix = (i: number) => {
     setFix(i);
     const item = FIXES[caseId][i];
-    if (!item.ok) { setBubble(item.why); play("error"); return; }
-    play("squish"); setBubble(item.why + " 같은 레벨·같은 입력으로 다시 시험하세요.");
+    if (!item.ok) { setBubble(item.why); showVerdict(false); return; }
+    showVerdict(true); setBubble(item.why + " 같은 레벨·같은 입력으로 다시 시험하세요.");
     if (state.program[caseId] !== expectedProgram) send({ type: "COMPILE", program: expectedProgram });
-    window.setTimeout(() => { setMission("C"); setU(0); setRanKey(null); }, 700);
+    window.setTimeout(() => { setMission("C"); setPhase("lab"); setU(0); setRanKey(null); }, 700);
   };
-  const goB = () => { setMission("B"); setDeriv(tech.deriv[0] === "reqa" ? "usecase" : tech.deriv[0]); if (failLevel) setLevel(failLevel); setU(0); setRanKey(null); setBubble("미션 B: 사건이 난 조건을 입력으로 넣어 같은 증상이 나오는지 확인하고, 처음 갈라진 신호를 지목하세요."); play("pop"); };
+  const goB = () => { setPhase("input"); setMission("B"); setDeriv(tech.deriv[0] === "reqa" ? "usecase" : tech.deriv[0]); if (failLevel) setLevel(failLevel); setU(0); setRanKey(null); setBubble("미션 B: 사건이 난 조건을 입력으로 넣어 같은 증상이 나오는지 확인하고, 처음 갈라진 신호를 지목하세요."); play("pop"); };
   const finish = () => send({ type: "BENCH_RESULT", pass: true, causeCorrect: correctCause });
   const revealAnswer = () => { send({ type: "DEV_SOLVE" }); setLevel(LV_ANSWER[caseId].answer); setMission("done"); setFix(FIXES[caseId].findIndex(item => item.ok)); setRegDone(regression.length); setLog([{ mission: "A", level: LV_ANSWER[caseId].answer, deriv: "reqa", pass: false }]); };
   const fixedView = fixed || firstMismatch(list) === null;
@@ -901,38 +904,56 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     : mission === "B" ? ["사건 조건 입력 고르기", "입력 쪽·출력 쪽 관측점", "실행", "가장 먼저 갈라진 신호에 깃발"]
       : mission === "C" ? ["같은 레벨·입력으로 실행", "PASS 확인", "회귀 시험"] : [];
 
+  const missionLabel = mission === "A" ? "미션 A · 정상 시나리오 확인" : mission === "B" ? "미션 B · 고장 재현" : mission === "C" ? "재시험 · 회귀" : mission === "fix" ? "수정" : "완료";
+  const missionGoal = mission === "A" ? "요구사항 입력을 넣었을 때 요구사항대로 동작하는지 확인합니다. FAIL이 나오는 레벨에 결함이 있어요."
+    : mission === "B" ? "사건이 난 조건을 넣어 같은 증상을 재현하고, 가장 먼저 갈라지는 신호를 찾아 원인을 확정합니다."
+      : mission === "C" ? "고친 설계를 같은 조건으로 다시 시험하고, 영향 범위를 회귀 시험합니다." : "";
+  const plan = <div className="v7Plan">
+    <span className="v7PlanMission">{missionLabel}</span>
+    {mission !== "fix" && mission !== "done" && <>
+      <button className={`v7Card ${phase === "level" ? "now" : ""}`} disabled={running || mission === "C"} onClick={() => setPhase("level")}><small>시험 레벨</small><b>{LV[order(level)].name}</b></button>
+      <i>→</i>
+      <button className={`v7Card ${phase === "input" ? "now" : ""}`} disabled={running || mission === "C" || phase === "level"} onClick={() => setPhase("input")}><small>방법 · 입력값</small><b>{phase === "level" ? "?" : `${METHODS.find(m => m.id === method)?.name} · ${DERIVS.find(d => d.id === deriv)?.name}`}</b></button>
+      <i>→</i>
+      <span className={`v7Card ${phase === "lab" ? "now" : ""}`}><small>시험</small><b>{phase === "lab" ? `관측점 ${probeCount}/${PROBE_LIMIT}` : "?"}</b></span>
+    </>}
+    <button className="v7NoteBtn" onClick={() => setNoteOpen(v => !v)}><Icon name="clipboard" /> 실험 노트 {log.length}</button>
+    <span className="v7CostChip">비용 {cost} · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span>
+    {noteOpen && <div className="v7NotePop">{log.length === 0 ? <p>아직 실행한 시험이 없어요.</p> : <ul>{log.map((item, k) => <li key={k} className={item.pass ? "pass" : "fail"}><b>{item.mission}</b><span>{LV[order(item.level)].name} · {DERIVS.find(d => d.id === item.deriv)?.name}</span><em>{item.pass ? "PASS" : `FAIL${item.first ? ` · ${item.first}` : ""}`}</em></li>)}</ul>}</div>}
+  </div>;
+
   return <div className="vbBench v7">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="SIMULATION VERIFICATION" title="시뮬레이션 검증" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
+    <StageIntro id="bench" title="시뮬레이션 검증" goal="의심 구간을 실제로 시험해서 원인을 증명하는 단계예요." steps={[
+      { icon: "monitor", text: "미션 A: 요구사항 입력으로 시험해 요구사항대로 동작하는지 봐요. FAIL이 나는 레벨에 결함이 있어요." },
+      { icon: "flag", text: "미션 B: 사건 조건으로 같은 증상을 재현하고, 가장 먼저 갈라진 신호에 깃발을 꽂아요." },
+      { icon: "wrench", text: "원인을 없애는 수정을 고르고, 같은 시험으로 다시 확인해요. 시험 비용이 적을수록 별이 많아요." },
+    ]} />
     <main className="vbLayout">
-      <header className="v7Head">
-        <ol className="vbSteps">{missions.map(([id, name], i) => <li key={id} className={i < mIndex ? "done" : i === mIndex ? "now" : ""}><i>{i < mIndex ? "✓" : i + 1}</i>{name}</li>)}</ol>
-        <div className="v7Section"><small>의심 구간</small><b>{section || config.requirementId}</b><span>{config.requirement}</span></div>
-        <div className="v7Cost"><small>시험 비용</small><b>{cost}</b><span>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</span></div>
-      </header>
-
+      {plan}
       {mission === "fix" ? <section className="vbStage">
         <h2><Icon name="wrench" /> 원인을 없애는 수정을 고르세요</h2>
         <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}><img src={item.img} alt="" /><b>{item.label}</b></button>)}</div>
-      </section> : <section className="v7Lab">
-        <aside className="v7Setup">
-          <div className="v7Todo"><small>{mission === "A" ? "미션 A · 정상 시나리오 확인" : mission === "B" ? "미션 B · 고장 재현" : mission === "C" ? "재시험" : "완료"}</small><ol>{todo.map(t => <li key={t}>{t}</li>)}</ol></div>
-          <div className="v7Group"><small>시험 레벨 <em>· 오른쪽일수록 범위가 넓고 비싸요</em></small>
-            <div className="v7Levels">{LV.map(item => <button key={item.id} disabled={running || mission === "C" || mission === "done"} className={level === item.id ? "on" : ""} onClick={() => pickLevel(item.id)} title={item.scope}><small>{item.group} · 비용 {LV_COST[item.id]}</small><b>{item.name}</b><span>{item.env.map(e => <i key={e} className="vbEnv">{e}</i>)}</span></button>)}</div></div>
-          <div className="v7Group"><small>시험 방법</small>
-            <div className="v7Chips">{METHODS.map(item => <button key={item.id} disabled={running} className={method === item.id ? "on" : ""} onClick={() => { setMethod(item.id); play("pop"); }} title={item.sub}>{item.name}</button>)}</div></div>
-          <div className="v7Group"><small>입력값 (테스트 케이스 도출)</small>
-            <div className="v7Chips">{DERIVS.map(item => <button key={item.id} disabled={running || mission === "C" || mission === "done"} className={deriv === item.id ? "on" : ""} onClick={() => pickDeriv(item.id)} title={item.sub}>{item.name}</button>)}</div></div>
-          <div className="v7Notebook"><small><Icon name="clipboard" /> 실험 노트</small>{log.length === 0 ? <p>아직 실행한 시험이 없어요.</p> : <ul>{log.map((item, i) => <li key={i} className={item.pass ? "pass" : "fail"}><b>{item.mission}</b><span>{LV[order(item.level)].name} · {DERIVS.find(d => d.id === item.deriv)?.name}</span><em>{item.pass ? "PASS" : `FAIL${item.first ? ` · ${item.first}` : ""}`}</em></li>)}</ul>}</div>
-        </aside>
+      </section> : phase === "level" && mission !== "C" && mission !== "done" ? <section className="vbStage">
+        <p className="v7Goal">{missionGoal}</p>
+        <h2>어느 레벨에서 시험할까요?</h2>
+        <p className="vbSub">왼쪽일수록 범위가 좁고 비용이 적어요. 결과를 보고 다른 레벨로 바꿔도 돼요.</p>
+        <div className="vbChoices four">{LV.map(item => <button key={item.id} className={level === item.id ? "on" : ""} onClick={() => pickLevel(item.id)}><small className="vbGroup">{item.group} · 비용 {LV_COST[item.id]}</small><b>{item.name}</b><em>{item.scope}</em></button>)}</div>
+      </section> : phase === "input" && mission !== "C" && mission !== "done" ? <section className="vbStage">
+        <p className="v7Goal">{missionGoal}</p>
+        <h2>어떤 방법과 입력값으로 시험할까요?</h2>
+        <div className="v7Methods">{METHODS.map(item => <button key={item.id} className={method === item.id ? "on" : ""} onClick={() => { setMethod(item.id); play("pop"); }}><b>{item.name}</b><small>{item.sub}</small></button>)}</div>
+        <div className="vbChoices five">{DERIVS.map(item => <button key={item.id} className={deriv === item.id ? "on" : ""} onClick={() => pickDeriv(item.id)}><b>{item.name}</b><em>{item.sub}</em></button>)}</div>
+      </section> : <section className="v7Lab2">
         <div className="v7View">
           <div className={`vbSimView ${running ? "running" : ""}`}>{simVisual}{ran && <span className={`vbStamp ${firstMismatch(list) === null ? "pass" : "fail"}`}>{firstMismatch(list) === null ? "PASS" : "FAIL"}</span>}</div>
-          <p className="vbScope"><b>{LV[order(level)].std}</b> {LV[order(level)].scope}</p>
+          <p className="vbScope">{LV[order(level)].scope}</p>
         </div>
         <div className="vbMonitor">
           <header><b><Icon name="monitor" /> 신호 모니터 · {LV[order(level)].name}</b><span><Icon name="clock" /> {(u * sim.seconds).toFixed(1)} / {sim.seconds} {sim.timeUnit}</span></header>
-          <p className="vbLegend">관측점 {probeCount}/{PROBE_LIMIT} · <i className="d" /> 정상 설계 <i className="s" /> {fixed ? "고친 설계" : "시험 대상"}{mission === "B" && ran ? " · 깃발 = 처음 갈라진 곳" : ""}</p>
+          <p className="vbLegend">{mission === "B" && ran ? "가장 먼저 갈라진 신호에 깃발을 꽂으세요" : `관측점을 꽂고 실행하세요 (최대 ${PROBE_LIMIT}개: 입력 쪽 1 + 출력 쪽 1 권장)`} · <i className="d" /> 정상 설계 <i className="s" /> {fixed ? "고친 설계" : "시험 대상"}</p>
           <ul>{list.map((sig, index) => { const on = probed[index]; const value = sample(sig.run); const off = on && ran && divergeIndex(sig) !== null; return <li key={sig.id} className={`${on ? "probed" : ""} ${off ? "off" : ""} ${flag === index ? "flagged" : ""}`}>
             <button className="vbClip" onClick={() => toggleProbe(index)} title="관측점 꽂기/빼기">{on ? <Icon name="probe" /> : "○"}</button>
             <span className="vbSigName"><small>{index === 0 ? "입력 쪽" : index === list.length - 1 ? "출력 쪽" : `${index + 1}번째`}</small><b>{sig.name}</b></span>
@@ -940,15 +961,14 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
             <em className="vbVal">{on ? `${value.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}` : "—"}</em>
             {mission === "B" && ran && on && <button className="vbFlag" onClick={() => plantFlag(index)}><Icon name="flag" /></button>}
           </li>; })}</ul>
+          {(mission === "C" || mission === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>}
           <div className="vbMonitorFoot">
             {mission === "A" && failLevel && <button className="vbGo" onClick={goB}>미션 B로 →</button>}
             {mission !== "done" && <button className="vbGo" disabled={running || !probeCount} onClick={run}>{running ? "시험 중…" : !probeCount ? "관측점을 먼저 꽂아요" : ran ? "▶ 다시 실행" : "▶ 시험 실행"}</button>}
             {mission === "done" && <button className="vbGo" onClick={finish}>검증 완료 · 수리 적용 →</button>}
           </div>
-          {(mission === "C" || mission === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>}
         </div>
       </section>}
-
       <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={revealAnswer}>정답 보기</button>
