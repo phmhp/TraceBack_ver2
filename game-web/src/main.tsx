@@ -50,9 +50,10 @@ import "./v17.css";
 import "./v18.css";
 import "./ending-v19.css";
 import "./p0-v20.css";
+import "./p1-type.css";
 import { BustedEnding, WantedEnding } from "./ui/CaseFileEnding";
 import { SoundToggle } from "./ui/ComicBurst";
-import { installGlobalSfx } from "./ui/sfx";
+import { installGlobalSfx, setMusicScene } from "./ui/sfx";
 import { SuspectBoard } from "./features/board/SuspectBoard";
 import { DominoBoard } from "./features/board/DominoBoard";
 import { DominoTrace } from "./features/board/DominoTrace";
@@ -116,6 +117,12 @@ function useCampaign() {
     if (!pursuitScenes.includes(state.scene)) return;
     const timer = window.setInterval(() => send({ type: "TICK_PURSUIT", meters: .16, travel: 5.4, seconds: 1 }), 1000);
     return () => clearInterval(timer);
+  }, [state.scene]);
+  // one driving track from the start of the chase until the pirate ship (fault, investigation and bench included)
+  useEffect(() => {
+    if (state.scene === "PAUSE") return;
+    const chase = ["DRIVE_BRIEFING", "CHASE_NORMAL", "FAULT_CUE", "ASSIST_CHASE", "BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR", "CHASE_RESUME", "OPTIONAL_FAULT", "SHIP_ESCAPE", "SHIP_BOARDING"];
+    setMusicScene(chase.includes(state.scene) ? "race" : "calm");
   }, [state.scene]);
   return [state, send] as const;
 }

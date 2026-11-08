@@ -23,6 +23,12 @@ type Ref = {
   notes: { domain: DomainId; feature: number; name: string }[];
   field: Record<string, string>; // values recorded in the faulty drive (only where they differ from the reference)
 };
+// bench views: the SW unit under test, and the SW components (SWC) that make up the ECU software
+const SCOPE: Record<CaseId, { unit: { name: string; ids: string[] }; swc: { name: string; ids: string[] }[] }> = {
+  propulsion: { unit: { name: "토크 요청 SWC", ids: ["filter", "map", "permit"] }, swc: [{ name: "APS 입력 SWC", ids: ["corr", "filter"] }, { name: "토크 요청 SWC", ids: ["map", "permit"] }, { name: "토크 중재 SWC", ids: ["min", "ramp"] }, { name: "통신 SWC", ids: ["out"] }] },
+  thermal: { unit: { name: "팬 제어 SWC", ids: ["hyst", "pi"] }, swc: [{ name: "온도 SWC", ids: ["range", "filter"] }, { name: "팬 제어 SWC", ids: ["hyst", "pi"] }] },
+  brake: { unit: { name: "제동 배분 SWC", ids: ["rmin", "rest", "press"] }, swc: [{ name: "제동 요구 SWC", ids: ["recv"] }, { name: "제동 배분 SWC", ids: ["rmin", "rest", "press"] }] },
+};
 
 const T = "/assets/ending-thumbs/", P = "/assets/board-photos/";
 const REF: Record<CaseId, Ref> = {
@@ -323,8 +329,10 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     <footer className="rpFoot">
       <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>밍</b>{msg}</p></div>
       <span className="rpStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}<small>실행 실패 {fails}번</small></span>
-      <button className="rpRun" disabled={!filled || run?.status === "running"} onClick={start}>{filled ? "▶ 실행해서 확인" : `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음`}</button>
-      <button className="rpNext" disabled={run?.status !== "pass"} onClick={() => { send({ type: "COMPILE", program: ref.program }); send({ type: "OPEN_BENCH" }); }}>정상 동작 확정 → 시뮬레이션 검증</button>
+      {/* one primary action at a time: run until it passes, then move on */}
+      {run?.status === "pass"
+        ? <button className="rpNext" onClick={() => { send({ type: "COMPILE", program: ref.program }); send({ type: "OPEN_BENCH" }); }}>다음: 시뮬레이션 검증 →</button>
+        : <button className="rpRun" disabled={!filled || run?.status === "running"} onClick={start}>{!filled ? `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음` : run?.status === "running" ? "실행 중…" : run?.status === "fail" ? "▶ 다시 실행" : "▶ 실행해서 확인"}</button>}
     </footer>
     <button className="secretSolve" title="개발용 정답 적용" onClick={solve}>정답 보기</button>
 
@@ -350,30 +358,48 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   </div>;
 }
 
-/** Bench SW view in the same piece language as the puzzle: displays above = normal scenario (reference),
- *  displays below = this run. While running, values appear slot by slot; a differing value is red. */
-export function RefPuzzleTrack({ caseId, progress, fixed, running }: { caseId: CaseId; progress: number; fixed: boolean; running: boolean }) {
-  const ref = REF[caseId];
-  const n = ref.board.length;
-  const W = PAD * 2 + (n - 1) * PITCH + PIECE, H = 300, Y = 80;
-  const box = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(.6);
-  useLayoutEffect(() => {
-    const fit = () => { const r = box.current?.getBoundingClientRect(); if (r && r.width) setScale(Math.max(Math.min(r.width / W, r.height / H, 1), Math.min(.62, r.height / H))); };
-    fit(); const ob = new ResizeObserver(fit); if (box.current) ob.observe(box.current); return () => ob.disconnect();
-  }, [W]);
-  const shown = Math.floor(progress * n + (progress >= 1 ? 0 : .0001));
+/** Bench SW views in the puzzle's piece language. Displays above = normal design, below = this run.
+ *  unit  : only the SW unit under test, fed by a test stimulus and read by an observer (test harness).
+ *  swint : every SW component of the ECU in its own frame; parts outside the ECU are dashed models.
+ *  Wheel = zoom, drag = pan, starts fitted. */
+export function RefPuzzleTrack({ caseId, progress, fixed, running, mode = "swint" }: { caseId: CaseId; progress: number; fixed: boolean; running: boolean; mode?: "unit" | "swint" }) {
+  const ref = REF[caseId], scope = SCOPE[caseId];
+  const swIds = ref.board.filter(id => ref.blocks[id].kind !== "hw");
+  const ids = mode === "unit" ? scope.unit.ids : ref.board;
+  const n = ids.length + (mode === "unit" ? 2 : 0);
   const x = (i: number) => PAD + i * PITCH;
-  return <div className={`rpTrack ${running ? "running" : ""}`} ref={box}>
-    <div className="rpTrackSizer" style={{ width: W * scale, height: H * scale }}><div className="rpTrackWorld" style={{ width: W, height: H, transform: `scale(${scale})` }}>
-      <span className="rpTrackTag top">정상 시나리오 (복원한 기준)</span>
-      <span className="rpTrackTag bottom">{fixed ? "고친 설계" : "현장 기록 · 시험 대상"}</span>
-      {ref.board.map((id, i) => { const b = ref.blocks[id]; return <div key={id} className={`rpPiece ${b.kind === "hw" ? "hw" : "sw"} locked`} style={{ left: x(i), top: Y, cursor: "default", ...({ "--piece": piecePath({ in: i > 0 ? ref.joints[i - 1] : undefined, out: i < n - 1 ? ref.joints[i] : undefined }) } as React.CSSProperties) }}><PieceFace b={b} /></div>; })}
-      {ref.board.slice(0, -1).map((_, i) => <i key={`a${i}`} className="rpArrow" style={{ left: x(i) + 128, top: Y + 58 }}>▶</i>)}
-      {ref.board.map((id, i) => { const on = i < shown || progress >= 1; const want = ref.blocks[id].out ?? ""; const got = fixed ? want : ref.field[id] ?? want; const cx = x(i) + 70; return <React.Fragment key={`d${id}`}>
-        <span className={`rpDisplay ${on ? "ok" : ""}`} style={{ left: cx, top: Y - 44 }}>{on ? want : "—"}</span>
-        <span className={`rpDisplay ${on ? got === want ? "ok" : "bad" : ""}`} style={{ left: cx, top: Y + PIECE + 10 }}>{on ? got : "—"}</span>
+  const slot = (id: string) => ids.indexOf(id) + (mode === "unit" ? 1 : 0);
+  const W = PAD * 2 + (n - 1) * PITCH + PIECE, H = 330, Y = 96;
+  const box = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState({ s: .6, x: 0, y: 0 });
+  const [pan, setPan] = useState<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const fit = () => { const r = box.current?.getBoundingClientRect(); if (!r?.width) return; const s = Math.min(r.width / W, r.height / H, 1); setView({ s, x: (r.width - W * s) / 2, y: (r.height - H * s) / 2 }); };
+  useLayoutEffect(() => { fit(); const ob = new ResizeObserver(fit); if (box.current) ob.observe(box.current); return () => ob.disconnect(); }, [W, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  const zoom = (event: React.WheelEvent) => {
+    event.preventDefault();
+    const r = box.current!.getBoundingClientRect(), px = event.clientX - r.left, py = event.clientY - r.top;
+    setView(v => { const s = Math.min(2, Math.max(.3, v.s * (event.deltaY > 0 ? .9 : 1.1))); return { s, x: px - (px - v.x) * s / v.s, y: py - (py - v.y) * s / v.s }; });
+  };
+  const shown = Math.ceil(progress * ids.length - 1e-6);
+  const io = (k: number) => ({ in: k > 0 ? "round" as Nub : undefined, out: k < n - 1 ? "round" as Nub : undefined });
+  return <div className={`rpTrack ${running ? "running" : ""}`} ref={box} onWheel={zoom}
+    onPointerDown={event => { setPan({ x: event.clientX, y: event.clientY, ox: view.x, oy: view.y }); (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); }}
+    onPointerMove={event => pan && setView(v => ({ ...v, x: pan.ox + event.clientX - pan.x, y: pan.oy + event.clientY - pan.y }))}
+    onPointerUp={() => setPan(null)}>
+    <div className="rpTrackWorld" style={{ width: W, height: H, transform: `translate(${view.x}px, ${view.y}px) scale(${view.s})` }}>
+      <span className="rpTrackTag top">정상 설계</span>
+      <span className="rpTrackTag bottom">{fixed ? "고친 설계" : "현장 대상"}</span>
+      {mode === "swint" && scope.swc.map(g => { const a = Math.min(...g.ids.map(slot)), b = Math.max(...g.ids.map(slot)); return <div key={g.name} className="rpSwc" style={{ left: x(a) - 6, top: Y - 14, width: (b - a) * PITCH + PIECE + 12, height: PIECE + 28 }}><span>{g.name}</span></div>; })}
+      {mode === "unit" && <><div className="rpHarness" style={{ left: x(0), top: Y }}><b>테스트 자극</b><small>입력 값을 직접 넣음</small></div><div className="rpHarness" style={{ left: x(n - 1), top: Y }}><b>결과 관측</b><small>출력 값을 기록</small></div>
+        <div className="rpSwc unit" style={{ left: x(1) - 6, top: Y - 14, width: (ids.length - 1) * PITCH + PIECE + 12, height: PIECE + 28 }}><span>시험 대상 · {scope.unit.name}</span></div></>}
+      {ids.map(id => { const b = ref.blocks[id], k = slot(id), model = mode === "swint" && !swIds.includes(id); return <div key={id} className={`rpPiece ${b.kind === "hw" ? "hw" : "sw"} locked ${model ? "model" : ""}`} style={{ left: x(k), top: Y, cursor: "inherit", ...({ "--piece": piecePath(io(k)) } as React.CSSProperties) }}><PieceFace b={b} />{model && <em className="rpModelTag">모델</em>}</div>; })}
+      {Array.from({ length: n - 1 }, (_, k) => <i key={`a${k}`} className="rpArrow" style={{ left: x(k) + 128, top: Y + 58 }}>▶</i>)}
+      {ids.map((id, i) => { const on = i < shown || progress >= 1; const want = ref.blocks[id].out ?? ""; const got = fixed ? want : ref.field[id] ?? want; const cx = x(slot(id)) + 70; return <React.Fragment key={`d${id}`}>
+        <span className={`rpDisplay ${on ? "ok" : ""}`} style={{ left: cx, top: Y - 48 }}>{on ? want : "—"}</span>
+        <span className={`rpDisplay ${on ? got === want ? "ok" : "bad" : ""}`} style={{ left: cx, top: Y + PIECE + 18 }}>{on ? got : "—"}</span>
       </React.Fragment>; })}
-    </div></div>
+    </div>
+    <button className="rpFit" onPointerDown={event => event.stopPropagation()} onClick={fit}>⤢ 맞춤</button>
+    <span className="rpTrackHint">휠: 확대·축소 · 끌기: 이동</span>
   </div>;
 }

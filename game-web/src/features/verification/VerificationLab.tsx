@@ -691,7 +691,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const revealAnswer = () => { send({ type: "DEV_SOLVE" }); setLevel(lvAnswer.answer); setSimTab(lvAnswer.answer); setTechnique(tech.answer); setFix(FIXES[caseId].findIndex(item => item.ok)); setStep(4); setU(1); setRan(lvAnswer.answer); setRegDone(regression.length); setProbes(sim.levels[lvAnswer.answer].map(item => `${lvAnswer.answer}:${item.id}`)); };
   const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
   const benchWorks = fixed || (simTab !== "embedded" && simTab !== "vehicle" ? firstMismatch(list) === null : false);
-  const simVisual = simTab === "unit" || simTab === "swint" ? <RefPuzzleTrack caseId={caseId} progress={u} fixed={fixed || firstMismatch(list) === null} running={running} />
+  const simVisual = simTab === "unit" || simTab === "swint" ? <RefPuzzleTrack key={simTab} mode={simTab === "unit" ? "unit" : "swint"} caseId={caseId} progress={u} fixed={fixed || firstMismatch(list) === null} running={running} />
     : simTab === "embedded" ? <EmbeddedBench3D caseId={caseId} running={running} works={benchWorks} />
       : <BenchVisual tab="vehicle" caseId={caseId} running={running} works={fixed} />;
   const ranHere = ran === simTab;

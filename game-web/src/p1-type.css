@@ -1,0 +1,13 @@
+/* p1 — one typography rule set for the whole game (loaded last).
+   - Pretendard everywhere (the cover wordmark keeps its own face).
+   - Korean never breaks inside a word; long Latin tokens may wrap only if nothing else fits.
+   - Short texts balance their lines (the 2nd line is not left with one word); paragraphs avoid orphans. */
+html, body, body *:not(svg):not(path) {
+  font-family: Pretendard, "Pretendard Variable", "Noto Sans KR", system-ui, sans-serif !important;
+  word-break: keep-all !important;
+  overflow-wrap: break-word;
+}
+.titleScene .titleMenu h1 > span { font-family: "TraceRounded", Pretendard, sans-serif !important; }
+.rpDisplay, .vbVal, .vbMonitor header span { font-variant-numeric: tabular-nums; }
+h1, h2, h3, h4, b, strong, small, em, button, label, span, li, dt, dd { text-wrap: balance; }
+p { text-wrap: pretty; }

@@ -10,7 +10,7 @@ import { DevRenderProbe } from "./features/vehicle/DevRenderProbe";
 import { FittedPart } from "./features/parts/PartModel";
 import { hasPartModel } from "./features/parts/partModels";
 import { ComicBurst } from "./ui/ComicBurst";
-import { play, setMusicScene } from "./ui/sfx";
+import { play } from "./ui/sfx";
 import { ECUS } from "./sim/components";
 import { getComponent } from "./sim/registry";
 import { Picto, SimulinkDiagram, blockKind, plainText } from "./features/garage/SimulinkDiagram";
@@ -1257,7 +1257,6 @@ function RearMirror3D({ gap, visible }: { gap: number; visible: boolean }) {
 }
 
 export function RaceExperience({ state, send, mode }: { state: Campaign; send: Send; mode: RaceMode }) {
-  useEffect(() => { setMusicScene("race"); return () => setMusicScene("calm"); }, []);
   const firstStart = mode === "normal" && state.raceDistance < 1;
   const [countdown, setCountdown] = useState(firstStart ? 3 : 0);
   const [goFlash, setGoFlash] = useState(false);

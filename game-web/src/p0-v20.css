@@ -1111,3 +1111,22 @@ button.dtBlk { cursor: pointer; box-shadow: 0 3px 0 #d3b26e; transition: transla
 .vbChoices.vbLevels { align-items: center; gap: 8px; }
 .vbLvArrow { font-style: normal; font-size: 22px; color: #9aa9b6; }
 .vbScope { margin: 4px 0 0; padding: 5px 9px; border-radius: 9px; background: #eef4ff; color: #2f5f9a; font: 700 12px/1.35 Pretendard, system-ui; word-break: keep-all; }
+/* bench SW views: unit harness, SWC frames, zoom/pan */
+.rpTrack { display: block !important; overflow: hidden !important; cursor: grab; touch-action: none; }
+.rpTrack:active { cursor: grabbing; }
+.rpTrackWorld { transform-origin: 0 0; }
+.rpSwc { position: absolute; border-radius: 16px; border: 2px dashed #9cb7d6; background: #f3f8ff99; pointer-events: none; }
+.rpSwc span { position: absolute; left: 10px; top: -11px; padding: 1px 8px; border-radius: 8px; background: #fff; color: #2f5f9a; font: 800 12px Pretendard, system-ui; white-space: nowrap; }
+.rpSwc.unit { border-color: #e0a43a; background: #fff8e6aa; }
+.rpSwc.unit span { color: #9a6410; }
+.rpHarness { position: absolute; width: 140px; height: 140px; display: grid; place-content: center; justify-items: center; gap: 4px; border-radius: 18px; border: 2px dashed #b9c4cf; background: #f7f9fb; text-align: center; }
+.rpHarness b { font: 900 14px Pretendard, system-ui; color: #34495e; } .rpHarness small { font: 600 11px Pretendard, system-ui; color: #6b7a86; }
+.rpPiece.model { opacity: .55; filter: grayscale(.4) drop-shadow(0 3px 0 #c3ccd6); }
+.rpModelTag { position: absolute; right: 30px; bottom: 12px; padding: 1px 6px; border-radius: 6px; background: #6b7a86; color: #fff; font: 800 10px Pretendard, system-ui; font-style: normal; }
+.rpFit { position: absolute; right: 8px; top: 8px; z-index: 5; padding: 4px 10px; border-radius: 10px; border: 0; background: #fff; box-shadow: 0 2px 6px #0002; font: 800 12px Pretendard, system-ui; cursor: pointer; }
+.rpTrackHint { position: absolute; left: 8px; bottom: 6px; font: 700 11px Pretendard, system-ui; color: #8a96a3; pointer-events: none; }
+/* domino fall: tilting tiles must not be cut by the box */
+.dtImpact > .dtFall { overflow: visible !important; padding: 22px 8px 8px !important; }
+/* no one-sided accent borders */
+.refPuzzle .rpReq > div { border-left: 0 !important; }
+.vbMonitor li.off { box-shadow: 0 0 0 2px #ff7a5966 !important; }
