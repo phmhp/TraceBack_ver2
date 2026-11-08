@@ -1256,10 +1256,10 @@ function VerifyFail({
         </div>
         <CommandBar label={<><Keycap>ESC</Keycap> 실패 기록은 자동 저장</>}>
           <ActionButton tone="neutral" onClick={() => send({ type: "OPEN_BOARD" })}>
-            메모판으로
+            원인 역추적으로
           </ActionButton>
           <ActionButton tone="primary" keyHint="ENTER" onClick={() => send({ type: "RETRY_WIRING" })}>
-            로직 수정
+            정상 동작 다시 복원
           </ActionButton>
         </CommandBar>
       </main>

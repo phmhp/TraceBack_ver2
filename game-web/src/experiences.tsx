@@ -1588,7 +1588,7 @@ export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) 
       {/* Like a real repair order: only the customer-visible symptom and warning lamp.
           Internal values stay "?" until they are measured on the board. */}
       <div className="faultLamp"><span className={`lampIcon lamp-${faultLamp[state.caseId].icon}`} aria-hidden="true">{faultLamp[state.caseId].glyph}</span><div><small>계기판 경고등</small><b>{faultLamp[state.caseId].label}</b><em>{faultLamp[state.caseId].note}</em></div></div>
-      <div className="quickTrace isUnknown"><span><small>INPUT</small><b>?</b></span><i /><span><small>COMMAND</small><b>?</b></span><i /><span><small>ACTUAL</small><b>?</b></span><p>입력·명령·출력 값은 메모판에서 측정해 채웁니다</p></div>
+      <div className="quickTrace isUnknown"><span><small>INPUT</small><b>?</b></span><i /><span><small>COMMAND</small><b>?</b></span><i /><span><small>ACTUAL</small><b>?</b></span><p>입력·명령·출력 값은 원인 역추적 단계에서 측정해 채워요</p></div>
       <div className={`catSpeech ${dialogue[step].tone}`}><div className="speechPortrait"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><i>{dialogue[step].role}</i></div><div><b>{dialogue[step].who}</b><p>{dialogue[step].text}</p><small>Enter로 대화 넘기기 · 대화 중 추격 격차는 고정</small></div><button className="primary" onClick={advance}>{step === 0 ? "다음 대화" : "차는 제한 속도로 계속 주행 · 추리 시작"} →</button></div>
     </main>
   </div>;

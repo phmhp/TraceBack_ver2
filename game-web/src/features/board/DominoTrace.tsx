@@ -25,7 +25,10 @@ type Dom = {
   t?: number; causes?: string[]; ev?: string;
 };
 type Zoom = { where: string; kind: "sw" | "hw"; reference: [string, string][]; run: [string, string][]; part?: [string, string, string]; culprit: string; lesson: string };
-type CaseData = { start: string; first: string; timeUnit: string; req: string; doms: Dom[]; zoom: Zoom };
+// the board ends on a SUSPECT SECTION (inputs normal, output wrong), not on the exact part:
+// the exact cause is confirmed later on the bench by simulation.
+type Section = { name: string; choices: { label: string; ok: boolean; why: string }[] };
+type CaseData = { start: string; first: string; timeUnit: string; req: string; doms: Dom[]; zoom: Zoom; section: Section };
 
 const ZONES: Zone[] = ["센서", "제어기", "CAN", "부품", "차량"];
 const ZONE_ICON: Record<Zone, string> = { 센서: "🦶", 제어기: "🧠", CAN: "📡", 부품: "⚙️", 차량: "🚗" };
@@ -63,6 +66,11 @@ const CASES: Record<CaseId, CaseData> = {
       OK("motor_temp", "모터 온도", B("motor_temp"), "부품", 62, "°C"),
       OK("gateway", "게이트웨이 전달", ATLAS(1), "CAN", 100, "%"),
     ],
+    section: { name: "VCU 안 페달 처리·토크 계산 (SW)", choices: [
+      { label: "가속 페달 센서·배선", ok: false, why: "페달 센서 값은 60%로 기준과 같아요. 센서 쪽이 원인이면 들어오는 값부터 달랐어야 해요." },
+      { label: "VCU 안 페달 처리·토크 계산 (SW)", ok: true, why: "들어오는 값은 모두 정상인데 VCU가 내놓은 값만 달라요. 원인은 VCU 안쪽 계산 구간이에요." },
+      { label: "인버터·구동 모터", ok: false, why: "인버터·모터는 VCU 다음이에요. VCU 출력부터 이미 달랐으니 이쪽은 결과예요." },
+    ] },
     zoom: {
       where: "VCU", kind: "sw",
       reference: [["페달 신호 읽기", "60%"], ["토크 지도", "204 Nm"], ["CAN 토크 명령", "204 Nm"]],
@@ -79,8 +87,8 @@ const CASES: Record<CaseId, CaseData> = {
       { id: "derate", label: "출력 허용", img: B("thermal_protection"), zone: "제어기", ref: 100, run: 62, unit: "%", status: "bad", t: 70, causes: ["batt_out", "motor_temp", "bms_req"], ev: "thermal_protection" },
       { id: "motor_temp", label: "모터 온도", img: B("motor_temp"), zone: "부품", ref: 70, run: 96, unit: "°C", status: "bad", t: 55, causes: ["coolant", "inv_temp", "pump"] },
       { id: "coolant", label: "냉각수 온도", img: E("motor_temp_sensor"), zone: "센서", ref: 65, run: 78, unit: "°C", status: "bad", t: 40, causes: ["batt_temp", "coolant_lv", "fan_rpm"], ev: "motor_temp" },
-      { id: "fan_rpm", label: "냉각 팬 회전", img: E("cooling_fan"), zone: "부품", ref: 1850, run: 0, unit: "rpm", status: "bad", t: 0, causes: ["fan_cmd", "fan_pwm", "fan_power", "fan_block"], ev: "fan_actual" },
-      { id: "warn_lamp", label: "냉각 경고등", img: ECU, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 75 },
+      { id: "fan_rpm", label: "냉각 팬 회전", img: E("cooling_fan"), zone: "부품", ref: 1850, run: 0, unit: "rpm", status: "bad", t: 0, causes: ["fan_cmd", "air_temp", "pump"], ev: "fan_actual" },
+      { id: "warn_lamp", label: "파워다운 표시등", img: ECU, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 75 },
       { id: "batt_out", label: "배터리 출력", img: E("bms"), zone: "부품", ref: 160, run: 100, unit: "kW", status: "bad", t: 71 },
       { id: "inv_temp", label: "인버터 온도", img: E("mcu"), zone: "부품", ref: 60, run: 84, unit: "°C", status: "bad", t: 60 },
       { id: "batt_temp", label: "배터리 온도", img: E("bms"), zone: "센서", ref: 30, run: 41, unit: "°C", status: "bad", t: 50 },
@@ -94,6 +102,11 @@ const CASES: Record<CaseId, CaseData> = {
       OK("air_temp", "바깥 기온", SENSOR, "센서", 25, "°C", "tol", 26),
       OK("regen", "회생 제동", B("regen_request"), "제어기", 0, "%"),
     ],
+    section: { name: "팬 명령 이후 구동 경로 (ECU 출력단·배선·전원·팬 모터)", choices: [
+      { label: "Thermal ECU 안 팬 제어 로직 (SW)", ok: false, why: "팬 명령은 기준대로 100%였어요. 제어 로직이 원인이면 명령부터 달랐어야 해요." },
+      { label: "팬 명령 이후 구동 경로 (ECU 출력단·배선·전원·팬 모터)", ok: true, why: "명령은 100%로 정상인데 팬은 0 rpm이에요. 원인은 명령이 나간 뒤의 구동 경로 안쪽이에요." },
+      { label: "출력 제한(보호) 로직", ok: false, why: "출력 제한은 온도가 오른 뒤에 달라졌어요. 시간상 결과 쪽이에요." },
+    ] },
     zoom: {
       where: "냉각 팬", kind: "hw",
       reference: [["온도 읽기", "78°C"], ["65°C 넘으면 켜기", "켜짐"], ["팬 명령", "100%"]],
@@ -109,7 +122,7 @@ const CASES: Record<CaseId, CaseData> = {
     doms: [
       { id: "stop", label: "정지 거리", img: CAR, zone: "차량", ref: 32, run: 58, unit: "m", status: "bad", t: 3, causes: ["decel", "road", "rear_warn"] },
       { id: "decel", label: "차량 감속", img: B("brake_request"), zone: "차량", ref: 3.2, run: 1.4, unit: "m/s²", status: "bad", t: 0.2, causes: ["pitch", "caliper", "regen"] },
-      { id: "caliper", label: "캘리퍼 압력", img: B("brake_actual"), zone: "부품", ref: 42, run: 8, unit: "bar", status: "bad", t: 0.1, causes: ["p_cmd", "pad_temp", "bpp", "fluid"], ev: "brake_actual" },
+      { id: "caliper", label: "캘리퍼 압력", img: B("brake_actual"), zone: "부품", ref: 42, run: 8, unit: "bar", status: "bad", t: 0.1, causes: ["p_cmd", "pad_temp", "bpp"], ev: "brake_actual" },
       { id: "rear_warn", label: "후방 추돌 경고", img: ECU, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 3.2 },
       { id: "pitch", label: "차체 앞 쏠림", img: CAR, zone: "차량", ref: 3, run: 1.2, unit: "°", status: "bad", t: 0.4 },
       { id: "pad_temp", label: "브레이크 패드 온도", img: ATLAS(7), zone: "부품", ref: 180, run: 60, unit: "°C", status: "bad", t: 0.5 },
@@ -119,6 +132,11 @@ const CASES: Record<CaseId, CaseData> = {
       OK("road", "노면 마찰", CAR, "차량", 0.8, "μ"),
       OK("fluid", "브레이크액 양", ATLAS(8), "부품", 100, "%"),
     ],
+    section: { name: "압력 명령 이후 유압 경로 (유압 모듈·라인·캘리퍼)", choices: [
+      { label: "Brake ECU 안 회생·마찰 배분 로직 (SW)", ok: false, why: "압력 명령은 기준대로 42 bar였어요. 배분 로직이 원인이면 명령부터 달랐어야 해요." },
+      { label: "브레이크 페달 센서", ok: false, why: "페달 값 55%는 기준과 같아요. 들어오는 값은 정상이에요." },
+      { label: "압력 명령 이후 유압 경로 (유압 모듈·라인·캘리퍼)", ok: true, why: "명령은 42 bar인데 실제 압력은 8 bar예요. 원인은 명령 이후 유압 경로 안쪽이에요." },
+    ] },
     zoom: {
       where: "캘리퍼", kind: "hw",
       reference: [["제동 요청", "3.2 m/s²"], ["회생·마찰 나누기", "나눔"], ["압력 명령", "42 bar"]],
@@ -179,8 +197,8 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
   const [mistakes, setMistakes] = useState(0);
   const [phase, setPhase] = useState<"trace" | "cascade" | "zoom" | "done">("trace");
   const [fallIdx, setFallIdx] = useState(-1);
-  const [zoomPick, setZoomPick] = useState<string | null>(null);
-  const [bubble, setBubble] = useState(`${dom(data.start).label}${josa(dom(data.start).label, "이", "가")} 기준과 달라! 후보를 측정해서 원인을 찾아보자. ⏱ 언제 달라졌는지가 중요해.`);
+  const [zoomPick, setZoomPick] = useState<string | null>(null); // picked section label
+  const [bubble, setBubble] = useState(`${dom(data.start).label}${josa(dom(data.start).label, "이", "가")} 기준과 달라요. 후보를 측정해 원인 쪽으로 거슬러 올라가세요. ⏱ 언제 달라졌는지가 핵심이에요.`);
   const [shake, setShake] = useState("");
   const [help, setHelp] = useState(true);
   const [mapOpen, setMapOpen] = useState(false);
@@ -196,7 +214,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
   const stars = mistakes === 0 ? 3 : mistakes === 1 ? 2 : 1;
   const route: string[] = []; for (let id: string | undefined = data.start; id; id = causesOf(id).find(c => dom(c).status === "bad" && (dom(c).t ?? 0) < (dom(id!).t ?? 0))) route.push(id);
 
-  const reset = () => { setChain([data.start]); setChecked([]); setTraps([]); setMistakes(0); setPhase("trace"); setFallIdx(-1); setZoomPick(null); setBubble("처음부터! 출력 쪽에서 거꾸로 따라가 보자."); play("squish"); };
+  const reset = () => { setChain([data.start]); setChecked([]); setTraps([]); setMistakes(0); setPhase("trace"); setFallIdx(-1); setZoomPick(null); setBubble("초기화했어요. 증상 쪽에서 거꾸로 따라가세요."); play("squish"); };
   const nope = (id: string, text: string) => { setBubble(text); setShake(id); play("error"); window.setTimeout(() => setShake(""), 420); };
 
   const measure = (id: string) => {
@@ -207,8 +225,8 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     play("zip");
     window.setTimeout(() => play(d.status === "bad" ? "stamp" : "pop"), 160);
     setBubble(d.status === "bad" ? `${d.label}도 기준과 달라요. ⏱ ${fmt(d.t!)}${unit}에 달라지기 시작했어요. ${cur.label}(⏱ ${fmt(cur.t!)}${unit})보다 먼저인가요, 나중인가요?`
-      : d.status === "tol" ? `${d.label}${josa(d.label, "은", "는")} 아주 조금 달라. 허용 범위라 원인이 아니야.`
-        : `${d.label}${josa(d.label, "은", "는")} 기준과 같아. 원인이 아니야.`);
+      : d.status === "tol" ? `${d.label}${josa(d.label, "은", "는")} 조금 다르지만 허용 범위예요. 원인이 아니에요.`
+        : `${d.label}${josa(d.label, "은", "는")} 기준과 같아요. 원인이 아니에요.`);
   };
   const accuse = (id: string) => {
     const d = dom(id);
@@ -216,31 +234,33 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
       // trap: it changed AFTER the current domino → it is an effect, not the cause
       setTraps(previous => previous.includes(id) ? previous : [...previous, id]);
       setMistakes(value => value + 1);
-      nope(id, `${d.label}${josa(d.label, "은", "는")} ⏱ ${fmt(d.t!)}${unit}에 달라졌어. ${cur.label}(⏱ ${fmt(cur.t!)}${unit})보다 늦어! 원인은 결과보다 먼저 일어나야 해. 이건 ${cur.label} 때문에 생긴 영향이야.`);
+      nope(id, `${d.label}${josa(d.label, "은", "는")} ⏱ ${fmt(d.t!)}${unit}에 달라졌어요. ${cur.label}(⏱ ${fmt(cur.t!)}${unit})보다 늦어요. 원인은 결과보다 먼저 일어나야 해요. 이건 ${cur.label} 때문에 생긴 영향이에요.`);
       return;
     }
     play("squish");
     setChain(previous => [...previous, id]);
-    setBubble(`맞아, ${d.label}${josa(d.label, "이", "가")} 더 먼저 달라졌어. 이제 ${d.label}${josa(d.label, "이", "가")} 왜 달라졌는지 찾아보자.`);
+    setBubble(`${d.label}${josa(d.label, "이", "가")} 더 먼저 달라졌어요. 이제 ${d.label}${josa(d.label, "이", "가")} 왜 달라졌는지 찾으세요.`);
   };
   const startCascade = (nextChain: string[]) => {
     setPhase("cascade");
-    setBubble("찾았다! 시작점부터 다시 쓰러뜨려 볼게.");
+    setBubble("처음 어긋난 지점이에요. 그 앞 입력이 모두 정상인지 정리할게요.");
     setFallIdx(-1);
     nextChain.forEach((_, index) => window.setTimeout(() => { setFallIdx(index); play("pop", 1 + index * .15); }, 500 + index * 420));
-    window.setTimeout(() => { setPhase("zoom"); setBubble(`이제 ${dom(data.first).label} 안을 확대해서 기준 설계와 다른 곳을 찾자!`); play("success"); }, 1000 + nextChain.length * 420);
+    window.setTimeout(() => { setPhase("zoom"); setBubble(`들어오는 값은 정상, ${dom(data.first).label}만 달라요. 어느 구간을 정밀 검증할지 고르세요.`); play("success"); }, 1000 + nextChain.length * 420);
   };
   const callFirst = () => {
-    if (current !== data.first) { nope(current, "흠… 이건 아닌 것 같아."); return; }
+    if (current !== data.first) { nope(current, "아직 더 앞쪽에 달라진 값이 있어요."); return; }
     play("stamp");
     startCascade(chain);
   };
-  const pickZoom = (name: string) => {
-    setZoomPick(name);
-    if (name === data.zoom.culprit) { setBubble(data.zoom.lesson); play("stamp"); window.setTimeout(() => play("success"), 120); window.setTimeout(() => setPhase("done"), 900); }
-    else { setBubble(data.zoom.kind === "hw" ? "이 SW 블록은 기준과 똑같아. 값이 다른 곳을 찾아봐!" : "이 블록은 기준에도 있어. 기준에 없는 블록을 찾아봐!"); play("error"); }
+  const okSection = data.section.choices.find(c => c.ok)!;
+  const pickSection = (label: string) => {
+    const choice = data.section.choices.find(c => c.label === label)!;
+    setZoomPick(label); setBubble(choice.why);
+    if (choice.ok) { play("stamp"); window.setTimeout(() => play("success"), 120); window.setTimeout(() => setPhase("done"), 700); }
+    else { setMistakes(value => value + 1); play("error"); }
   };
-  const revealAnswer = () => { setChain(route); setChecked(route.flatMap(id => causesOf(id))); setZoomPick(data.zoom.culprit); setPhase("done"); setFallIdx(route.length); setBubble(data.zoom.lesson); };
+  const revealAnswer = () => { setChain(route); setChecked(route.flatMap(id => causesOf(id))); setZoomPick(okSection.label); setPhase("done"); setFallIdx(route.length); setBubble(okSection.why); };
   // impact = everything that fell because of the first domino (chain effects + side effects found as traps)
   const effects = [...chain.filter(id => id !== data.first), ...traps].map(dom);
   const finish = () => {
@@ -248,7 +268,8 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     const evidence = data.doms.filter(d => d.ev && (chain.includes(d.id) || checked.includes(d.id))).map(d => d.ev!);
     evidence.filter(id => !state.evidence[caseId].includes(id)).forEach(id => send({ type: "RECORD_EVIDENCE", id }));
     if (state.hypothesis[caseId] !== scenario.root) send({ type: "SELECT_HYPOTHESIS", id: scenario.root });
-    send({ type: "OPEN_BENCH" });
+    try { sessionStorage.setItem(`tb-section-${caseId}`, data.section.name); } catch { /* ignore */ }
+    send({ type: "OPEN_WIRING" });
   };
   const startThread = (id: string, event: React.PointerEvent) => {
     event.preventDefault(); event.stopPropagation();
@@ -284,7 +305,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
 
   return <div className="dtBoard">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="INCIDENT INVESTIGATION" title="도미노 추리판" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="ROOT CAUSE TRACE" title="원인 역추적 · 의심 구간 좁히기" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main className="dtLayout">
       <header className="dtHead">
@@ -292,7 +313,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
           <span className="dtMini">{ZONES.map(zone => <i key={zone} className={zone === cur.zone && !traced ? "now" : chain.some(id => dom(id).zone === zone) ? "seen" : ""} />)}</span>
           🗺 전체 지도
         </button>
-        <div className="dtSteps">{["거꾸로 따라가기", "시작점 안 확대", "영향 범위 → 검증"].map((label, index) => <span key={label} className={index < step ? "done" : index === step ? "now" : ""}><i>{index < step ? "✓" : index + 1}</i>{label}</span>)}</div>
+        <div className="dtSteps">{["거꾸로 따라가기", "의심 구간 정하기", "영향 범위"].map((label, index) => <span key={label} className={index < step ? "done" : index === step ? "now" : ""}><i>{index < step ? "✓" : index + 1}</i>{label}</span>)}</div>
         <div className="dtButtons">
           <span className="dtHearts" title="실수">{"♥".repeat(3 - Math.min(2, mistakes))}{"♡".repeat(Math.min(2, mistakes))}</span>
           <button onClick={() => setHelp(true)}>방법</button>
@@ -340,17 +361,21 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
       </section>}
 
       {(phase === "zoom" || phase === "done") && <section className="dtZoom">
-        <h2>🔍 {data.zoom.where} 안을 확대 · 기준 설계와 다른 곳은?</h2>
-        <p className="dtReq">📘 {data.req}</p>
-        <div className="dtFlowRow"><small>기준</small>{data.zoom.reference.map(([name, value], index) => <React.Fragment key={name}>{index > 0 && <i>→</i>}<span className="dtBlk ref"><b>{name}</b><em>{value}</em></span></React.Fragment>)}</div>
-        <div className="dtFlowRow"><small>이번</small>{data.zoom.run.map(([name, value], index) => <React.Fragment key={name}>{index > 0 && <i>→</i>}<button className={`dtBlk ${zoomPick === name ? name === data.zoom.culprit ? "right" : "wrong" : ""}`} onClick={() => phase === "zoom" && pickZoom(name)}><b>{name}</b><em>{value}</em></button></React.Fragment>)}
-          {data.zoom.part && <><i>→</i><button className={`dtBlk part ${zoomPick === data.zoom.part[0] ? "right" : ""}`} onClick={() => phase === "zoom" && pickZoom(data.zoom.part![0])}><b>🔧 {data.zoom.part[0]}</b><em>기준 {data.zoom.part[1]} · 지금 {data.zoom.part[2]}</em></button></>}
+        <h2>🔍 처음 어긋난 곳: 어느 구간을 정밀 검증할까요?</h2>
+        <div className="dtBoundary">
+          <div className="dtBIn"><small>들어오는 값 · 모두 정상</small>{causesOf(data.first).map(dom).map(d => <span key={d.id}>✓ {d.label} <em>{refText(d)}</em></span>)}</div>
+          <i>→</i>
+          <div className={`dtBBox ${phase === "done" ? "solved" : ""}`}><small>의심 구간</small><b>{phase === "done" ? data.section.name : "?"}</b></div>
+          <i>→</i>
+          <div className="dtBOut"><small>나가는 값 · 기준과 다름</small><span>✗ {dom(data.first).label}</span><em>기준 {refText(dom(data.first))} · 이번 {fmt(dom(data.first).run)}{dom(data.first).unit ? ` ${dom(data.first).unit}` : ""}</em></div>
         </div>
+        {phase === "zoom" && <div className="dtSecChoices">{data.section.choices.map(c => <button key={c.label} className={zoomPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}>{c.label}</button>)}</div>}
         {phase === "done" && <div className="dtImpact">
-          <b>📋 함께 쓰러진 곳 = 고친 뒤 다시 확인할 곳 (회귀 검증)</b>
+          <DominoFall chain={ordered} traps={traps} parentOf={id => chain.find(c => causesOf(c).includes(id)) ?? data.start} labelOf={id => dom(id).label} />
+          <b>📋 함께 쓰러진 곳 = 고친 뒤 다시 확인할 곳 (영향도 분석 → 회귀 시험 목록)</b>
           <div>{effects.map(d => <span key={d.id}>{d.label}</span>)}</div>
           <b className="dtStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b>
-          <button className="dtNext" onClick={finish}>벤치에서 고치고 검증하기 →</button>
+          <button className="dtNext" onClick={finish}>이 구간의 정상 동작 복원하기 →</button>
         </div>}
       </section>}
 
@@ -361,14 +386,14 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     {mapOpen && <TraceMap data={data} chain={chain} checked={checked} traps={traps} first={traced ? data.first : null} onClose={() => setMapOpen(false)} />}
 
     {help && <div className="dtModal" onClick={() => setHelp(false)}><article onClick={event => event.stopPropagation()}>
-      <h2>🕵️ 도미노 추리, 이렇게 해요</h2>
+      <h2>🕵️ 원인 역추적 방법</h2>
       <div className="dtHow">
         <div><span className="pic">📸</span><b>1. 사진 측정</b><small>기준과 같은지, 언제 달라졌는지</small></div>
         <div><span className="pic">⏱</span><b>2. 먼저 달라진 쪽이 원인</b><small>나중에 달라진 건 결과(함정)</small></div>
-        <div><span className="pic">🎯</span><b>3. 시작점 찾기</b><small>입력이 모두 정상인데 출력만 다를 때</small></div>
+        <div><span className="pic">🎯</span><b>3. 의심 구간 정하기</b><small>입력이 모두 정상인데 출력만 다르면 그 안쪽</small></div>
       </div>
       <p className="dtHowNote">막대: <i className="dash" /> 기준 · <i className="fill" /> 이번 주행 · 틀리면 ♥이 줄어요</p>
-      <button onClick={() => setHelp(false)}>시작!</button>
+      <button onClick={() => setHelp(false)}>시작</button>
     </article></div>}
     {replay && <div className="replayModal" onClick={() => setReplay(false)}><div onClick={event => event.stopPropagation()}><button onClick={() => setReplay(false)}>×</button><small>QUICK REPLAY</small><h2>고장 직전 주행 다시 보기</h2><ReplayRaceView caseId={caseId} /></div></div>}
     <button className="secretSolve" title="개발용 정답 적용" onClick={revealAnswer}>정답 보기</button>
@@ -376,6 +401,18 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
 }
 
 /** Whole E/E path as Simulink-like subsystems; the trace falls backward from the output. */
+/** Dominoes fall cause → effect; side effects (traps found) fall off as branches = impact analysis. */
+function DominoFall({ chain, traps, parentOf, labelOf }: { chain: string[]; traps: string[]; parentOf: (id: string) => string; labelOf: (id: string) => string }) {
+  const [run, setRun] = useState(0);
+  useEffect(() => { const timer = window.setTimeout(() => { setRun(1); chain.forEach((_, i) => window.setTimeout(() => play("pop", .8 + i * .12), i * 380)); }, 150); return () => clearTimeout(timer); }, [chain.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <div className={`dtFall ${run ? "go" : ""}`} onClick={() => { setRun(0); window.setTimeout(() => setRun(1), 60); }} title="눌러서 다시 쓰러뜨리기">
+    {chain.map((id, i) => { const side = traps.filter(t => parentOf(t) === id); return <div key={id} className="dtFallCol">
+      <span className={`dtDomino ${i === 0 ? "cause" : ""}`} style={{ animationDelay: `${i * .38}s` }}><b>{labelOf(id)}</b></span>
+      {side.map((t, k) => <span key={t} className="dtDomino side" style={{ animationDelay: `${i * .38 + .25 + k * .2}s` }}><b>{labelOf(t)}</b></span>)}
+    </div>; })}
+  </div>;
+}
+
 function TraceMap({ data, chain, checked, traps, first, onClose }: { data: CaseData; chain: string[]; checked: string[]; traps: string[]; first: string | null; onClose: () => void }) {
   const dom = (id: string) => data.doms.find(item => item.id === id)!;
   const [shown, setShown] = useState(0);

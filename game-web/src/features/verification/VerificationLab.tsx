@@ -2,6 +2,7 @@ import React, { useMemo, useState, type CSSProperties } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
 import { SCENARIOS } from "../../game/scenarios";
 import { BenchVisual, EmbeddedBench3D, RestoredPuzzleVisual, type BenchTab } from "../../experiences";
+import { RefPuzzleTrack } from "../wiring/RefPuzzle";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
 
@@ -285,18 +286,18 @@ const LEVELS: { id: BenchTab; name: string; sub: string; icon: string }[] = [
 const levelCheck: Record<CaseId, { answer: BenchTab; why: string; wrong: string }> = {
   propulsion: {
     answer: "sw",
-    why: "신호 변환 비율(보정값)이 SW 블록 안에 있으니까, SW만 돌려 보는 단위 검증에서 바로 잡혀! 가장 싸고 빠른 단계야.",
+    why: "의심 구간이 VCU 안 SW 계산이에요. SW만 돌려 보는 단위 검증(MIL/SIL)에서 바로 관찰할 수 있어요. 가장 싸고 빠른 레벨이에요.",
     wrong: "그 단계에서도 보여요. 다만 원인이 SW 블록 안의 보정값이라 더 이른 단계에서 잡을 수 있어요.",
   },
   thermal: {
     answer: "embedded",
-    why: "SW는 팬에 100% 명령을 잘 보내고 있어서 SW만 보면 정상이야. 실제 팬과 피드백을 연결한 HIL에서야 '명령은 있는데 안 돈다'가 보여!",
-    wrong: "SW 블록만 보면 명령은 100%로 정상이라 못 잡아. 실제 부품 응답이 함께 보이는 단계가 필요해!",
+    why: "의심 구간이 ECU 출력단·배선·팬 모터예요. SW만 돌리면 명령 100%로 정상이라 안 보여요. 실제 ECU와 부품 신호를 붙인 HIL에서 관찰할 수 있어요.",
+    wrong: "그 레벨로는 의심 구간(출력단·배선·팬 모터)을 관찰할 수 없거나, 더 이른 레벨에서 볼 수 있어요.",
   },
   brake: {
     answer: "embedded",
-    why: "제동 SW는 압력 명령을 제대로 내고 있어. 실제 유압 장치와 캘리퍼 응답을 붙인 HIL에서 '명령 42 bar, 실제 8 bar'가 드러나!",
-    wrong: "명령값만 보면 정상이라 SW 단계에선 안 보여. 실제 유압 응답이 보이는 단계가 필요해!",
+    why: "의심 구간이 유압 모듈·라인·캘리퍼예요. 실제 ECU와 유압 부하를 붙인 HIL에서 '명령 42 bar, 실제 8 bar'를 관찰할 수 있어요.",
+    wrong: "그 레벨로는 의심 구간(유압 경로)을 관찰할 수 없거나, 더 이른 레벨에서 볼 수 있어요.",
   },
 };
 const regressionTests: Record<CaseId, string[]> = {
@@ -539,39 +540,90 @@ function Trace({ sig, upto, fixed, probed }: { sig: Sig; upto: number; fixed: bo
   return <svg className="vbTrace" viewBox="0 0 200 36"><polyline className="ref" points={points(sig.ref)} /><polyline className={`run ${fixed ? "ok" : ""}`} points={points(fixed ? sig.ref : sig.fault)} />{d !== null && upto >= d && <g className="split"><line x1={d * 200} y1="0" x2={d * 200} y2="36" /><circle cx={d * 200} cy={34 - sig.fault(d) / sig.max * 30} r="3" /></g>}</svg>;
 }
 
+// Bench v6 (docs/VERIFICATION_FLOW_STANDARD.md §3–4):
+// 0 검증 레벨 → 1 시험 기법 → 2 정상 시나리오 vs 현장 기록 비교(프로브·🚩) → 3 고치기 → 4 다시 실행·회귀
+type Tech = "req" | "replay" | "boundary" | "soak" | "inject";
+const TECHS: { id: Tech; name: string; sub: string; icon: string }[] = [
+  { id: "req", name: "요구사항 기반 시험", sub: "요구 입력 → 기대 출력 그대로", icon: "📘" },
+  { id: "replay", name: "현장 기록 재생", sub: "사건 재현 입력: 주행 기록을 그대로", icon: "⏺" },
+  { id: "boundary", name: "경계값 시험", sub: "임계·한계 바로 위아래 값", icon: "↕" },
+  { id: "soak", name: "지속 부하 시험", sub: "높은 부하를 오래 유지", icon: "⏳" },
+  { id: "inject", name: "고장 주입", sub: "일부러 고장을 넣어 같은 증상 확인", icon: "💉" },
+];
+const TECH_ANSWER: Record<CaseId, { answer: Tech; input: string; why: Record<Tech, string> }> = {
+  propulsion: { answer: "req", input: "페달 60% 계단 입력 · D단 · READY", why: {
+    req: "요구가 '60% → 204 Nm'로 명확해요. 같은 입력을 기준 모델과 시험 대상에 넣으면 계산 구간의 차이가 바로 보여요.",
+    replay: "가능하지만 주행 기록에는 차속·노면 같은 다른 조건이 섞여 있어요. 계산 구간만 볼 때는 요구사항 입력이 더 깔끔해요.",
+    boundary: "임계 근처 문제가 아니에요. 60%처럼 평범한 값에서도 달라졌어요.",
+    soak: "시간이 지나야 생기는 문제가 아니에요. 밟자마자 달라졌어요.",
+    inject: "고장 주입은 원인 가설을 재현할 때 써요. 지금은 정상 계산과 같은지부터 봐야 해요.",
+  } },
+  thermal: { answer: "soak", input: "고온 부하 유지 · 냉각수 64 → 78°C", why: {
+    soak: "오래 달린 뒤 생긴 문제예요. 열 부하를 유지해야 팬이 켜져야 하는 조건이 만들어지고, 그때 팬 응답을 볼 수 있어요.",
+    req: "요구 입력을 순간만 넣으면 온도가 오르기 전이라 팬이 켜질 조건이 만들어지지 않아요.",
+    replay: "가능하지만 기록이 72초로 길고 다른 조건이 섞여 있어요. 같은 열 부하를 일정하게 유지하는 쪽이 원인 구간을 보기 쉬워요.",
+    boundary: "65°C 경계는 이미 넘었고 팬 명령도 100%였어요. 경계 판단 문제가 아니에요.",
+    inject: "고장 주입은 원인을 좁힌 뒤 '같은 증상이 나는지' 확인할 때 써요. 아직 어디서 갈라지는지부터 봐야 해요.",
+  } },
+  brake: { answer: "boundary", input: "페달 55% · 배터리 가득(회생 0) 경계", why: {
+    boundary: "배터리가 가득 차 회생이 0이 되는 경계에서는 마찰 제동이 전부를 맡아요. 유압 경로 문제가 가장 크게 드러나요.",
+    req: "가능하지만 회생 제동이 일부를 메워서 차이가 작게 보여요.",
+    replay: "기록에는 회생이 섞여 있어 마찰 쪽 차이가 흐려져요.",
+    soak: "오래 밟아야 생기는 문제가 아니에요. 밟자마자 압력이 모자랐어요.",
+    inject: "고장 주입은 원인을 좁힌 뒤 같은 증상이 나는지 확인할 때 써요.",
+  } },
+};
+// which signal zones a verification level can observe
+const LEVEL_ZONES: Record<BenchTab, string[]> = {
+  sw: ["센서", "제어기 SW"],
+  embedded: ["센서", "제어기 SW", "E/E 배선", "부품"],
+  system: ["센서", "제어기 SW", "E/E 배선", "부품", "CAN"],
+  vehicle: ["센서", "제어기 SW", "E/E 배선", "부품", "CAN", "차량"],
+};
+
 export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
   const caseId = state.caseId;
   const config = experimentConfig[caseId];
   const scenario = SCENARIOS[caseId];
   const signals = SIGNALS[caseId];
+  const tech = TECH_ANSWER[caseId];
+  const check = levelCheck[caseId];
   const correctCause = state.hypothesis[caseId] === scenario.root;
   const expectedProgram = caseId === "propulsion" ? "nominal" : caseId === "thermal" ? "thermal_closed_loop" : "blended_brake";
-  const [step, setStep] = useState(0); // 0 재현 입력 · 1 프로브·실행 · 2 고치기 · 3 다시 실행·회귀
-  const [stimulus, setStimulus] = useState<number | null>(null);
+  const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ""; } catch { return ""; } })();
+  const [step, setStep] = useState(0);
+  const [level, setLevel] = useState<BenchTab | null>(null);
+  const [technique, setTechnique] = useState<Tech | null>(null);
   const [probes, setProbes] = useState<number[]>([]);
   const [flag, setFlag] = useState<number | null>(null);
   const [fix, setFix] = useState<number | null>(null);
   const [u, setU] = useState(0); // simulated test time 0..1
   const [running, setRunning] = useState(false);
   const [ran, setRan] = useState(false);
-  const [simTab, setSimTab] = useState(caseId === "propulsion" ? "sw" : "hil");
-  const [level, setLevel] = useState<BenchTab | null>(null);
+  const [simTab, setSimTab] = useState<BenchTab>("sw");
   const [regDone, setRegDone] = useState(0);
-  const [bubble, setBubble] = useState("메모판에서 찾은 고장을 시험 케이스로 재현해 보자. 먼저 주행 기록과 같은 입력을 골라!");
+  const [bubble, setBubble] = useState(`앞에서 좁힌 구간을 검증할 차례예요. 먼저 이 구간을 관찰할 수 있는 가장 이른 검증 레벨을 고르세요.`);
   const [mistakes, setMistakes] = useState(0);
-  const fixed = step >= 3;
+  const fixed = step >= 4;
+  const visible = (sig: Sig) => LEVEL_ZONES[level ?? "vehicle"].includes(sig.zone);
   const regression: string[] = (() => { try { const fromBoard = JSON.parse(sessionStorage.getItem(`tb-impact-${caseId}`) ?? "null"); return Array.isArray(fromBoard) && fromBoard.length ? fromBoard : regressionTests[caseId]; } catch { return regressionTests[caseId]; } })();
-  const check = levelCheck[caseId];
   const nope = (text: string) => { setBubble(text); setMistakes(value => value + 1); play("error"); };
 
-  const pickStimulus = (index: number) => {
-    setStimulus(index);
-    if (index !== config.target) { nope(`'${config.stimuli[index].label}' 입력으로는 사건이 재현되지 않아. 주행 기록(${config.missionTitle.replace(/하라$/, "")})과 같은 입력을 골라 봐.`); return; }
-    play("stamp"); setBubble("사건과 같은 입력이에요. 보고 싶은 신호에 🔌 프로브를 꽂고 시험을 실행하세요.");
-    window.setTimeout(() => setStep(1), 600);
+  const pickLevel = (id: BenchTab) => {
+    setLevel(id);
+    if (id !== check.answer) { nope(check.wrong); return; }
+    play("stamp"); setBubble(check.why); setSimTab(id);
+    window.setTimeout(() => { setStep(1); setBubble("이 레벨에서 어떤 방법으로 시험할까요? 사건의 특징에 맞는 기법을 고르세요."); }, 900);
+  };
+  const pickTech = (id: Tech) => {
+    setTechnique(id);
+    if (id !== tech.answer) { nope(tech.why[id]); return; }
+    play("stamp"); setBubble(tech.why[id]);
+    window.setTimeout(() => { setStep(2); setBubble("같은 입력을 정상 시나리오(복원한 기준)와 현장 기록에 함께 넣어 비교해요. 보고 싶은 신호에 🔌 프로브를 꽂고 실행하세요."); }, 900);
   };
   const toggleProbe = (index: number) => {
     if (running) return;
+    if (!visible(signals.list[index])) { setBubble(`${signals.list[index].name}${eunNeun(signals.list[index].name)} 이 검증 레벨에서는 관찰할 수 없어요.`); play("error"); return; }
     setProbes(previous => previous.includes(index) ? previous.filter(i => i !== index) : [...previous, index]);
     play(probes.includes(index) ? "pop" : "zip", .9 + index * .06);
   };
@@ -585,10 +637,10 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       if (next < 1) requestAnimationFrame(tick);
       else {
         setRunning(false); setRan(true);
-        if (!after) { play("error"); setBubble("FAIL 재현! 점선(기준)과 실선(이번)이 갈라지는 신호가 있어. 가장 먼저 갈라진 신호에 🚩를 꽂아 봐."); }
+        if (!after) { play("error"); setBubble("FAIL 재현. 점선(정상 시나리오)과 실선(현장 기록)이 갈라지는 신호가 있어요. 가장 먼저 갈라진 신호에 🚩를 꽂으세요."); }
         else {
           play("stamp"); window.setTimeout(() => play("success"), 150);
-          setBubble(`PASS! 모든 신호가 기준과 겹쳐. 이제 함께 쓰러졌던 곳도 다시 확인(회귀 검증)하자.`);
+          setBubble("PASS. 모든 신호가 기준과 겹쳐요. 영향 범위로 찾은 곳도 다시 확인(회귀 시험)해요.");
           regression.forEach((_, index) => window.setTimeout(() => { setRegDone(index + 1); play("pop", 1 + index * .1); }, 600 + index * 420));
         }
       }
@@ -596,88 +648,87 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     requestAnimationFrame(tick);
   };
   const plantFlag = (index: number) => {
-    if (!ran || step !== 1) return;
+    if (!ran || step !== 2) return;
     setFlag(index);
     const sig = signals.list[index];
     const at = divergeAt(sig);
     const firstAt = divergeAt(signals.list[signals.first])!;
-    const upstreamUnchecked = signals.list.slice(0, signals.first).some((_, i) => !probes.includes(i));
-    if (at === null) { nope(`${sig.name}${eunNeun(sig.name)} 기준과 똑같이 움직였어. 갈라진 신호를 찾아봐!`); return; }
-    if (index !== signals.first && at > firstAt) { nope(`${sig.name}${eunNeun(sig.name)} ⏱ ${(at * signals.seconds).toFixed(1)}s에 갈라졌어요. 더 먼저 갈라진 신호가 있다면 이건 결과예요. 빨간 세로선 위치를 비교해 봐!`); return; }
-    if (index !== signals.first) { nope(`${sig.name}도 다르긴 한데, 신호가 흐르는 더 앞쪽에서 이미 갈라졌어. 앞쪽 신호를 봐!`); return; }
+    const upstreamUnchecked = signals.list.slice(0, signals.first).some((item, i) => visible(item) && !probes.includes(i));
+    if (at === null) { nope(`${sig.name}${eunNeun(sig.name)} 기준과 똑같이 움직였어요. 갈라진 신호를 찾으세요.`); return; }
+    if (index !== signals.first && at > firstAt) { nope(`${sig.name}${eunNeun(sig.name)} ⏱ ${(at * signals.seconds).toFixed(1)}s에 갈라졌어요. 더 먼저 갈라진 신호가 있다면 이건 결과예요. 빨간 세로선 위치를 비교하세요.`); return; }
+    if (index !== signals.first) { nope(`${sig.name}도 다르지만, 신호가 흐르는 더 앞쪽에서 이미 갈라졌어요. 앞쪽 신호를 보세요.`); return; }
     if (upstreamUnchecked) { nope("앞쪽 신호를 모두 확인하지 않았어요. 거기서 먼저 갈라졌을 수 있어요. 앞쪽에도 프로브를 꽂고 다시 실행하세요."); return; }
-    play("stamp"); setBubble(`${sig.name}에서 처음 갈라졌어요 — FIRST MISMATCH. 이제 수정 방법을 고르세요.`);
-    window.setTimeout(() => { setStep(2); setBubble("원인을 없애는 방법을 고르세요. 증상만 가리는 임시 조치는 안 돼요."); }, 900);
+    play("stamp"); setBubble(`${sig.name}에서 처음 갈라졌어요 — FIRST MISMATCH. 원인이 확정됐어요. 이제 수정 방법을 고르세요.`);
+    window.setTimeout(() => { setStep(3); setBubble("원인을 없애는 방법을 고르세요. 증상만 가리는 임시 조치는 안 돼요."); }, 900);
   };
   const pickFix = (index: number) => {
     setFix(index);
     const item = FIXES[caseId][index];
     if (!item.ok) { nope(item.why); return; }
-    play("squish"); setBubble(item.why + " 같은 시험을 다시 돌려 보자.");
+    play("squish"); setBubble(item.why + " 같은 시험을 다시 실행하세요.");
     if (state.program[caseId] !== expectedProgram) send({ type: "COMPILE", program: expectedProgram });
-    window.setTimeout(() => { setStep(3); setRan(false); setU(0); setProbes(signals.list.map((_, i) => i)); }, 700);
+    window.setTimeout(() => { setStep(4); setRan(false); setU(0); setProbes(signals.list.map((_, i) => i).filter(i => visible(signals.list[i]))); }, 700);
   };
-  const pickLevel = (id: BenchTab) => { setLevel(id); if (id === check.answer) { play("success"); setBubble(check.why); } else { play("error"); setBubble(check.wrong); } };
   const finish = () => send({ type: "BENCH_RESULT", pass: true, causeCorrect: correctCause });
-  const revealAnswer = () => { send({ type: "DEV_SOLVE" }); setStimulus(config.target); setProbes(signals.list.map((_, i) => i)); setFlag(signals.first); setFix(FIXES[caseId].findIndex(item => item.ok)); setStep(3); setU(1); setRan(true); setRegDone(regression.length); setLevel(check.answer); };
+  const revealAnswer = () => { send({ type: "DEV_SOLVE" }); setLevel(check.answer); setSimTab(check.answer); setTechnique(tech.answer); setProbes(signals.list.map((_, i) => i)); setFlag(signals.first); setFix(FIXES[caseId].findIndex(item => item.ok)); setStep(4); setU(1); setRan(true); setRegDone(regression.length); };
   const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
-  const works = fixed;
-  const simRunning = running;
-  const simVisual = simTab === "sw" ? <RestoredPuzzleVisual caseId={caseId} running={simRunning} works={works} reference={false} />
-    : simTab === "ee" ? <HardwareRigVisual caseId={caseId} running={simRunning} works={works} conclusive={ran} />
-      : simTab === "hil" ? <EmbeddedBench3D caseId={caseId} running={simRunning} works={works} />
-        : simTab === "system" ? <SystemNetworkVisual caseId={caseId} running={simRunning} works={works} conclusive={ran} />
-          : <BenchVisual tab="vehicle" caseId={caseId} running={simRunning} works={works} />;
+  const simVisual = simTab === "sw" ? <RefPuzzleTrack caseId={caseId} progress={u} fixed={fixed} running={running} />
+    : simTab === "embedded" ? <EmbeddedBench3D caseId={caseId} running={running} works={fixed} />
+      : simTab === "system" ? <SystemNetworkVisual caseId={caseId} running={running} works={fixed} conclusive={ran} />
+        : <BenchVisual tab="vehicle" caseId={caseId} running={running} works={fixed} />;
 
   return <div className="vbBench">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="MING'S TRACE LAB" title="정상 기준 추적 실험" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="SIMULATION VERIFICATION" title="시뮬레이션 검증 · 정상 vs 현장 비교" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <main className="vbLayout">
       <header className="vbHead">
-        <div className="vbReq"><small>{config.requirementId}</small><b>{config.requirement}</b></div>
-        <ol className="vbSteps">{["사건 재현 입력", "프로브 꽂고 실행", "고치기", "다시 실행 · 회귀"].map((name, index) => <li key={name} className={index < step ? "done" : index === step ? "now" : ""}><i>{index < step ? "✓" : index + 1}</i>{name}</li>)}</ol>
+        <div className="vbReq"><small>{section ? `의심 구간 · ${section}` : config.requirementId}</small><b>{config.requirement}</b></div>
+        <ol className="vbSteps">{["검증 레벨", "시험 기법", "정상 vs 현장 비교", "고치기", "다시 실행 · 회귀"].map((name, index) => <li key={name} className={index < step ? "done" : index === step ? "now" : ""}><i>{index < step ? "✓" : index + 1}</i>{name}</li>)}</ol>
       </header>
 
       {step === 0 && <section className="vbStage">
-        <h2>🧪 사건을 재현할 <b>사건 재현 입력</b>은?</h2>
-        <p className="vbSub">주행 기록: {config.missionTitle} · 초기조건 {config.precondition}</p>
-        <div className="vbChoices">{config.stimuli.map((item, index) => <button key={item.label} className={stimulus === index ? index === config.target ? "right" : "wrong" : ""} onClick={() => pickStimulus(index)}>
-          <svg viewBox="0 0 80 34"><path d={WAVES[caseId][index]} /></svg><b>{item.label}</b><em>{item.sequence}</em>
-        </button>)}</div>
+        <h2>🏷 이 구간을 <b>처음</b> 관찰할 수 있는 검증 레벨은?</h2>
+        <p className="vbSub">{section ? `의심 구간: ${section}` : "앞 단계에서 좁힌 구간"} · 이른 레벨일수록 싸고 빠르게 잡아요</p>
+        <div className="vbChoices four">{LEVELS.map(item => <button key={item.id} className={level === item.id ? item.id === check.answer ? "right" : "wrong" : ""} onClick={() => pickLevel(item.id)}><i className="vbIcon">{item.icon}</i><b>{item.name}</b><em>{item.sub}</em></button>)}</div>
       </section>}
 
-      {step === 2 && <section className="vbStage">
-        <h2>🔧 어떻게 고칠까?</h2>
+      {step === 1 && <section className="vbStage">
+        <h2>🧪 어떤 방법으로 시험할까요?</h2>
+        <p className="vbSub">사건 특징: {scenario.symptom}</p>
+        <div className="vbChoices five">{TECHS.map(item => <button key={item.id} className={technique === item.id ? item.id === tech.answer ? "right" : "wrong" : ""} onClick={() => pickTech(item.id)}><i className="vbIcon">{item.icon}</i><b>{item.name}</b><em>{item.sub}</em></button>)}</div>
+      </section>}
+
+      {step === 3 && <section className="vbStage">
+        <h2>🔧 어떻게 고칠까요?</h2>
         <p className="vbSub">처음 갈라진 곳: <b>{signals.list[signals.first].name}</b> · 원인을 없애야 해요</p>
         <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}>
           <img src={item.img} alt="" /><b>{item.label}</b>
         </button>)}</div>
       </section>}
 
-      {(step === 1 || step === 3) && <section className="vbLab">
+      {(step === 2 || step === 4) && <section className="vbLab">
         <div className="vbSim">
-          <nav>{SIM_TABS.map(tab => <button key={tab.id} className={simTab === tab.id ? "on" : ""} onClick={() => { setSimTab(tab.id); play("pop"); }}><b>{tab.label}</b><small>{tab.sub}</small></button>)}</nav>
+          <nav>{LEVELS.map(tab => <button key={tab.id} className={`${simTab === tab.id ? "on" : ""} ${level === tab.id ? "chosen" : ""}`} onClick={() => { setSimTab(tab.id); play("pop"); }}><b>{tab.name}</b><small>{level === tab.id ? "✓ 선택한 레벨" : tab.sub}</small></button>)}</nav>
           <div className={`vbSimView ${running ? "running" : ""}`}>{simVisual}{ran && <span className={`vbStamp ${fixed ? "pass" : "fail"}`}>{fixed ? "PASS" : "FAIL"}</span>}</div>
         </div>
         <div className="vbMonitor">
           <header><b>📟 신호 모니터 · 차이를 잡을 관측 경계</b><span>⏱ {(u * signals.seconds).toFixed(1)} / {signals.seconds} s</span></header>
-          <p className="vbLegend"><i className="d" /> 기준 <i className="s" /> 이번 시험 · 줄을 눌러 🔌 프로브 꽂기{step === 1 && ran ? " · 🚩로 처음 갈라진 곳 표시" : ""}</p>
-          <ul>{signals.list.map((sig, index) => { const probed = probes.includes(index); const value = (fixed ? sig.ref : sig.fault)(u); const off = probed && ran && Math.abs(sig.ref(1) - sig.fault(1)) > sig.max * .02 && !fixed; return <li key={sig.name} className={`${probed ? "probed" : ""} ${off ? "off" : ""} ${flag === index ? "flagged" : ""}`}>
-            <button className="vbClip" onClick={() => toggleProbe(index)} title="프로브 꽂기/빼기">{probed ? "🔌" : "○"}</button>
+          <p className="vbLegend">입력: {tech.input} · <i className="d" /> 정상 시나리오 <i className="s" /> {fixed ? "고친 설계" : "현장 기록"} · 줄을 눌러 🔌{step === 2 && ran ? " · 🚩 처음 갈라진 곳" : ""}</p>
+          <ul>{signals.list.map((sig, index) => { const can = visible(sig); const probed = probes.includes(index); const value = (fixed ? sig.ref : sig.fault)(u); const off = probed && ran && Math.abs(sig.ref(1) - sig.fault(1)) > sig.max * .02 && !fixed; return <li key={sig.name} className={`${probed ? "probed" : ""} ${off ? "off" : ""} ${flag === index ? "flagged" : ""} ${can ? "" : "locked"}`}>
+            <button className="vbClip" onClick={() => toggleProbe(index)} title={can ? "프로브 꽂기/빼기" : "이 레벨에서는 관찰 불가"}>{!can ? "🔒" : probed ? "🔌" : "○"}</button>
             <span className="vbSigName"><small>{sig.zone}</small><b>{sig.name}</b></span>
             <Trace sig={sig} upto={u} fixed={fixed} probed={probed} />
-            <em className="vbVal">{probed ? `${value.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}` : "—"}</em>
-            {step === 1 && ran && probed && <button className="vbFlag" onClick={() => plantFlag(index)}>🚩</button>}
+            <em className="vbVal">{probed ? `${value.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}` : can ? "—" : "이 레벨 밖"}</em>
+            {step === 2 && ran && probed && <button className="vbFlag" onClick={() => plantFlag(index)}>🚩</button>}
           </li>; })}</ul>
           <div className="vbMonitorFoot">
-            {step === 1 && <button className="vbGo" disabled={running || !probes.length} onClick={() => runSim(false)}>{running ? "시험 중…" : ran ? "▶ 다시 실행" : probes.length ? "▶ 시험 실행" : "프로브를 먼저 꽂아요"}</button>}
-            {step === 3 && !ran && <button className="vbGo" disabled={running} onClick={() => runSim(true)}>{running ? "시험 중…" : "▶ 고친 설계로 다시 실행"}</button>}
+            {step === 2 && <button className="vbGo" disabled={running || !probes.length} onClick={() => runSim(false)}>{running ? "시험 중…" : ran ? "▶ 다시 실행" : probes.length ? "▶ 시험 실행" : "프로브를 먼저 꽂아요"}</button>}
+            {step === 4 && !ran && <button className="vbGo" disabled={running} onClick={() => runSim(true)}>{running ? "시험 중…" : "▶ 고친 설계로 다시 실행"}</button>}
           </div>
         </div>
-        {step === 3 && ran && <div className="vbAfter">
-          <div className="vbReg"><b>🔁 회귀 검증</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>
-          {regDone >= regression.length && <div className="vbLevel"><b>🏷 이 고장을 <u>처음</u> 잡을 수 있는 검증 단계는?</b><div>{LEVELS.map(item => <button key={item.id} className={level === item.id ? item.id === check.answer ? "right" : "wrong" : ""} onClick={() => pickLevel(item.id)}><i>{item.icon}</i><b>{item.name}</b><small>{item.sub}</small></button>)}</div></div>}
-          {level === check.answer && <div className="vbDone"><span><small>방금 사용한 검증 사고법</small><b>{config.technique}</b></span><b className="vbStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b><button className="vbGo" onClick={finish}>검증 완료 · 수리 적용 →</button></div>}
+        {step === 4 && ran && <div className="vbAfter">
+          <div className="vbReg"><b>🔁 회귀 시험 (영향 범위)</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>
+          {regDone >= regression.length && <div className="vbDone"><span><small>방금 사용한 검증 사고법</small><b>{LEVELS.find(item => item.id === level)?.name} · {TECHS.find(item => item.id === technique)?.name} → FIRST MISMATCH → 근본 수정 → 회귀</b></span><b className="vbStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b><button className="vbGo" onClick={finish}>검증 완료 · 수리 적용 →</button></div>}
         </div>}
       </section>}
 

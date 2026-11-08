@@ -163,8 +163,9 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
         "FAULT_CUE",
       );
     case "CONTINUE_FAULT":
-      // flow: fault → build the normal reference (puzzle) → compare on the memo board → bench
-      return enter(s, "WIRING");
+      // flow (docs/VERIFICATION_FLOW_STANDARD.md): fault → root-cause trace narrows to a suspect section (board)
+      // → requirement-based normal behaviour of that section (puzzle) → simulation verification (bench)
+      return enter(s, "BOARD");
     case "OPEN_BOARD":
       return enter(s, "BOARD");
     case "RECORD_EVIDENCE": {
@@ -180,7 +181,7 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       return s;
     }
     case "OPEN_WIRING":
-      return s.evidence[s.caseId].length >= 2 && s.hypothesis[s.caseId]
+      return s.hypothesis[s.caseId] && (s.scene === "BOARD" || s.evidence[s.caseId].length >= 2)
         ? enter(s, "WIRING")
         : reject(s, "증거 2개와 가설을 먼저 선택하세요.");
     case "SOLVE_BOARD": {
@@ -282,8 +283,8 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
         GARAGE_L4: "PROLOGUE",
         DRIVE_BRIEFING: "GARAGE_L1",
         CHASE_NORMAL: "DRIVE_BRIEFING",
-        BOARD: "WIRING",
-        TWIN_BENCH: "BOARD",
+        WIRING: "BOARD",
+        TWIN_BENCH: "WIRING",
         VERIFY_FAIL: "TWIN_BENCH",
         REPAIR: "TWIN_BENCH",
       };

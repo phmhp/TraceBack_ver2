@@ -13,7 +13,7 @@ import { KIND_TAG, Picto, blockKind, plainText, type Kind } from "../garage/Simu
 import { getFeatureLayer, piecePath, type DomainId, type Nub } from "../../experiences";
 
 type Send = React.Dispatch<any>;
-type Blk = { id: string; label: string; kind: Kind | "hw"; img?: string; tag?: string; out?: string; bad?: string; why?: string; from: string; does?: string };
+type Blk = { id: string; label: string; kind: Kind | "hw"; ee?: boolean; img?: string; tag?: string; out?: string; bad?: string; why?: string; from: string; does?: string };
 type Ref = {
   domain: string; feature: string; ecu: string; program: string;
   board: string[]; gaps: number[]; spares: string[]; joints: Nub[];
@@ -21,6 +21,7 @@ type Ref = {
   req: { text: string; slot: number }[];
   blocks: Record<string, Blk>;
   notes: { domain: DomainId; feature: number; name: string }[];
+  field: Record<string, string>; // values recorded in the faulty drive (only where they differ from the reference)
 };
 
 const T = "/assets/ending-thumbs/", P = "/assets/board-photos/";
@@ -57,41 +58,43 @@ const REF: Record<CaseId, Ref> = {
       bms: { id: "bms", label: "BMS · 온도 한계", kind: "hw", img: `${T}bms.png`, out: "한계 260 Nm", from: "배터리 · 출력 한계 계산" },
     },
     notes: [{ domain: "drive", feature: 0, name: "구동 · 운전자 토크 요청" }],
+    field: { filter: "27% (×0.45)", map: "92 Nm", permit: "92 Nm · D", min: "92 Nm", ramp: "92 Nm ↗", out: "CAN 92 Nm", inv: "모터 91 Nm" },
   },
   thermal: {
-    domain: "열관리", feature: "출력 제한(보호) 판단", ecu: "Thermal ECU → VCU", program: "thermal_closed_loop",
-    board: ["coolant", "range", "filter", "max", "stage", "ramp", "vcu"], gaps: [2, 4, 5],
-    spares: ["stageB", "filter", "pi", "ramp", "stage"], joints: ["tri", "tri", "tri", "tri", "square", "square"],
-    side: { pieces: ["motorT"], into: 3, value: "모터 96°C · 배터리 41°C" },
+    domain: "열관리", feature: "냉각 팬 구동 경로", ecu: "Thermal ECU → 팬", program: "thermal_closed_loop",
+    board: ["coolant", "range", "filter", "hyst", "pi", "driver", "fan"], gaps: [1, 3, 5],
+    spares: ["hystB", "driver", "derate", "range", "hyst"], joints: ["tri", "tri", "tri", "zigzag", "wave", "wave"],
+    side: { pieces: ["rpm"], into: 4, value: "실제 회전 1850 rpm" },
     req: [
       { text: "냉각수 온도를 잰다 (78°C)", slot: 0 },
       { text: "센서 값이 말이 되는 범위인지 확인한다", slot: 1 },
       { text: "잠깐 튀는 값은 걸러 낸다", slot: 2 },
-      { text: "여러 부품 온도 중 가장 뜨거운 값으로 판단한다", slot: 3 },
-      { text: "90°C를 넘으면 출력을 60%로 제한한다", slot: 4 },
-      { text: "힘은 갑자기 말고 천천히 줄인다", slot: 5 },
-      { text: "VCU가 토크 상한을 지키고 파워다운 표시등을 켠다", slot: 6 },
+      { text: "65°C를 넘으면 팬을 켠다 (끌 때는 60°C, 깜빡임 방지)", slot: 3 },
+      { text: "실제 회전수를 보며 목표 1850 rpm이 되게 PWM을 계속 조절한다", slot: 4 },
+      { text: "ECU 출력단이 PWM 신호와 12V 전원을 팬에 보낸다", slot: 5 },
+      { text: "팬이 1850 rpm으로 돈다", slot: 6 },
     ],
     blocks: {
       coolant: { id: "coolant", label: "냉각수 온도 센서", kind: "hw", img: `${T}motor_temp_sensor.png`, out: "78°C", from: "열관리 · 온도 상태 만들기" },
       range: { id: "range", label: "범위 검사", kind: "check", out: "78°C ✓", from: "열관리 · 온도 상태 만들기" },
       filter: { id: "filter", label: "필터", kind: "delay", out: "78°C", from: "열관리 · 온도 상태 만들기" },
-      max: { id: "max", label: "최대값 선택", kind: "min", out: "96°C (모터)", from: "열관리 · 온도 상태 만들기" },
-      stage: { id: "stage", label: "단계 임계", tag: "표 A", kind: "switch", out: "출력 60%", from: "열관리 · 출력 제한(보호)" },
-      stageB: { id: "stageB", label: "단계 임계", tag: "표 B", kind: "switch", bad: "출력 20%", from: "열관리 · 출력 제한(보호)",
-        why: "실행 결과 출력 20%예요. 요구사항은 '90°C를 넘으면 60%'예요. 같은 '단계 임계'라도 표 값이 달라요." },
-      pi: { id: "pi", label: "PI 제어", kind: "pi", from: "열관리 · 펌프·팬 제어 (냉각)",
-        why: "'PI 제어'는 펌프·팬을 목표 온도에 맞추는 냉각 기능 블록이에요. 출력을 줄일지 판단하는 경로에는 없어요." },
-      ramp: { id: "ramp", label: "램프 제한", kind: "delay", out: "100% → 60% ↘", from: "열관리 · 출력 제한(보호)" },
-      vcu: { id: "vcu", label: "VCU 토크 상한", kind: "hw", img: `${T}vcu.png`, out: "상한 60% · 파워다운 표시등", from: "열관리 · 출력 제한(보호)" },
-      motorT: { id: "motorT", label: "모터·배터리 온도", kind: "hw", img: `${P}motor_temp.png`, out: "모터 96°C · 배터리 41°C", from: "열관리 · 온도 상태 만들기" },
+      hyst: { id: "hyst", label: "히스테리시스", tag: "표 A", kind: "state", out: "팬 ON", from: "열관리 · 펌프·팬 제어" },
+      hystB: { id: "hystB", label: "히스테리시스", tag: "표 B", kind: "state", bad: "팬 OFF", from: "열관리 · 펌프·팬 제어",
+        why: "실행 결과 팬 OFF예요. 요구사항은 '65°C를 넘으면 켠다'예요. 같은 '히스테리시스'라도 켜는 기준값이 달라요." },
+      pi: { id: "pi", label: "PI 제어", kind: "pi", out: "PWM 68%", from: "열관리 · 펌프·팬 제어" },
+      derate: { id: "derate", label: "단계 임계", kind: "switch", from: "열관리 · 출력 제한(보호)",
+        why: "'단계 임계'는 온도가 높을 때 구동 출력을 줄이는 보호 기능 블록이에요. 팬을 돌리는 경로에는 없어요." },
+      driver: { id: "driver", label: "팬 구동 출력단 · 전원", kind: "hw", ee: true, img: `${T}thermal_ecu.png`, out: "PWM 68% · 12V", from: "열관리 · 펌프·팬 제어 (E/E)" },
+      fan: { id: "fan", label: "냉각 팬 모터", kind: "hw", img: `${T}cooling_fan.png`, out: "1850 rpm", from: "열관리 · 펌프·팬 제어" },
+      rpm: { id: "rpm", label: "팬 회전 피드백", kind: "hw", img: "/assets/ASSET_090_Input_Sensor_Node.png", out: "실제 1850 rpm", from: "열관리 · 펌프·팬 제어" },
     },
-    notes: [{ domain: "thermal", feature: 0, name: "열관리 · 온도 상태 만들기" }, { domain: "thermal", feature: 3, name: "열관리 · 출력 제한(보호)" }],
+    notes: [{ domain: "thermal", feature: 1, name: "열관리 · 펌프·팬 제어" }, { domain: "thermal", feature: 0, name: "열관리 · 온도 상태 만들기" }],
+    field: { pi: "PWM 100%", driver: "PWM 100% · 12V", fan: "0 rpm" },
   },
   brake: {
-    domain: "제동", feature: "회생 + 마찰 협조 제동", ecu: "Brake ECU", program: "blended_brake",
-    board: ["pedal", "recv", "rmin", "rest", "press", "caliper"], gaps: [1, 3, 4],
-    spares: ["press", "slip", "rest", "pressB", "recv"], joints: ["round", "square", "square", "square", "tri"],
+    domain: "제동", feature: "회생 + 마찰 협조 → 유압 경로", ecu: "Brake ECU → 유압", program: "blended_brake",
+    board: ["pedal", "recv", "rmin", "rest", "press", "hmod", "caliper"], gaps: [1, 4, 5],
+    spares: ["hmod", "slip", "press", "pressB", "recv"], joints: ["round", "square", "square", "square", "tri", "tri"],
     side: { pieces: ["bms", "avail"], into: 2, value: "회생 가능 1.1 m/s²" },
     req: [
       { text: "운전자가 브레이크를 55% 밟는다", slot: 0 },
@@ -99,7 +102,8 @@ const REF: Record<CaseId, Ref> = {
       { text: "회생은 배터리가 받을 수 있는 만큼만 쓴다", slot: 2 },
       { text: "모자란 만큼은 마찰 제동이 채운다", slot: 3 },
       { text: "마찰 몫 2.1 m/s²는 압력 42 bar가 된다", slot: 4 },
-      { text: "캘리퍼가 바퀴를 잡아 합계 3.2 m/s²", slot: 5 },
+      { text: "유압 모듈이 명령대로 라인 압력 42 bar를 만든다", slot: 5 },
+      { text: "캘리퍼가 바퀴를 잡아 합계 3.2 m/s²", slot: 6 },
     ],
     blocks: {
       pedal: { id: "pedal", label: "브레이크 페달 센서", kind: "hw", img: `${T}brake_pedal.png`, out: "55%", from: "제동 · 페달 → 감속 요구" },
@@ -111,11 +115,13 @@ const REF: Record<CaseId, Ref> = {
         why: "실행 결과 8 bar예요. 요구사항은 '2.1 m/s² → 42 bar'예요. 같은 '마찰 압력'이라도 표 값이 달라요." },
       slip: { id: "slip", label: "슬립 임계", kind: "switch", from: "제동 · ABS 잠김 방지",
         why: "'슬립 임계'는 바퀴가 잠기려 할 때만 끼어드는 ABS 블록이에요. 평소 협조 제동 경로에는 없어요." },
+      hmod: { id: "hmod", label: "유압 모듈 · 밸브·펌프", kind: "hw", ee: true, img: `${T}brake_ecu.png`, out: "라인 42 bar", from: "제동 · 페달 → 감속 요구 (E/E)" },
       caliper: { id: "caliper", label: "캘리퍼 · 바퀴", kind: "hw", img: `${T}brake_caliper.png`, out: "감속 3.2 m/s² ✓", from: "제동 · 회생·마찰 협조" },
       bms: { id: "bms", label: "BMS 배터리 수용량", kind: "hw", img: `${T}bms.png`, out: "충전 여유 적음", from: "제동 · 회생·마찰 협조" },
       avail: { id: "avail", label: "회생 가용량", kind: "lut", out: "회생 가능 1.1 m/s²", from: "제동 · 회생·마찰 협조" },
     },
     notes: [{ domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조" }],
+    field: { hmod: "라인 8 bar", caliper: "감속 1.4 m/s²" },
   },
 };
 
@@ -129,7 +135,7 @@ const eunNeun = (word: string) => { const c = word.charCodeAt(word.length - 1); 
 function PieceFace({ b }: { b: Blk }) {
   return <>
     {b.kind === "hw"
-      ? <div className="rpPic hw"><img src={b.img} alt="" draggable={false} /><small>부품</small></div>
+      ? <div className={`rpPic hw ${b.ee ? "ee" : ""}`}><img src={b.img} alt="" draggable={false} /><small>{b.ee ? "E/E" : "부품"}</small></div>
       : <div className={`rpPic sw kind-${b.kind}`}><div className="flowBlock"><Picto kind={b.kind} /><small>{KIND_TAG[b.kind]}</small></div></div>}
     {b.tag && <em className="rpTag">{b.tag}</em>}
     <b className="rpLabel">{b.label}</b>
@@ -150,12 +156,13 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const [picked, setPicked] = useState<string | null>(null);
   const [run, setRun] = useState<{ step: number; status: "running" | "fail" | "pass"; failAt?: number } | null>(null);
   const [fails, setFails] = useState(0);
-  const [msg, setMsg] = useState(`오른쪽 요구사항을 읽고 빈칸 ${ref.gaps.length}곳에 블록을 넣은 뒤 ▶ 실행하세요. 모두 차고 Control Software 화면에 있던 블록이에요.`);
+  const [msg, setMsg] = useState(`오른쪽 요구사항을 읽고 빈칸 ${ref.gaps.length}곳에 블록을 넣은 뒤 ▶ 실행하세요. 모두 차고에서 본 블록·부품이에요.`);
   const [zoom, setZoom] = useState<Blk | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [scale, setScale] = useState(.8);
   const stage = useRef<HTMLDivElement>(null);
   const noteKey = `${state.caseId}:garageNote`;
+  const section = (() => { try { return sessionStorage.getItem(`tb-section-${state.caseId}`) ?? ref.ecu; } catch { return ref.ecu; } })();
   const noteUsed = Boolean(state.hintClaims[noteKey]);
 
   useLayoutEffect(() => {
@@ -266,7 +273,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     <SceneBackdrop image="/assets/stitch23/prologue-plan.png" position="center" shade="soft" />
     <GameHeader chapter="REQUIREMENT-BASED REFERENCE" title="요구사항 기반 정상 동작 복원" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <header className="rpHead">
-      <div><small>CONTROL SW · {ref.ecu} 안쪽</small><h1>{ref.domain} · {ref.feature}</h1><p>요구사항을 읽고, 차고 <b>Control Software</b>에서 본 블록으로 <b>정상일 때의 계산 흐름</b>을 복원해요.</p></div>
+      <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p>앞에서 좁힌 구간이 <b>정상이라면</b> 어떻게 동작해야 하는지, 요구사항과 차고에서 본 블록으로 복원해요.</p></div>
       <div className="rpTools">
         <button onClick={openNote} disabled={!noteReady} title={noteReady ? "" : "한 번 실행해 본 뒤 열 수 있어요"}>📒 차고 노트{noteUsed ? "" : noteReady ? " · -5m" : " · 실행 후"}</button>
         <button onClick={reset}>↺ 초기화</button>
@@ -317,7 +324,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>밍</b>{msg}</p></div>
       <span className="rpStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}<small>실행 실패 {fails}번</small></span>
       <button className="rpRun" disabled={!filled || run?.status === "running"} onClick={start}>{filled ? "▶ 실행해서 확인" : `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음`}</button>
-      <button className="rpNext" disabled={run?.status !== "pass"} onClick={() => { send({ type: "COMPILE", program: ref.program }); send({ type: "OPEN_BOARD" }); }}>정상 기준 완성 → 메모판에서 비교</button>
+      <button className="rpNext" disabled={run?.status !== "pass"} onClick={() => { send({ type: "COMPILE", program: ref.program }); send({ type: "OPEN_BENCH" }); }}>정상 동작 확정 → 시뮬레이션 검증</button>
     </footer>
     <button className="secretSolve" title="개발용 정답 적용" onClick={solve}>정답 보기</button>
 
@@ -340,5 +347,33 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
         {[...getFeatureLayer(note.domain, note.feature, 3)].sort((a, b) => a.localeCompare(b, "ko")).map(label => { const kind = blockKind(label); return <div key={label} className={`rpNoteCard kind-${kind}`}><div className="flowBlock"><Picto kind={kind} /><small>{KIND_TAG[kind]}</small></div><b>{label}</b><span>{plainText(label, kind)}</span></div>; })}
       </div></section>)}
     </article></div>}
+  </div>;
+}
+
+/** Bench SW view in the same piece language as the puzzle: displays above = normal scenario (reference),
+ *  displays below = this run. While running, values appear slot by slot; a differing value is red. */
+export function RefPuzzleTrack({ caseId, progress, fixed, running }: { caseId: CaseId; progress: number; fixed: boolean; running: boolean }) {
+  const ref = REF[caseId];
+  const n = ref.board.length;
+  const W = PAD * 2 + (n - 1) * PITCH + PIECE, H = 300, Y = 80;
+  const box = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(.6);
+  useLayoutEffect(() => {
+    const fit = () => { const r = box.current?.getBoundingClientRect(); if (r && r.width) setScale(Math.max(Math.min(r.width / W, r.height / H, 1), Math.min(.62, r.height / H))); };
+    fit(); const ob = new ResizeObserver(fit); if (box.current) ob.observe(box.current); return () => ob.disconnect();
+  }, [W]);
+  const shown = Math.floor(progress * n + (progress >= 1 ? 0 : .0001));
+  const x = (i: number) => PAD + i * PITCH;
+  return <div className={`rpTrack ${running ? "running" : ""}`} ref={box}>
+    <div className="rpTrackSizer" style={{ width: W * scale, height: H * scale }}><div className="rpTrackWorld" style={{ width: W, height: H, transform: `scale(${scale})` }}>
+      <span className="rpTrackTag top">정상 시나리오 (복원한 기준)</span>
+      <span className="rpTrackTag bottom">{fixed ? "고친 설계" : "현장 기록 · 시험 대상"}</span>
+      {ref.board.map((id, i) => { const b = ref.blocks[id]; return <div key={id} className={`rpPiece ${b.kind === "hw" ? "hw" : "sw"} locked`} style={{ left: x(i), top: Y, cursor: "default", ...({ "--piece": piecePath({ in: i > 0 ? ref.joints[i - 1] : undefined, out: i < n - 1 ? ref.joints[i] : undefined }) } as React.CSSProperties) }}><PieceFace b={b} /></div>; })}
+      {ref.board.slice(0, -1).map((_, i) => <i key={`a${i}`} className="rpArrow" style={{ left: x(i) + 128, top: Y + 58 }}>▶</i>)}
+      {ref.board.map((id, i) => { const on = i < shown || progress >= 1; const want = ref.blocks[id].out ?? ""; const got = fixed ? want : ref.field[id] ?? want; const cx = x(i) + 70; return <React.Fragment key={`d${id}`}>
+        <span className={`rpDisplay ${on ? "ok" : ""}`} style={{ left: cx, top: Y - 44 }}>{on ? want : "—"}</span>
+        <span className={`rpDisplay ${on ? got === want ? "ok" : "bad" : ""}`} style={{ left: cx, top: Y + PIECE + 10 }}>{on ? got : "—"}</span>
+      </React.Fragment>; })}
+    </div></div>
   </div>;
 }
