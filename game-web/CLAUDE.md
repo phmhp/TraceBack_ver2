@@ -156,6 +156,7 @@
 - 레이싱 소리: 계속 나던 모터음 제거, 시동(ready)·출발(depart)음만. `engineSet`은 미사용 보존.
 - 2차: 이전/다음 버튼 겹침 수정(최소 폭 해제), 검증 입력 기법은 사건별로 실제 다른 입력만(`CASE_DERIVS`, 오류 추정·동치 분할 제외, 방법은 요구사항 기반 고정), 수리 후 회귀 주행 카드(`regressionCard`).
 - 남은 일 전체 목록 = `docs/IMPROVEMENT_PLAN_2026-11-08.md` 9절.
+- 3차: 물고기 말풍선 내용은 몸통 기준 가운데(svg x 38–230), 조작법 바 윗줄 키·아랫줄 뜻. cooling_fan(날개 spin)·cooling_pump 코드 모델 → 시뮬 필수 28종 모두 모델 완료. 새 이미지(thermal·charging·network-diagnostics) 커밋, 썸네일(ending-thumbs)·board-photos(fan_actual, pump_flow) 추가. 라디에이터·밸브·OBC·충전구 등은 시뮬 부품이 아니라(테스트가 부품=시뮬 컴포넌트 요구) 모델 보류.
 
 ## 남은 일 (우선순위 순)
 0. 차고(도메인 동작 원리) 페이지를 '정비소 첫날' 단계형 체험으로: 정보 양 줄이기.
