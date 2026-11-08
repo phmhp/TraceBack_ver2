@@ -587,7 +587,8 @@ const LV_ANSWER: Record<CaseId, { answer: Lv; why: string }> = {
   brake: { answer: "vehicle", why: "의심 구간이 유압 모듈·라인·캘리퍼 같은 실제 부품이에요. 임베디드 SW 시험까지는 유압을 시뮬레이션해서 안 보여요. 실제 유압 부품을 연결하는 시스템 통합 시험(HW·SW 통합)부터 관찰돼요." },
 };
 
-export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
+// v6 (level → technique quiz → compare) kept unused; v7 below follows docs/REDESIGN_2026-11-08.md
+export function TwinBenchV6({ state, send }: { state: Campaign; send: Send }) {
   const caseId = state.caseId;
   const config = experimentConfig[caseId];
   const scenario = SCENARIOS[caseId];
@@ -778,3 +779,178 @@ function SeriesTrace({ sig, upto, probed }: { sig: Series; upto: number; probed:
   return <svg className="vbTrace" viewBox="0 0 200 36"><polyline className="ref" points={pts(sig.ref)} /><polyline className={`run ${d === null ? "ok" : ""}`} points={pts(sig.run)} />{d !== null && last >= d && <g className="split"><line x1={d / n * 200} y1="0" x2={d / n * 200} y2="36" /><circle cx={d / n * 200} cy={34 - clampTo(sig.run[d] / sig.max) * 30} r="3" /></g>}</svg>;
 }
 const clampTo = (v: number) => Math.max(0, Math.min(1.05, v));
+
+// ===== Bench v7 (docs/REDESIGN_2026-11-08.md §2) =====
+// Mission A · 정상 시나리오 확인: requirement input — does this level behave as the requirement says?
+// Mission B · 고장 재현: field condition — does the same symptom come back, and where does it first split?
+// Every choice runs for real (no locked "answer"); stars come from the total test cost.
+const LV_COST: Record<Lv, number> = { unit: 1, swint: 2, embedded: 3, vehicle: 5 };
+const BEST_COST: Record<CaseId, number> = { propulsion: 2, thermal: 10, brake: 10 };
+const ROOT_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "rpm", brake: "line" };
+const PROBE_LIMIT = 3;
+const REQ_DERIV: Deriv[] = ["reqa", "equiv", "bound"];
+type RunLog = { mission: "A" | "B" | "C"; level: Lv; deriv: Deriv; pass: boolean; first?: string };
+
+export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
+  const caseId = state.caseId;
+  const config = experimentConfig[caseId];
+  const scenario = SCENARIOS[caseId];
+  const tech = TEST_ANSWER[caseId];
+  const correctCause = state.hypothesis[caseId] === scenario.root;
+  const expectedProgram = caseId === "propulsion" ? "nominal" : caseId === "thermal" ? "thermal_closed_loop" : "blended_brake";
+  const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ""; } catch { return ""; } })();
+  const [mission, setMission] = useState<"A" | "B" | "fix" | "C" | "done">("A");
+  const [level, setLevel] = useState<Lv>("unit");
+  const [method, setMethod] = useState<Method>("req");
+  const [deriv, setDeriv] = useState<Deriv>("reqa");
+  const [probes, setProbes] = useState<string[]>([]);
+  const [u, setU] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [ranKey, setRanKey] = useState<string | null>(null);
+  const [log, setLog] = useState<RunLog[]>([]);
+  const [failLevel, setFailLevel] = useState<Lv | null>(null);
+  const [flag, setFlag] = useState<number | null>(null);
+  const [fix, setFix] = useState<number | null>(null);
+  const [regDone, setRegDone] = useState(0);
+  const [bubble, setBubble] = useState("미션 A: 요구사항 입력을 넣어 요구사항대로 동작하는지 확인합니다. 시험 레벨과 입력을 고르고, 관측점을 꽂은 뒤 실행하세요.");
+  const fixed = mission === "C" || mission === "done";
+  const sim = useMemo(() => simulate(caseId, SIM_INPUT[deriv], fixed), [caseId, deriv, fixed]);
+  const list = sim.levels[level];
+  const runKey = `${mission}:${level}:${deriv}`;
+  const ran = ranKey === runKey;
+  const cost = log.filter(item => item.mission !== "C").reduce((sum, item) => sum + LV_COST[item.level], 0); // re-test after the fix is not counted
+  const stars = cost <= BEST_COST[caseId] + 2 ? 3 : cost <= BEST_COST[caseId] + 7 ? 2 : 1;
+  const key = (i: number) => `${level}:${list[i].id}`;
+  const probed = list.map((_, i) => probes.includes(key(i)));
+  const probeCount = probed.filter(Boolean).length;
+  const order = (id: Lv) => LV.findIndex(item => item.id === id);
+  const regression: string[] = (() => { try { const fromBoard = JSON.parse(sessionStorage.getItem(`tb-impact-${caseId}`) ?? "null"); return Array.isArray(fromBoard) && fromBoard.length ? fromBoard : regressionTests[caseId]; } catch { return regressionTests[caseId]; } })();
+  const sample = (arr: number[]) => arr[Math.min(arr.length - 1, Math.round(u * (arr.length - 1)))];
+
+  const pickLevel = (id: Lv) => { if (running) return; setLevel(id); setU(0); setFlag(null); play("pop"); };
+  const pickDeriv = (id: Deriv) => {
+    if (running) return; setDeriv(id); setU(0); play("pop");
+    if (mission === "A" && !REQ_DERIV.includes(id)) setBubble("이 입력은 실제 사용 조건이에요. 미션 A(요구사항대로 동작하나)보다는 미션 B(고장 재현)에 맞아요. 그래도 실행은 할 수 있어요.");
+    else if (mission === "B" && REQ_DERIV.includes(id) && id !== "bound") setBubble("요구사항 입력은 정상 동작 확인용이에요. 고장을 재현하려면 사건이 난 조건(운용 사용 사례·경계값)을 쓰는 게 좋아요.");
+  };
+  const toggleProbe = (i: number) => {
+    if (running) return;
+    const k = key(i);
+    if (probes.includes(k)) { setProbes(p => p.filter(x => x !== k)); play("pop"); return; }
+    if (probeCount >= PROBE_LIMIT) { setBubble(`관측점은 한 번에 ${PROBE_LIMIT}개까지 꽂을 수 있어요. 입력 쪽 1개와 출력 쪽 1개는 꼭 넣고, 남은 하나로 의심 지점을 보세요.`); play("error"); return; }
+    setProbes(p => [...p, k]); play("zip", .9 + i * .06);
+  };
+  const run = () => {
+    if (running || !probeCount) return;
+    setRunning(true); setU(0); setFlag(null); play("zip");
+    const started = performance.now(), m = mission, lv = level, d = deriv, lst = list;
+    const tick = () => {
+      const next = Math.min(1, (performance.now() - started) / 2600);
+      setU(next);
+      if (next < 1) { requestAnimationFrame(tick); return; }
+      setRunning(false); setRanKey(`${m}:${lv}:${d}`);
+      const first = firstMismatch(lst);
+      const pass = first === null;
+      const seenFirst = first !== null && lst.slice(0, first + 1).some((_, i) => probes.includes(`${lv}:${lst[i].id}`)) ? lst[first].name : undefined;
+      setLog(l => [...l, { mission: m === "C" ? "C" : m === "B" ? "B" : "A", level: lv, deriv: d, pass, first: seenFirst }]);
+      const lvName = LV[order(lv)].name;
+      if (m === "A") {
+        if (pass) { play("pop"); setBubble(`${lvName}: PASS. 이 레벨 범위는 요구사항대로 동작해요. ${LV[order(lv)].scope} 결함이 이 범위 밖에 있을 수 있으니 다른 레벨도 생각해 보세요.`); }
+        else { play("error"); setFailLevel(lv); setBubble(`${lvName}: FAIL. 요구사항 입력인데 기대값과 다르게 동작했어요. 결함이 이 레벨 안에 있다는 뜻이에요. 미션 B로 같은 증상이 재현되는지, 어디서 처음 갈라지는지 확인하세요.`); }
+      } else if (m === "B") {
+        if (pass) { play("pop"); setBubble(`${lvName}에서는 증상이 재현되지 않아요. 이 레벨에서 고장 원인이 보이지 않는다는 뜻이에요.`); }
+        else { play("error"); setBubble("증상 재현. 점선(정상 설계)과 실선(시험 대상)이 갈라지는 신호 중, 가장 먼저 갈라진 신호에 깃발을 꽂으세요."); }
+      } else {
+        if (pass) { play("stamp"); window.setTimeout(() => play("success"), 150); setBubble("PASS. 고친 설계는 같은 시험에서 기대값과 같아요. 영향 범위로 찾은 곳도 회귀 시험해요."); regression.forEach((_, i) => window.setTimeout(() => { setRegDone(i + 1); play("pop", 1 + i * .1); }, 600 + i * 420)); window.setTimeout(() => setMission("done"), 700 + regression.length * 420); }
+        else setBubble("아직 기대값과 달라요. 수정을 다시 고르세요.");
+      }
+    };
+    requestAnimationFrame(tick);
+  };
+  const plantFlag = (i: number) => {
+    if (mission !== "B" || !ran) return;
+    setFlag(i);
+    const first = firstMismatch(list);
+    const sig = list[i];
+    if (first === null) return;
+    if (i !== first) { setBubble(`${sig.name}${eunNeun(sig.name)} 가장 먼저 갈라진 신호가 아니에요. 빨간 세로선이 가장 왼쪽에 있는 신호를 찾으세요.`); play("error"); return; }
+    const upstreamProbed = first === 0 || list.slice(0, first).some((_, k) => probes.includes(key(k)));
+    if (!upstreamProbed) { setBubble("앞쪽 신호를 하나도 보지 않아서, 여기서 처음 갈라졌는지 확신할 수 없어요. 앞쪽에 관측점을 하나 꽂고 다시 실행하세요."); play("error"); return; }
+    if (sig.id !== ROOT_SIGNAL[caseId]) { setBubble(`이 레벨에서 처음 갈라진 곳은 ${sig.name}예요. 하지만 이 레벨에서는 그 앞의 계산이나 부품을 볼 수 없어요. 더 안쪽을 관찰할 수 있는 레벨에서 다시 확인하세요.`); play("error"); return; }
+    play("stamp"); setBubble(`${sig.name}에서 처음 갈라졌어요. 원인이 확정됐어요. 원인을 없애는 수정을 고르세요.`);
+    window.setTimeout(() => setMission("fix"), 900);
+  };
+  const pickFix = (i: number) => {
+    setFix(i);
+    const item = FIXES[caseId][i];
+    if (!item.ok) { setBubble(item.why); play("error"); return; }
+    play("squish"); setBubble(item.why + " 같은 레벨·같은 입력으로 다시 시험하세요.");
+    if (state.program[caseId] !== expectedProgram) send({ type: "COMPILE", program: expectedProgram });
+    window.setTimeout(() => { setMission("C"); setU(0); setRanKey(null); }, 700);
+  };
+  const goB = () => { setMission("B"); setDeriv(tech.deriv[0] === "reqa" ? "usecase" : tech.deriv[0]); if (failLevel) setLevel(failLevel); setU(0); setRanKey(null); setBubble("미션 B: 사건이 난 조건을 입력으로 넣어 같은 증상이 나오는지 확인하고, 처음 갈라진 신호를 지목하세요."); play("pop"); };
+  const finish = () => send({ type: "BENCH_RESULT", pass: true, causeCorrect: correctCause });
+  const revealAnswer = () => { send({ type: "DEV_SOLVE" }); setLevel(LV_ANSWER[caseId].answer); setMission("done"); setFix(FIXES[caseId].findIndex(item => item.ok)); setRegDone(regression.length); setLog([{ mission: "A", level: LV_ANSWER[caseId].answer, deriv: "reqa", pass: false }]); };
+  const fixedView = fixed || firstMismatch(list) === null;
+  const simVisual = level === "unit" || level === "swint" ? <RefPuzzleTrack key={level} mode={level === "unit" ? "unit" : "swint"} caseId={caseId} progress={u} fixed={fixed} same={firstMismatch(list) === null} running={running} />
+    : level === "embedded" ? <EmbeddedBench3D caseId={caseId} running={running} works={fixedView} />
+      : caseId === "propulsion" ? <BenchVisual tab="vehicle" caseId={caseId} running={running} works={fixed} /> : <EmbeddedBench3D caseId={caseId} running={running} works={fixedView} />;
+  const missions = [["A", "정상 시나리오 확인"], ["B", "고장 재현·원인 확정"], ["fix", "수정"], ["C", "재시험·회귀"]] as const;
+  const mIndex = mission === "done" ? 4 : missions.findIndex(([id]) => id === mission);
+  const todo = mission === "A" ? ["시험 레벨 고르기", "입력값 고르기", `관측점 꽂기 (최대 ${PROBE_LIMIT}개)`, "실행 → PASS/FAIL 판정"]
+    : mission === "B" ? ["사건 조건 입력 고르기", "입력 쪽·출력 쪽 관측점", "실행", "가장 먼저 갈라진 신호에 깃발"]
+      : mission === "C" ? ["같은 레벨·입력으로 실행", "PASS 확인", "회귀 시험"] : [];
+
+  return <div className="vbBench v7">
+    <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
+    <GameHeader chapter="SIMULATION VERIFICATION" title="시뮬레이션 검증" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
+    <main className="vbLayout">
+      <header className="v7Head">
+        <ol className="vbSteps">{missions.map(([id, name], i) => <li key={id} className={i < mIndex ? "done" : i === mIndex ? "now" : ""}><i>{i < mIndex ? "✓" : i + 1}</i>{name}</li>)}</ol>
+        <div className="v7Section"><small>의심 구간</small><b>{section || config.requirementId}</b><span>{config.requirement}</span></div>
+        <div className="v7Cost"><small>시험 비용</small><b>{cost}</b><span>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</span></div>
+      </header>
+
+      {mission === "fix" ? <section className="vbStage">
+        <h2><Icon name="wrench" /> 원인을 없애는 수정을 고르세요</h2>
+        <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}><img src={item.img} alt="" /><b>{item.label}</b></button>)}</div>
+      </section> : <section className="v7Lab">
+        <aside className="v7Setup">
+          <div className="v7Todo"><small>{mission === "A" ? "미션 A · 정상 시나리오 확인" : mission === "B" ? "미션 B · 고장 재현" : mission === "C" ? "재시험" : "완료"}</small><ol>{todo.map(t => <li key={t}>{t}</li>)}</ol></div>
+          <div className="v7Group"><small>시험 레벨 <em>· 오른쪽일수록 범위가 넓고 비싸요</em></small>
+            <div className="v7Levels">{LV.map(item => <button key={item.id} disabled={running || mission === "C" || mission === "done"} className={level === item.id ? "on" : ""} onClick={() => pickLevel(item.id)} title={item.scope}><small>{item.group} · 비용 {LV_COST[item.id]}</small><b>{item.name}</b><span>{item.env.map(e => <i key={e} className="vbEnv">{e}</i>)}</span></button>)}</div></div>
+          <div className="v7Group"><small>시험 방법</small>
+            <div className="v7Chips">{METHODS.map(item => <button key={item.id} disabled={running} className={method === item.id ? "on" : ""} onClick={() => { setMethod(item.id); play("pop"); }} title={item.sub}>{item.name}</button>)}</div></div>
+          <div className="v7Group"><small>입력값 (테스트 케이스 도출)</small>
+            <div className="v7Chips">{DERIVS.map(item => <button key={item.id} disabled={running || mission === "C" || mission === "done"} className={deriv === item.id ? "on" : ""} onClick={() => pickDeriv(item.id)} title={item.sub}>{item.name}</button>)}</div></div>
+          <div className="v7Notebook"><small><Icon name="clipboard" /> 실험 노트</small>{log.length === 0 ? <p>아직 실행한 시험이 없어요.</p> : <ul>{log.map((item, i) => <li key={i} className={item.pass ? "pass" : "fail"}><b>{item.mission}</b><span>{LV[order(item.level)].name} · {DERIVS.find(d => d.id === item.deriv)?.name}</span><em>{item.pass ? "PASS" : `FAIL${item.first ? ` · ${item.first}` : ""}`}</em></li>)}</ul>}</div>
+        </aside>
+        <div className="v7View">
+          <div className={`vbSimView ${running ? "running" : ""}`}>{simVisual}{ran && <span className={`vbStamp ${firstMismatch(list) === null ? "pass" : "fail"}`}>{firstMismatch(list) === null ? "PASS" : "FAIL"}</span>}</div>
+          <p className="vbScope"><b>{LV[order(level)].std}</b> {LV[order(level)].scope}</p>
+        </div>
+        <div className="vbMonitor">
+          <header><b><Icon name="monitor" /> 신호 모니터 · {LV[order(level)].name}</b><span><Icon name="clock" /> {(u * sim.seconds).toFixed(1)} / {sim.seconds} {sim.timeUnit}</span></header>
+          <p className="vbLegend">관측점 {probeCount}/{PROBE_LIMIT} · <i className="d" /> 정상 설계 <i className="s" /> {fixed ? "고친 설계" : "시험 대상"}{mission === "B" && ran ? " · 깃발 = 처음 갈라진 곳" : ""}</p>
+          <ul>{list.map((sig, index) => { const on = probed[index]; const value = sample(sig.run); const off = on && ran && divergeIndex(sig) !== null; return <li key={sig.id} className={`${on ? "probed" : ""} ${off ? "off" : ""} ${flag === index ? "flagged" : ""}`}>
+            <button className="vbClip" onClick={() => toggleProbe(index)} title="관측점 꽂기/빼기">{on ? <Icon name="probe" /> : "○"}</button>
+            <span className="vbSigName"><small>{index === 0 ? "입력 쪽" : index === list.length - 1 ? "출력 쪽" : `${index + 1}번째`}</small><b>{sig.name}</b></span>
+            <SeriesTrace sig={sig} upto={u} probed={on} />
+            <em className="vbVal">{on ? `${value.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}` : "—"}</em>
+            {mission === "B" && ran && on && <button className="vbFlag" onClick={() => plantFlag(index)}><Icon name="flag" /></button>}
+          </li>; })}</ul>
+          <div className="vbMonitorFoot">
+            {mission === "A" && failLevel && <button className="vbGo" onClick={goB}>미션 B로 →</button>}
+            {mission !== "done" && <button className="vbGo" disabled={running || !probeCount} onClick={run}>{running ? "시험 중…" : !probeCount ? "관측점을 먼저 꽂아요" : ran ? "▶ 다시 실행" : "▶ 시험 실행"}</button>}
+            {mission === "done" && <button className="vbGo" onClick={finish}>검증 완료 · 수리 적용 →</button>}
+          </div>
+          {(mission === "C" || mission === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>}
+        </div>
+      </section>}
+
+      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>
+    </main>
+    <button className="secretSolve" title="개발용 정답 적용" onClick={revealAnswer}>정답 보기</button>
+  </div>;
+}

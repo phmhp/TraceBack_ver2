@@ -132,3 +132,35 @@ body:has(.vbBench + .stageHistoryNav .stageBackButton + .stageForwardButton) .vb
 .vbGroup { font: 600 10.5px Pretendard, system-ui; color: #d4473c; }
 .rpBubble.up { translate: -50% -100%; }
 .rpBubble.up::before { top: auto; bottom: -7px; }
+
+/* ===== bench v7 ===== */
+.vbBench.v7 .vbLayout { grid-template-rows: auto minmax(0, 1fr) auto !important; }
+.v7Head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.v7Section { min-width: 0; display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: baseline; padding: 6px 10px; border-radius: 6px; background: #f8f1e3; }
+.v7Section small { color: #d4473c; font: 600 11px Pretendard, system-ui; } .v7Section b { font: 600 13px Pretendard, system-ui; }
+.v7Section span { grid-column: 1 / -1; color: #7b6a5c; font: 500 12px Pretendard, system-ui; }
+.v7Cost { display: grid; justify-items: center; padding: 4px 12px; border-radius: 6px; background: #fff1bf; } .v7Cost small { font: 600 10.5px Pretendard, system-ui; color: #7b6a5c; } .v7Cost b { font: 700 18px Pretendard, system-ui; } .v7Cost span { color: #d9a320; letter-spacing: 1px; }
+.v7Lab { display: grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(300px, .9fr); gap: 10px; min-height: 0; }
+.v7Setup { display: grid; align-content: start; gap: 10px; min-height: 0; overflow-y: auto; padding-right: 2px; }
+.v7Todo { padding: 8px 10px; border-radius: 6px; background: #fff1bf; } .v7Todo small { font: 600 12px Pretendard, system-ui; color: #33291f; }
+.v7Todo ol { margin: 4px 0 0; padding-left: 18px; font: 500 12px/1.5 Pretendard, system-ui; }
+.v7Group > small { display: block; margin-bottom: 4px; font: 600 12px Pretendard, system-ui; color: #33291f; } .v7Group > small em { font-style: normal; font-weight: 500; color: #7b6a5c; }
+.v7Levels { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.v7Levels button { display: grid; gap: 1px; justify-items: start; padding: 6px 8px; border-radius: 6px; border: 1.5px solid #d9c9b3; background: #fffdf6; box-shadow: 0 2px 0 #d9c9b3; text-align: left; cursor: pointer; }
+.v7Levels button small { font: 500 10px Pretendard, system-ui; color: #7b6a5c; } .v7Levels button b { font: 600 12.5px Pretendard, system-ui; color: #33291f; } .v7Levels button span { display: flex; gap: 2px; flex-wrap: wrap; }
+.v7Levels button.on, .v7Chips button.on { background: #ffdf5e; border-color: #e3bb45; box-shadow: 0 2px 0 #d4a520; }
+.v7Chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.v7Chips button { padding: 5px 9px; border-radius: 6px; border: 1.5px solid #d9c9b3; background: #fffdf6; box-shadow: 0 2px 0 #d9c9b3; font: 500 12px Pretendard, system-ui; color: #33291f; cursor: pointer; }
+.v7Levels button:disabled, .v7Chips button:disabled { opacity: .55; cursor: not-allowed; }
+.v7Notebook { padding: 8px 10px; border-radius: 6px; background: repeating-linear-gradient(180deg, transparent 0 21px, rgba(150,180,210,.35) 21px 22px), #fffdf6; box-shadow: inset 0 0 0 1px #e8dcc6; }
+.v7Notebook > small { font: 600 12px Pretendard, system-ui; } .v7Notebook p { margin: 4px 0 0; font: 500 12px Pretendard, system-ui; color: #7b6a5c; }
+.v7Notebook ul { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.v7Notebook li { display: grid; grid-template-columns: 18px 1fr auto; gap: 6px; font: 500 11.5px/1.6 Pretendard, system-ui; }
+.v7Notebook li b { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; background: #33291f; color: #ffdf5e; font-size: 10px; }
+.v7Notebook li.pass em { color: #3f8a5c; font-style: normal; font-weight: 600; } .v7Notebook li.fail em { color: #d4473c; font-style: normal; font-weight: 600; }
+.v7View { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 6px; min-height: 0; }
+.v7View .vbSimView { position: relative; min-height: 0; border-radius: 6px; overflow: hidden; background: #fff; box-shadow: inset 0 0 0 1px #e8dcc6; }
+.vbBench.v7 .vbMonitor { border-radius: 6px !important; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; }
+.vbBench.v7 .vbMonitor ul { overflow-y: auto; }
+.vbBench.v7 .vbMonitorFoot { display: flex; gap: 8px; justify-content: flex-end; }
+@media (max-width: 1180px) { .v7Levels { grid-template-columns: 1fr; } .v7Todo ol { font-size: 11.5px; } }

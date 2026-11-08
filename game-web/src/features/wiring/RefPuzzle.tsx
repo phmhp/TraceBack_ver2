@@ -367,7 +367,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
  *  unit  : only the SW unit under test, fed by a test stimulus and read by an observer (test harness).
  *  swint : every SW component of the ECU in its own frame; parts outside the ECU are dashed models.
  *  Wheel = zoom, drag = pan, starts fitted. */
-export function RefPuzzleTrack({ caseId, progress, fixed, running, mode = "swint" }: { caseId: CaseId; progress: number; fixed: boolean; running: boolean; mode?: "unit" | "swint" }) {
+export function RefPuzzleTrack({ caseId, progress, fixed, running, mode = "swint", same = false }: { caseId: CaseId; progress: number; fixed: boolean; running: boolean; mode?: "unit" | "swint"; same?: boolean }) {
   const ref = REF[caseId], scope = SCOPE[caseId];
   const swIds = ref.board.filter(id => ref.blocks[id].kind !== "hw");
   const ids = mode === "unit" ? scope.unit.ids : ref.board;
@@ -393,13 +393,13 @@ export function RefPuzzleTrack({ caseId, progress, fixed, running, mode = "swint
     onPointerUp={() => setPan(null)}>
     <div className="rpTrackWorld" style={{ width: W, height: H, transform: `translate(${view.x}px, ${view.y}px) scale(${view.s})` }}>
       <span className="rpTrackTag top">정상 설계</span>
-      <span className="rpTrackTag bottom">{fixed ? "고친 설계" : "현장 대상"}</span>
+      <span className="rpTrackTag bottom">{fixed ? "고친 설계" : "시험 대상"}</span>
       {mode === "swint" && scope.swc.map(g => { const a = Math.min(...g.ids.map(slot)), b = Math.max(...g.ids.map(slot)); return <div key={g.name} className="rpSwc" style={{ left: x(a) - 6, top: Y - 14, width: (b - a) * PITCH + PIECE + 12, height: PIECE + 28 }}><span>{g.name}</span></div>; })}
       {mode === "unit" && <><div className="rpHarness" style={{ left: x(0), top: Y }}><b>입력값 인가</b><small>시험 입력을 직접 넣음</small></div><div className="rpHarness" style={{ left: x(n - 1), top: Y }}><b>결과 관측</b><small>출력 값을 기록</small></div>
         <div className="rpSwc unit" style={{ left: x(1) - 6, top: Y - 14, width: (ids.length - 1) * PITCH + PIECE + 12, height: PIECE + 28 }}><span>시험 대상 · {scope.unit.name}</span></div></>}
       {ids.map(id => { const b = ref.blocks[id], k = slot(id), model = mode === "swint" && !swIds.includes(id); return <div key={id} className={`rpPiece ${b.kind === "hw" ? "hw" : "sw"} locked ${model ? "model" : ""}`} style={{ left: x(k), top: Y, cursor: "inherit", ...({ "--piece": piecePath(io(k)) } as React.CSSProperties) }}><PieceFace b={b} />{model && <em className="rpModelTag">모델</em>}</div>; })}
       {Array.from({ length: n - 1 }, (_, k) => <i key={`a${k}`} className="rpArrow" style={{ left: x(k) + 128, top: Y + 58 }}>▶</i>)}
-      {ids.map((id, i) => { const on = i < shown || progress >= 1; const want = ref.blocks[id].out ?? ""; const got = fixed ? want : ref.field[id] ?? want; const cx = x(slot(id)) + 70; return <React.Fragment key={`d${id}`}>
+      {ids.map((id, i) => { const on = i < shown || progress >= 1; const want = ref.blocks[id].out ?? ""; const got = fixed || same ? want : ref.field[id] ?? want; const cx = x(slot(id)) + 70; return <React.Fragment key={`d${id}`}>
         <span className={`rpDisplay ${on ? "ok" : ""}`} style={{ left: cx, top: Y - 48 }}>{on ? want : "—"}</span>
         <span className={`rpDisplay ${on ? got === want ? "ok" : "bad" : ""}`} style={{ left: cx, top: Y + PIECE + 18 }}>{on ? got : "—"}</span>
       </React.Fragment>; })}
