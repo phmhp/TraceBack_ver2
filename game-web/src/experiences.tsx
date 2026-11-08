@@ -341,6 +341,15 @@ const partModelFor = (domain: DomainId, label: string): string | undefined => {
 // Where a cable meets a part: the model's port anchor (a real connector/terminal position), transformed the
 // same way HardwarePart → FittedPart places the model (size 1.3, turned -0.55 rad about Y), then the part scale.
 const HARDWARE_TURN = -.55, HARDWARE_SIZE = 1.3;
+/** World point of one named port anchor of a part placed with HardwarePart at `position`/`scale`. */
+function anchorPoint(id: string, port: string, position: [number, number, number], scale: number): [number, number, number] {
+  const model = getPartModel(id);
+  const anchor = model.anchors[port] ?? Object.values(model.anchors)[0];
+  const fit = HARDWARE_SIZE / Math.max(...model.size);
+  const local = new THREE.Vector3((anchor[0] - model.center[0]) * fit, (anchor[1] - model.center[1]) * fit, (anchor[2] - model.center[2]) * fit)
+    .applyAxisAngle(new THREE.Vector3(0, 1, 0), HARDWARE_TURN).multiplyScalar(scale);
+  return [position[0] + local.x, position[1] + local.y, position[2] + local.z];
+}
 function portPoint(domain: DomainId, label: string, position: [number, number, number], scale: number, side: "in" | "out"): [number, number, number] | undefined {
   const id = partModelFor(domain, label);
   if (!id) return undefined;
@@ -2412,7 +2421,38 @@ function LabRaceView({ running, works, caseId }: { running: boolean; works: bool
   return <div className={`labRaceWorld ${works ? "works" : "broken"}`}><RaceWorld sim={sim} ship={false} /><div className="labRaceHud"><span>{Math.round(sim.speed)} km/h</span><b>{works ? "차량 응답 정상" : "명령 대비 출력 저하"}</b></div></div>;
 }
 
+// Bench scene: input part → controller (SW inside) → output part, wired port to port (no table).
+const BENCH_PARTS: Record<CaseId, { input: string; ecu: string; output: string; labels: [string, string, string]; wires: { from: [0 | 1 | 2, string]; to: [0 | 1 | 2, string]; color: string }[] }> = {
+  propulsion: { input: "accel_pedal", ecu: "vcu", output: "inverter", labels: ["APS 이중 센서", "VCU", "인버터·모터"], wires: [
+    { from: [0, "app_out"], to: [1, "app_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
+  thermal: { input: "motor_temp_sensor", ecu: "thermal_ecu", output: "cooling_fan", labels: ["냉각수 온도 센서(NTC)", "THERMAL ECU", "냉각 팬"], wires: [
+    { from: [0, "temp_out"], to: [1, "temp_in"], color: "#4f9ab5" }, { from: [1, "fan_pwm_out"], to: [2, "pwm_in"], color: "#ef8a4f" }, { from: [2, "speed_out"], to: [1, "fan_speed_in"], color: "#56a68d" }] },
+  brake: { input: "brake_pedal", ecu: "brake_ecu", output: "brake_caliper", labels: ["페달 센서", "BRAKE ECU", "캘리퍼"], wires: [
+    { from: [0, "bpp_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "pressure_cmd_out"], to: [2, "pressure_in"], color: "#ef8a4f" }] },
+};
+const BENCH_SLOTS: { position: [number, number, number]; scale: number }[] = [{ position: [-2.25, .62, 0], scale: .94 }, { position: [0, .72, 0], scale: 1.12 }, { position: [2.25, .68, 0], scale: .96 }];
 function EmbeddedBenchScene({ caseId, running, works }: { caseId: CaseId; running: boolean; works: boolean }) {
+  const bench = BENCH_PARTS[caseId];
+  const ids = [bench.input, bench.ecu, bench.output];
+  const kinds: HardwareKind[] = [caseId === "thermal" ? "sensor" : caseId === "brake" ? "brakepedal" : "pedal", "ecu", caseId === "thermal" ? "fan" : caseId === "brake" ? "caliper" : "motor"];
+  const point = (slot: 0 | 1 | 2, port: string) => anchorPoint(ids[slot], port, BENCH_SLOTS[slot].position, BENCH_SLOTS[slot].scale);
+  return <>
+    {import.meta.env.DEV && <DevRenderProbe name="bench" />}
+    <PartLabel className="labelSpacer" position={[0, -20, 0]}>{" "}</PartLabel>
+    <color attach="background" args={[works ? "#eaf5ee" : "#f5e8e3"]} />
+    <hemisphereLight intensity={2.2} color="#fff8e8" groundColor="#678077" />
+    <directionalLight castShadow position={[3, 6, 4]} intensity={2.8} />
+    {ids.map((id, slot) => <group key={id} position={BENCH_SLOTS[slot].position} scale={BENCH_SLOTS[slot].scale}>
+      <HardwarePart kind={kinds[slot]} active={slot === 2 ? works : true} running={slot === 2 ? running && works : running} partId={id} />
+      <PartLabel position={[0, slot === 1 ? 1.05 : 1.0, 0]}>{bench.labels[slot]}{slot === 1 ? " · SW 내장" : slot === 2 ? ` · ${works ? "정상 응답" : "응답 없음"}` : ""}</PartLabel>
+    </group>)}
+    {bench.wires.map((wire, k) => { const a = point(wire.from[0], wire.from[1]), b = point(wire.to[0], wire.to[1]); const mid: [number, number, number] = [(a[0] + b[0]) / 2, Math.max(a[1], b[1]) + .35 + k * .12, (a[2] + b[2]) / 2 + .25]; return <SignalCable key={k} from={a} to={b} via={[mid]} color={wire.color === "#ef8a4f" && !works ? "#be514f" : wire.color} />; })}
+    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -.02, 0]}><circleGeometry args={[3.6, 48]} /><meshStandardMaterial color="#e4ebe6" roughness={.9} /></mesh>
+  </>;
+}
+
+/** Previous bench scene (table, primitive panels) — kept unused. */
+function EmbeddedBenchSceneV1({ caseId, running, works }: { caseId: CaseId; running: boolean; works: boolean }) {
   const inputKind: HardwareKind = caseId === "thermal" ? "sensor" : caseId === "brake" ? "brakepedal" : "pedal";
   const outputKind: HardwareKind = caseId === "thermal" ? "fan" : caseId === "brake" ? "caliper" : "motor";
   const labels = caseId === "thermal" ? ["냉각수 온도 센서(NTC)", "THERMAL ECU", "냉각 팬"] : caseId === "brake" ? ["페달 센서", "BRAKE ECU", "캘리퍼"] : ["APS 이중 센서", "VCU", "인버터·모터"];
