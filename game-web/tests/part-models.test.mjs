@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { PART_MODEL_IDS, PART_PALETTE, getPartModel, partTriangles } from "../src/features/parts/partModels.ts";
+import { PART_MODEL_IDS, PART_PALETTE, VISUAL_ONLY_IDS, getPartModel, partTriangles } from "../src/features/parts/partModels.ts";
 import { COMPONENTS } from "../src/sim/components.ts";
 
 test("every code-built part is a sim component and anchors every one of its ports", () => {
-  for (const id of PART_MODEL_IDS) {
+  for (const id of PART_MODEL_IDS.filter(id => !VISUAL_ONLY_IDS.includes(id))) {
     const component = COMPONENTS.find(c => c.id === id);
     assert.ok(component, `${id} exists in src/sim/components.ts`);
     const model = getPartModel(id);
@@ -27,4 +27,8 @@ test("part models: finite geometry, palette materials, real-world size, low poly
     assert.ok(partTriangles(model) < 8000, `${id} stays under 8k triangles (${partTriangles(model)})`);
     assert.ok(existsSync(new URL(`../public/assets/intake/images/${model.ref}`, import.meta.url)), `${id} reference image exists`);
   }
+});
+
+test("garage-only parts expose in/out anchors for wiring", () => {
+  for (const id of VISUAL_ONLY_IDS) assert.deepEqual(Object.keys(getPartModel(id).anchors).sort(), ["in", "out"], id);
 });

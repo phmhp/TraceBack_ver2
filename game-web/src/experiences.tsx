@@ -279,6 +279,31 @@ const domainHardware: Record<DomainId, { kinds: HardwareKind[]; labels: string[]
 const partModelFor = (domain: DomainId, label: string): string | undefined => {
   const id =
     /START 버튼|시동 버튼|START 시동/.test(label) ? "start_button"
+    : /^CAN/.test(label) ? "can_harness"
+    : /3상 전력/.test(label) ? "hv_cable"
+    : /압력 명령/.test(label) ? "hydraulic_modulator"
+    : /^토크 센서/.test(label) ? "steering_torque_sensor"
+    : /조향축/.test(label) ? "steering_column"
+    : /모터 인버터/.test(label) ? "eps_motor"
+    : /랙 위치센서|랙 센서/.test(label) ? "steering_rack"
+    : /요·가속도|^IMU/.test(label) ? "imu_sensor"
+    : /전압·절연 센서|팩 전압센서/.test(label) ? "cell_monitor_board"
+    : /HV 부하/.test(label) ? "hv_junction_box"
+    : /Cluster/.test(label) ? "instrument_cluster"
+    : /Park ECU|Chassis ECU/.test(label) ? "generic_ecu"
+    : /Lock Actuator/.test(label) ? "park_lock_actuator"
+    : /Position Sensor/.test(label) ? "position_sensor"
+    : /Height Sensor/.test(label) ? "height_sensor"
+    : /RPM Feedback/.test(label) ? "cooling_fan"
+    : /Valve Manifold/.test(label) ? "coolant_valve"
+    : /Coolant Loop/.test(label) ? "radiator"
+    : /^타이어$/.test(label) ? "wheel"
+    : /^스프링$/.test(label) ? "coil_spring"
+    : /댐퍼|Damper/.test(label) ? "damper"
+    : /Air Spring/.test(label) ? "air_spring"
+    : /Compressor/.test(label) ? "air_compressor"
+    : /^차체$/.test(label) ? "body_shell"
+    : /^ESC$/.test(label) ? "brake_ecu"
     : /^PRND/.test(label) ? "gear_selector"
     : /APS|페달/.test(label) ? (domain === "brake" ? "brake_pedal" : "accel_pedal")
     : /조향각|^각도 센서/.test(label) ? "steering_wheel"
@@ -313,8 +338,27 @@ const partModelFor = (domain: DomainId, label: string): string | undefined => {
   return id && hasPartModel(id) ? id : undefined;
 };
 
+// Where a cable meets a part: the model's port anchor (a real connector/terminal position), transformed the
+// same way HardwarePart → FittedPart places the model (size 1.3, turned -0.55 rad about Y), then the part scale.
+const HARDWARE_TURN = -.55, HARDWARE_SIZE = 1.3;
+function portPoint(domain: DomainId, label: string, position: [number, number, number], scale: number, side: "in" | "out"): [number, number, number] | undefined {
+  const id = partModelFor(domain, label);
+  if (!id) return undefined;
+  const model = getPartModel(id);
+  const ports = getComponent(id)?.ports;
+  const names = Object.keys(model.anchors);
+  const pick = ports
+    ? ports.find(port => port.direction === side && names.includes(port.id))?.id ?? names[side === "in" ? 0 : names.length - 1]
+    : side;
+  const anchor = model.anchors[pick] ?? model.anchors[names[0]];
+  const fit = HARDWARE_SIZE / Math.max(...model.size);
+  const local = new THREE.Vector3((anchor[0] - model.center[0]) * fit, (anchor[1] - model.center[1]) * fit, (anchor[2] - model.center[2]) * fit)
+    .applyAxisAngle(new THREE.Vector3(0, 1, 0), HARDWARE_TURN).multiplyScalar(scale);
+  return [position[0] + local.x, position[1] + local.y, position[2] + local.z];
+}
+
 function HardwarePart({ kind, active = true, running = true, partId }: { kind: HardwareKind; active?: boolean; running?: boolean; partId?: string }) {
-  if (partId) return <group rotation={[0, -.55, 0]}><FittedPart id={partId} size={1.3} demo={active && running} /></group>;
+  if (partId) return <group rotation={[0, HARDWARE_TURN, 0]}><FittedPart id={partId} size={HARDWARE_SIZE} demo={active && running} /></group>;
   return <PrimitiveHardwarePart kind={kind} active={active} running={running} />;
 }
 
@@ -409,6 +453,41 @@ function DomainSignature({ domain, activeStep }: { domain: DomainId; activeStep:
   </group>;
 }
 
+// Domain backdrop built from the code-built part models (the primitive version above is kept unused).
+function DomainSignatureModels({ domain, activeStep }: { domain: DomainId; activeStep: number }) {
+  const on = activeStep > 1;
+  const P = ({ id, size, position, rotation = [0, 0, 0], demo = false }: { id: string; size: number; position: [number, number, number]; rotation?: [number, number, number]; demo?: boolean }) =>
+    <group position={position} rotation={rotation}><FittedPart id={id} size={size} demo={demo} castShadow={false} /></group>;
+  if (domain === "drive") return <group position={[1.55, .2, -.95]}>
+    <P id="differential" size={.8} position={[0, 0, 0]} demo={on} />
+    {[-1, 1].map(sx => <React.Fragment key={sx}><P id="drive_shaft" size={1.2} position={[sx * .95, 0, 0]} rotation={[0, sx < 0 ? Math.PI : 0, 0]} demo={on} /><P id="wheel" size={.95} position={[sx * 1.75, 0, 0]} rotation={[0, sx < 0 ? Math.PI : 0, 0]} demo={on} /></React.Fragment>)}
+  </group>;
+  if (domain === "brake") return <group position={[0, .12, 0]}>
+    {[-2.25, 2.25].flatMap(x => [-.92, .92].map(z => <P key={`${x}-${z}`} id="brake_caliper" size={.6} position={[x, .1, z]} rotation={[0, x < 0 ? Math.PI : 0, 0]} />))}
+    {[-.92, .92].map(z => <SignalCable key={z} from={[-1.95, .24, z]} to={[1.95, .24, z]} color={activeStep >= 2 ? "#4b9dc1" : "#81918d"} />)}
+  </group>;
+  if (domain === "steer") return <group position={[.45, .15, .5]}>
+    <P id="steering_rack" size={3.6} position={[0, 0, 0]} />
+    {[-2.3, 2.3].map(x => <group key={x} position={[x, 0, 0]} rotation={[0, on ? Math.sign(x) * .22 : 0, 0]}><P id="wheel" size={.95} position={[0, 0, 0]} rotation={[0, x < 0 ? Math.PI : 0, 0]} /></group>)}
+  </group>;
+  if (domain === "gear") return <group position={[0, .18, 0]}>
+    <P id="gear_selector" size={.7} position={[-2.1, .45, .25]} />
+    <P id="reduction_gear" size={1.4} position={[0, .4, 0]} demo={on} />
+    <P id="park_lock_actuator" size={.7} position={[2.05, .32, -.15]} />
+  </group>;
+  if (domain === "thermal") return <group position={[0, .16, 0]}>
+    <P id="radiator" size={1.6} position={[0, .6, -.2]} />
+    <P id="cooling_pump" size={.6} position={[-1.2, .35, .3]} />
+  </group>;
+  if (domain === "suspension") return <group position={[0, .08, 0]}>
+    {[-2.05, 2.05].flatMap(x => [-.78, .78].map(z => <group key={`${x}-${z}`}><P id="damper" size={1.05} position={[x, .55, z]} /><P id="coil_spring" size={.7} position={[x, .55, z]} /></group>))}
+    <RoundedBox args={[4.9, .14, 1.75]} radius={.06} position={[0, .3, 0]}><meshStandardMaterial color="#8a8f94" metalness={.35} roughness={.5} /></RoundedBox>
+  </group>;
+  return <group position={[0, .04, 0]}>
+    <P id="hv_battery" size={4.6} position={[0, .1, 0]} />
+  </group>;
+}
+
 /** Empty slot left after "빼 보기": a red dashed ring where the part used to be. */
 function RemovedPartMarker({ position }: { position: [number, number, number] }) {
   return <group position={position}>
@@ -431,9 +510,9 @@ function DomainFlowRig({ domain, feature, activeStep = 0, compact = false, runni
     return [x, y, z] as [number, number, number];
   });
   return <group scale={compact ? .58 : labels.length > 5 ? .68 : .76}>
-    <DomainSignature domain={domain} activeStep={activeStep} />
+    <DomainSignatureModels domain={domain} activeStep={activeStep} />
     {labels.map((label, index) => { const position = positions[index]; const kind = hardwareKindFor(domain, label, index, last); const role = index === 0 ? "INPUT" : index === last ? "OUTPUT" : /ECU|VCU|BMS|CAN/.test(label) ? "CONTROL" : "PLANT"; return removed === index ? <RemovedPartMarker key={`${label}-${index}`} position={position} /> : <GarageFlowPart key={`${label}-${index}`} label={label} position={position} kind={kind} active={activeStep === index} running={running} role={role} partId={partModelFor(domain, label)} inspect={compact ? undefined : { domain, feature, index }} />; })}
-    {positions.slice(0, -1).map((position, index) => { const next = positions[index + 1]; return <SignalCable key={`${position.join("-")}`} from={[position[0] + .32, position[1] + .04, position[2]]} to={[next[0] - .32, next[1] + .04, next[2]]} color={removed !== null && (index === removed || index + 1 === removed) ? "#e0483c" : index < activeStep ? "#f2c653" : index === activeStep ? "#ff7b49" : domain === "brake" ? "#4b9dc1" : domain === "steer" ? "#8d75b6" : domain === "power" ? "#4a9a82" : "#7ca8b3"} />; })}
+    {positions.slice(0, -1).map((position, index) => { const next = positions[index + 1]; const scaleOf = (i: number) => activeStep === i ? 1.08 : .82; return <SignalCable key={`${position.join("-")}`} from={portPoint(domain, labels[index], position, scaleOf(index), "out") ?? [position[0] + .32, position[1] + .04, position[2]]} to={portPoint(domain, labels[index + 1], next, scaleOf(index + 1), "in") ?? [next[0] - .32, next[1] + .04, next[2]]} color={removed !== null && (index === removed || index + 1 === removed) ? "#e0483c" : index < activeStep ? "#f2c653" : index === activeStep ? "#ff7b49" : domain === "brake" ? "#4b9dc1" : domain === "steer" ? "#8d75b6" : domain === "power" ? "#4a9a82" : "#7ca8b3"} />; })}
     {!compact && <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0,-.04,0]}><ringGeometry args={[3.45,3.55,96]} /><meshStandardMaterial color="#c3d2cb" transparent opacity={.42} /></mesh>}
   </group>;
 }
@@ -2339,22 +2418,23 @@ function EmbeddedBenchScene({ caseId, running, works }: { caseId: CaseId; runnin
   const labels = caseId === "thermal" ? ["냉각수 온도 센서(NTC)", "THERMAL ECU", "냉각 팬"] : caseId === "brake" ? ["페달 센서", "BRAKE ECU", "캘리퍼"] : ["APS 이중 센서", "VCU", "인버터·모터"];
   return <>
     {import.meta.env.DEV && <DevRenderProbe name="bench" />}
+    <PartLabel className="labelSpacer" position={[0, -20, 0]}>{" "}</PartLabel>
     <color attach="background" args={[works ? "#eaf5ee" : "#f5e8e3"]} />
     <hemisphereLight intensity={2.2} color="#fff8e8" groundColor="#678077" />
     <directionalLight castShadow position={[3, 6, 4]} intensity={2.8} />
-    <group position={[-2.25, .62, 0]} scale={.94}><HardwarePart kind={inputKind} active running={running} partId={partModelFor(caseId === "brake" ? "brake" : caseId === "thermal" ? "thermal" : "drive", labels[0])} /><PartLabel position={[0, 1.32, 0]}>INPUT · {labels[0]}</PartLabel></group>
+    <group position={[-2.25, .62, 0]} scale={.94}><HardwarePart kind={inputKind} active running={running} partId={partModelFor(caseId === "brake" ? "brake" : caseId === "thermal" ? "thermal" : "drive", labels[0])} /><PartLabel position={[-.2, .02, .9]}>{labels[0]}</PartLabel></group>
     <SignalCable from={[-1.72, .78, .04]} to={[-.68, .78, .04]} color="#4f9ab5" />
     <SignalCable from={[-1.72, .68, -.12]} to={[-.68, .68, -.12]} color="#e5c451" />
     <group position={[0, .72, 0]} scale={1.12}>
-      <HardwarePart kind="ecu" active running={running} />
+      <HardwarePart kind="ecu" active running={running} partId={caseId === "thermal" ? "thermal_ecu" : caseId === "brake" ? "brake_ecu" : "vcu"} />
       <mesh position={[0, .02, .435]}><boxGeometry args={[.82, .4, .025]} /><meshStandardMaterial color="#263c37" roughness={.6} /></mesh>
       {[.26, .08, -.1, -.28].map((x, index) => <mesh key={x} position={[x, .04, .458]}><boxGeometry args={[.11, .18, .018]} /><meshStandardMaterial color={index === 3 ? (works ? "#f2c753" : "#c95a52") : index % 2 ? "#7bb9b0" : "#9b83c4"} emissive={index === 3 ? (works ? "#a37300" : "#6b1510") : "#172c28"} emissiveIntensity={running ? .8 : .15} /></mesh>)}
       <mesh position={[0, -.16, .46]}><boxGeometry args={[.76, .055, .025]} /><meshStandardMaterial color={works ? "#56b997" : "#cf665d"} emissive={works ? "#1f7f61" : "#8b201a"} emissiveIntensity={running ? 1.2 : .2} /></mesh>
-      <PartLabel position={[0, 1.26, 0]}>CONTROL UNIT · {labels[1]} · SW 내장</PartLabel>
+      <PartLabel position={[0, 1.18, 0]}>{labels[1]} · SW 내장</PartLabel>
     </group>
     <SignalCable from={[.68, .78, .04]} to={[1.66, .78, .04]} color={works ? "#ef8a4f" : "#be514f"} />
     <SignalCable from={[1.66, .62, -.16]} to={[.68, .62, -.16]} color={works ? "#56a68d" : "#7f7772"} />
-    <group position={[2.25, .68, 0]} scale={.96}><HardwarePart kind={outputKind} active={works} running={running && works} partId={partModelFor(caseId === "brake" ? "brake" : caseId === "thermal" ? "thermal" : "drive", labels[2])} /><PartLabel position={[0, 1.32, 0]}>OUTPUT · {labels[2]} {works ? "정상 응답" : "무응답"}</PartLabel></group>
+    <group position={[2.25, .68, 0]} scale={.96}><HardwarePart kind={outputKind} active={works} running={running && works} partId={partModelFor(caseId === "brake" ? "brake" : caseId === "thermal" ? "thermal" : "drive", labels[2])} /><PartLabel position={[.2, .02, .9]}>{labels[2]} · {works ? "정상 응답" : "무응답"}</PartLabel></group>
     <group position={[0, .03, -.7]}>
       <RoundedBox args={[5.65, .16, 2.5]} radius={.12}><meshStandardMaterial color="#cfd9d2" roughness={.74} /></RoundedBox>
       {[-2.55, 2.55].flatMap(x => [-.95, .95].map(z => <mesh key={`${x}-${z}`} position={[x, -.38, z]}><cylinderGeometry args={[.08, .08, .8, 14]} /><meshStandardMaterial color="#77847f" metalness={.7} /></mesh>))}
