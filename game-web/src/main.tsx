@@ -1,3 +1,4 @@
+import { RefPuzzle } from "./features/wiring/RefPuzzle";
 import React, { useEffect, useReducer, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas, useFrame } from "@react-three/fiber";
@@ -85,7 +86,7 @@ function useCampaign() {
       const qaDistance = Number.isFinite(requestedDistance) && requestedDistance >= 0 ? requestedDistance : undefined;
       return hydrateCampaign({
         scene: qaScene,
-        caseId: "propulsion",
+        caseId: (["propulsion", "thermal", "brake"].includes(params.get("case") ?? "") ? params.get("case") : "propulsion") as Campaign["caseId"], // dev: ?qa=WIRING&case=thermal
         previousScene: qaScene === "PAUSE" ? "CHASE_NORMAL" : undefined,
         completedCases: isFinale ? ["propulsion", "thermal"] : isResume ? ["propulsion"] : [],
         evidence: { propulsion: ["pedal_raw", "pedal_processed", "torque_cmd"], thermal: [], brake: [] },
@@ -1471,7 +1472,7 @@ function App() {
   if (state.scene === "FAULT_CUE")
     return frame(<FaultDialogue state={state} send={send} />);
   if (state.scene === "BOARD") return frame(<DominoTrace state={state} send={send} />); // older DominoBoard / InvestigationBoard / SuspectBoard kept for reference
-  if (state.scene === "WIRING") return frame(<WiringPuzzle state={state} send={send} />);
+  if (state.scene === "WIRING") return frame(<RefPuzzle state={state} send={send} />); // old WiringPuzzle kept unused
   if (state.scene === "TWIN_BENCH") return frame(<TwinBenchExperience state={state} send={send} />);
   if (state.scene === "VERIFY_FAIL")
     return frame(<FailureAnalysis state={state} send={send} />);

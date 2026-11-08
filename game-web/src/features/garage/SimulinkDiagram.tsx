@@ -6,7 +6,7 @@
 // SW components are dashed frames that own one or more steps.
 import React from "react";
 
-type Kind = "check" | "lut" | "min" | "pi" | "delay" | "state" | "switch" | "calc";
+export type Kind = "check" | "lut" | "min" | "pi" | "delay" | "state" | "switch" | "calc";
 
 export function blockKind(label: string): Kind {
   if (/PI|추종/.test(label)) return "pi";
@@ -66,7 +66,7 @@ export function Picto({ kind }: { kind: Kind }) {
   </svg>;
 }
 
-const KIND_TAG: Record<Kind, string> = { check: "확인", lut: "표 보기", min: "안전값 고르기", pi: "계속 맞추기", delay: "부드럽게", state: "상태 기억", switch: "통과 조건", calc: "계산" };
+export const KIND_TAG: Record<Kind, string> = { check: "확인", lut: "표 보기", min: "안전값 고르기", pi: "계속 맞추기", delay: "부드럽게", state: "상태 기억", switch: "통과 조건", calc: "계산" };
 
 export function SimulinkDiagram({ logic, components, inputLabel, outputLabel, activeStep }: {
   logic: string[]; components: string[]; inputLabel: string; outputLabel: string; activeStep: number;

@@ -20,7 +20,7 @@ const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.searc
 
 const A = "/assets/";
 type Send = React.Dispatch<any>;
-type DomainId = "drive" | "brake" | "steer" | "gear" | "power" | "thermal" | "suspension";
+export type DomainId = "drive" | "brake" | "steer" | "gear" | "power" | "thermal" | "suspension";
 
 const learningLayers = [
   { name: "Vehicle / System", tag: "운전자 입력·차량 기능·실제 거동" },
@@ -190,7 +190,7 @@ const featureLayerOverrides: Record<DomainId, Record<number, Partial<Record<numb
   suspension: {},
 };
 
-const getFeatureLayer = (domain: DomainId, feature: number, layer: number) =>
+export const getFeatureLayer = (domain: DomainId, feature: number, layer: number) =>
   featureLayerOverrides[domain]?.[feature]?.[layer] ?? featureFlows[domain][feature].layers[layer];
 
 function Tire({ position, steer = false, spin = 0 }: { position: [number, number, number]; steer?: boolean; spin?: number }) {
@@ -1965,7 +1965,7 @@ const TRAP_MSG: Record<string, string> = {
 };
 const REQ_OF_STEP = [0, 1, 2, 3, 3, 4];
 // Jigsaw tab shape = signal type, so only pieces with matching units fit together.
-type Nub = "round" | "square" | "zigzag" | "wave" | "tri";
+export type Nub = "round" | "square" | "zigzag" | "wave" | "tri";
 const NUB_NAME: Record<Nub, string> = { round: "% 신호", square: "힘·토크", zigzag: "통신 명령", wave: "PWM 구동", tri: "온도·압력" };
 // Jigsaw silhouette on the 140×140 piece box: right edge has a tab, left edge a matching socket.
 const TAB: Record<Nub, string> = {
@@ -1982,7 +1982,7 @@ const SOCKET: Record<Nub, string> = {
   zigzag: "V 72 L 16 72 L 24 66 L 20 58 L 24 50 L 16 44 L 12 44",
   wave: "V 72 Q 24 72 20 65 Q 16 58 24 51 Q 24 44 12 44",
 };
-const piecePath = (io: { in?: Nub; out?: Nub }) =>
+export const piecePath = (io: { in?: Nub; out?: Nub }) =>
   `path("M 18 6 H 122 Q 128 6 128 12 ${io.out ? TAB[io.out] : ""} V 128 Q 128 134 122 134 H 18 Q 12 134 12 128 ${io.in ? SOCKET[io.in] : ""} V 12 Q 12 6 18 6 Z")`;
 const PIECE_IO: Record<CaseId, Record<string, { in?: Nub; out?: Nub }>> = {
   propulsion: { aps: { out: "round" }, adapter: { in: "round", out: "round" }, map100: { in: "round", out: "square" }, map45: { in: "round", out: "square" }, can: { in: "square", out: "zigzag" }, vcu: { in: "zigzag", out: "zigzag" }, inverter: { in: "zigzag" }, logger: { in: "round" } },
