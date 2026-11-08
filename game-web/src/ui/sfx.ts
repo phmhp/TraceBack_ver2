@@ -2,7 +2,7 @@
 // no licences). Soft, toy-like tones in the spirit of a cosy island game.
 // Sound and music each have an on/off switch saved per browser.
 
-type Sfx = "pop" | "squish" | "zip" | "stamp" | "success" | "error" | "siren" | "crash" | "alarm" | "beep" | "go" | "skid" | "correct" | "wrong";
+type Sfx = "pop" | "squish" | "zip" | "stamp" | "success" | "error" | "siren" | "crash" | "alarm" | "beep" | "go" | "skid" | "correct" | "wrong" | "ready" | "depart";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -82,7 +82,11 @@ export function play(name: Sfx, pitch = 1) {
     case "siren": for (let i = 0; i < 4; i++) tone("sawtooth", i % 2 ? 660 : 880, i % 2 ? 660 : 880, t + i * .22, .2, .035); break;
     case "crash": noise(t, .35, .5, 1800); tone("sine", 110, 45, t, .3, .35); break;
     case "beep": tone("square", 660, 660, t, .14, .08); break;
-    case "go": tone("square", 1320, 1320, t, .35, .09); tone("sawtooth", 90, 260, t + .05, .7, .12); noise(t + .05, .5, .08, 1500); break;
+    case "go": tone("square", 1320, 1320, t, .35, .09); break;
+    // EV power-on chime: two soft rising notes over a short low hum (no combustion engine sound)
+    case "ready": tone("sine", 392, 392, t, .28, .1); tone("sine", 587, 587, t + .16, .4, .1); tone("sine", 70, 140, t, .6, .06); break;
+    // EV pull-away: a short, clean inverter whine that rises once and fades
+    case "depart": tone("sine", 260, 900, t, .9, .045); tone("triangle", 520, 1800, t, .7, .015); noise(t, .5, .025, 900); break;
     case "skid": { const ac2 = audio(); if (!ac2 || !master) break; const len = .55, buf = ac2.createBuffer(1, Math.ceil(ac2.sampleRate * len), ac2.sampleRate), d = buf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.min(1, (d.length - i) / (d.length * .4));
       const src = ac2.createBufferSource(), bp = ac2.createBiquadFilter(), g = ac2.createGain(); src.buffer = buf; bp.type = "bandpass"; bp.frequency.setValueAtTime(2600, t); bp.frequency.linearRampToValueAtTime(1700, t + len); bp.Q.value = 6; g.gain.value = .35;

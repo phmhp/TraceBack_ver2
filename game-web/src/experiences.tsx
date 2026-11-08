@@ -10,7 +10,7 @@ import { DevRenderProbe } from "./features/vehicle/DevRenderProbe";
 import { FittedPart } from "./features/parts/PartModel";
 import { hasPartModel } from "./features/parts/partModels";
 import { ComicBurst } from "./ui/ComicBurst";
-import { engineSet, engineStop, play } from "./ui/sfx";
+import { engineStop, play } from "./ui/sfx";
 import { ECUS } from "./sim/components";
 import { getComponent } from "./sim/registry";
 import { Picto, SimulinkDiagram, blockKind, plainText } from "./features/garage/SimulinkDiagram";
@@ -1293,13 +1293,16 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const collisionCooldown = useRef(0);
   const zoneThrottle = useRef(0); // seconds of full throttle inside the overtake zone
   useEffect(() => { if (impact) play("crash"); }, [impact]);
-  // motor sound follows speed and throttle; a hard brake at speed squeals once per press
+  // EV sound only at power-on and pull-away (a continuous motor drone sounded unnatural);
+  // a hard brake at speed squeals once per press. engineSet is kept for later use.
   const skidRef = useRef(false);
+  const movingRef = useRef(false);
+  useEffect(() => { play("ready"); }, []);
   useEffect(() => {
     const k = keys.current;
-    const throttle = k.has("w") || k.has("arrowup") ? 1 : 0;
     const braking = k.has("s") || k.has("arrowdown") || k.has(" ");
-    engineSet(sim.speed, throttle);
+    if (!movingRef.current && sim.speed > 3) { movingRef.current = true; play("depart"); }
+    if (sim.speed < 1) movingRef.current = false;
     if (braking && sim.speed > 32 && !skidRef.current) { skidRef.current = true; play("skid"); }
     if (!braking) skidRef.current = false;
   }, [sim.speed]); // eslint-disable-line react-hooks/exhaustive-deps
