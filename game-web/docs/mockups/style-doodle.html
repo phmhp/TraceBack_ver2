@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>스타일 1 · 두들 손그림</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+<style>
+  /* Doodle / hand-drawn: notebook paper, wobbly marker outlines, highlighter strokes, sticker shadows */
+  :root { --ink: #2b2f3a; --paper: #fffdf7; --sky: #8ecdf2; --mint: #9ee0c4; --pink: #ff9fb7; --sun: #ffe066; --violet: #b9a7f5; }
+  * { box-sizing: border-box; font-family: Pretendard, system-ui, sans-serif; word-break: keep-all; }
+  body { margin: 0; height: 100vh; overflow: hidden; color: var(--ink); font-size: 13px;
+    background-color: #f6f9ff; background-image: linear-gradient(#dbe7fb 1px, transparent 1px), linear-gradient(90deg, #dbe7fb 1px, transparent 1px); background-size: 24px 24px; }
+  .stage { max-width: 1160px; height: 100vh; margin: 0 auto; padding: 16px; display: grid; grid-template-rows: 48px 42px minmax(0, 1fr) 64px; gap: 14px; }
+  /* wobbly outline: uneven radii + a second offset stroke like a marker going over twice */
+  .doodle { position: relative; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 18px 22px 16px 24px / 22px 16px 24px 18px; box-shadow: 4px 5px 0 var(--ink); }
+  .doodle::after { content: ""; position: absolute; inset: -5px -3px -3px -5px; border: 1.5px solid rgba(43,47,58,.35); border-radius: 22px 16px 24px 18px / 16px 24px 18px 22px; pointer-events: none; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 0 16px; }
+  .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; } .logo img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--ink); background: #fff; object-fit: cover; }
+  .hl { background: linear-gradient(transparent 55%, var(--sun) 55% 90%, transparent 90%); padding: 0 3px; }
+  .tag { padding: 3px 12px; border: 2px solid var(--ink); border-radius: 12px 16px 10px 14px; background: var(--sun); font-weight: 600; font-size: 12px; transform: rotate(-2deg); }
+  .dots { margin-left: auto; display: flex; gap: 6px; } .dots i { width: 20px; height: 20px; display: grid; place-items: center; border: 2px solid var(--ink); border-radius: 48% 52% 50% 50%; font: 600 10px Pretendard; font-style: normal; background: #fff; }
+  .dots i.done { background: var(--mint); } .dots i.now { background: var(--pink); }
+  .pursuit { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; }
+  .track { position: relative; height: 8px; border-top: 2.5px dashed var(--ink); }
+  .track span { position: absolute; left: 30%; width: 22%; top: -6px; height: 8px; border-radius: 6px; background: var(--pink); opacity: .7; }
+  .track img { position: absolute; top: -12px; translate: -50% -50%; width: 36px; }
+  .work { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 16px; min-height: 0; }
+  .card { padding: 16px; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 10px; }
+  .card h2 { margin: 0; font-size: 15px; font-weight: 600; }
+  .chips { display: flex; gap: 8px; } .chip { padding: 4px 12px; border: 2px solid var(--ink); border-radius: 14px 10px 16px 12px; font-size: 12px; font-weight: 500; background: #fff; }
+  .chip.now { background: var(--sky); }
+  .area { border: 2px dashed #9aa6bd; border-radius: 14px; display: grid; place-items: center; color: #7c879c; }
+  .side { padding: 16px; display: grid; align-content: start; gap: 10px; }
+  .side h3 { margin: 0; font-size: 13px; font-weight: 600; }
+  .sticky { padding: 10px 12px; background: var(--sun); border: 2px solid var(--ink); border-radius: 4px 10px 6px 12px; font-weight: 500; transform: rotate(-1.5deg); box-shadow: 3px 3px 0 var(--ink); }
+  .sticky.pink { background: #ffd3df; transform: rotate(1.2deg); }
+  .foot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 0 12px 0 16px; }
+  .say { display: flex; gap: 10px; align-items: center; font-weight: 500; } .say img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--ink); background: #fff; object-fit: cover; } .say b { margin-right: 6px; font-weight: 600; }
+  .btn { padding: 10px 22px; border: 2.5px solid var(--ink); border-radius: 16px 20px 14px 22px; background: var(--mint); font-weight: 600; font-size: 14px; color: var(--ink); box-shadow: 4px 4px 0 var(--ink); cursor: pointer; transition: transform .1s; }
+  .btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+  .arrow { position: absolute; right: -36px; top: 8px; width: 40px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <header class="doodle row"><span class="logo"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />TraceBack</span><span class="tag">4/8 원인 역추적</span>
+    <span class="dots"><i class="done">1</i><i class="done">2</i><i class="done">3</i><i class="now">4</i><i>5</i><i>6</i><i>7</i><i>8</i></span></header>
+  <section class="doodle row pursuit"><b>추격차와 <span class="hl">72 m</span></b><div class="track"><span></span><img src="/assets/ui/icons/police-car.svg" style="left:30%" alt="" /><img src="/assets/ui/icons/getaway-car.svg" style="left:52%" alt="" /></div></section>
+  <main class="work">
+    <section class="doodle card"><h2>증상에서 거슬러 올라가 <span class="hl">처음 어긋난 구간</span>을 좁힙니다</h2>
+      <div class="chips"><span class="chip now">1 거꾸로 따라가기</span><span class="chip">2 의심 구간</span><span class="chip">3 영향 범위</span></div>
+      <div class="area">도미노 줄 + 측정 카드 3장</div></section>
+    <aside class="doodle side"><h3>측정 기록</h3><div class="sticky pink">차량 가속 · 기준 2.8 → 1.2 m/s²</div><div class="sticky">후보를 선택해 측정</div></aside>
+  </main>
+  <footer class="doodle foot"><div class="say"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><span><b>너트</b>먼저 어긋난 값이 원인 쪽입니다. 측정 시각을 비교하세요.</span></div><button class="btn">시작점 확정</button></footer>
+</div>
+</body>
+</html>
