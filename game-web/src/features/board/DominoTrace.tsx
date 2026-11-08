@@ -11,7 +11,7 @@
 // with the trace falling backward from the output.
 import React, { useEffect, useState } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
-import { SCENARIOS } from "../../game/scenarios";
+import { SCENARIOS, SCENARIO_META } from "../../game/scenarios";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
 import { PursuitRouteBar, ReplayRaceView } from "../../experiences";
@@ -177,7 +177,7 @@ function Gauge({ dom }: { dom: Dom }) {
 
 type TileState = "hidden" | "clue" | "normal" | "tol" | "first" | "trap";
 function Polaroid({ dom, state, unit, small, onClick, fell, children }: { dom: Dom; state: TileState; unit: string; small?: boolean; onClick?: () => void; fell?: boolean; children?: React.ReactNode }) {
-  const mark = state === "clue" ? <><Icon name="clue" /> 단서</> : state === "first" ? <><Icon name="target" /> 시작점</> : state === "trap" ? "↪ 결과였어" : state === "tol" ? "≈ 허용 범위" : "✓ 정상";
+  const mark = state === "clue" ? <><Icon name="clue" /> 단서</> : state === "first" ? <><Icon name="target" /> 처음 어긋남</> : state === "trap" ? "↪ 결과였어" : state === "tol" ? "≈ 허용 범위" : "✓ 정상";
   return <div className={`dtPol t-${state} ${small ? "small" : ""} ${onClick ? "click" : ""} ${fell ? "fell" : ""}`} onClick={onClick}>
     <div className="dtPolPic"><Photo src={dom.img} />{state === "hidden" && <span className="dtQ">?</span>}{state !== "hidden" && dom.t !== undefined && dom.status === "bad" && <em className="dtTime"><Icon name="clock" /> {fmt(dom.t)}{unit}</em>}</div>
     <b>{dom.label}</b>
@@ -359,7 +359,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
         })}</div>
         <div className="dtCall">
           {allOpen && !earlierBad
-            ? <button className="dtFirst" onClick={callFirst}>들어오는 입력이 모두 정상 → <Icon name="target" /> {cur.label}{josa(cur.label, "이", "가")} 시작점!</button>
+            ? <button className="dtFirst" onClick={callFirst}>들어오는 입력이 모두 정상 → <Icon name="target" /> {cur.label}{josa(cur.label, "이", "가")} 처음 어긋난 곳</button>
             : <span className="dtTip">사진을 눌러 측정 · 수상하면 압정을 끌어 실로 연결 · 원인은 결과보다 <b>먼저</b> 달라져요</span>}
         </div>
       </section>}
@@ -377,6 +377,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
         {phase === "done" && <div className="dtImpact">
           <DominoFall chain={ordered} traps={traps} parentOf={id => chain.find(c => causesOf(c).includes(id)) ?? data.start} labelOf={id => dom(id).label} />
           <b><Icon name="clipboard" /> 쓰러진 곳 = 고친 뒤 다시 시험할 곳 (회귀 시험 {effects.length}곳)</b>
+          <div className="dtHypCarry"><small>원인은 아직 확정하지 않아요 · 검증 단계로 넘기는 가설</small>{SCENARIO_META[caseId].hypotheses.map(h => <span key={h.id} className={h.stage1 ? "out" : "keep"} title={h.stage1 ?? "이 단계의 증거로는 구분할 수 없어요. 시험으로 가려요."}><b>{h.label}</b><em>{h.stage1 ? "반박됨" : "판단 보류"}</em></span>)}</div>
           <b className="dtStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b>
           <button className="dtNext" onClick={finish}>다음: 요구사항 기반 로직 퍼즐 →</button>
         </div>}

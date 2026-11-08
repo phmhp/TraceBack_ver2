@@ -194,3 +194,27 @@ body:has(.vbBench + .stageHistoryNav .stageBackButton + .stageForwardButton) .vb
 .v7Lab2 .vbMonitor { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; min-height: 0; overflow: hidden; border-radius: 6px !important; }
 .v7Lab2 .vbMonitor ul { overflow: hidden; }
 .vbBench.v7 .vbStamp { font-size: 54px !important; padding: 4px 22px !important; border-width: 6px !important; }
+
+/* bench v7: hypothesis cards carried over from the root-cause trace */
+.v7Hyp { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; flex-basis: 100%; cursor: pointer; }
+.v7Hyp > small { font: 600 12px Pretendard, system-ui; color: #7b6a5c; margin-right: 2px; }
+.v7Hyp span { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 6px; border: 1px solid #e3d3c3; background: #fffdf6; font: 500 12px Pretendard, system-ui; color: #4b3a2f; }
+.v7Hyp span em { font-style: normal; font-weight: 600; font-size: 11.5px; padding: 1px 6px; border-radius: 4px; background: #efe6dc; color: #7b6a5c; }
+.v7Hyp .hyp-supported { border-color: #8fbf9e; background: #f1faf3; } .v7Hyp .hyp-supported em { background: #3f8a5c; color: #fff; }
+.v7Hyp .hyp-refuted { opacity: .62; } .v7Hyp .hyp-refuted b { text-decoration: line-through; text-decoration-color: #b07a6f; } .v7Hyp .hyp-refuted em { background: #c9b8ad; color: #fff; }
+.v7Hyp .hyp-open em { background: #ffe8a8; color: #7a5a12; }
+.v7HypPop { right: auto; left: 0; width: min(560px, 90vw); }
+.v7HypPop li { grid-template-columns: 92px 1fr !important; align-items: start; }
+.v7HypPop li b { width: auto !important; height: auto !important; padding: 1px 6px; font-size: 11px !important; }
+.v7HypPop li span strong { display: block; font-weight: 600; }
+.v7HypPop li.hyp-supported b { background: #3f8a5c !important; color: #fff !important; }
+.v7HypPop li.hyp-refuted b { background: #a99787 !important; color: #fff !important; }
+.v7HypPop li.hyp-open b { background: #ffe8a8 !important; color: #7a5a12 !important; }
+.vbBench.v7 .vbStamp.unk { color: #8a6e2a; border-color: #c9a64a; }
+.vbModelNote { display: inline-block; margin-left: 6px; font-size: 11px; opacity: .65; }
+.dtHypCarry { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px; }
+.dtHypCarry > small { flex-basis: 100%; text-align: center; font: 600 12px Pretendard, system-ui; color: #7b6a5c; }
+.dtHypCarry span { display: inline-flex; gap: 6px; align-items: center; padding: 3px 9px; border-radius: 6px; border: 1px solid #e3d3c3; background: #fffdf6; font: 500 12px Pretendard, system-ui; }
+.dtHypCarry span em { font-style: normal; font-weight: 600; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: #ffe8a8; color: #7a5a12; }
+.dtHypCarry span.out { opacity: .6; } .dtHypCarry span.out b { text-decoration: line-through; } .dtHypCarry span.out em { background: #c9b8ad; color: #fff; }
+.v7Hyp { order: 10; }

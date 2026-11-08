@@ -119,15 +119,17 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
       { id: "temp", name: "온도 SWC 출력", unit: "°C", max: 100, src: "tf", model: true },
       { id: "req", name: "팬 요청 SWC", unit: "%", max: 110, src: "fanReq", model: true },
       { id: "duty", name: "PWM 서비스 비율", unit: "%", max: 110, src: "duty", model: true },
-      { id: "rpmModel", name: "팬 모델 회전 (SIL)", unit: "rpm", max: 2100, src: "rpm", model: true },
+      { id: "rpmModel", name: "팬 모델 회전", unit: "rpm", max: 2100, src: "rpm", model: true },
     ],
     embedded: [
       { id: "pinV", name: "온도 센서 핀 전압", unit: "V", max: 5, src: "pinV", model: true },
       { id: "pwm", name: "PWM 출력 핀 비율", unit: "%", max: 110, src: "duty", model: true },
       { id: "supply", name: "팬 전원 전압", unit: "V", max: 14, src: "supply", model: true },
-      { id: "rpm", name: "팬 부하 모델 회전 (HIL)", unit: "rpm", max: 2100, src: "rpm", model: true },
+      { id: "rpm", name: "팬 부하 모델 회전", unit: "rpm", max: 2100, src: "rpm", model: true },
     ],
     vehicle: [
+      { id: "fpwm", name: "팬 커넥터 PWM (실부품)", unit: "%", max: 110, src: "duty" },
+      { id: "fv", name: "팬 커넥터 전원 전압", unit: "V", max: 14, src: "supply" },
       { id: "rpm", name: "팬 실제 회전 (실부품 연결)", unit: "rpm", max: 2100, src: "rpm" },
       { id: "tc", name: "냉각수 온도", unit: "°C", max: 100, src: "tc" },
       { id: "tm", name: "모터 온도", unit: "°C", max: 110, src: "tm" },
@@ -150,11 +152,11 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
     embedded: [
       { id: "cmd", name: "압력 명령 (ECU 출력)", unit: "bar", max: 70, src: "cmd", model: true },
       { id: "cur", name: "밸브 구동 전류", unit: "A", max: 1.5, src: "cur", model: true },
-      { id: "line", name: "유압 모델 라인 압력 (HIL)", unit: "bar", max: 70, src: "line", model: true },
+      { id: "line", name: "유압 모델 라인 압력", unit: "bar", max: 70, src: "line", model: true },
     ],
     vehicle: [
       { id: "cmd", name: "압력 명령 (ECU 출력)", unit: "bar", max: 70, src: "cmd" },
-      { id: "line", name: "실제 라인 압력 (실부품 연결)", unit: "bar", max: 70, src: "line" },
+      { id: "line", name: "캘리퍼 입구 압력 (실부품 연결)", unit: "bar", max: 70, src: "line" },
       { id: "dec", name: "차량 감속", unit: "m/s²", max: 4, src: "dec" },
     ],
   },
