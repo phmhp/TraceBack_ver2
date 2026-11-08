@@ -17,8 +17,10 @@ const ECU_BOXES = [
   { id: "dcu", label: "변속·클러스터", row: 0, col: 3, match: /Cluster|PRND/ },
 ];
 
-export function EeBlueprint({ chain, roles, active, removed, onPick, signals }: {
+export function EeBlueprint({ chain, roles, active, removed, onPick, signals, marks }: {
   chain: string[]; roles: Role[]; active: number; removed: number | null; onPick?: (index: number) => void; signals?: string[];
+  /** optional per-part state (root-cause trace): measured normal / abnormal / first deviation / can be measured now */
+  marks?: Record<number, "ok" | "bad" | "first" | "next">;
 }) {
   // place each part of the selected chain on the blueprint
   const sensors = chain.map((label, i) => ({ label, i })).filter(item => roles[item.i] === "input");
@@ -56,7 +58,7 @@ export function EeBlueprint({ chain, roles, active, removed, onPick, signals }: 
     return () => observer.disconnect();
   }, [chain.join("|"), roles.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
   const hue = (i: number) => 205 - (i / Math.max(1, chain.length - 1)) * 190; // blue (input) → red (vehicle)
-  const chip = (item: { label: string; i: number }) => <button data-ee={item.i} key={`${item.label}-${item.i}`} className={`eeChip ${item.i === active ? "active" : ""} ${item.i === removed ? "out" : ""}`} onClick={() => onPick?.(item.i)}>{item.i === removed ? <><Icon name="ban" /> </> : null}{item.label}</button>;
+  const chip = (item: { label: string; i: number }) => <button data-ee={item.i} key={`${item.label}-${item.i}`} className={`eeChip ${item.i === active ? "active" : ""} ${item.i === removed ? "out" : ""} ${marks?.[item.i] ? `mark-${marks[item.i]}` : ""}`} onClick={() => onPick?.(item.i)}>{item.i === removed ? <><Icon name="ban" /> </> : null}{item.label}{marks?.[item.i] === "ok" && <em className="eeMark">정상</em>}{marks?.[item.i] === "bad" && <em className="eeMark">이상</em>}{marks?.[item.i] === "first" && <em className="eeMark">처음 어긋남</em>}</button>;
   return <div className="eeBlueprint" ref={box}>
     <svg className="eeFlow" width={size.w} height={size.h} viewBox={`0 0 ${size.w} ${size.h}`}>
       <defs>

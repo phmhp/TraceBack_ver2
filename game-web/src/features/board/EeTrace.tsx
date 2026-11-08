@@ -14,8 +14,9 @@ import { play } from "../../ui/sfx";
 import { PursuitRouteBar } from "../../experiences";
 import { DRIVER, ENGINEER } from "../../game/cast";
 import { Icon } from "../../ui/Icon";
-import { showVerdict } from "../../ui/Verdict";
+import { StageIntro, showVerdict } from "../../ui/Verdict";
 import { CASES, DominoFall, Gauge, Photo, ZONES, ZONE_ICON, fmt, josa, refText, type Dom } from "./DominoTrace";
+import { EeBlueprint } from "../garage/EeBlueprint";
 
 type Send = React.Dispatch<any>;
 type Stamp = "refuted" | "likely";
@@ -33,7 +34,8 @@ const QUOTE: Record<string, string> = {
   brake: "브레이크를 밟았는데 생각보다 덜 서.",
 };
 
-export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
+/** v2 (evidence | board / mugshot row). Kept unused; v3 below is live. */
+export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const caseId = state.caseId;
   const scenario = SCENARIOS[caseId];
   const data = CASES[caseId];
@@ -208,4 +210,110 @@ export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
   </div>;
 }
 
-export type { Dom };
+
+
+// ===== v3: the garage E/E viewer on the left, evidence polaroids on the right (output side) =====
+// Memo-board simple: click parts on the E/E viewer to measure them (each adds a polaroid on the right),
+// then point at the part where things first went wrong (input normal, output abnormal), then pick the section.
+type Role = "input" | "control" | "network" | "actuator" | "result";
+type TNode = { label: string; role: Role; dom: string };
+const TRACE: Record<string, { chain: TNode[]; signals: string[]; first: number }> = {
+  propulsion: { first: 1, signals: ["페달 %", "토크 요청", "CAN 토크 명령", "모터 토크"], chain: [
+    { label: "APS 이중 센서", role: "input", dom: "aps" }, { label: "VCU", role: "control", dom: "vcu_in" }, { label: "CAN Torque", role: "network", dom: "can_cmd" },
+    { label: "인버터·모터", role: "actuator", dom: "motor_tq" }, { label: "차량 가속", role: "result", dom: "accel" }] },
+  thermal: { first: 1, signals: ["팬 PWM 명령", "냉각 바람", "냉각수 °C", "출력 허용"], chain: [
+    { label: "Thermal ECU", role: "control", dom: "fan_cmd" }, { label: "냉각 팬", role: "actuator", dom: "fan_rpm" }, { label: "냉각수 온도 센서", role: "input", dom: "coolant" },
+    { label: "VCU", role: "control", dom: "derate" }, { label: "차량 가속", role: "result", dom: "accel" }] },
+  brake: { first: 2, signals: ["페달 %", "압력 명령", "제동력"], chain: [
+    { label: "페달 센서", role: "input", dom: "bpp" }, { label: "Brake ECU", role: "control", dom: "p_cmd" }, { label: "유압 모듈레이터·캘리퍼", role: "actuator", dom: "caliper" },
+    { label: "차량 감속", role: "result", dom: "decel" }] },
+};
+
+export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
+  const caseId = state.caseId;
+  const scenario = SCENARIOS[caseId];
+  const data = CASES[caseId];
+  const meta = SCENARIO_META[caseId];
+  const trace = TRACE[caseId];
+  const chain = trace.chain;
+  const last = chain.length - 1;
+  const dom = (id: string) => data.doms.find(item => item.id === id)!;
+  const [measured, setMeasured] = useState<number[]>([last]);
+  const [picking, setPicking] = useState(false);
+  const [found, setFound] = useState(false);
+  const [sectionPick, setSectionPick] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [mistakes, setMistakes] = useState(0);
+  const [bubble, setBubble] = useState(`오른쪽 증거는 '${dom(chain[last].dom).label}'이에요. 왼쪽 E/E 그림에서 출력 쪽부터 부품을 눌러 재 보세요.`);
+  const isBad = (i: number) => dom(chain[i].dom).status === "bad";
+  const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
+  const pick = (i: number) => {
+    if (done || found) return;
+    if (picking) {
+      if (i === trace.first) {
+        if (!measured.includes(i) || (i > 0 && !measured.includes(i - 1))) { setBubble("그 부품과 바로 앞 부품을 모두 재 봐야 확신할 수 있어요."); play("error"); return; }
+        setFound(true); setPicking(false); showVerdict(true, "처음 어긋남"); play("success");
+        setBubble(`들어오는 값은 정상인데 ${chain[i].label}에서 나가는 값부터 이상해요. 의심 구간을 고르세요.`);
+        return;
+      }
+      setMistakes(n => n + 1); showVerdict(false);
+      setBubble(!isBad(i) ? `${chain[i].label}${josa(chain[i].label, "은", "는")} 정상이에요. 이상이 시작된 곳이 아니에요.` : `${chain[i].label}보다 앞쪽에서도 이미 이상해요. 더 앞을 보세요.`);
+      return;
+    }
+    if (measured.includes(i)) return;
+    setMeasured(previous => [...previous, i]);
+    const d = dom(chain[i].dom);
+    play("zip"); window.setTimeout(() => play(d.status === "bad" ? "stamp" : "pop"), 160);
+    setBubble(d.status === "bad" ? `${chain[i].label}: 기준과 달라요. 더 앞쪽도 재 보세요.` : `${chain[i].label}: 기준과 같아요(정상). 이 다음부터 이상하다면 그곳이 처음 어긋난 곳이에요.`);
+  };
+  const pickSection = (label: string) => {
+    const choice = data.section.choices.find(c => c.label === label)!;
+    setSectionPick(label); setBubble(choice.why);
+    if (choice.ok) { showVerdict(true, "의심 구간"); window.setTimeout(() => setDone(true), 800); }
+    else { setMistakes(n => n + 1); showVerdict(false); }
+  };
+  const effects = chain.filter((_, i) => i > trace.first && isBad(i)).map(node => dom(node.dom));
+  const finish = () => {
+    try { sessionStorage.setItem(`tb-impact-${caseId}`, JSON.stringify(effects.map(d => `${d.label} 정상 복귀 (기준 ${refText(d)})`))); } catch { /* ignore */ }
+    const evidence = measured.map(i => dom(chain[i].dom)).filter(d => d.ev).map(d => d.ev!);
+    evidence.filter(id => !state.evidence[caseId].includes(id)).forEach(id => send({ type: "RECORD_EVIDENCE", id }));
+    if (state.hypothesis[caseId] !== scenario.root) send({ type: "SELECT_HYPOTHESIS", id: scenario.root });
+    try { sessionStorage.setItem(`tb-section-${caseId}`, data.section.name); } catch { /* ignore */ }
+    send({ type: "OPEN_WIRING" });
+  };
+  const reveal = () => { setMeasured(chain.map((_, i) => i)); setFound(true); setSectionPick(data.section.choices.find(c => c.ok)!.label); setDone(true); };
+  const marks: Record<number, "ok" | "bad" | "first" | "next"> = {};
+  chain.forEach((_, i) => { marks[i] = found && i === trace.first ? "first" : measured.includes(i) ? (isBad(i) ? "bad" : "ok") : "next"; });
+  const order = [...measured].sort((a, b) => b - a); // output first
+
+  return <div className="dtBoard tbTrace">
+    <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
+    <GameHeader chapter="ROOT CAUSE TRACE" title="원인 역추적" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
+    <StageIntro id="trace-v3" title="원인 역추적" goal="증상에서 거꾸로 따라가 처음 어긋난 곳을 찾아요. 원인은 다음 단계에서 시험으로 확정해요." steps={[
+      { icon: "layers", text: "왼쪽 E/E 그림에서 부품을 눌러 재요. 오른쪽에 증거 사진이 쌓여요." },
+      { icon: "search", text: "출력 쪽부터 거꾸로. 정상인 부품 바로 다음에서 이상이 시작되면 그곳이 처음 어긋난 곳이에요." },
+      { icon: "target", text: "'처음 어긋난 곳 지목'을 누르고 그 부품을 고른 뒤, 안쪽 의심 구간을 골라요." },
+    ]} />
+    <main className="dtLayout tbLayout">
+      <section className={`tbBoard ${picking ? "picking" : ""}`}>
+        <header><b><Icon name="layers" /> 차량 E/E 아키텍처</b><small>{picking ? "처음 어긋난 부품을 누르세요" : "부품을 눌러 재기 · 신호는 → 방향으로 흘러요"}</small></header>
+        <EeBlueprint chain={chain.map(node => node.label)} roles={chain.map(node => node.role)} active={chain.length} removed={null} onPick={pick} signals={trace.signals} marks={marks} />
+      </section>
+      <aside className="tbEvidence">
+        <header><b><Icon name="camera" /> 증거</b><small>{scenario.title}</small></header>
+        <ul>{order.map(i => { const d = dom(chain[i].dom); return <li key={i} className={`s-${d.status} ${found && i === trace.first ? "first" : ""}`}>
+          <Photo src={d.img} /><span><b>{i === last ? "증상 · " : ""}{d.label}</b><Gauge dom={d} /></span><em className={`tbStamp ${d.status === "bad" ? "bad" : "ok"}`}>{d.status === "bad" ? "이상" : "정상"}</em>
+        </li>; })}</ul>
+        <div className="tbAct">
+          {!found ? <button className={`tbPick ${picking ? "on" : ""}`} onClick={() => { setPicking(v => !v); play("pop"); setBubble(picking ? "측정을 계속하세요." : "처음 어긋난 부품을 왼쪽 그림에서 누르세요."); }}><Icon name="target" /> {picking ? "지목 취소" : "처음 어긋난 곳 지목"}</button>
+            : !done ? <div className="tbSecs"><small>처음 어긋난 곳: {chain[trace.first].label} · 의심 구간을 고르세요</small>{data.section.choices.map(c => <button key={c.label} className={sectionPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}>{c.label}</button>)}</div>
+              : <div className="tbCarry"><small>검증 단계로 넘기는 용의자</small><div>{meta.hypotheses.map(h => <span key={h.id} className={h.stage1 ? "out" : "hold"}><b>{h.label}</b><em>{h.stage1 ? "반박됨" : "판단 보류"}</em></span>)}</div>
+                <button className="dtNext" onClick={finish}>다음: 요구사항 기반 로직 퍼즐 → <span>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</span></button></div>}
+        </div>
+      </aside>
+      <div className="etBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>
+    </main>
+    <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
+  </div>;
+}
