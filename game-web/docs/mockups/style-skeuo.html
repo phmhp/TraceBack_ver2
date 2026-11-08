@@ -3,64 +3,66 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>스타일 3 · 스큐어모피즘 증거 보드</title>
+<title>스타일 3 · 노트 종이 붙이기</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
 <style>
-  /* Skeuomorphism: real cork board, paper sheets with tape, yellow case labels, red string and push pins */
-  :root { --ink: #2e2620; --red: #d8382f; --yellow: #ffd84a; }
+  /* Skeuomorphism: every panel is a real sheet of notebook paper taped over the workshop background.
+     Layered shadows (contact + lift + ambient) and a soft curl shadow at the bottom corners; nothing is tilted. */
+  :root { --ink: #33291f; --soft: #7b6a5c; --red: #d4473c; --yellow: #ffdf5e; --r: 6px; }
   * { box-sizing: border-box; font-family: Pretendard, system-ui, sans-serif; word-break: keep-all; }
-  body { margin: 0; height: 100vh; overflow: hidden; color: var(--ink); font-size: 13px;
-    background-color: #c98d55;
-    background-image: radial-gradient(#a8703f 1px, transparent 1.4px), radial-gradient(#e2ad74 1px, transparent 1.4px), radial-gradient(circle at 50% 40%, #d9a067, #b97d47);
-    background-size: 7px 7px, 11px 11px, 100% 100%; background-position: 0 0, 3px 5px, 0 0; }
-  .stage { position: relative; max-width: 1160px; height: 100vh; margin: 0 auto; padding: 16px; display: grid; grid-template-rows: 48px 40px minmax(0, 1fr) 64px; gap: 14px; }
-  .paper { position: relative; background: #fffdf8; border-radius: 3px; box-shadow: 0 1px 1px rgba(0,0,0,.15), 0 8px 14px rgba(60,30,10,.35); }
-  .paper.lined { background: #fffdf8 repeating-linear-gradient(180deg, transparent 0 25px, #d6e4f2 25px 26px); }
-  .tape { position: absolute; top: -9px; width: 70px; height: 20px; background: rgba(255,250,215,.75); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
-  .pin { position: absolute; top: -7px; width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff8a80, var(--red) 60%, #8e1c16); box-shadow: 0 3px 3px rgba(0,0,0,.35); }
+  body { margin: 0; height: 100vh; overflow: hidden; color: var(--ink); font-size: 13px; background: #2e211c url("/assets/stitch23/investigation-lab.png") center/cover fixed; }
+  body::before { content: ""; position: fixed; inset: 0; background: rgba(38,24,20,.5); pointer-events: none; }
+  .stage { position: relative; max-width: 1160px; height: 100vh; margin: 0 auto; padding: 18px; display: grid; grid-template-rows: 48px 44px minmax(0, 1fr) 64px; gap: 16px; }
+  .paper { position: relative; border-radius: var(--r); background: #fffdf6;
+    box-shadow: 0 1px 1px rgba(0,0,0,.18), 0 4px 6px rgba(30,15,5,.22), 0 16px 28px rgba(20,10,0,.3); }
+  /* bottom-corner curl: the page lifts slightly, so the shadow is darker at the corners */
+  .paper::after { content: ""; position: absolute; left: 6px; right: 6px; bottom: 4px; height: 14px; z-index: -1; border-radius: 50%;
+    box-shadow: 0 10px 12px rgba(10,5,0,.35); }
+  .paper.lined { background: linear-gradient(90deg, transparent 38px, rgba(212,71,60,.35) 38px 39px, transparent 39px),
+    repeating-linear-gradient(180deg, transparent 0 25px, #d3e2f0 25px 26px), #fffdf6; }
+  .tape { position: absolute; top: -10px; width: 74px; height: 22px; border-radius: 2px; background: rgba(250,244,212,.78); box-shadow: 0 1px 2px rgba(0,0,0,.18); }
+  .tape.l { left: 18px; } .tape.r { right: 18px; } .tape.c { left: 50%; translate: -50% 0; }
   .row { display: flex; align-items: center; gap: 12px; padding: 0 16px; }
-  .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; } .logo img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #fff; }
-  .label { padding: 3px 12px; background: var(--yellow); font-weight: 600; font-size: 12px; box-shadow: 0 2px 2px rgba(0,0,0,.2); }
-  .label.black { background: #2e2620; color: var(--yellow); }
-  .dots { margin-left: auto; display: flex; gap: 6px; } .dots i { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid #8d7b6a; font: 600 10px Pretendard; font-style: normal; color: #8d7b6a; }
-  .dots i.done { background: #2e2620; border-color: #2e2620; color: var(--yellow); } .dots i.now { border: 2px solid var(--red); color: var(--red); transform: rotate(-8deg); }
-  .pursuit { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; }
+  .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; } .logo img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .label { padding: 3px 10px; border-radius: var(--r); font-weight: 500; font-size: 12px; background: var(--yellow); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+  .label.dark { background: #33291f; color: var(--yellow); }
+  .dots { margin-left: auto; display: flex; gap: 6px; } .dots i { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid #b8a693; font: 600 10px Pretendard; font-style: normal; color: #9c8a77; }
+  .dots i.done { background: #33291f; border-color: #33291f; color: var(--yellow); } .dots i.now { border: 2px solid var(--red); color: var(--red); }
+  .pursuit { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; }
   .pursuit b { font-weight: 600; } .pursuit b em { font-style: normal; color: var(--red); }
-  .track { position: relative; height: 4px; background: repeating-linear-gradient(90deg, #2e2620 0 10px, transparent 10px 16px); }
-  .track span { position: absolute; left: 30%; width: 22%; top: -2px; height: 8px; background: var(--red); }
-  .track img { position: absolute; top: -10px; translate: -50% -50%; width: 36px; }
+  .track { position: relative; align-self: end; height: 30px; margin-bottom: 9px; border-bottom: 2px dashed #8f7c6a; }
+  .track span { position: absolute; left: 30%; width: 22%; bottom: -5px; height: 8px; border-radius: 4px; background: var(--red); opacity: .85; }
+  .track img { position: absolute; bottom: 3px; translate: -50% 0; width: 34px; }
   .work { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 18px; min-height: 0; }
-  .sheet { padding: 22px 18px 16px; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 10px; transform: rotate(-.4deg); }
-  .sheet h2 { margin: 0; font-size: 15px; font-weight: 600; } .sheet h2 mark { background: linear-gradient(transparent 50%, var(--yellow) 50%); color: inherit; }
-  .chips { display: flex; gap: 8px; } .chip { padding: 3px 10px; font-weight: 500; font-size: 12px; background: #efe6d6; } .chip.now { background: var(--yellow); }
-  .area { display: grid; place-items: center; color: #8d7b6a; border: 1.5px dashed #b9a78f; }
-  .side { display: grid; align-content: start; gap: 16px; padding-top: 6px; }
-  .polaroid { position: relative; padding: 10px 10px 12px; background: #fff; box-shadow: 0 6px 10px rgba(60,30,10,.35); font-weight: 500; transform: rotate(2deg); }
-  .polaroid:nth-child(2) { transform: rotate(-2.5deg); }
-  .polaroid .ph { height: 60px; margin-bottom: 8px; background: linear-gradient(135deg, #e8dccb, #c9b79d); display: grid; place-items: center; color: #6b5a48; font-size: 11px; }
-  .polaroid.bad .ph { background: linear-gradient(135deg, #ffd9d2, #f2a497); color: #8e2a20; }
-  .string { position: absolute; inset: 0; pointer-events: none; }
-  .string path { fill: none; stroke: var(--red); stroke-width: 2; }
+  .sheet { padding: 20px 18px 16px 52px; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 10px; }
+  .sheet h2 { margin: 0; font-size: 15px; font-weight: 600; } .sheet h2 mark { background: linear-gradient(transparent 52%, var(--yellow) 52% 92%, transparent 92%); color: inherit; padding: 0 2px; }
+  .chips { display: flex; gap: 8px; } .chip { padding: 3px 10px; border-radius: var(--r); font-weight: 500; font-size: 12px; background: #efe6d6; } .chip.now { background: var(--yellow); }
+  .area { border-radius: var(--r); display: grid; place-items: center; color: var(--soft); border: 1.5px dashed #c2b19c; background: rgba(255,253,246,.6); }
+  .side { display: grid; align-content: start; gap: 18px; }
+  .polaroid { position: relative; padding: 10px 10px 12px; border-radius: var(--r); background: #fff; font-weight: 500;
+    box-shadow: 0 1px 1px rgba(0,0,0,.18), 0 4px 6px rgba(30,15,5,.22), 0 14px 22px rgba(20,10,0,.28); }
+  .polaroid .ph { height: 64px; margin-bottom: 8px; border-radius: 3px; background: linear-gradient(135deg, #e8dccb, #c9b79d); display: grid; place-items: center; color: #6b5a48; font-size: 11px; }
+  .polaroid.bad .ph { background: linear-gradient(135deg, #ffe0d9, #f3aa9d); color: #8e2a20; }
+  .side h3 { margin: 0 0 -6px; font-size: 12px; font-weight: 600; color: #f3e6d8; }
   .foot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 0 12px 0 16px; }
-  .say { display: flex; gap: 10px; align-items: center; font-weight: 500; } .say img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #fff; } .say b { margin-right: 6px; font-weight: 600; }
-  /* rubber stamp button */
-  .btn { padding: 9px 20px; border: 2.5px solid var(--red); border-radius: 6px; background: #fff5f2; color: var(--red); font-weight: 700; font-size: 14px; letter-spacing: .06em; transform: rotate(-2deg); cursor: pointer; box-shadow: 0 3px 0 rgba(160,40,30,.35); }
-  .btn:active { transform: rotate(-2deg) translateY(2px) scale(.97); box-shadow: 0 1px 0 rgba(160,40,30,.35); }
+  .say { display: flex; gap: 10px; align-items: center; font-weight: 500; } .say img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); } .say b { margin-right: 6px; font-weight: 600; color: var(--red); }
+  /* rubber stamp button, straight */
+  .btn { padding: 9px 20px; border: 2px solid var(--red); border-radius: var(--r); background: #fff6f3; color: var(--red); font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 3px 0 rgba(160,40,30,.3), 0 6px 10px rgba(60,20,10,.18); }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(160,40,30,.3), 0 2px 4px rgba(60,20,10,.15); }
 </style>
 </head>
 <body>
 <div class="stage">
-  <header class="paper row"><span class="tape" style="left:44%"></span><span class="logo"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />TraceBack</span><span class="label black">CASE FILE 4/8</span><span class="label">원인 역추적</span>
+  <header class="paper row"><span class="tape c"></span><span class="logo"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />TraceBack</span><span class="label dark">CASE FILE 4/8</span><span class="label">원인 역추적</span>
     <span class="dots"><i class="done">1</i><i class="done">2</i><i class="done">3</i><i class="now">4</i><i>5</i><i>6</i><i>7</i><i>8</i></span></header>
-  <section class="paper row pursuit"><b>추격차와 <em>72 m</em></b><div class="track"><span></span><img src="/assets/ui/icons/police-car.svg" style="left:30%" alt="" /><img src="/assets/ui/icons/getaway-car.svg" style="left:52%" alt="" /></div></section>
+  <section class="paper row pursuit"><span class="tape l"></span><span class="tape r"></span><b>추격차와 <em>72 m</em></b><div class="track"><span></span><img src="/assets/ui/icons/police-car.svg" style="left:30%" alt="" /><img src="/assets/ui/icons/getaway-car.svg" style="left:52%" alt="" /></div></section>
   <main class="work">
-    <section class="paper lined sheet"><span class="pin" style="left:50%"></span><h2>증상에서 거슬러 올라가 <mark>처음 어긋난 구간</mark>을 좁힙니다</h2>
+    <section class="paper lined sheet"><span class="tape l"></span><span class="tape r"></span><h2>증상에서 거슬러 올라가 <mark>처음 어긋난 구간</mark>을 좁힙니다</h2>
       <div class="chips"><span class="chip now">1 거꾸로 따라가기</span><span class="chip">2 의심 구간</span><span class="chip">3 영향 범위</span></div>
       <div class="area">도미노 줄 + 측정 카드 3장</div></section>
-    <aside class="side"><div class="polaroid bad"><span class="pin" style="left:46%"></span><div class="ph">증상 사진</div>차량 가속 · 기준 2.8 → 1.2 m/s²</div><div class="polaroid"><span class="pin" style="left:52%"></span><div class="ph">미측정</div>후보를 선택해 측정</div></aside>
+    <aside class="side"><h3>측정 기록</h3><div class="polaroid bad"><span class="tape c"></span><div class="ph">증상 사진</div>차량 가속 · 기준 2.8 → 1.2 m/s²</div><div class="polaroid"><span class="tape c"></span><div class="ph">미측정</div>후보를 선택해 측정</div></aside>
   </main>
-  <footer class="paper foot"><span class="tape" style="left:20px"></span><div class="say"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><span><b>너트</b>먼저 어긋난 값이 원인 쪽입니다. 측정 시각을 비교하세요.</span></div><button class="btn">시작점 확정</button></footer>
-  <svg class="string" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M76 33 C70 40 66 30 52 24" vector-effect="non-scaling-stroke" /></svg>
+  <footer class="paper foot"><span class="tape l"></span><div class="say"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><span><b>너트</b>먼저 어긋난 값이 원인 쪽입니다. 측정 시각을 비교하세요.</span></div><button class="btn">시작점 확정</button></footer>
 </div>
 </body>
 </html>

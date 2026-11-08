@@ -11,33 +11,33 @@
   * { box-sizing: border-box; font-family: Pretendard, system-ui, sans-serif; word-break: keep-all; }
   body { margin: 0; height: 100vh; overflow: hidden; color: var(--ink); font-size: 13px;
     background: #3b2a2a url("/assets/stitch23/investigation-lab.png") center/cover fixed; }
-  body::before { content: ""; position: fixed; inset: 0; background: rgba(255,246,238,.18); pointer-events: none; }
+  body::before { content: ""; position: fixed; inset: 0; background: rgba(38,24,20,.5); pointer-events: none; }
   .stage { position: relative; max-width: 1160px; height: 100vh; margin: 0 auto; padding: 16px; display: grid; grid-template-rows: 48px 42px minmax(0, 1fr) 64px; gap: 14px; }
   /* wobbly outline: uneven radii + a second offset stroke like a marker going over twice */
-  .doodle { position: relative; background: var(--paper); border: 1.5px solid var(--line); border-radius: 18px 22px 16px 24px / 22px 16px 24px 18px; box-shadow: 3px 4px 0 rgba(74,58,50,.18), 0 8px 18px rgba(40,20,10,.18); }
+  .doodle { position: relative; background: var(--paper); border: 1.5px solid var(--line); border-radius: 18px; box-shadow: 3px 4px 0 rgba(74,58,50,.18), 0 8px 18px rgba(40,20,10,.18); }
   .row { display: flex; align-items: center; gap: 10px; padding: 0 16px; }
   .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; } .logo img { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--line); background: #fff; object-fit: cover; }
-  .hl { background: linear-gradient(transparent 55%, var(--pink) 55% 90%, transparent 90%); padding: 0 3px; }
-  .tag { padding: 3px 12px; border: 1.5px solid var(--line); border-radius: 12px 16px 10px 14px; background: var(--sun); font-weight: 500; font-size: 12px; }
-  .dots { margin-left: auto; display: flex; gap: 6px; } .dots i { width: 20px; height: 20px; display: grid; place-items: center; border: 1.5px solid var(--line); border-radius: 48% 52% 50% 50%; font: 600 10px Pretendard; font-style: normal; background: #fff; }
+  .hl { background: linear-gradient(transparent 55%, #ffe36e 55% 90%, transparent 90%); padding: 0 3px; }
+  .tag { padding: 3px 12px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--sun); font-weight: 500; font-size: 12px; }
+  .dots { margin-left: auto; display: flex; gap: 6px; } .dots i { width: 20px; height: 20px; display: grid; place-items: center; border: 1.5px solid var(--line); border-radius: 50%; font: 600 10px Pretendard; font-style: normal; background: #fff; }
   .dots i.done { background: var(--mint); } .dots i.now { background: var(--rose); color: #fff; border-color: var(--rose); }
-  .pursuit { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; }
-  .track { position: relative; height: 8px; border-top: 2px dashed var(--line); }
-  .track span { position: absolute; left: 30%; width: 22%; top: -6px; height: 8px; border-radius: 6px; background: var(--pink); }
-  .track img { position: absolute; top: -12px; translate: -50% -50%; width: 36px; }
+  .pursuit { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; }
+  .track { position: relative; align-self: end; height: 30px; margin-bottom: 8px; border-bottom: 2px dashed var(--line); }
+  .track span { position: absolute; left: 30%; width: 22%; bottom: -5px; height: 8px; border-radius: 6px; background: var(--pink); }
+  .track img { position: absolute; bottom: 3px; translate: -50% 0; width: 34px; }
   .work { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 16px; min-height: 0; }
   .card { padding: 16px; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 10px; }
   .card h2 { margin: 0; font-size: 15px; font-weight: 600; }
-  .chips { display: flex; gap: 8px; } .chip { padding: 4px 12px; border: 1.5px solid var(--line); border-radius: 14px 10px 16px 12px; font-size: 12px; font-weight: 500; background: #fff; }
+  .chips { display: flex; gap: 8px; } .chip { padding: 4px 12px; border: 1.5px solid var(--line); border-radius: 12px; font-size: 12px; font-weight: 500; background: #fff; }
   .chip.now { background: var(--mint); }
   .area { border: 1.5px dashed rgba(74,58,50,.3); background: rgba(255,255,255,.5); border-radius: 14px; display: grid; place-items: center; color: #9a8579; }
   .side { padding: 16px; display: grid; align-content: start; gap: 10px; }
   .side h3 { margin: 0; font-size: 13px; font-weight: 600; }
-  .sticky { padding: 10px 12px; background: var(--sun); border: 1.5px solid var(--line); border-radius: 4px 10px 6px 12px; font-weight: 500; box-shadow: 2px 3px 0 rgba(74,58,50,.15); }
+  .sticky { padding: 10px 12px; background: var(--sun); border: 1.5px solid var(--line); border-radius: 12px; font-weight: 500; box-shadow: 2px 3px 0 rgba(74,58,50,.15); }
   .sticky.pink { background: var(--pink); }
   .foot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 0 12px 0 16px; }
   .say { display: flex; gap: 10px; align-items: center; font-weight: 500; } .say img { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--line); background: #fff; object-fit: cover; } .say b { margin-right: 6px; font-weight: 600; color: var(--rose); }
-  .btn { padding: 10px 22px; border: 1.5px solid rgba(74,58,50,.55); border-radius: 16px 20px 14px 22px; background: var(--rose); font-weight: 600; font-size: 14px; color: #fffaf3; box-shadow: 3px 3px 0 rgba(74,58,50,.35); cursor: pointer; transition: transform .1s; }
+  .btn { padding: 10px 22px; border: 1.5px solid rgba(74,58,50,.55); border-radius: 14px; background: var(--rose); font-weight: 600; font-size: 14px; color: #fffaf3; box-shadow: 3px 3px 0 rgba(74,58,50,.35); cursor: pointer; transition: transform .1s; }
   .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(74,58,50,.35); }
   .arrow { position: absolute; right: -36px; top: 8px; width: 40px; }
 </style>
