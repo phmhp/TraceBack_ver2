@@ -10,7 +10,7 @@
   /* v3: rose · mauve · warm-brown palette, lightly translucent glossy panels over the original background */
   :root {
     --ink: #3e2f2c; --ink-soft: #7a6660;
-    --rose: #e9a9a6; --rose-2: #c97a78; --mauve: #b79cc7; --plum: #7a5a86; --plum-2: #5e4269;
+    --rose: #e9a9a6; --rose-2: #c97a78; --mauve: #b79cc7; --plum: #8a5a44; --plum-2: #613b2b;
     --brown: #8a6650; --cream: #fbf3ec; --sun: #f2cf8a;
   }
   * { box-sizing: border-box; font-family: Pretendard, system-ui, sans-serif; word-break: keep-all; }
@@ -30,15 +30,15 @@
   .clay { border: 0; border-radius: 999px; padding: 5px 11px; font-weight: 700; font-size: 12px; color: var(--ink); background: #fff; cursor: pointer;
     box-shadow: inset 2px 2px 4px #ffffff, inset -2px -3px 5px rgba(110,70,80,.14), 0 2px 5px rgba(70,40,50,.16); }
   .clay.sun { background: linear-gradient(180deg, #f8ddb0, var(--sun)); color: #5b3e17; }
-  .clay.leaf { background: linear-gradient(180deg, #d4bfe0, var(--mauve)); color: #3c2648; }
+  .clay.leaf { background: linear-gradient(180deg, #e3c3b2, #c99a82); color: #4a2c1e; }
   .clay.soft { background: #f6ebe8; color: var(--ink-soft); }
   .dots { margin-left: auto; display: flex; gap: 6px; } .dots i { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; font: 800 10px Pretendard; font-style: normal; background: #f4e9e6; color: #a38f88; box-shadow: inset 1px 1px 2px #fff, inset -1px -2px 3px rgba(0,0,0,.08); }
-  .dots i.done { background: linear-gradient(180deg, #cdb4dc, var(--mauve)); color: #fff; } .dots i.now { background: linear-gradient(180deg, #f3c0bd, var(--rose-2)); color: #fff; }
+  .dots i.done { background: linear-gradient(180deg, #c99a82, #a06e55); color: #fff; } .dots i.now { background: linear-gradient(180deg, #f3c0bd, var(--rose-2)); color: #fff; }
   .dots img { width: 11px; filter: brightness(10); }
   .pursuit { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; }
   .gapNum { font-weight: 800; font-size: 15px; color: var(--rose-2); } .gapNum small { font-size: 11px; color: var(--ink-soft); margin-right: 4px; font-weight: 700; }
   .track { position: relative; height: 10px; border-radius: 999px; background: #efe2df; box-shadow: inset 1px 2px 3px rgba(80,40,50,.2); }
-  .track .gap { position: absolute; left: 30%; width: 22%; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, var(--rose), var(--mauve)); }
+  .track .gap { position: absolute; left: 30%; width: 22%; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, var(--rose), #c99a82); }
   .track img { position: absolute; top: 50%; translate: -50% -55%; width: 34px; }
   .lives { display: flex; gap: 4px; align-items: center; } .lives b { width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #f7d0ce, var(--rose-2) 60%); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
   .mission { justify-content: space-between; }
@@ -50,17 +50,17 @@
   .side h3 { margin: 2px 0; font-size: 12px; color: var(--ink-soft); }
   .note { padding: 8px 10px; border-radius: 12px; background: #fff; font-size: 12.5px; font-weight: 600; line-height: 1.4;
     box-shadow: inset 2px 2px 3px #fff, inset -2px -2px 4px rgba(110,70,80,.08), 0 1px 3px rgba(70,40,50,.14); }
-  .note.ok { background: #f1eaf6; } .note.bad { background: #fbe8e6; }
+  .note.ok { background: #f6ece4; } .note.bad { background: #fbe8e6; }
   .foot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 0 8px 0 12px; }
   .ming { display: flex; gap: 10px; align-items: center; font-size: 13px; font-weight: 600; } .ming img { width: 38px; height: 38px; border-radius: 50%; background: #fff; object-fit: cover; box-shadow: 0 2px 4px rgba(60,30,40,.2); } .ming b { color: var(--plum); margin-right: 4px; }
   /* jelly primary: glossy clay that squashes when pressed */
   .cta { border: 0; border-radius: 16px; padding: 10px 20px; font-size: 14px; font-weight: 800; color: #fff; cursor: pointer;
-    background: linear-gradient(180deg, #b48fc2 0%, var(--plum) 60%, #6a4b76 100%);
-    box-shadow: inset 0 2px 1px rgba(255,255,255,.55), inset 0 -3px 4px rgba(40,10,50,.25), 0 4px 0 var(--plum-2), 0 8px 12px rgba(94,66,105,.35);
+    background: linear-gradient(180deg, #b7856c 0%, var(--plum) 60%, #714634 100%);
+    box-shadow: inset 0 2px 1px rgba(255,255,255,.55), inset 0 -3px 4px rgba(50,20,10,.25), 0 4px 0 var(--plum-2), 0 8px 12px rgba(97,59,43,.35);
     transition: transform .12s cubic-bezier(.3,1.7,.5,1), box-shadow .12s; }
-  .cta:active { transform: translateY(3px) scale(1.04, .93); box-shadow: inset 0 2px 1px rgba(255,255,255,.55), inset 0 -2px 3px rgba(40,10,50,.25), 0 1px 0 var(--plum-2), 0 3px 6px rgba(94,66,105,.3); }
+  .cta:active { transform: translateY(3px) scale(1.04, .93); box-shadow: inset 0 2px 1px rgba(255,255,255,.55), inset 0 -2px 3px rgba(50,20,10,.25), 0 1px 0 var(--plum-2), 0 3px 6px rgba(97,59,43,.3); }
   .swap { position: fixed; left: 50%; translate: -50% 0; bottom: 8px; display: flex; gap: 6px; }
-  .swap button.on { background: linear-gradient(180deg, #8a6a78, #5e4251); color: #fff; }
+  .swap button.on { background: linear-gradient(180deg, #8a5a44, #613b2b); color: #fff; }
 </style>
 </head>
 <body>
