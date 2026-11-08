@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, RoundedBox, useTexture } from "@react-three/drei";
 import * as THREE from "three";
@@ -8,7 +9,7 @@ import { GameHeader, JourneyProgress, SceneBackdrop } from "./ui/game-shell";
 import { HeroConvertible } from "./features/vehicle/HeroConvertible";
 import { DevRenderProbe } from "./features/vehicle/DevRenderProbe";
 import { FittedPart } from "./features/parts/PartModel";
-import { hasPartModel } from "./features/parts/partModels";
+import { getPartModel, hasPartModel } from "./features/parts/partModels";
 import { ComicBurst } from "./ui/ComicBurst";
 import { engineStop, play } from "./ui/sfx";
 import { ECUS } from "./sim/components";
@@ -237,16 +238,17 @@ function SignalCable({ from, to, color = "#ef8c58", via = [] }: { from: [number,
   </group>;
 }
 
-function GarageFlowPart({ label, position, kind, active, running, role, partId }: { label: string; position: [number, number, number]; kind: HardwareKind; active: boolean; running: boolean; role: string; partId?: string }) {
+function GarageFlowPart({ label, position, kind, active, running, role, partId, inspect }: { label: string; position: [number, number, number]; kind: HardwareKind; active: boolean; running: boolean; role: string; partId?: string; inspect?: PartInspectTarget }) {
   const [hovered, setHovered] = useState(false);
   return <group
     position={position}
     scale={active ? 1.08 : .82}
-    onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = "help"; }}
+    onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = inspect ? "zoom-in" : "help"; }}
     onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; }}
+    onDoubleClick={event => { if (!inspect) return; event.stopPropagation(); play("pop"); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: inspect })); }}
   >
     <HardwarePart kind={kind} active={active} running={running} partId={partId} />
-    {hovered && <PartLabel position={[0, 1.16, 0]}>{role} · {label}</PartLabel>}
+    {hovered && <PartLabel position={[0, 1.16, 0]}>{role} · {label}{inspect ? " · 더블클릭: 자세히" : ""}</PartLabel>}
   </group>;
 }
 
@@ -430,7 +432,7 @@ function DomainFlowRig({ domain, feature, activeStep = 0, compact = false, runni
   });
   return <group scale={compact ? .58 : labels.length > 5 ? .68 : .76}>
     <DomainSignature domain={domain} activeStep={activeStep} />
-    {labels.map((label, index) => { const position = positions[index]; const kind = hardwareKindFor(domain, label, index, last); const role = index === 0 ? "INPUT" : index === last ? "OUTPUT" : /ECU|VCU|BMS|CAN/.test(label) ? "CONTROL" : "PLANT"; return removed === index ? <RemovedPartMarker key={`${label}-${index}`} position={position} /> : <GarageFlowPart key={`${label}-${index}`} label={label} position={position} kind={kind} active={activeStep === index} running={running} role={role} partId={partModelFor(domain, label)} />; })}
+    {labels.map((label, index) => { const position = positions[index]; const kind = hardwareKindFor(domain, label, index, last); const role = index === 0 ? "INPUT" : index === last ? "OUTPUT" : /ECU|VCU|BMS|CAN/.test(label) ? "CONTROL" : "PLANT"; return removed === index ? <RemovedPartMarker key={`${label}-${index}`} position={position} /> : <GarageFlowPart key={`${label}-${index}`} label={label} position={position} kind={kind} active={activeStep === index} running={running} role={role} partId={partModelFor(domain, label)} inspect={compact ? undefined : { domain, feature, index }} />; })}
     {positions.slice(0, -1).map((position, index) => { const next = positions[index + 1]; return <SignalCable key={`${position.join("-")}`} from={[position[0] + .32, position[1] + .04, position[2]]} to={[next[0] - .32, next[1] + .04, next[2]]} color={removed !== null && (index === removed || index + 1 === removed) ? "#e0483c" : index < activeStep ? "#f2c653" : index === activeStep ? "#ff7b49" : domain === "brake" ? "#4b9dc1" : domain === "steer" ? "#8d75b6" : domain === "power" ? "#4a9a82" : "#7ca8b3"} />; })}
     {!compact && <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0,-.04,0]}><ringGeometry args={[3.45,3.55,96]} /><meshStandardMaterial color="#c3d2cb" transparent opacity={.42} /></mesh>}
   </group>;
@@ -590,7 +592,8 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
       {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />}
       <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={2.5} maxDistance={allDomains ? 22 : 10} maxPolarAngle={Math.PI * .49} target={[0, .65, 0]} />
     </Canvas>
-    <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동</span>
+    <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동{level === 0 && !allDomains ? " · 부품 더블클릭: 자세히" : ""}</span>
+    {level === 0 && <PartInspector />}
     <div className="viewToggles">
       {level === 0 && <span className="view3dSeg">{(noDomain ? [["grid", "나란히"], ["overlay", "겹쳐 보기"]] as const : [["one", "이 도메인"], ["grid", "나란히"], ["overlay", "겹쳐 보기"]] as const).map(([id, label]: readonly [string, string]) => <button key={id} className={`shellToggle ${view3d === id ? "on" : ""}`} onClick={() => setView3d(id as "one" | "grid" | "overlay")}><Icon name={id === "one" ? "search" : id === "grid" ? "grid" : "layers"} /> {label}</button>)}</span>}
       {!allDomains && <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}><Icon name="car" /> 차체 {shell ? "숨기기" : "보기"}</button>}
@@ -696,6 +699,70 @@ function PartIntroCard({ label, role, domain, onClose, onPull }: { label: string
     <div><small>{ROLE_TEXT[role].tag}</small><b>{label}</b><div className="ecuRow"><i><Icon name="bulb" /></i><span><em className="do">{ROLE_INTRO[role]}</em></span></div>
     {role !== "result" && <button className="ecuPull" onClick={onPull}>이 부품 빼 보기</button>}</div>
   </div>;
+}
+
+// ── Vehicle/System: double-click a part → that part alone, 360° turntable + what it does ──
+type PartInspectTarget = { domain: DomainId; feature: number; index: number };
+const MOVE_TEXT: Record<string, string> = { press: "눌리는 부분", rotate: "회전하는 부분", spin: "계속 회전하는 부분", slide: "앞뒤로 움직이는 부분", explode: "분해해 볼 수 있는 부분" };
+function PartInspector() {
+  const [target, setTarget] = useState<PartInspectTarget | null>(null);
+  const [spin, setSpin] = useState(true);
+  const [moving, setMoving] = useState(true);
+  useEffect(() => {
+    const open = (event: Event) => { setTarget((event as CustomEvent<PartInspectTarget>).detail); setSpin(true); };
+    const key = (event: KeyboardEvent) => { if (event.key === "Escape") setTarget(null); };
+    addEventListener("tb-part-inspect", open); addEventListener("keydown", key);
+    return () => { removeEventListener("tb-part-inspect", open); removeEventListener("keydown", key); };
+  }, []);
+  if (!target) return null;
+  const { domain, feature, index } = target;
+  const chain = getFeatureLayer(domain, feature, 1);
+  const label = chain[index];
+  const signals = flowSignals(domain, feature, chain.length);
+  const role = partRole(label, index, chain.length);
+  const partId = partModelFor(domain, label);
+  const comp = partId ? getComponent(partId) : undefined;
+  const ecu = ECUS.find(item => item.id === (ecuIdFor(label) ?? comp?.relatedEcu));
+  const model = partId ? getPartModel(partId) : undefined;
+  const kind = hardwareKindFor(domain, label, index, chain.length - 1);
+  const ko = (id: string) => getComponent(id)?.nameKo ?? ECUS.find(item => item.id === id)?.name ?? id;
+  return createPortal(<div className="partInspect" role="dialog" aria-label={`${label} 자세히 보기`} onClick={() => setTarget(null)}>
+    <article onClick={event => event.stopPropagation()}>
+      <section className="piStage">
+        <Canvas camera={{ position: [1.6, 1.1, 2.2], fov: 34 }} dpr={[1, 1.5]}>
+          <color attach="background" args={["#f6efe9"]} />
+          <hemisphereLight intensity={2} color="#fff8e5" groundColor="#8a6f66" />
+          <directionalLight position={[3, 5, 4]} intensity={2.6} />
+          <directionalLight position={[-3, 2, -3]} intensity={.9} />
+          {partId ? <FittedPart id={partId} size={1.5} demo={moving} castShadow={false} /> : <group scale={.62} position={[0, -.25, 0]}><PrimitiveHardwarePart kind={kind} running={moving} /></group>}
+          <OrbitControls makeDefault autoRotate={spin} autoRotateSpeed={2.2} enablePan={false} minDistance={1.4} maxDistance={6} target={[0, 0, 0]} />
+        </Canvas>
+        <div className="piTools">
+          <button className={spin ? "on" : ""} onClick={() => setSpin(value => !value)}><Icon name="repeat" /> {spin ? "회전 멈춤" : "360° 회전"}</button>
+          {model?.moving.length ? <button className={moving ? "on" : ""} onClick={() => setMoving(value => !value)}><Icon name="gear" /> 동작 {moving ? "멈춤" : "보기"}</button> : null}
+        </div>
+        <small className="piHint">끌어서 돌리기 · 휠 확대/축소 · Esc 닫기</small>
+      </section>
+      <section className="piText">
+        <button className="piClose" onClick={() => setTarget(null)} aria-label="닫기">×</button>
+        <small>{domainContent[domain].label} 도메인 · {domainContent[domain].functions[feature]} · {index + 1}/{chain.length}단계</small>
+        <h2>{label}</h2>
+        {comp && comp.nameKo !== label && <p className="piName">{comp.nameKo} <em>{comp.name}</em></p>}
+        <p className="piRole"><b>{ROLE_TEXT[role].tag}</b>{ROLE_INTRO[role]}</p>
+        <dl>
+          <div><dt>받는 것</dt><dd>{index > 0 ? <>{chain[index - 1]} → <em>{signals[index - 1]}</em></> : "운전자 조작·물리량"}</dd></div>
+          <div><dt>하는 일</dt><dd>{ROLE_DOES[role](signals[index])}</dd></div>
+          <div><dt>보내는 곳</dt><dd>{index < chain.length - 1 ? <>{chain[index + 1]}</> : "차량 거동으로 나타남"}</dd></div>
+          {comp && comp.ports.length > 0 && <div><dt>신호·단위</dt><dd className="piPorts">{comp.ports.map(port => <em key={port.id} className={port.direction}>{port.direction === "in" ? "입력" : "출력"} {port.signal ?? port.id} <i>{port.unit}</i></em>)}</dd></div>}
+          {ecu && <div><dt>연결 제어기</dt><dd>{ecu.name} · {ecu.interfaces.join(" · ")}</dd></div>}
+          {ecu && ecuIdFor(label) && <div><dt>주요 기능</dt><dd>{ecu.functions.join(" · ")}</dd></div>}
+          {ecu && ecuIdFor(label) && ecu.actuators.length > 0 && <div><dt>구동 대상</dt><dd>{ecu.actuators.map(ko).join(" · ")}</dd></div>}
+          {model?.moving[0] && <div><dt>움직임</dt><dd>{MOVE_TEXT[model.moving[0].mode] ?? "움직이는 부분"} 표시</dd></div>}
+        </dl>
+        <p className="piNote">{partId ? "형상은 교육용으로 단순화한 모델이에요." : "아직 전용 3D 모델이 없어 기본 도형으로 보여요."}</p>
+      </section>
+    </article>
+  </div>, document.body);
 }
 
 function ControllerCard({ label, onPull, onClose }: { label: string; onPull: () => void; onClose: () => void }) {

@@ -202,3 +202,32 @@ mark, .np-mark, .dtQuestion h2 b, .vbStage h2 b, .rpHead h1 em, .refPuzzle .rpHe
 .garageMechanismCard .simulinkFlow .simPath { margin-left: 232px; min-height: 28px; }
 .subsystemName.withOwner { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.15; font-size: 11px !important; }
 .subsystemName.withOwner i { display: block; font-size: 10px; }
+
+/* Vehicle/System: one part, 360° turntable + description */
+.partInspect { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: rgba(48, 32, 28, .34); backdrop-filter: blur(3px); }
+.partInspect article { position: relative; width: min(980px, calc(100vw - 48px)); height: min(560px, calc(100vh - 80px)); display: grid; grid-template-columns: 1.15fr 1fr; background: #fffaf6; border-radius: 6px; box-shadow: 0 2px 4px #4a2e2733, 0 18px 40px #4a2e2740; overflow: hidden; }
+.partInspect .piStage { position: relative; background: #f6efe9; border-right: 1px solid #ead8d1; }
+.partInspect .piStage canvas { cursor: grab; }
+.partInspect .piTools { position: absolute; left: 14px; top: 14px; display: flex; gap: 6px; }
+.partInspect .piTools button { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 6px; border: 1px solid #d9c3bd; background: #fffaf6; color: #6e4a44; font: 500 12.5px Pretendard, sans-serif; cursor: pointer; }
+.partInspect .piTools button.on { background: #9b6b64; color: #fff; border-color: #9b6b64; }
+.partInspect .piTools svg { width: 14px; height: 14px; }
+.partInspect .piHint { position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; font-size: 12px; color: #8a6e67; }
+.partInspect .piText { position: relative; padding: 26px 26px 20px; overflow: auto; color: #3f2c28; }
+.partInspect .piClose { position: absolute; right: 12px; top: 10px; width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; font-size: 22px; color: #8a6e67; cursor: pointer; }
+.partInspect .piText > small { display: block; font-size: 12px; color: #9b6b64; font-weight: 500; padding-right: 30px; }
+.partInspect h2 { margin: 6px 0 4px; font-size: 24px; font-weight: 700; }
+.partInspect .piName { margin: 0 0 8px; font-size: 13.5px; color: #6e4a44; }
+.partInspect .piName em { font-style: normal; opacity: .6; margin-left: 4px; }
+.partInspect .piRole { margin: 8px 0 14px; font-size: 14px; line-height: 1.5; }
+.partInspect .piRole b { display: inline-block; margin-right: 8px; padding: 2px 8px; border-radius: 6px; background: #f3e2dd; color: #7a4f48; font-size: 12.5px; font-weight: 600; }
+.partInspect dl { margin: 0; display: grid; gap: 8px; }
+.partInspect dl > div { display: grid; grid-template-columns: 84px 1fr; gap: 10px; padding-bottom: 8px; border-bottom: 1px dashed #ead8d1; }
+.partInspect dt { font-size: 12.5px; color: #8a6e67; font-weight: 500; }
+.partInspect dd { margin: 0; font-size: 13.5px; line-height: 1.45; }
+.partInspect dd em { font-style: normal; color: #7a4f48; font-weight: 600; }
+.partInspect .piPorts { display: flex; flex-wrap: wrap; gap: 5px; }
+.partInspect .piPorts em { padding: 2px 8px; border-radius: 6px; background: #f6efe9; font-weight: 500; font-size: 12.5px; }
+.partInspect .piPorts em.out { background: #f3e2dd; }
+.partInspect .piPorts em i { font-style: normal; opacity: .65; }
+.partInspect .piNote { margin: 14px 0 0; font-size: 12px; color: #8a6e67; }
