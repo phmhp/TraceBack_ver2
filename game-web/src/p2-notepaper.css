@@ -1,0 +1,92 @@
+/* p2 — "note paper taped on the workshop" skin for the three deduction stages
+   (원인 역추적 .dtBoard · 정상 동작 복원 .refPuzzle · 시뮬레이션 검증 .vbBench). Reference: docs/mockups/style-skeuo.html.
+   One frame for all three: header 0–72px, pursuit strip 80–120px (same place everywhere), work paper from 130px. */
+.dtBoard, .refPuzzle, .vbBench {
+  --np-paper: #fffdf6; --np-paper-2: #f8f1e3; --np-ink: #33291f; --np-soft: #7b6a5c;
+  --np-red: #d4473c; --np-yellow: #ffdf5e; --np-r: 6px;
+  --np-shadow: 0 1px 1px rgba(0,0,0,.16), 0 4px 6px rgba(30,15,5,.2), 0 14px 26px rgba(20,10,0,.26);
+  color: var(--np-ink);
+}
+
+/* background: the original workshop image, slightly blurred and slightly darker */
+.dtBoard > .sceneBackdrop, .refPuzzle > .sceneBackdrop, .vbBench > .sceneBackdrop { filter: blur(5px) brightness(.88); transform: scale(1.04); }
+.dtBoard > .sceneBackdrop::after, .refPuzzle > .sceneBackdrop::after, .vbBench > .sceneBackdrop::after { background: rgba(40,26,20,.1) !important; }
+
+/* pursuit strip: identical position and look in all three */
+.dtBoard .compactRouteTracker, .refPuzzle .compactRouteTracker, .vbBench .compactRouteTracker {
+  position: absolute !important; z-index: 6 !important; left: 16px !important; right: 16px !important; top: 80px !important; width: auto !important; height: 40px !important;
+  transform: none !important; margin: 0 !important; padding: 4px 16px 6px 150px !important; box-sizing: border-box !important;
+  border: 0 !important; border-radius: var(--np-r) !important; background: var(--np-paper) !important; box-shadow: var(--np-shadow) !important; color: var(--np-ink) !important;
+}
+.dtBoard .compactRouteTracker .routeLabels, .refPuzzle .compactRouteTracker .routeLabels, .vbBench .compactRouteTracker .routeLabels { color: var(--np-soft) !important; font-weight: 500 !important; }
+.dtBoard .compactRouteTracker .routeLabels b, .refPuzzle .compactRouteTracker .routeLabels b, .vbBench .compactRouteTracker .routeLabels b { color: var(--np-red) !important; font-weight: 600 !important; }
+.routeLine i img { width: 1.9em; height: auto; display: block; }
+/* the back button sits at the left end of the pursuit strip instead of on top of the content */
+.dtBoard + .stageHistoryNav, .refPuzzle + .stageHistoryNav, .vbBench + .stageHistoryNav { top: 85px !important; left: 24px !important; z-index: 7 !important; }
+
+/* work papers start below the strip */
+.dtLayout, .vbLayout { top: 132px !important; bottom: 12px !important; }
+.refPuzzle .rpHead { margin-top: 58px !important; }
+.refPuzzle > .compactRouteTracker { position: absolute !important; }
+
+/* paper surfaces: no outlines, real layered shadow, one small tape on top */
+.dtLayout, .vbLayout, .refPuzzle .rpHead, .refPuzzle .rpStage, .refPuzzle .rpReq, .refPuzzle .rpFoot {
+  border: 0 !important; border-radius: var(--np-r) !important; background: var(--np-paper) !important; box-shadow: var(--np-shadow) !important;
+}
+.dtLayout::before, .vbLayout::before, .refPuzzle .rpHead::before, .refPuzzle .rpStage::before, .refPuzzle .rpReq::before, .refPuzzle .rpFoot::before {
+  content: ""; position: absolute; z-index: 3; top: -8px; left: 50%; translate: -50% 0; width: 56px; height: 16px; border-radius: 2px;
+  background: rgba(250,244,220,.62); box-shadow: 0 1px 1px rgba(0,0,0,.1); pointer-events: none;
+}
+.refPuzzle .rpStage { background-image: radial-gradient(#e7dcc8 1px, transparent 1.2px) !important; background-size: 22px 22px !important; }
+.refPuzzle .rpReq { background: var(--np-paper) linear-gradient(90deg, transparent 30px, rgba(212,71,60,.3) 30px 31px, transparent 31px) !important; }
+
+/* inner blocks: flat paper tones, same radius, no doubled borders */
+.dtChain, .dtImpact, .dtBoundary > div, .vbReq, .vbMonitor, .refPuzzle .rpReq > div, .rpTray.side, .rpTray.spare {
+  border-radius: var(--np-r) !important;
+}
+.dtChain { background: var(--np-paper-2) !important; border: 0 !important; }
+.dtImpact { border: 1.5px dashed #c9b79f !important; background: transparent !important; }
+.refPuzzle .rpReq > div { background: #f6efe2 !important; }
+.refPuzzle .rpReq > div.done { background: #e9f1e2 !important; }
+.refPuzzle .rpReq > div.bad { background: #f9e3dd !important; }
+.refPuzzle .rpTray.main { border: 4px solid #e8c873 !important; background: #fff6da !important; box-shadow: none !important; border-radius: 10px !important; }
+.refPuzzle .rpTray.main span { background: #e8c873 !important; color: var(--np-ink) !important; }
+
+/* headings: lighter weight, ink colour */
+.dtQuestion h2, .dtZoom h2, .vbStage h2, .refPuzzle .rpHead h1 { font-weight: 600 !important; color: var(--np-ink) !important; }
+.dtQuestion h2 b, .vbStage h2 b { color: var(--np-red) !important; }
+.refPuzzle .rpHead small { color: var(--np-red) !important; font-weight: 600 !important; }
+
+/* step chips: yellow case labels */
+.dtSteps span, .vbSteps li { border-radius: var(--np-r) !important; font-weight: 500 !important; }
+.dtSteps span.now, .vbSteps li.now { background: var(--np-yellow) !important; color: var(--np-ink) !important; box-shadow: 0 1px 2px rgba(0,0,0,.18) !important; }
+.dtSteps span.now i, .vbSteps li.now i { background: var(--np-ink) !important; color: var(--np-yellow) !important; }
+
+/* primary actions: red rubber stamp */
+.dtNext, .dtFirst, .refPuzzle .rpRun, .refPuzzle .rpNext, .vbBench .vbGo {
+  border: 2px solid var(--np-red) !important; border-radius: var(--np-r) !important; background: #fff6f3 !important; color: var(--np-red) !important;
+  font-weight: 600 !important; box-shadow: 0 3px 0 rgba(160,40,30,.3), 0 6px 10px rgba(60,20,10,.16) !important;
+}
+.dtNext:active, .dtFirst:active, .refPuzzle .rpRun:active, .refPuzzle .rpNext:active, .vbBench .vbGo:active { transform: translateY(2px) !important; box-shadow: 0 1px 0 rgba(160,40,30,.3) !important; }
+.refPuzzle .rpRun:disabled, .vbBench .vbGo:disabled { border-color: #c9b9a9 !important; color: #a99787 !important; background: #f6efe6 !important; box-shadow: none !important; }
+
+/* secondary buttons: plain paper */
+.dtButtons button, .refPuzzle .rpTools button, .dtMapBtn { border-radius: var(--np-r) !important; border: 1.5px solid #d9c9b3 !important; background: var(--np-paper) !important; color: var(--np-ink) !important; box-shadow: 0 2px 0 #d9c9b3 !important; font-weight: 500 !important; }
+
+/* engineer line: a paper strip with the existing cat face */
+.dtBubble, .vbBubble { border: 0 !important; border-radius: var(--np-r) !important; background: var(--np-paper-2) !important; box-shadow: 0 1px 2px rgba(0,0,0,.12) !important; }
+.dtBubble p, .vbBubble p, .refPuzzle .rpMing p { font-weight: 500 !important; }
+.dtBubble b, .vbBubble b, .refPuzzle .rpMing p b { color: var(--np-red) !important; font-weight: 600 !important; }
+
+/* small paper back button inside the pursuit strip */
+.dtBoard + .stageHistoryNav button, .refPuzzle + .stageHistoryNav button, .vbBench + .stageHistoryNav button {
+  height: 30px !important; padding: 3px 10px !important; border: 1.5px solid #d9c9b3 !important; border-radius: var(--np-r, 6px) !important;
+  background: #fffdf6 !important; box-shadow: 0 2px 0 #d9c9b3 !important; font: 500 12px Pretendard, system-ui !important; color: #33291f !important;
+}
+.refPuzzle .rpHead { padding-left: 16px !important; }
+/* level tabs on one row */
+.vbBench .vbSim nav { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 6px !important; }
+.vbBench .vbSim nav button { min-width: 0 !important; padding: 5px 6px !important; border-radius: var(--np-r) !important; }
+.vbBench .vbSim nav button b { font-size: 12px !important; font-weight: 600 !important; white-space: nowrap; }
+.vbBench .vbSim nav button small { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; }
+.vbBench .vbEnv { font-size: 9.5px !important; padding: 0 4px !important; margin: 0 !important; }

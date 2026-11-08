@@ -929,7 +929,7 @@ export function PursuitRouteBar({ distance, gap, compact = false }: { distance: 
   const routeProgress = Math.min(100, distance / (1200 / 100));
   const playerMarker = Math.max(5, routeProgress);
   const policeProgress = Math.max(1, Math.min(96, playerMarker - Math.max(4, gap / 12)));
-  return <div className={`routeTracker ${compact ? "compactRouteTracker" : ""}`}><div className="routeLabels"><span>START</span><b>추격차와 {Math.round(gap)}m</b><span>FINISH</span></div><div className="routeLine"><i className="policeIcon" style={{ left: `${policeProgress}%` }}>🚓</i><i className="playerIcon" style={{ left: `${playerMarker}%` }}>🚗</i><em /></div></div>;
+  return <div className={`routeTracker ${compact ? "compactRouteTracker" : ""}`}><div className="routeLabels"><span>START</span><b>추격차와 {Math.round(gap)}m</b><span>FINISH</span></div><div className="routeLine"><i className="policeIcon" style={{ left: `${policeProgress}%` }}><img src="/assets/ui/icons/police-car.svg" alt="" /></i><i className="playerIcon" style={{ left: `${playerMarker}%` }}><img src="/assets/ui/icons/getaway-car.svg" alt="" /></i><em /></div></div>;
 }
 
 function CatRider({ color, x }: { color: string; x: number }) {

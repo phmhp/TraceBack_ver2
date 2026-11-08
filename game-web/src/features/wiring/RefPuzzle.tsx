@@ -10,7 +10,7 @@ import type { Campaign, CaseId } from "../../game/runtime";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
 import { KIND_TAG, Picto, blockKind, plainText, type Kind } from "../garage/SimulinkDiagram";
-import { getFeatureLayer, piecePath, type DomainId, type Nub } from "../../experiences";
+import { PursuitRouteBar, getFeatureLayer, piecePath, type DomainId, type Nub } from "../../experiences";
 import { ENGINEER } from "../../game/cast";
 
 type Send = React.Dispatch<any>;
@@ -277,8 +277,9 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
 
   const requirementDone = (slot: number) => Boolean(reached(slot));
   return <div className="refPuzzle">
-    <SceneBackdrop image="/assets/stitch23/prologue-plan.png" position="center" shade="soft" />
+    <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="REQUIREMENT-BASED REFERENCE" title="요구사항 기반 정상 동작 복원" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <header className="rpHead">
       <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p>앞에서 좁힌 구간이 <b>정상이라면</b> 어떻게 동작해야 하는지, 요구사항과 차고에서 본 블록으로 복원해요.</p></div>
       <div className="rpTools">
@@ -290,7 +291,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       <aside className="rpReq">
         <small>요구사항 · 정상이면 이렇게</small>
         {ref.req.map((r, k) => { const bad = run?.failAt === r.slot; const done = !bad && requirementDone(r.slot); return <div key={r.text} className={`${done ? "done" : ""} ${bad ? "bad" : ""} ${ref.gaps.includes(r.slot) ? "gap" : ""}`}>
-          <i>{done ? "✓" : bad ? "✗" : r.slot + 1}</i><span>{r.text}</span>
+          <i>{done ? "✓" : bad ? "✗" : k + 1}</i><span>{r.text}</span>
         </div>; })}
       </aside>
       <section className="rpStage" ref={stage} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setDrag(null)}>

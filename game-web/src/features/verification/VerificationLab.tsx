@@ -1,7 +1,7 @@
 import React, { useMemo, useState, type CSSProperties } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
 import { SCENARIOS } from "../../game/scenarios";
-import { BenchVisual, EmbeddedBench3D, RestoredPuzzleVisual, type BenchTab } from "../../experiences";
+import { BenchVisual, EmbeddedBench3D, PursuitRouteBar, RestoredPuzzleVisual, type BenchTab } from "../../experiences";
 import { RefPuzzleTrack } from "../wiring/RefPuzzle";
 import { SAMPLES, divergeIndex, firstMismatch, simulate, type Lv, type Series, type Tech } from "./simModel";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
@@ -707,6 +707,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   return <div className="vbBench">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="SIMULATION VERIFICATION" title="시뮬레이션 검증 · 정상 vs 현장 비교" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main className="vbLayout">
       <header className="vbHead">
         <div className="vbReq"><small>{section ? `의심 구간 · ${section}` : config.requirementId}</small><b>{config.requirement}</b></div>

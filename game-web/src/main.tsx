@@ -53,6 +53,7 @@ import "./v18.css";
 import "./ending-v19.css";
 import "./p0-v20.css";
 import "./p1-type.css";
+import "./p2-notepaper.css";
 import { BustedEnding, WantedEnding } from "./ui/CaseFileEnding";
 import { SoundToggle } from "./ui/ComicBurst";
 import { installGlobalSfx, setMusicScene } from "./ui/sfx";
