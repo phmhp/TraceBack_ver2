@@ -427,3 +427,37 @@ body:has(.vbBench + .stageHistoryNav .stageBackButton + .stageForwardButton) .vb
 .rpPiece .flowBlock .rpFace { white-space: nowrap; padding: 1px 5px; border-radius: 4px; background: #fff1bf; border: 1px solid #e3bb45; font: 700 10.5px Pretendard, system-ui !important; color: #5b4a12 !important; letter-spacing: -.2px; }
 .refPuzzle.v2 .rpReq > div.done i { background: #3f8a5c !important; color: #fff !important; }
 .rpPiece .flowBlock .rpFace { white-space: normal !important; max-width: 92%; text-align: center; font-size: 9.5px !important; line-height: 1.15; padding: 1px 3px; }
+
+/* ===== stage 3 Q&A v2: criteria card, result table, clear answer buttons ===== */
+.qa2 .qaPick { gap: 12px !important; }
+.qaCriteria { padding: 10px 12px; border-radius: 6px; background: #fff8d6; border: 1px solid #e6cf7a; display: grid; gap: 6px; }
+.qaCriteria small { display: inline-flex; gap: 5px; align-items: center; font: 700 12px Pretendard, system-ui; color: #7a5a12; } .qaCriteria small svg { width: 14px; height: 14px; }
+.qaCriteria p { margin: 0; font: 500 13.5px/1.55 Pretendard, system-ui; color: #33291f; }
+.qaCriteria.big { width: min(860px, 100%); } .qaCriteria.big p { font-size: 15px; }
+.qaReal { display: flex; gap: 5px; flex-wrap: wrap; } .qaReal i { font-style: normal; padding: 2px 8px; border-radius: 4px; background: #efe6dc; color: #a99787; font: 600 11.5px Pretendard, system-ui; } .qaReal i.on { background: #e3f1e7; color: #2f6b45; }
+.qa2 .qaTests em { font-weight: 600 !important; color: #5b4a3d !important; }
+.qaLab { grid-template-columns: minmax(0, 1fr) minmax(420px, .95fr) !important; }
+.qaPanel { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 8px; padding: 10px; border-radius: 6px; background: #fffdf6; box-shadow: 0 1px 0 #e3d3c3, 0 3px 8px rgba(30,15,5,.12); overflow: hidden; }
+.qaTable { width: 100%; border-collapse: collapse; align-self: start; font: 500 12.5px Pretendard, system-ui; color: #33291f; }
+.qaTable th { text-align: left; padding: 5px 8px; font: 600 11.5px Pretendard, system-ui; color: #7b6a5c; border-bottom: 1.5px solid #e3d3c3; }
+.qaTable td { padding: 6px 8px; border-bottom: 1px dashed #ece0d2; white-space: nowrap; }
+.qaTable td:first-child { white-space: normal; }
+.qaTable tr.look td { background: #fff8d6; font-weight: 600; }
+.qaLook { font-style: normal; margin-right: 6px; padding: 1px 5px; border-radius: 4px; background: #e3bb45; color: #fff; font: 700 10.5px Pretendard, system-ui; }
+.qaW { display: inline-block; min-width: 38px; text-align: center; padding: 2px 8px; border-radius: 4px; font: 700 12px Pretendard, system-ui; }
+.qaW.w-같음 { background: #e3f1e7; color: #2f6b45; } .qaW.w-낮음, .qaW.w-높음 { background: #fbe4df; color: #b23a26; }
+.qaFoot { display: grid; gap: 6px; }
+.qaAnswers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.qaAnswers button { display: grid; gap: 2px; padding: 9px 8px; border-radius: 6px; border: 1.5px solid #d9c9b3; background: #fff; cursor: pointer; box-shadow: 0 3px 0 #d9c9b3; text-align: center; }
+.qaAnswers button b { font: 700 14px Pretendard, system-ui; color: #33291f; } .qaAnswers button small { font: 500 11.5px Pretendard, system-ui; color: #7b6a5c; }
+.qaAnswers .ans-supported { border-color: #d9a093; box-shadow: 0 3px 0 #d9a093; background: #fdf1ee; }
+.qaAnswers .ans-refuted { border-color: #8fbf9e; box-shadow: 0 3px 0 #8fbf9e; background: #f1faf3; }
+.qaAnswers button:active { transform: translateY(2px); box-shadow: 0 1px 0 #d9c9b3; }
+.qaOther { justify-self: end; padding: 4px 10px; border-radius: 6px; border: 1px solid #d9c9b3; background: transparent; font: 600 12px Pretendard, system-ui; color: #7b6a5c; cursor: pointer; }
+.qa2 .qaFoot .vbGo { width: 100%; }
+.qa2 .vbReg { padding: 6px 8px; border-radius: 6px; background: #f6efe6; }
+.qa2 .vbReg b { display: flex; gap: 5px; align-items: center; font: 600 12px Pretendard, system-ui; color: #4b3a2f; margin-bottom: 4px; } .qa2 .vbReg b svg { width: 13px; height: 13px; }
+.qa2 .vbReg ul { display: flex !important; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; max-height: 52px; overflow: hidden; }
+.qa2 .vbReg li { display: inline-flex !important; gap: 5px; height: auto !important; min-height: 0 !important; padding: 2px 7px !important; border-radius: 4px; background: #fff !important; font: 500 11px Pretendard, system-ui; box-shadow: none !important; }
+.qa2 .vbReg li em { font-style: normal; font-weight: 700; color: #a99787; } .qa2 .vbReg li.ok em { color: #3f8a5c; }
+.qa2 .vbReg li em { background: transparent !important; padding: 0 !important; } .qa2 .vbReg li.ok em { color: #2f6b45 !important; }

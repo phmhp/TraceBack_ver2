@@ -1110,7 +1110,8 @@ const qaDeriv = (caseId: CaseId, lv: Lv): Deriv => lv === "unit" || lv === "swin
 type Answer = "supported" | "refuted" | "open";
 const ANSWER_KO: Record<Answer, string> = { supported: "문제 있음", refuted: "문제 없음", open: "이 시험으로는 모름" };
 
-export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
+/** Q&A v1 (probe picking + small answer overlay). Kept unused; v2 below is live. */
+export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) {
   const caseId = state.caseId;
   const meta = SCENARIO_META[caseId];
   const questions = QUESTIONS[caseId];
@@ -1281,6 +1282,190 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
                 {phase === "lab" && <button className="vbGo ghost" disabled={running} onClick={() => { setPhase("pick"); setLastRun(null); }}>다른 시험 고르기</button>}
                 {phase !== "done" && !(phase === "lab" && lastRun) && <button className="vbGo" disabled={running || !probeCount} onClick={run}>{running ? "시험 중…" : !probeCount ? "잴 곳을 먼저 골라요" : phase === "retest" ? "▶ 같은 시험 다시" : "▶ 시험 실행"}</button>}
                 {phase === "done" && <button className="vbGo" onClick={finish}>수리 적용 · 다시 달리기 →</button>}
+              </div>
+            </div>
+          </section>}
+      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>
+    </main>
+    <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
+  </div>;
+}
+
+
+// ===== Stage 3 · Q&A v2: no probe picking, result table, a "판단 기준" card for every question =====
+// The card states the prediction ("if this suspect is the cause, this test must show …") and which parts are real
+// in the chosen test, so the answer is reasoned from expectation vs. observation, not guessed.
+const PREDICT: Record<string, string> = {
+  vcu_sw: "VCU SW가 범인이라면: SW만 PC에서 돌려도 '페달 처리값'이 기준보다 낮게 나와야 해요. 실제 제어기·차량 시험은 SW와 입력 회로가 함께 있어서 둘을 가를 수 없어요.",
+  vcu_hw: "입력 회로가 범인이라면: 회로가 없는 'SW만 PC' 시험에서는 '페달 처리값'이 정상으로 나와야 해요. 실제 제어기·차량 시험은 SW와 회로가 함께 있어서 가를 수 없어요.",
+  fan_sw: "팬 제어 SW가 범인이라면: SW만 PC에서 돌려도 'PWM 비율'이 기준과 달라야 해요.",
+  fan_path: "출력단·배선·전원이 범인이라면: 실제 부품을 붙인 시험에서 '팬 커넥터 PWM'이나 '팬 커넥터 전원 전압'이 기준보다 낮게(안 오게) 나와야 해요. 기준 이상으로 도착했다면 전달은 정상이에요. 팬이 모델인 시험에선 알 수 없어요.",
+  fan_motor: "팬 모터가 범인이라면: 실제 부품을 붙인 시험에서 커넥터에 PWM·전원은 오는데 '팬 실제 회전'만 0이어야 해요. 팬이 모델인 시험에선 알 수 없어요.",
+  blend_sw: "배분 SW가 범인이라면: SW만 PC에서 돌려도 '압력 명령'이 기준과 달라야 해요.",
+  hyd_path: "유압 경로가 범인이라면: 실제 부품 시험에서 '압력 명령'은 같은데 '캘리퍼 입구 압력'이 낮아야 해요.",
+  caliper: "캘리퍼가 범인이라면: 실제 부품 시험에서 '캘리퍼 입구 압력'은 정상인데 감속만 부족해야 해요.",
+};
+const ANSWER_BTN: Record<Answer, [string, string]> = { supported: ["범인 맞아요", "예측대로 나왔어요"], refuted: ["범인 아니에요", "예측과 달라요"], open: ["이 시험으론 몰라요", "가를 수 없는 시험이에요"] };
+
+export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
+  const caseId = state.caseId;
+  const meta = SCENARIO_META[caseId];
+  const questions = QUESTIONS[caseId];
+  const expect = (() => { try { return sessionStorage.getItem(`tb-expect-${caseId}`) ?? ""; } catch { return ""; } })();
+  const regression: string[] = (() => { try { const fromBoard = JSON.parse(sessionStorage.getItem(`tb-impact-${caseId}`) ?? "null"); return Array.isArray(fromBoard) && fromBoard.length ? fromBoard : regressionTests[caseId]; } catch { return regressionTests[caseId]; } })();
+  const [qi, setQi] = useState(0);
+  const [phase, setPhase] = useState<"pick" | "lab" | "report" | "retest" | "done">("pick");
+  const [level, setLevel] = useState<Lv>("unit");
+  const [u, setU] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [lastRun, setLastRun] = useState<{ obs: Record<string, Obs>; vals: Record<string, string>; verdict: Verdict; fixed: boolean; level: Lv } | null>(null);
+  const [answers, setAnswers] = useState<Record<string, { answer: Answer; why: string; evidence: string }>>({});
+  const [cost, setCost] = useState(0);
+  const [mistakes, setMistakes] = useState(0);
+  const [fix, setFix] = useState<number | null>(null);
+  const [regDone, setRegDone] = useState(0);
+  const [viewTab, setViewTab] = useState<"sw" | "ecu" | "plant">("sw");
+  const [bubble, setBubble] = useState(`${DRIVER_NAME}의 질문에 시험 결과로 답하세요. '판단 기준'을 먼저 읽고 시험을 고르세요.`);
+  const q = questions[qi];
+  const fixed = phase === "retest" || phase === "done";
+  const deriv = qaDeriv(caseId, level);
+  const tech = CASE_DERIVS[caseId].find(d => d.id === deriv)!;
+  const sim = useMemo(() => simulate(caseId, tech.tech, fixed), [caseId, tech.tech, fixed]);
+  const list = sim.levels[level];
+  const order = (id: Lv) => LV.findIndex(item => item.id === id);
+  const stars = cost <= BEST_COST[caseId] + 2 && mistakes <= 1 ? 3 : cost <= BEST_COST[caseId] + 8 && mistakes <= 3 ? 2 : 1;
+  const swSame = firstMismatch(sim.levels.unit) === null;
+  const ecuReal = level === "embedded" || level === "vehicle", plantReal = level === "vehicle";
+  const works = fixed || firstMismatch(list) === null;
+  const hypDef = meta.hypotheses.find(h => h.id === q?.hyp);
+  // signals the current question's rules look at on this level (highlighted as "볼 곳")
+  const lookAt = new Set((hypDef?.rules ?? []).filter(rule => !rule.levels || rule.levels.includes(level)).flatMap(rule => Object.keys(rule.need)));
+  const at = (sig: Series) => divergeIndex(sig) !== null ? sig.ref.reduce((best, v, i) => (Math.abs(v - sig.run[i]) > Math.abs(sig.ref[best] - sig.run[best]) ? i : best), 0) : sig.ref.reduce((best, v, i) => (v > sig.ref[best] ? i : best), 0);
+  const fmtV = (sig: Series, v: number) => `${v.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}`;
+  const word = (sig: Series) => { const d = divergeIndex(sig); if (d === null) return "같음"; return sig.run[d] > sig.ref[d] ? "높음" : "낮음"; };
+  const shown = Boolean(lastRun && lastRun.level === level && !running);
+
+  const pickTest = (lv: Lv) => { setLevel(lv); setViewTab(lv === "unit" || lv === "swint" ? "sw" : lv === "embedded" ? "ecu" : "plant"); setU(0); setLastRun(null); setPhase("lab"); play("pop");
+    setBubble(`${TEST_CARD[lv].name}. 이 시험에서 무엇이 실물인지 확인하고 '시험 실행'을 누르세요.`); };
+  const run = () => {
+    if (running) return;
+    setRunning(true); setU(0); play("zip");
+    if (!fixed) setCost(c => c + LV_COST[level]);
+    const started = performance.now(), lst = list, lv = level, isFixed = fixed;
+    const tick = () => {
+      const next = Math.min(1, (performance.now() - started) / 2000);
+      setU(next);
+      if (next < 1) { requestAnimationFrame(tick); return; }
+      setRunning(false);
+      const { obs, verdict } = observe(lst, lst.map(sig => sig.id)); // every signal of this test is measured
+      const vals = Object.fromEntries(lst.map(sig => { const i = at(sig); return [sig.id, `${sig.name} ${fmtV(sig, sig.run[i])} (기준 ${fmtV(sig, sig.ref[i])})`]; }));
+      setLastRun({ obs, verdict, vals, fixed: isFixed, level: lv });
+      if (isFixed) {
+        if (verdict === "PASS") { play("stamp"); showVerdict(true, "PASS"); setBubble("수리한 차량이 같은 시험에서 기대값과 같아요. 영향을 받았던 곳도 회귀 시험해요."); regression.forEach((_, i) => window.setTimeout(() => { setRegDone(i + 1); play("pop", 1 + i * .1); }, 600 + i * 420)); window.setTimeout(() => setPhase("done"), 700 + regression.length * 420); }
+        else setBubble("아직 기대값과 달라요.");
+        return;
+      }
+      play(verdict === "FAIL" ? "error" : "pop");
+      setBubble(`결과가 나왔어요. 표에서 '볼 곳' 줄을 판단 기준과 비교하고 답하세요.`);
+    };
+    requestAnimationFrame(tick);
+  };
+  const answer = (pick: Answer) => {
+    if (!lastRun || !q) return;
+    const keyAns = judgeRun(caseId, { level: lastRun.level, fixed: false, obs: lastRun.obs }).find(item => item.id === q.hyp)!;
+    if (pick !== keyAns.verdict) {
+      setMistakes(n => n + 1); showVerdict(false);
+      setBubble(keyAns.verdict === "open" ? `이 시험으로는 가를 수 없어요. ${PREDICT[q.hyp] ?? ""}` : `다시 보세요. ${keyAns.why}`);
+      return;
+    }
+    if (pick === "open") { play("pop"); setBubble("맞아요. 이 시험으로는 가를 수 없어요. 다른 시험 카드를 고르세요."); setPhase("pick"); return; }
+    const evidence = `${TEST_CARD[lastRun.level].name} · ${keyAns.need.map(id => lastRun.vals[id]).filter(Boolean).join(", ")}`;
+    setAnswers(prev => ({ ...prev, [q.hyp]: { answer: pick, why: keyAns.why, evidence } }));
+    showVerdict(true, ANSWER_KO[pick]); play("stamp");
+    setBubble(`${keyAns.why} → "${ANSWER_KO[pick]}"`);
+    window.setTimeout(() => {
+      if (qi + 1 < questions.length) { setQi(qi + 1); setBubble("다음 질문이에요. 방금 결과로 답할 수 있으면 바로 답하고, 아니면 다른 시험을 고르세요."); }
+      else { setPhase("report"); setBubble(`질문에 모두 답했어요. 보고서를 ${DRIVER_NAME}에게 보여 주고, 수정 담당에 요청할 조치를 고르세요.`); }
+    }, 1100);
+  };
+  const proof = questions.map(item => answers[item.hyp]).find(a => a?.answer === "supported");
+  const pickFix = (i: number) => {
+    setFix(i);
+    const item = FIXES[caseId][i];
+    if (!item.ok) { setMistakes(n => n + 1); setBubble(item.why); showVerdict(false); return; }
+    showVerdict(true, "조치 요청"); setBubble(`${item.why} 같은 시험으로 다시 확인하세요.`);
+    const expectedProgram = caseId === "propulsion" ? "nominal" : caseId === "thermal" ? "thermal_closed_loop" : "blended_brake";
+    if (state.program[caseId] !== expectedProgram) send({ type: "COMPILE", program: expectedProgram });
+    const lv = (Object.keys(TEST_CARD) as Lv[]).find(l => proof?.evidence.startsWith(TEST_CARD[l].name)) ?? "vehicle";
+    window.setTimeout(() => { setLevel(lv); setViewTab(lv === "unit" || lv === "swint" ? "sw" : lv === "embedded" ? "ecu" : "plant"); setU(0); setLastRun(null); setPhase("retest"); }, 800);
+  };
+  const finish = () => send({ type: "BENCH_RESULT", pass: true, causeCorrect: true });
+  const reveal = () => { setAnswers(Object.fromEntries(questions.map(item => { const h = meta.hypotheses.find(x => x.id === item.hyp)!; return [item.hyp, { answer: h.truth ? "supported" as Answer : "refuted" as Answer, why: h.rules[0]?.why ?? h.stage1 ?? "", evidence: "개발용 정답" }]; }))); setPhase("report"); };
+
+  const tabVisual = viewTab === "sw" ? <RefPuzzleTrack key={`sw-${level}-${fixed}`} mode={level === "unit" ? "unit" : "swint"} caseId={caseId} progress={u} fixed={fixed} same={fixed || swSame} running={running} />
+    : viewTab === "ecu" ? <EmbeddedBench3D caseId={caseId} running={running} works={ecuReal ? works : true} />
+      : caseId === "propulsion" ? <BenchVisual tab="vehicle" caseId={caseId} running={running} works={plantReal ? works : true} /> : <EmbeddedBench3D caseId={caseId} running={running} works={plantReal ? works : true} />;
+  const tabNote = viewTab === "ecu" && !ecuReal ? "이 시험에는 제어기 하드웨어가 연결되지 않아요. SW만 PC에서 실행해요."
+    : viewTab === "plant" && !plantReal ? "이 시험에는 실제 부품·차량이 연결되지 않아요. 부품은 모델이 대신해요." : "";
+  const realChips = <span className="qaReal"><i className="on">SW 실물</i><i className={ecuReal ? "on" : ""}>제어기 {ecuReal ? "실물" : "없음"}</i><i className={plantReal ? "on" : ""}>부품·차량 {plantReal ? "실물" : "모델"}</i></span>;
+
+  return <div className="vbBench v7 qa qa2">
+    <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
+    <GameHeader chapter="SIMULATION VERIFICATION" title="시뮬레이션 검증" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
+    <StageIntro id="bench-qa2" title="시뮬레이션 검증" goal={`${DRIVER_NAME}의 질문에 시험 결과로 답해요. 무엇이 고장이고 무엇은 멀쩡한지 근거로 설명하는 단계예요.`} steps={[
+      { icon: "clipboard", text: "질문마다 '판단 기준'을 읽어요. 그 부품이 범인이라면 어떤 시험에서 무엇이 보여야 하는지 적혀 있어요." },
+      { icon: "monitor", text: "시험 카드를 골라 실행하면 모든 신호가 측정돼요. 표에서 '볼 곳' 줄을 확인해요." },
+      { icon: "flag", text: "예측대로면 '범인 맞아요', 예측과 다르면 '범인 아니에요', 그 시험으로 가를 수 없으면 '몰라요'." },
+    ]} />
+    <main className="vbLayout">
+      <div className="qaTop">
+        {phase === "report" || phase === "retest" || phase === "done"
+          ? <div className="qaAsk done"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><small>{DRIVER_NAME}</small><b>{phase === "report" ? "그래서 뭘 고치면 돼?" : "고친 뒤에는 괜찮아?"}</b></p></div>
+          : <div className="qaAsk"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><small>{DRIVER_NAME}의 질문 {qi + 1}/{questions.length}</small><b>"{q.ask}"</b></p></div>}
+        <ol className="qaDots">{questions.map((item, k) => { const a = answers[item.hyp]; return <li key={item.hyp} className={a ? `a-${a.answer}` : k === qi && phase !== "report" ? "now" : ""} title={item.ask}>{a ? ANSWER_KO[a.answer] : k + 1}</li>; })}</ol>
+        {expect && <span className="qaExpect"><Icon name="clipboard" /> 기대값 · {expect}</span>}
+        <span className="v7CostChip">비용 {cost} · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span>
+      </div>
+
+      {phase === "pick" ? <section className="vbStage qaPick">
+        <div className="qaCriteria big"><small><Icon name="target" /> 판단 기준</small><p>{PREDICT[q.hyp]}</p></div>
+        <h2>어떤 시험으로 확인할까요?</h2>
+        <div className="vbChoices qaTests">{QA_LEVELS.map(lv => <button key={lv} onClick={() => pickTest(lv)}><i><Icon name={TEST_CARD[lv].pic} /></i><b>{TEST_CARD[lv].name}</b><small className="vbGroup">{LV[order(lv)].name} · 비용 {LV_COST[lv]}</small><em>{lv === "vehicle" ? "SW·제어기·실제 부품이 모두 실물" : lv === "embedded" ? "SW·제어기는 실물, 부품은 모델" : "SW만 실물, 제어기·부품은 없음/모델"}</em></button>)}</div>
+      </section>
+        : phase === "report" ? <section className="vbStage v7Fix">
+          <article className="v7Report">
+            <header><small>검증 결과 보고 · {DRIVER_NAME}에게</small><b>원인: {meta.hypotheses.find(h => h.truth)!.label}</b></header>
+            <ul>{questions.map(item => { const a = answers[item.hyp]; return <li key={item.hyp} className={a?.answer === "supported" ? "hyp-supported" : "hyp-refuted"}><em>{a ? ANSWER_KO[a.answer] : "-"}</em><span><strong>"{item.ask}"</strong>{a?.why}<small>근거: {a?.evidence}</small></span></li>; })}
+              {meta.hypotheses.filter(h => h.stage1 && !questions.some(item => item.hyp === h.id)).map(h => <li key={h.id} className="hyp-refuted"><em>문제 없음</em><span><strong>{h.label}</strong>{h.stage1}<small>근거: 1단계 원인 역추적 측정</small></span></li>)}</ul>
+          </article>
+          <h2><Icon name="wrench" /> 수정 담당에 요청할 조치를 고르세요</h2>
+          <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}><img src={item.img} alt="" /><b>{item.label}</b></button>)}</div>
+        </section>
+          : <section className="v7Lab2 qaLab">
+            <div className="v7View">
+              <nav className="v7Tabs">{([["sw", "SW 로직"], ["ecu", "제어기·I/O"], ["plant", "부품·차량"]] as const).map(([id, name]) => <button key={id} className={viewTab === id ? "on" : ""} onClick={() => { setViewTab(id); play("pop"); }}>{name}{(id === "sw" ? true : id === "ecu" ? ecuReal : plantReal) ? <i>실물</i> : <i className="model">모델</i>}</button>)}</nav>
+              <div className={`vbSimView ${running ? "running" : ""}`}>{tabVisual}{tabNote && <span className="v7TabNote">{tabNote}</span>}{shown && lastRun && <span className={`vbStamp ${lastRun.verdict === "PASS" ? "pass" : lastRun.verdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastRun.verdict]}</span>}</div>
+              <p className="vbScope"><b>{TEST_CARD[level].name}</b> · 입력: {tech.input}</p>
+            </div>
+            <div className="qaPanel">
+              {phase === "lab" && <div className="qaCriteria"><small><Icon name="target" /> 판단 기준 · "{q.ask}"</small><p>{PREDICT[q.hyp]}</p>{realChips}</div>}
+              {phase !== "lab" && <div className="qaCriteria"><small><Icon name="repeat" /> 재시험</small><p>수리한 차량으로 같은 시험을 다시 해서 기대값과 같은지 확인해요.</p></div>}
+              <table className="qaTable">
+                <thead><tr><th>신호</th><th>기대값</th><th>시험 결과</th><th>판정</th></tr></thead>
+                <tbody>{list.map(sig => { const i = at(sig), w = word(sig), look = phase === "lab" && lookAt.has(sig.id); return <tr key={sig.id} className={`${look ? "look" : ""}`}>
+                  <td>{look && <em className="qaLook">볼 곳</em>}{sig.name}</td>
+                  <td>{fmtV(sig, sig.ref[i])}</td>
+                  <td>{shown ? fmtV(sig, sig.run[i]) : running ? "측정 중…" : "—"}</td>
+                  <td>{shown ? <b className={`qaW w-${w}`}>{w}</b> : "—"}</td>
+                </tr>; })}</tbody>
+              </table>
+              {(phase === "retest" || phase === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>}
+              <div className="qaFoot">
+                {phase === "lab" && shown ? <div className="qaAnswers">{(["supported", "refuted", "open"] as Answer[]).map(a => <button key={a} className={`ans-${a}`} onClick={() => answer(a)}><b>{ANSWER_BTN[a][0]}</b><small>{ANSWER_BTN[a][1]}</small></button>)}</div>
+                  : phase === "done" ? <button className="vbGo" onClick={finish}>수리 적용 · 다시 달리기 →</button>
+                    : <button className="vbGo" disabled={running} onClick={run}>{running ? "시험 중…" : phase === "retest" ? "▶ 같은 시험 다시" : "▶ 시험 실행"}</button>}
+                {phase === "lab" && <button className="qaOther" disabled={running} onClick={() => { setPhase("pick"); setLastRun(null); }}>다른 시험 고르기</button>}
               </div>
             </div>
           </section>}
