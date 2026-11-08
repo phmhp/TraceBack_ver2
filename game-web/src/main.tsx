@@ -1479,7 +1479,7 @@ function Overlay({
 function App() {
   const [state, send] = useCampaign();
   const canGoBack = ["GARAGE_L1", "GARAGE_L2", "GARAGE_L3", "GARAGE_L4", "DRIVE_BRIEFING", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR"].includes(state.scene);
-  const frame = (view: React.ReactNode) => <>{view}<VerdictLayer />{(canGoBack || state.forwardScene) && <nav className="stageHistoryNav" aria-label="단계 이동">{canGoBack && <button className="stageBackButton" onClick={() => send({ type: "NAV_BACK" })}><i>←</i><span>이전 단계</span></button>}{state.forwardScene && <button className="stageForwardButton" onClick={() => send({ type: "NAV_FORWARD" })}><span>다음 단계</span><i>→</i></button>}</nav>}</>;
+  const frame = (view: React.ReactNode) => <>{view}{(canGoBack || state.forwardScene) && <nav className="stageHistoryNav" aria-label="단계 이동">{canGoBack && <button className="stageBackButton" onClick={() => send({ type: "NAV_BACK" })}><i>←</i><span>이전 단계</span></button>}{state.forwardScene && <button className="stageForwardButton" onClick={() => send({ type: "NAV_FORWARD" })}><span>다음 단계</span><i>→</i></button>}</nav>}<VerdictLayer /></>;
   if (state.scene === "TITLE") return <Title state={state} send={send} />;
   if (state.scene === "PROLOGUE") return frame(<Prologue send={send} />);
   if (state.scene.startsWith("GARAGE"))

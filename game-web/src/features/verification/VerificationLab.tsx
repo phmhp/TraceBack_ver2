@@ -1055,7 +1055,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         </div>
         <div className="vbMonitor">
           <header><b><Icon name="monitor" /> 신호 모니터 · {LV[order(level)].name}</b><span><Icon name="clock" /> {(u * sim.seconds).toFixed(1)} / {sim.seconds} {sim.timeUnit}</span></header>
-          <p className="vbLegend">{mission === "B" && ran ? "가장 먼저 갈라진 신호에 깃발을 꽂으세요" : `관측점을 꽂고 실행하세요 (최대 ${PROBE_LIMIT}개: 입력 쪽 1 + 출력 쪽 1 권장)`} · <i className="d" /> 정상 설계(2단계 퍼즐의 기준) <i className="s" /> {fixed ? "고친 설계" : "시험 대상"}</p>
+          <p className="vbLegend">{mission === "B" && ran ? "가장 먼저 갈라진 신호에 깃발을 꽂으세요" : `관측점을 꽂고 실행하세요 (최대 ${PROBE_LIMIT}개: 입력 쪽 1 + 출력 쪽 1 권장)`} · <i className="d" /> 정상 설계 · 기대값: {(() => { try { return sessionStorage.getItem(`tb-expect-${caseId}`) ?? "2단계 퍼즐의 기준"; } catch { return "2단계 퍼즐의 기준"; } })()} <i className="s" /> {fixed ? "고친 설계" : "시험 대상"}</p>
           <ul>{list.map((sig, index) => { const on = probed[index]; const value = sample(sig.run); const off = on && ran && divergeIndex(sig) !== null; return <li key={sig.id} className={`${on ? "probed" : ""} ${off ? "off" : ""} ${flag === index ? "flagged" : ""}`}>
             <button className="vbClip" onClick={() => toggleProbe(index)} title="관측점 꽂기/빼기">{on ? <Icon name="probe" /> : "○"}</button>
             <span className="vbSigName"><small>{index === 0 ? "입력 쪽" : index === list.length - 1 ? "출력 쪽" : `${index + 1}번째`}</small><b>{sig.name}</b></span>

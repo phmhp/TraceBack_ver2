@@ -337,3 +337,24 @@ body:has(.vbBench + .stageHistoryNav .stageBackButton + .stageForwardButton) .vb
 .etPair > span { aspect-ratio: 16 / 8; } .etPol.record { gap: 4px; padding: 6px 10px; }
 .etFall { inset: 38px 10px 10px !important; display: grid; place-items: center; background: #fffdf6f2 !important; box-shadow: inset 0 0 0 1px #e3d3c3; }
 .etFall::before { content: "출력에서 원인 쪽으로 거꾸로 쓰러진 경로 · 아래 줄은 함께 쓰러진 영향(회귀 시험)"; position: absolute; top: 8px; left: 12px; font: 600 12px Pretendard, system-ui; color: #7b6a5c; }
+
+/* ===== stage 2 v2: connection check, example input, expected-value card ===== */
+.refPuzzle.v2 .rpReq > div { grid-template-columns: 14px 1fr !important; }
+.refPuzzle.v2 .rpReq > div i { background: transparent !important; color: #9b6b64 !important; font-weight: 700; }
+.rpSpecLine { margin: 4px 0 8px; padding: 7px 9px; border-radius: 6px; background: #fff1bf; font: 500 12px/1.5 Pretendard, system-ui; color: #4b3a2f; }
+.rpSlider { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; min-width: 300px; padding: 6px 12px; border-radius: 6px; background: #fffdf6; box-shadow: 0 2px 0 #e3d3c3; }
+.rpSlider small { font: 600 12px Pretendard, system-ui; color: #7b6a5c; }
+.rpSlider input { accent-color: #9b6b64; }
+.rpSlider b { min-width: 46px; text-align: right; font: 700 15px Pretendard, system-ui; color: #33291f; }
+.rpExpect { display: grid; gap: 2px; padding: 6px 12px; border-radius: 6px; background: #fff; box-shadow: 0 0 0 2px #8fbf9e, 0 4px 10px rgba(30,15,5,.15); animation: npPop .3s ease-out; }
+.rpExpect small { display: inline-flex; gap: 4px; align-items: center; font: 600 11.5px Pretendard, system-ui; color: #3f8a5c; } .rpExpect small svg { width: 13px; height: 13px; }
+.rpExpect b { font: 700 14px Pretendard, system-ui; color: #33291f; }
+/* tactile: magnet snap and press */
+.refPuzzle.v2 .rpPiece.snapped { animation: rpSnap .26s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes rpSnap { 0% { transform: scale(1.08); } 45% { transform: scale(.93); } 100% { transform: scale(1); } }
+.refPuzzle.v2 .rpPiece.dragging { transform: scale(1.06); filter: drop-shadow(0 10px 10px rgba(30,15,5,.3)); }
+.refPuzzle.v2 .rpGap.near { outline: 3px dashed #e3bb45; outline-offset: 4px; background: #fff8d6 !important; }
+/* signal flowing along the arrows once connected */
+.refPuzzle.v2 .rpWorld.flowing .rpArrow { color: #e3bb45 !important; animation: rpFlow .9s ease-in-out infinite; }
+@keyframes rpFlow { 0%, 100% { transform: translateX(-4px); opacity: .6; } 50% { transform: translateX(4px); opacity: 1; } }
+.refPuzzle.v2 .rpReq { overflow-y: auto !important; }

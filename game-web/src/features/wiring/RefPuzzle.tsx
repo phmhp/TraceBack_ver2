@@ -152,7 +152,8 @@ function PieceFace({ b }: { b: Blk }) {
   </>;
 }
 
-export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
+/** v1 (▶ 실행 graded every requirement at once). Kept unused; v2 below. */
+export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
   const ref = REF[state.caseId];
   const n = ref.board.length;
   const boardW = PAD * 2 + (n - 1) * PITCH + PIECE, spareGap = 156;
@@ -358,6 +359,231 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     </footer>
     <button className="secretSolve" title="개발용 정답 적용" onClick={solve}>정답 보기</button>
 
+    {noteOpen && <div className="pieceZoom" onClick={() => setNoteOpen(false)}><article className="rpNote" onClick={event => event.stopPropagation()}>
+      <button className="pieceZoomClose" onClick={() => setNoteOpen(false)}>×</button>
+      <small><Icon name="book" /> 차고 노트 · Control Software</small><h2>차고에서 본 블록 카드</h2>
+      <p className="pzTip">순서는 섞여 있어요. 각 블록이 하는 일만 다시 확인하고, 순서는 요구사항으로 판단하세요.</p>
+      {ref.notes.map(note => <section key={note.name}><b>{note.name}</b><div className="rpNoteCards">
+        {[...getFeatureLayer(note.domain, note.feature, 3)].sort((a, b) => a.localeCompare(b, "ko")).map(label => { const kind = blockKind(label); return <div key={label} className={`rpNoteCard kind-${kind}`}><div className="flowBlock"><Picto kind={kind} /><small>{KIND_TAG[kind]}</small></div><b>{label}</b><span>{plainText(label, kind)}</span></div>; })}
+      </div></section>)}
+    </article></div>}
+  </div>;
+}
+
+// ===== v2 (docs/PLAY_FLOW_V2 · prompt PART C) =====
+// 1) build → "연결 확인" only checks that each gap holds a block of the right function (same-name table variants pass)
+// 2) after a good connection, an example-input slider shows the value leaving every block (explore, nothing graded)
+// 3) the player decides "요구사항과 같아요 → 기준 확정"; only then is the requirement checked (wrong table → explained)
+// 4) the confirmed reference becomes the expected-value card that the bench uses as its dashed baseline.
+const SPEC: Record<CaseId, { text: string; input?: { label: string; unit: string; min: number; max: number; at: number }; expect: string }> = {
+  propulsion: { text: "페달 0~100% → 토크 요청 0~340 Nm 선형 · 가용 토크 한계 260 Nm(BMS·온도) · D단·READY일 때만 통과",
+    input: { label: "가속 페달", unit: "%", min: 0, max: 100, at: 60 }, expect: "페달 60% → 토크 요청 204 Nm → 모터 204 Nm" },
+  thermal: { text: "냉각수 65°C 이상 팬 켜짐 · 60°C 이하 꺼짐 · 켜지면 실제 회전을 보며 목표 1850 rpm으로 PWM 조절 · 출력단이 PWM과 12V를 팬에 공급",
+    input: { label: "냉각수 온도", unit: "°C", min: 40, max: 100, at: 78 }, expect: "냉각수 78°C → 팬 켜짐 → 팬 1850 rpm" },
+  brake: { text: "페달 55% → 목표 감속 3.2 m/s² · 회생은 가용량까지 · 나머지는 마찰(1 m/s²당 20 bar)", expect: "페달 55% → 감속 3.2 m/s²" },
+};
+/** Value leaving each board slot for an example input (same numbers as simModel: 3.4 Nm/%, limit 260, 65/60 °C, 1850 rpm). */
+function exampleValue(caseId: CaseId, id: string, x: number, mapId = "map"): string | null {
+  if (caseId === "propulsion") {
+    const tq = (k: number) => Math.round(Math.min(k, 260));
+    const map = mapId === "mapB" ? 1.53 * x : 3.4 * x; // downstream follows the table actually placed in the map slot
+    return ({ aps: `A ${x}% · B ${x}%`, corr: `${x}% ✓`, filter: `${x}%`, map: `${Math.round(3.4 * x)} Nm`, mapB: `${Math.round(1.53 * x)} Nm`, permit: `${Math.round(map)} Nm · D`, min: `${tq(map)} Nm`, ramp: `${tq(map)} Nm ↗`, out: `CAN ${tq(map)} Nm`, inv: `모터 ${tq(map)} Nm` } as Record<string, string>)[id] ?? null;
+  }
+  if (caseId === "thermal") {
+    return ({ coolant: `${x}°C`, range: `${x}°C ✓`, filter: `${x}°C` } as Record<string, string>)[id] ?? null;
+  }
+  return null;
+}
+
+export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
+  const caseId = state.caseId;
+  const ref = REF[caseId], spec = SPEC[caseId];
+  const n = ref.board.length;
+  const boardW = PAD * 2 + (n - 1) * PITCH + PIECE, spareGap = 156;
+  const W = Math.max(boardW, ref.spares.length * spareGap + PAD * 2 + 10), H = SPARE_Y + 170;
+  const ox = (W - boardW) / 2;
+  const slotX = (i: number) => ox + PAD + i * PITCH;
+  const sideStart = ref.side.into - (ref.side.pieces.length - 1);
+  const spareHome = (id: string) => { const k = ref.spares.indexOf(id), gap = spareGap, w = ref.spares.length * gap - (gap - PIECE); return { x: (W - w) / 2 + k * gap, y: SPARE_Y + 14 }; };
+  const [place, setPlace] = useState<Record<number, string | null>>(() => Object.fromEntries(ref.gaps.map(g => [g, null])));
+  const [drag, setDrag] = useState<{ id: string; x: number; y: number; dx: number; dy: number; moved: boolean } | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [snapped, setSnapped] = useState<string | null>(null);
+  const [check, setCheck] = useState<{ step: number; status: "running" | "fail" | "pass"; failAt?: number } | null>(null);
+  const [x, setX] = useState(spec.input?.min ?? 0);
+  const [confirmed, setConfirmed] = useState(false);
+  const [fails, setFails] = useState(0);
+  const [msg, setMsg] = useState(`빈칸 ${ref.gaps.length}곳에 조각을 끌어 넣고 '연결 확인'을 누르세요. 조각의 ? 버튼으로 하는 일과 표 값을 볼 수 있어요.`);
+  const [zoom, setZoomState] = useState<{ b: Blk; x: number; y: number; up: boolean } | null>(null);
+  const stage = useRef<HTMLDivElement>(null);
+  const setZoom = (b: Blk | null, el?: HTMLElement) => { if (!b || !el || !stage.current) { setZoomState(null); return; } const r = el.getBoundingClientRect(), base = stage.current.getBoundingClientRect(); const up = r.bottom - base.top > base.height - 190; setZoomState({ b, x: Math.min(Math.max(r.left - base.left + r.width / 2, 135), base.width - 135), y: up ? r.top - base.top - 8 : r.bottom - base.top + 8, up }); };
+  useEffect(() => { const key = (e: KeyboardEvent) => { if (["Delete", "Backspace", "Escape"].includes(e.key)) setZoomState(null); }; addEventListener("keydown", key); return () => removeEventListener("keydown", key); }, []);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [scale, setScale] = useState(.8);
+  const noteKey = `${caseId}:garageNote`;
+  const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ref.ecu; } catch { return ref.ecu; } })();
+  const noteUsed = Boolean(state.hintClaims[noteKey]);
+  useLayoutEffect(() => {
+    const fit = () => { const r = stage.current?.getBoundingClientRect(); if (r && r.width) setScale(Math.min(r.width / W, r.height / H, 1.1)); };
+    fit(); const ob = new ResizeObserver(fit); if (stage.current) ob.observe(stage.current); return () => ob.disconnect();
+  }, [W, H]);
+
+  const inSlot = (id: string) => { const g = ref.gaps.find(k => place[k] === id); return g === undefined ? null : g; };
+  const pieceAt = (slot: number) => ref.gaps.includes(slot) ? place[slot] : ref.board[slot];
+  const filled = ref.gaps.every(g => place[g]);
+  const connected = check?.status === "pass";
+  const world = (cx: number, cy: number) => { const r = stage.current!.querySelector(".rpWorld")!.getBoundingClientRect(); return { x: (cx - r.left) / scale, y: (cy - r.top) / scale }; };
+  const putIn = (id: string, slot: number | null) => {
+    setPlace(prev => { const next = { ...prev }; ref.gaps.forEach(g => { if (next[g] === id) next[g] = null; }); if (slot !== null) next[slot] = id; return next; });
+    setCheck(null); setConfirmed(false);
+    if (slot !== null) { setSnapped(id); window.setTimeout(() => setSnapped(null), 260); }
+  };
+  // snap by piece centre → slot centre, within about one piece width
+  const nearestGap = (px: number, py: number) => { let best: number | null = null, dist = PIECE * .95; ref.gaps.forEach(g => { const d = Math.hypot(px + PIECE / 2 - (slotX(g) + PIECE / 2), py + PIECE / 2 - (MAIN_Y + PIECE / 2)); if (d < dist) { dist = d; best = g; } }); return best; };
+  const onDown = (event: React.PointerEvent, id: string) => {
+    if (event.button !== 0 || check?.status === "running") return;
+    const p = world(event.clientX, event.clientY); const slot = inSlot(id); const home = slot !== null ? { x: slotX(slot), y: MAIN_Y } : spareHome(id);
+    setDrag({ id, x: home.x, y: home.y, dx: p.x - home.x, dy: p.y - home.y, moved: false }); (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  };
+  const onMove = (event: React.PointerEvent) => { if (!drag) return; const p = world(event.clientX, event.clientY); const nx = p.x - drag.dx, ny = p.y - drag.dy; setDrag({ ...drag, x: nx, y: ny, moved: drag.moved || Math.hypot(nx - drag.x, ny - drag.y) > 4 }); };
+  const onUp = (event: React.PointerEvent) => {
+    if (!drag) return;
+    // use the pointer position at release (the last rendered drag position can lag behind a fast drag)
+    const p = world(event.clientX, event.clientY), ux = p.x - drag.dx, uy = p.y - drag.dy;
+    const moved = drag.moved || Math.hypot(ux - drag.x, uy - drag.y) > 4;
+    if (!moved) { const slot = inSlot(drag.id); if (slot !== null) { putIn(drag.id, null); play("pop"); } else { setPicked(picked === drag.id ? null : drag.id); play("pop"); } }
+    else { const g = nearestGap(ux, uy); putIn(drag.id, g); play(g !== null ? "squish" : "pop"); setPicked(null); }
+    setDrag(null);
+  };
+  const clickGap = (g: number) => { if (picked) { putIn(picked, g); setPicked(null); play("squish"); } };
+  const hoverGap = drag?.moved ? nearestGap(drag.x, drag.y) : null;
+
+  // 1) connection check: the right FUNCTION in each gap (label), not yet the right numbers
+  const startCheck = () => { if (!filled || check?.status === "running") return; setCheck({ step: 0, status: "running" }); play("zip"); setMsg("연결을 확인하는 중이에요."); };
+  useEffect(() => {
+    if (!check || check.status !== "running") return;
+    const timer = window.setTimeout(() => {
+      const slot = check.step, id = pieceAt(slot)!, b = ref.blocks[id], want = ref.blocks[ref.board[slot]];
+      if (b.label !== want.label) {
+        setCheck({ step: slot, status: "fail", failAt: slot }); setFails(f => f + 1); showVerdict(false, "연결 안 됨");
+        const prevOut = slot > 0 ? unitOf(ref.blocks[ref.board[slot - 1]].out) : "", out = unitOf(want.out);
+        setMsg(b.why && !b.bad ? b.why : `${slot + 1}번 칸에는 ${prevOut ? `${prevOut}가 들어와 ` : ""}${out ? `${out}${out === prevOut ? "로 나가는" : "로 바뀌어 나가는"}` : "다음으로 넘기는"} 블록이 필요해요. '${b.label}'${eunNeun(b.label)} "${doesOf(b)}" 블록이에요.`);
+        return;
+      }
+      if (slot === n - 1) { setCheck({ step: slot, status: "pass" }); showVerdict(true, "연결 OK"); setX(spec.input?.min ?? 0); setMsg(spec.input ? `연결은 맞아요. 아래 예시 입력(${spec.input.label})을 움직여 칸마다 값을 보세요. 요구사항과 같으면 '기준 확정'.` : "연결은 맞아요. 요구사항과 같으면 '기준 확정'을 누르세요."); return; }
+      play("pop", 1 + slot * .06); setCheck({ step: slot + 1, status: "running" });
+    }, check.step === 0 ? 300 : 360);
+    return () => clearTimeout(timer);
+  }, [check]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 2) example values after a good connection
+  const valueAt = (slot: number): { text: string; bad: boolean } | null => {
+    const id = pieceAt(slot); if (!id) return null;
+    if (check?.failAt === slot) return { text: "✗ 연결 안 됨", bad: true };
+    if (!connected) return check && check.step > slot ? { text: "✓ 연결", bad: false } : null;
+    if (!spec.input) return { text: ref.blocks[id].bad ?? ref.blocks[ref.board[slot]].out ?? "", bad: false };
+    const direct = exampleValue(caseId, id, x, pieceAt(3) ?? "map");
+    if (direct) return { text: direct, bad: false };
+    if (caseId === "thermal") { // hysteresis decides the rest (rising slider: on above the "on" threshold)
+      const hystId = pieceAt(3)!, on = x >= (hystId === "hystB" ? 95 : 65);
+      return { text: ({ hyst: on ? "팬 ON" : "팬 OFF", hystB: on ? "팬 ON" : "팬 OFF", pi: on ? "PWM 68%" : "PWM 0%", driver: on ? "PWM 68% · 12V" : "PWM 0% · 12V", fan: on ? "1850 rpm" : "0 rpm" } as Record<string, string>)[id] ?? "", bad: false };
+    }
+    return { text: ref.blocks[id].out ?? "", bad: false };
+  };
+
+  // 3) the player confirms the reference against the requirement
+  const confirm = () => {
+    const wrong = ref.gaps.find(g => place[g] !== ref.board[g]);
+    if (wrong !== undefined) { const b = ref.blocks[place[wrong]!]; setFails(f => f + 1); showVerdict(false); setMsg(`${spec.input ? `예시 입력을 요구사항 값(${spec.input.at}${spec.input.unit})에 두고 출력을 보세요. ` : ""}${(b.why ?? "요구사항과 다른 칸이 있어요.").replace("실행 결과", "결과가")}`); return; }
+    setConfirmed(true); showVerdict(true, "기준 확정"); play("success");
+    try { sessionStorage.setItem(`tb-expect-${caseId}`, spec.expect); } catch { /* ignore */ }
+    setMsg("정상 기준이 정해졌어요. 이 기대값이 검증 단계의 판정 기준(점선)이 돼요.");
+  };
+  const solve = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, ref.board[g]]))); setCheck(null); setConfirmed(false); setMsg("정답 배치 완료. 연결 확인을 누르세요."); };
+  const reset = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, null]))); setCheck(null); setConfirmed(false); setPicked(null); setMsg("초기화했어요."); play("squish"); };
+  const noteReady = fails > 0 || noteUsed;
+  const openNote = () => { if (!noteReady) return; if (!noteUsed) send({ type: "HINT", key: noteKey }); setNoteOpen(true); play("pop"); };
+  const stars = fails === 0 ? 3 : fails <= 2 ? 2 : 1;
+  const sideLit = connected;
+  const jointsIo = (slot: number) => ({ in: slot > 0 ? ref.joints[slot - 1] : undefined, out: slot < n - 1 ? ref.joints[slot] : undefined });
+  const reqs = [...ref.req].sort((a, b) => a.text.localeCompare(b.text, "ko")); // not in slot order: reading them is the puzzle
+  const piece = (b: Blk, px: number, py: number, opts: { io?: { in?: Nub; out?: Nub }; locked?: boolean; cls?: string }) =>
+    <div key={`${opts.locked ? "fixed" : "move"}-${b.id}`} className={`rpPiece ${b.kind === "hw" ? "hw" : "sw"} ${opts.locked ? "locked" : ""} ${opts.cls ?? ""}`}
+      style={{ left: px, top: py, ...({ "--piece": opts.io ? piecePath(opts.io) : "inset(6px 12px 6px 12px round 12px)" } as React.CSSProperties) }}
+      title={`${b.label} · ${doesOf(b)}`}
+      onDoubleClick={event => { event.stopPropagation(); setZoom(b, event.currentTarget); }}
+      onPointerDown={opts.locked ? undefined : event => onDown(event, b.id)}>
+      <PieceFace b={b} />
+      <button className="rpHelp" aria-label="블록 설명" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); setZoom(zoom?.b.id === b.id ? null : b, event.currentTarget.parentElement as HTMLElement); }}>?</button>
+    </div>;
+
+  return <div className="refPuzzle v2">
+    <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
+    <GameHeader chapter="REQUIREMENT-BASED LOGIC" title="요구사항 기반 로직 퍼즐" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
+    <StageIntro id="puzzle-v2" title="요구사항 기반 로직 퍼즐" goal="정상이라면 이 입력에 어떤 출력이 나와야 하는지 정합니다. 여기서 정한 값이 검증의 기준이 돼요." steps={[
+      { icon: "puzzle", text: "빈칸에 조각을 끌어 넣고 '연결 확인'을 눌러요. 연결만 확인하고 값은 아직 판정하지 않아요." },
+      { icon: "monitor", text: "예시 입력을 움직여 칸마다 값이 어떻게 나오는지 봐요." },
+      { icon: "clipboard", text: "요구사항과 같으면 '기준 확정'. 이 값이 검증 단계의 기대값이 돼요." },
+    ]} />
+    <header className="rpHead">
+      <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p>요구사항을 읽고 정상 동작이 되도록 빈칸을 채우세요. <b>값의 단위가 바뀌는 곳</b>(예: % → Nm)이 단서예요.</p></div>
+      <div className="rpTools">
+        <button onClick={openNote} disabled={!noteReady} title={noteReady ? "" : "한 번 확인해 본 뒤 열 수 있어요"}><Icon name="book" /> 차고 노트{noteUsed ? "" : noteReady ? " · -5m" : " · 확인 후"}</button>
+        <button onClick={reset}>↺ 초기화</button>
+      </div>
+    </header>
+    <main className="rpMain">
+      <aside className="rpReq">
+        <small>요구사항</small>
+        <p className="rpSpecLine">{spec.text}</p>
+        {reqs.map(r => <div key={r.text}><i>·</i><span>{r.text}</span></div>)}
+      </aside>
+      <section className="rpStage" ref={stage} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setDrag(null)}>
+        <div className="rpSizer" style={{ width: W * scale, height: H * scale }}><div className={`rpWorld ${connected ? "flowing" : ""}`} style={{ width: W, height: H, transform: `scale(${scale})` }}>
+          <div className="rpTray main" style={{ left: slotX(0) - 14, top: MAIN_Y - 66, width: (n - 1) * PITCH + PIECE + 28, height: PIECE + 118 }}><span>입력 → 출력 · 연결이 맞으면 예시 입력의 값이 표시돼요</span></div>
+          <div className="rpTray side" style={{ left: slotX(sideStart) - 10, top: SIDE_Y - 12, width: (ref.side.pieces.length - 1) * PITCH + PIECE + 20, height: PIECE + 24 }}><span>{ref.side.label}</span></div>
+          <div className="rpTray spare" style={{ left: PAD, top: SPARE_Y - 10, width: W - PAD * 2, height: PIECE + 30 }}><span>남은 조각 · 끌어서 빈칸에 · 두 번 누르면 크게 보기</span></div>
+          <svg className={`rpSideWire ${sideLit ? "lit" : ""}`} width={W} height={H}>
+            <path d={`M${slotX(ref.side.into) + 70} ${SIDE_Y + 4} V${MAIN_Y + PIECE - 2}`} />
+            <path d={`M${slotX(ref.side.into) + 62} ${MAIN_Y + PIECE + 8} L${slotX(ref.side.into) + 70} ${MAIN_Y + PIECE - 2} L${slotX(ref.side.into) + 78} ${MAIN_Y + PIECE + 8}`} />
+          </svg>
+          <span className={`rpSidePill ${sideLit ? "lit" : ""}`} style={{ left: slotX(ref.side.into) + 82, top: (SIDE_Y + MAIN_Y + PIECE) / 2 - 12 }}>{ref.side.value}</span>
+          {ref.side.pieces.map((id, k) => piece(ref.blocks[id], slotX(sideStart + k), SIDE_Y, { locked: true, io: { in: k > 0 ? "square" : undefined, out: k < ref.side.pieces.length - 1 ? "square" : undefined }, cls: "side" }))}
+          {ref.gaps.map(g => <button key={`gap-${g}`} className={`rpGap ${picked ? "ready" : ""} ${hoverGap === g ? "near" : ""}`} style={{ left: slotX(g), top: MAIN_Y }} onClick={() => clickGap(g)}><b>?</b><small>{g + 1}번 칸</small></button>)}
+          {ref.board.map((id, slot) => ref.gaps.includes(slot) ? null : piece(ref.blocks[id], slotX(slot), MAIN_Y, { io: jointsIo(slot), locked: true }))}
+          {ref.spares.map(id => {
+            const b = ref.blocks[id], slot = inSlot(id); const dragging = drag?.id === id && drag.moved;
+            const pos = dragging ? { x: drag!.x, y: drag!.y } : slot !== null ? { x: slotX(slot), y: MAIN_Y } : spareHome(id);
+            return piece(b, pos.x, pos.y, { io: slot !== null && !dragging ? jointsIo(slot) : undefined, cls: `${dragging ? "dragging" : ""} ${picked === id ? "picked" : ""} ${snapped === id ? "snapped" : ""} ${check?.failAt === slot && slot !== null ? "fail" : ""}` });
+          })}
+          {ref.board.map((_, slot) => { const v = valueAt(slot); const vx = slot < n - 1 ? slotX(slot) + 128 : slotX(slot) + 70; return <React.Fragment key={`v-${slot}`}>
+            <i className="rpStem" style={{ left: vx, top: slot === n - 1 ? MAIN_Y + PIECE - 6 : MAIN_Y - 22 }} />
+            <span className={`rpDisplay ${v ? v.bad ? "bad" : "ok" : ""} ${slot === 0 ? "first" : ""} ${slot === n - 1 ? "last" : ""}`} style={{ left: vx, top: slot === n - 1 ? MAIN_Y + PIECE + 14 : MAIN_Y - 54 }}>{slot === 0 && <small>입력</small>}{slot === n - 1 && <small>출력</small>}{v ? v.text : `? ${unitOf(ref.blocks[ref.board[slot]].out)}`}</span>
+          </React.Fragment>; })}
+          {ref.board.slice(0, -1).map((_, slot) => <i key={`a-${slot}`} className="rpArrow" style={{ left: slotX(slot) + 128, top: MAIN_Y + 58 }}>▶</i>)}
+          {check?.status === "running" && <i className="rpPulse running" style={{ left: slotX(check.step) + 70, top: MAIN_Y + 70 }} />}
+        </div></div>
+        {zoom && <div className={`rpBubble ${zoom.up ? "up" : ""}`} style={{ left: zoom.x, top: zoom.y }} onPointerDown={event => event.stopPropagation()}>
+          <button className="rpBubbleX" aria-label="닫기" onClick={() => setZoomState(null)}>×</button>
+          <small>{zoom.b.kind === "hw" ? (zoom.b.ee ? "E/E 부품" : "부품 (하드웨어)") : `SW 블록 · ${KIND_TAG[zoom.b.kind]}`}</small>
+          <b>{zoom.b.label}{zoom.b.tag ? ` · ${zoom.b.tag}` : ""}</b>
+          <p>{doesOf(zoom.b)}</p>
+          {zoom.b.spec && <p className="rpSpec">{zoom.b.spec}</p>}
+          <p className="rpFromLine">차고에서 본 곳: {zoom.b.from}</p>
+        </div>}
+      </section>
+    </main>
+    <footer className="rpFoot">
+      <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{msg}</p></div>
+      {connected && spec.input && !confirmed && <label className="rpSlider"><small>예시 입력 · {spec.input.label}</small><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label>}
+      {confirmed && <div className="rpExpect"><small><Icon name="clipboard" /> 기대값 카드</small><b>{spec.expect}</b></div>}
+      <span className="rpStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}<small>다시 시도 {fails}번</small></span>
+      {confirmed ? <button className="rpNext" onClick={() => { send({ type: "COMPILE", program: ref.program }); send({ type: "OPEN_BENCH" }); }}>다음: 시뮬레이션 검증 →</button>
+        : connected ? <button className="rpRun" onClick={confirm}>요구사항과 같아요 · 기준 확정</button>
+          : <button className="rpRun" disabled={!filled || check?.status === "running"} onClick={startCheck}>{!filled ? `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음` : check?.status === "running" ? "확인 중…" : "연결 확인"}</button>}
+    </footer>
+    <button className="secretSolve" title="개발용 정답 적용" onClick={solve}>정답 보기</button>
     {noteOpen && <div className="pieceZoom" onClick={() => setNoteOpen(false)}><article className="rpNote" onClick={event => event.stopPropagation()}>
       <button className="pieceZoomClose" onClick={() => setNoteOpen(false)}>×</button>
       <small><Icon name="book" /> 차고 노트 · Control Software</small><h2>차고에서 본 블록 카드</h2>
