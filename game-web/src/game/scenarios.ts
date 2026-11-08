@@ -173,3 +173,11 @@ export function hypothesisStatus(caseId: CaseId, runs: BenchRun[]) {
   });
 }
 export const HYP_LABEL: Record<HypStatus, string> = { untested: "미시험", open: "추가 증거 필요", supported: "지지됨", refuted: "반박됨" };
+
+/** What ONE bench run allows the player to conclude about each hypothesis (the answer key for the judgment note). */
+export function judgeRun(caseId: CaseId, run: BenchRun) {
+  return SCENARIO_META[caseId].hypotheses.map(h => {
+    const hit = run.fixed ? undefined : h.rules.find(rule => (!rule.levels || rule.levels.includes(run.level)) && Object.entries(rule.need).every(([sig, ok]) => run.obs[sig] !== undefined && ok.includes(run.obs[sig])));
+    return { id: h.id, verdict: (hit?.verdict ?? "open") as "supported" | "refuted" | "open", why: hit?.why ?? "", need: hit ? Object.keys(hit.need) : [] };
+  });
+}

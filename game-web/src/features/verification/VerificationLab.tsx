@@ -1,6 +1,6 @@
 import React, { useMemo, useState, type CSSProperties } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
-import { HYP_LABEL, SCENARIOS, hypothesisStatus, type Obs } from "../../game/scenarios";
+import { HYP_LABEL, SCENARIOS, SCENARIO_META, judgeRun, type HypStatus, type Obs } from "../../game/scenarios";
 import { BenchVisual, EmbeddedBench3D, PursuitRouteBar, RestoredPuzzleVisual, type BenchTab } from "../../experiences";
 import { RefPuzzleTrack } from "../wiring/RefPuzzle";
 import { StageIntro, showVerdict } from "../../ui/Verdict";
@@ -808,7 +808,7 @@ const ROOT_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "rpm"
 const PROBE_LIMIT = 3;
 const REQ_DERIV: Deriv[] = ["reqa", "equiv", "bound"];
 type Verdict = "PASS" | "FAIL" | "INCONCLUSIVE";
-type RunLog = { mission: "A" | "B" | "C"; level: Lv; deriv: Deriv; pass: boolean; verdict: Verdict; first?: string; obs: Record<string, Obs> };
+type RunLog = { mission: "A" | "B" | "C"; level: Lv; deriv: Deriv; pass: boolean; verdict: Verdict; first?: string; obs: Record<string, Obs>; vals?: Record<string, string> };
 const VERDICT_KO: Record<Verdict, string> = { PASS: "PASS", FAIL: "FAIL", INCONCLUSIVE: "판단 불가" };
 /** Only what was probed counts: same / higher / lower than the reference at the first split. */
 function observe(list: Series[], probedIds: string[]) {
@@ -842,6 +842,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [flag, setFlag] = useState<number | null>(null);
   const [fix, setFix] = useState<number | null>(null);
   const [regDone, setRegDone] = useState(0);
+  const [judgeMistakes, setJudgeMistakes] = useState(0);
   const [bubble, setBubble] = useState("미션 A: 요구사항 입력을 넣어 요구사항대로 동작하는지 확인합니다. 시험 레벨과 입력을 고르고, 관측점을 꽂은 뒤 실행하세요.");
   const fixed = mission === "C" || mission === "done";
   const derivs = CASE_DERIVS[caseId];
@@ -851,18 +852,28 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const runKey = `${mission}:${level}:${deriv}`;
   const ran = ranKey === runKey;
   const cost = log.filter(item => item.mission !== "C").reduce((sum, item) => sum + LV_COST[item.level], 0); // re-test after the fix is not counted
-  const stars = cost <= BEST_COST[caseId] + 2 ? 3 : cost <= BEST_COST[caseId] + 7 ? 2 : 1;
+  const stars = Math.max(1, (cost <= BEST_COST[caseId] + 2 ? 3 : cost <= BEST_COST[caseId] + 7 ? 2 : 1) - (judgeMistakes >= 2 ? 1 : 0));
   const key = (i: number) => `${level}:${list[i].id}`;
   const probed = list.map((_, i) => probes.includes(key(i)));
   const probeCount = probed.filter(Boolean).length;
   const order = (id: Lv) => LV.findIndex(item => item.id === id);
   const regression: string[] = (() => { try { const fromBoard = JSON.parse(sessionStorage.getItem(`tb-impact-${caseId}`) ?? "null"); return Array.isArray(fromBoard) && fromBoard.length ? fromBoard : regressionTests[caseId]; } catch { return regressionTests[caseId]; } })();
   const sample = (arr: number[]) => arr[Math.min(arr.length - 1, Math.round(u * (arr.length - 1)))];
-  const hyps = hypothesisStatus(caseId, log.map(item => ({ level: item.level, fixed: item.mission === "C", obs: item.obs })));
+  // Hypotheses change only when the PLAYER judges a run correctly (judgment note); stage-1 refutations carry over.
+  const meta = SCENARIO_META[caseId];
+  const [judged, setJudged] = useState<Record<string, { status: "supported" | "refuted"; why: string; evidence: string }>>(() =>
+    Object.fromEntries(meta.hypotheses.filter(h => h.stage1).map(h => [h.id, { status: "refuted" as const, why: h.stage1!, evidence: "1단계 원인 역추적 측정" }])));
+  const [note, setNote] = useState<{ run: number; done: Record<string, boolean> } | null>(null);
+  const hyps = meta.hypotheses.map(h => {
+    const j = judged[h.id];
+    const status: HypStatus = j ? j.status : log.some(item => item.mission !== "C") ? "open" : "untested";
+    return { ...h, status, why: j?.why ?? "", evidence: j?.evidence ?? "" };
+  });
   const [hypOpen, setHypOpen] = useState(false);
+  const [viewTab, setViewTab] = useState<"sw" | "ecu" | "plant">("sw");
   const lastVerdict = ran ? log[log.length - 1]?.verdict : undefined;
 
-  const pickLevel = (id: Lv) => { if (running) return; setLevel(id); setU(0); setFlag(null); play("pop"); setPhase("input"); };
+  const pickLevel = (id: Lv) => { if (running) return; setLevel(id); setViewTab(id === "unit" || id === "swint" ? "sw" : id === "embedded" ? "ecu" : "plant"); setU(0); setFlag(null); play("pop"); setPhase("input"); };
   const pickDeriv = (id: Deriv) => {
     if (running) return; setDeriv(id); setU(0); play("pop"); setPhase("lab");
     if (mission === "A" && !REQ_DERIV.includes(id)) setBubble("이 입력은 실제 사용 조건이에요. 미션 A(요구사항대로 동작하나)보다는 미션 B(고장 재현)에 맞아요. 그래도 실행은 할 수 있어요.");
@@ -888,21 +899,46 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       const { obs, verdict } = observe(lst, lst.filter(sig => probes.includes(`${lv}:${sig.id}`)).map(sig => sig.id));
       const pass = verdict === "PASS";
       const seenFirst = first !== null && lst.slice(0, first + 1).some((_, i) => probes.includes(`${lv}:${lst[i].id}`)) ? lst[first].name : undefined;
-      setLog(l => [...l, { mission: m === "C" ? "C" : m === "B" ? "B" : "A", level: lv, deriv: d, pass, verdict, first: seenFirst, obs }]);
+      const vals = Object.fromEntries(lst.filter(sig => obs[sig.id]).map(sig => { const at = divergeIndex(sig) !== null ? sig.ref.reduce((best, v, i) => (Math.abs(v - sig.run[i]) > Math.abs(sig.ref[best] - sig.run[best]) ? i : best), 0) : sig.ref.reduce((best, v, i) => (v > sig.ref[best] ? i : best), 0), f = (v: number) => v.toFixed(sig.max < 10 ? 1 : 0); return [sig.id, `${sig.name} ${f(sig.run[at])} ${sig.unit} (기준 ${f(sig.ref[at])})`]; }));
+      setLog(l => { if (m !== "C" && verdict !== "INCONCLUSIVE") setNote({ run: l.length, done: {} }); return [...l, { mission: m === "C" ? "C" : m === "B" ? "B" : "A", level: lv, deriv: d, pass, verdict, first: seenFirst, obs, vals }]; });
       const lvName = LV[order(lv)].name;
       if (verdict === "INCONCLUSIVE") { play("pop"); setBubble(`${lvName}: 판단 불가. 꽂은 관측점은 모두 기준과 같지만 출력 쪽을 보지 않아서 기대 결과와 비교할 수 없어요. 출력 쪽 신호에 관측점을 꽂으세요.`); return; }
       if (m === "A") {
-        if (pass) { play("pop"); setBubble(`${lvName}: PASS. 이 레벨 범위는 요구사항대로 동작해요. ${LV[order(lv)].scope} 결함이 이 범위 밖에 있을 수 있으니 다른 레벨도 생각해 보세요.`); }
+        if (pass) { play("pop"); setBubble(`${lvName}: PASS. 이 레벨 범위는 요구사항대로 동작해요. 판정 노트에서 이 결과가 각 가설에 무엇을 뜻하는지 판정하세요.`); }
         else { play("error"); setFailLevel(lv); setBubble(`${lvName}: FAIL. 요구사항 입력인데 기대값과 다르게 동작했어요. 결함이 이 레벨 안에 있다는 뜻이에요. 미션 B로 같은 증상이 재현되는지, 어디서 처음 갈라지는지 확인하세요.`); }
       } else if (m === "B") {
         if (pass) { play("pop"); setBubble(`${lvName}에서는 증상이 재현되지 않아요. 이 레벨에서 고장 원인이 보이지 않는다는 뜻이에요.`); }
-        else { play("error"); setBubble("증상 재현. 오른쪽 위 가설 카드가 이 결과로 어떻게 바뀌었는지 보세요. 가장 먼저 갈라진 신호에 깃발을 꽂으면 원인을 확정해요."); }
+        else { play("error"); setBubble("증상 재현. 먼저 판정 노트에서 이 결과가 각 가설에 무엇을 뜻하는지 판정하세요. 그다음 가장 먼저 갈라진 신호에 깃발을 꽂아요."); }
       } else {
         if (pass) { play("stamp"); window.setTimeout(() => play("success"), 150); setBubble("PASS. 고친 설계는 같은 시험에서 기대값과 같아요. 영향 범위로 찾은 곳도 회귀 시험해요."); regression.forEach((_, i) => window.setTimeout(() => { setRegDone(i + 1); play("pop", 1 + i * .1); }, 600 + i * 420)); window.setTimeout(() => setMission("done"), 700 + regression.length * 420); }
         else setBubble("아직 기대값과 달라요. 수정을 다시 고르세요.");
       }
     };
     requestAnimationFrame(tick);
+  };
+  const judgeNow = note ? judgeRun(caseId, { level: log[note.run].level, fixed: false, obs: log[note.run].obs }) : [];
+  const noteRows = note ? hyps.filter(h => !judged[h.id] && !note.done[h.id]) : [];
+  const answer = (hypId: string, pick: "supported" | "refuted" | "open") => {
+    if (!note) return;
+    const key = judgeNow.find(item => item.id === hypId)!;
+    const h = meta.hypotheses.find(item => item.id === hypId)!;
+    const runItem = log[note.run];
+    if (pick !== key.verdict) {
+      setJudgeMistakes(n => n + 1); showVerdict(false);
+      setBubble(key.verdict === "open"
+        ? `'${h.label}'${eunNeun(h.label)} 이 시험으로는 가를 수 없어요. 이 가설이 맞든 틀리든 지금 관측한 값은 똑같이 나와요. ${LV[order(runItem.level)].scope}`
+        : `다시 보세요. ${key.why} 그래서 '${h.label}'${eunNeun(h.label)} ${key.verdict === "supported" ? "지지돼요" : "반박돼요"}.`);
+      return;
+    }
+    play(pick === "open" ? "pop" : "stamp");
+    if (pick === "open") setBubble(`맞아요. 이 시험은 '${h.label}'${eunNeun(h.label)} 가르지 못해요. 다른 레벨이나 관측점이 필요해요.`);
+    else {
+      const evidence = `${LV[order(runItem.level)].name} · ${DERIVS.find(d => d.id === runItem.deriv)?.name} · ${key.need.map(id => runItem.vals?.[id]).filter(Boolean).join(", ")}`;
+      setJudged(prev => ({ ...prev, [hypId]: { status: pick, why: key.why, evidence } }));
+      showVerdict(true, pick === "supported" ? "지지" : "반박");
+      setBubble(`${key.why} → '${h.label}' ${pick === "supported" ? "지지" : "반박"}.`);
+    }
+    setNote(prev => prev && { ...prev, done: { ...prev.done, [hypId]: true } });
   };
   const plantFlag = (i: number) => {
     if (mission !== "B" || !ran) return;
@@ -915,8 +951,9 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     if (!upstreamProbed) { setBubble("앞쪽 신호를 하나도 보지 않아서, 여기서 처음 갈라졌는지 확신할 수 없어요. 앞쪽에 관측점을 하나 꽂고 다시 실행하세요."); showVerdict(false); return; }
     if (sig.id !== ROOT_SIGNAL[caseId]) { setBubble(`이 레벨에서 처음 갈라진 곳은 ${sig.name}예요. 하지만 이 레벨에서는 그 앞의 계산이나 부품을 볼 수 없어요. 더 안쪽을 관찰할 수 있는 레벨에서 다시 확인하세요.`); showVerdict(false, "더 안쪽"); return; }
     const open = hyps.filter(h => h.truth ? h.status !== "supported" : h.status !== "refuted");
-    if (open.length) { setBubble(`처음 갈라진 곳은 맞아요. 하지만 아직 구분하지 못한 가설이 있어요: ${open.map(h => h.label).join(", ")}. 이 가설을 지지하거나 반박할 관측점을 같이 꽂고 다시 실행하세요.`); showVerdict(false, "추가 증거 필요"); return; }
-    showVerdict(true, "원인 확정"); setBubble(`${sig.name}에서 처음 갈라졌고, 남은 가설은 '${hyps.find(h => h.truth)!.label}' 하나예요. 원인을 없애는 수정을 고르세요.`);
+    if (noteRows.length) { setBubble("판정 노트를 먼저 끝내세요. 이번 결과가 각 가설에 무엇을 뜻하는지 정해야 결론을 낼 수 있어요."); showVerdict(false); return; }
+    if (open.length) { setBubble(`처음 갈라진 곳은 맞아요. 하지만 아직 근거로 정리하지 못한 가설이 있어요: ${open.map(h => h.label).join(", ")}. 이 가설을 가를 관측점을 꽂고 다시 시험한 뒤 판정하세요.`); showVerdict(false, "추가 증거 필요"); return; }
+    showVerdict(true, "원인 확정"); setBubble(`${sig.name}에서 처음 갈라졌고, 근거로 남은 가설은 '${hyps.find(h => h.truth)!.label}' 하나예요. 검증 결과 보고서를 확인하고 수정 담당에 요청할 조치를 고르세요.`);
     window.setTimeout(() => setMission("fix"), 900);
   };
   const pickFix = (i: number) => {
@@ -929,18 +966,27 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   };
   const goB = () => { setPhase("input"); setMission("B"); setDeriv(tech.deriv[0] === "reqa" ? "usecase" : tech.deriv[0]); if (failLevel) setLevel(failLevel); setU(0); setRanKey(null); setBubble("미션 B: 사건이 난 조건을 입력으로 넣어 같은 증상이 나오는지 확인하고, 처음 갈라진 신호를 지목하세요."); play("pop"); };
   const finish = () => send({ type: "BENCH_RESULT", pass: true, causeCorrect: correctCause });
-  const revealAnswer = () => { send({ type: "DEV_SOLVE" }); setLevel(LV_ANSWER[caseId].answer); setMission("done"); setFix(FIXES[caseId].findIndex(item => item.ok)); setRegDone(regression.length); setLog([{ mission: "A", level: LV_ANSWER[caseId].answer, deriv: "reqa", pass: false, verdict: "FAIL", obs: {} }]); };
+  const revealAnswer = () => { send({ type: "DEV_SOLVE" }); setLevel(LV_ANSWER[caseId].answer); setMission("done"); setFix(FIXES[caseId].findIndex(item => item.ok)); setRegDone(regression.length); setLog([{ mission: "A", level: LV_ANSWER[caseId].answer, deriv: "reqa", pass: false, verdict: "FAIL", obs: {} }]); setJudged(Object.fromEntries(meta.hypotheses.map(h => [h.id, { status: h.truth ? "supported" as const : "refuted" as const, why: h.stage1 ?? h.rules[0]?.why ?? "", evidence: "개발용 정답" }]))); };
   const fixedView = fixed || firstMismatch(list) === null;
   const simVisual = level === "unit" || level === "swint" ? <RefPuzzleTrack key={level} mode={level === "unit" ? "unit" : "swint"} caseId={caseId} progress={u} fixed={fixed} same={firstMismatch(list) === null} running={running} />
     : level === "embedded" ? <EmbeddedBench3D caseId={caseId} running={running} works={fixedView} />
       : caseId === "propulsion" ? <BenchVisual tab="vehicle" caseId={caseId} running={running} works={fixed} /> : <EmbeddedBench3D caseId={caseId} running={running} works={fixedView} />;
+  // Left view tabs: the same run seen as SW logic / controller & I/O / parts & vehicle.
+  // Parts that are not connected at this level are shown as models with a note.
+  const swSame = firstMismatch(sim.levels.unit) === null;
+  const ecuReal = level === "embedded" || level === "vehicle", plantReal = level === "vehicle";
+  const tabVisual = viewTab === "sw" ? <RefPuzzleTrack key={`sw-${level}`} mode={level === "unit" ? "unit" : "swint"} caseId={caseId} progress={u} fixed={fixed} same={fixed || swSame} running={running} />
+    : viewTab === "ecu" ? <EmbeddedBench3D caseId={caseId} running={running} works={ecuReal ? fixedView : true} />
+      : caseId === "propulsion" ? <BenchVisual tab="vehicle" caseId={caseId} running={running} works={plantReal ? fixed || firstMismatch(list) === null : true} /> : <EmbeddedBench3D caseId={caseId} running={running} works={plantReal ? fixedView : true} />;
+  const tabNote = viewTab === "ecu" && !ecuReal ? "이 레벨에서는 제어기 하드웨어가 연결되지 않아요. SW만 PC에서 실행해요."
+    : viewTab === "plant" && !plantReal ? "이 레벨에서는 부품·차량이 모델로 대체돼요. 실제 부품 고장은 여기서 보이지 않아요." : "";
   const missions = [["A", "정상 시나리오 확인"], ["B", "고장 재현·원인 확정"], ["fix", "수정"], ["C", "재시험·회귀"]] as const;
   const mIndex = mission === "done" ? 4 : missions.findIndex(([id]) => id === mission);
   const todo = mission === "A" ? ["시험 레벨 고르기", "입력값 고르기", `관측점 꽂기 (최대 ${PROBE_LIMIT}개)`, "실행 → PASS/FAIL 판정"]
     : mission === "B" ? ["사건 조건 입력 고르기", "입력 쪽·출력 쪽 관측점", "실행", "가장 먼저 갈라진 신호에 깃발"]
       : mission === "C" ? ["같은 레벨·입력으로 실행", "PASS 확인", "회귀 시험"] : [];
 
-  const missionLabel = mission === "A" ? "미션 A · 정상 시나리오 확인" : mission === "B" ? "미션 B · 고장 재현" : mission === "C" ? "재시험 · 회귀" : mission === "fix" ? "수정" : "완료";
+  const missionLabel = mission === "A" ? "미션 A · 정상 시나리오 확인" : mission === "B" ? "미션 B · 고장 재현" : mission === "C" ? "재시험 · 회귀" : mission === "fix" ? "결과 보고 · 조치 요청" : "완료";
   const missionGoal = mission === "A" ? "요구사항 입력을 넣었을 때 요구사항대로 동작하는지 확인합니다. FAIL이 나오는 레벨에 결함이 있어요."
     : mission === "B" ? "사건이 난 조건을 넣어 같은 증상을 재현하고, 가장 먼저 갈라지는 신호를 찾아 원인을 확정합니다."
       : mission === "C" ? "고친 설계를 같은 조건으로 다시 시험하고, 영향 범위를 회귀 시험합니다." : "";
@@ -958,7 +1004,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       <small>가설</small>
       {hyps.map(h => <span key={h.id} className={`hyp-${h.status}`}><b>{h.label}</b><em>{HYP_LABEL[h.status]}</em></span>)}
     </div>
-    {hypOpen && <div className="v7NotePop v7HypPop"><ul>{hyps.map(h => <li key={h.id} className={`hyp-${h.status}`}><b>{HYP_LABEL[h.status]}</b><span><strong>{h.label}</strong>{h.why || "아직 이 가설을 가를 시험을 하지 않았어요."}</span></li>)}</ul></div>}
+    {hypOpen && <div className="v7NotePop v7HypPop"><ul>{hyps.map(h => <li key={h.id} className={`hyp-${h.status}`}><b>{HYP_LABEL[h.status]}</b><span><strong>{h.label}</strong>{h.why || "아직 판정하지 않았어요."}{h.evidence && <small> · 근거: {h.evidence}</small>}</span></li>)}</ul></div>}
     <span className="v7CostChip">비용 {cost} · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span>
     {noteOpen && <div className="v7NotePop">{log.length === 0 ? <p>아직 실행한 시험이 없어요.</p> : <ul>{log.map((item, k) => <li key={k} className={item.pass ? "pass" : "fail"}><b>{item.mission}</b><span>{LV[order(item.level)].name} · {DERIVS.find(d => d.id === item.deriv)?.name}</span><em>{item.verdict === "FAIL" ? `FAIL${item.first ? ` · ${item.first}` : ""}` : VERDICT_KO[item.verdict]}</em></li>)}</ul>}</div>}
   </div>;
@@ -968,14 +1014,19 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     <GameHeader chapter="SIMULATION VERIFICATION" title="시뮬레이션 검증" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageIntro id="bench" title="시뮬레이션 검증" goal="의심 구간을 실제로 시험해서 원인을 증명하는 단계예요." steps={[
-      { icon: "monitor", text: "미션 A: 요구사항 입력으로 시험해 요구사항대로 동작하는지 봐요. FAIL이 나는 레벨에 결함이 있어요." },
-      { icon: "flag", text: "미션 B: 사건 조건으로 같은 증상을 재현하고, 가장 먼저 갈라진 신호에 깃발을 꽂아요." },
-      { icon: "wrench", text: "원인을 없애는 수정을 고르고, 같은 시험으로 다시 확인해요. 시험 비용이 적을수록 별이 많아요." },
+      { icon: "monitor", text: "레벨·입력·관측점을 골라 시험해요. 왼쪽 탭으로 같은 결과를 SW·제어기·부품 관점에서 볼 수 있어요." },
+      { icon: "clipboard", text: "시험이 끝나면 판정 노트에서 결과가 각 가설을 지지하는지, 반박하는지, 판단할 수 없는지 직접 골라요." },
+      { icon: "flag", text: "근거로 원인 하나만 남으면 처음 갈라진 신호에 깃발 → 검증 결과 보고서 → 조치 요청 → 재시험." },
     ]} />
     <main className="vbLayout">
       {plan}
-      {mission === "fix" ? <section className="vbStage">
-        <h2><Icon name="wrench" /> 원인을 없애는 수정을 고르세요</h2>
+      {mission === "fix" ? <section className="vbStage v7Fix">
+        <article className="v7Report">
+          <header><small>검증 결과 보고 · 고객사 회신용</small><b>원인: {hyps.find(h => h.truth)!.label}</b></header>
+          <ul>{hyps.map(h => <li key={h.id} className={`hyp-${h.status}`}><em>{h.truth ? "문제 있음" : "문제 없음"}</em><span><strong>{h.label}</strong>{h.why}<small>근거: {h.evidence}</small></span></li>)}</ul>
+        </article>
+        <h2><Icon name="wrench" /> 수정 담당에 요청할 조치를 고르세요</h2>
+        <p className="vbSub">검증은 직접 고치지 않아요. 원인을 없애는 조치를 요청하고, 같은 시험으로 다시 확인해요.</p>
         <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}><img src={item.img} alt="" /><b>{item.label}</b></button>)}</div>
       </section> : phase === "level" && mission !== "C" && mission !== "done" ? <section className="vbStage">
         <p className="v7Goal">{missionGoal}</p>
@@ -989,8 +1040,18 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         <div className={`vbChoices ${derivs.length > 2 ? "four" : ""}`}>{derivs.map(item => { const info = DERIVS.find(d => d.id === item.id)!; return <button key={item.id} className={deriv === item.id ? "on" : ""} onClick={() => pickDeriv(item.id)}><small className="vbGroup">{info.name}</small><b>{item.input}</b><em>{info.sub}</em></button>; })}</div>
       </section> : <section className="v7Lab2">
         <div className="v7View">
-          <div className={`vbSimView ${running ? "running" : ""}`}>{simVisual}{ran && lastVerdict && <span className={`vbStamp ${lastVerdict === "PASS" ? "pass" : lastVerdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastVerdict]}</span>}</div>
+          <nav className="v7Tabs">{([["sw", "SW 로직"], ["ecu", "제어기·I/O"], ["plant", "부품·차량"]] as const).map(([id, name]) => <button key={id} className={viewTab === id ? "on" : ""} onClick={() => { setViewTab(id); play("pop"); }}>{name}{(id === "sw" ? true : id === "ecu" ? level === "embedded" || level === "vehicle" : level === "vehicle") ? <i>실물</i> : <i className="model">모델</i>}</button>)}</nav>
+          <div className={`vbSimView ${running ? "running" : ""}`}>{tabVisual}{tabNote && <span className="v7TabNote">{tabNote}</span>}{ran && lastVerdict && <span className={`vbStamp ${lastVerdict === "PASS" ? "pass" : lastVerdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastVerdict]}</span>}</div>
           <p className="vbScope">{LV[order(level)].scope} <small className="vbModelNote">교육용 수치 모델로 계산 · 실제 시험 장비 연동 아님</small></p>
+          {note && noteRows.length > 0 && <div className="v7Judge">
+            <header><b><Icon name="clipboard" /> 판정 노트</b><small>이번 결과가 각 가설에 무엇을 뜻하나요?</small></header>
+            <p className="v7JudgeEv">{LV[order(log[note.run].level)].name} · {VERDICT_KO[log[note.run].verdict]} · {Object.values(log[note.run].vals ?? {}).join(" · ")}</p>
+            {noteRows.map(h => <div key={h.id} className="v7JudgeRow"><b>{h.label}</b><span>
+              <button onClick={() => answer(h.id, "supported")}>지지</button>
+              <button onClick={() => answer(h.id, "refuted")}>반박</button>
+              <button onClick={() => answer(h.id, "open")}>이 시험으론 판단 불가</button>
+            </span></div>)}
+          </div>}
         </div>
         <div className="vbMonitor">
           <header><b><Icon name="monitor" /> 신호 모니터 · {LV[order(level)].name}</b><span><Icon name="clock" /> {(u * sim.seconds).toFixed(1)} / {sim.seconds} {sim.timeUnit}</span></header>
