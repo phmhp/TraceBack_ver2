@@ -6,7 +6,7 @@ type Sfx = "pop" | "squish" | "zip" | "stamp" | "success" | "error" | "siren" | 
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
-const prefs = { sfx: read("tb-sfx", true), music: read("tb-music", false) };
+const prefs = { sfx: read("tb-sfx", true), music: read("tb-music-v2", false) };
 let musicTimer: number | undefined;
 
 function read(key: string, fallback: boolean) {
@@ -101,7 +101,7 @@ function stopMusic() { if (musicTimer !== undefined) { clearInterval(musicTimer)
 
 export const soundPrefs = () => ({ ...prefs });
 export function setSfx(on: boolean) { prefs.sfx = on; write("tb-sfx", on); if (on) play("pop"); }
-export function setMusic(on: boolean) { prefs.music = on; write("tb-music", on); if (on) startMusic(); else stopMusic(); }
+export function setMusic(on: boolean) { prefs.music = on; write("tb-music-v2", on); if (on) startMusic(); else stopMusic(); }
 
 let installed = false;
 /** Global feel: every button pops, dragging on the board/wiring canvas zips. */
