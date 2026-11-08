@@ -54,12 +54,14 @@ import "./ending-v19.css";
 import "./p0-v20.css";
 import "./p1-type.css";
 import "./p2-notepaper.css";
+import "./p3-notepaper-world.css";
 import { BustedEnding, WantedEnding } from "./ui/CaseFileEnding";
 import { SoundToggle } from "./ui/ComicBurst";
 import { installGlobalSfx, setMusicScene } from "./ui/sfx";
 import { SuspectBoard } from "./features/board/SuspectBoard";
 import { DominoBoard } from "./features/board/DominoBoard";
 import { DominoTrace } from "./features/board/DominoTrace";
+import { Icon } from "./ui/Icon";
 const A = "/assets/";
 type Sim = {
   speed: number;
@@ -464,7 +466,7 @@ function Title({
   return (
     <div className="titleScene">
       <SceneBackdrop image={`${A}stitch23/menu-garage.png`} position="center" shade="soft" />
-      <div className="cloud">☁ 로컬 저장 · 교육 기록 준비</div>
+      <div className="cloud"><Icon name="cloud" /> 로컬 저장 · 교육 기록 준비</div>
       <div className="titleMenu">
         <div className="eyebrow">레이싱 × 자동차 고장 추리</div>
         <h1>

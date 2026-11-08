@@ -1,0 +1,73 @@
+/* p3 — the note-paper skin for the rest of the game (garage, race HUD, cutscenes, fault dialogue, failure/repair).
+   Same tokens as p2: paper #fffdf6, ink #33291f, red stamp #d4473c, yellow label #ffdf5e, radius 6px, layered paper shadow.
+   Only surfaces and buttons change; positions stay as they were. */
+:root {
+  --np-paper: #fffdf6; --np-paper-2: #f8f1e3; --np-ink: #33291f; --np-soft: #7b6a5c;
+  --np-red: #d4473c; --np-yellow: #ffdf5e; --np-r: 6px;
+  --np-shadow: 0 1px 1px rgba(0,0,0,.16), 0 4px 6px rgba(30,15,5,.2), 0 14px 26px rgba(20,10,0,.26);
+  --np-shadow-sm: 0 1px 1px rgba(0,0,0,.14), 0 3px 6px rgba(30,15,5,.18);
+}
+
+/* ---------- shared: backgrounds slightly blurred and darkened ---------- */
+.garageV2 > .sceneBackdrop, .failureAnalysis > .sceneBackdrop, .repairV > .sceneBackdrop { filter: blur(4px) brightness(.9); transform: scale(1.04); }
+
+/* ---------- shared: paper surfaces ---------- */
+.garageLayerNav, .garageMechanismCard, .domainFunctionShelf, .garageFlowPanel,
+.sharedDialogue, .catSpeech, .faultLamp, .quickTrace,
+.stillStoryCard, .getawayBriefingCard, .finaleCaptionCard, .repairResultCard, .boardingCaption, .heistCaption,
+.analysisHeader, .analysisCompare, .guidedSteps, .repairDialogue,
+.raceFeed > div, .keyGuideCard, .raceMiniMap, .raceV2 > .routeTracker, .raceTripHud, .driveMission {
+  border: 0 !important; border-radius: var(--np-r) !important; background: var(--np-paper) !important;
+  box-shadow: var(--np-shadow) !important; color: var(--np-ink) !important; backdrop-filter: none !important;
+}
+.garageLayerNav button, .domainFunctionShelf button, .garageFlowPanel button, .domainTabs button, .labTabs button, .pullOutChain button, .quizChoices button {
+  border-radius: var(--np-r) !important; border: 1.5px solid #e2d5c2 !important; background: var(--np-paper) !important; box-shadow: 0 2px 0 #e2d5c2 !important; color: var(--np-ink) !important; font-weight: 500 !important;
+}
+.garageLayerNav button.active, .domainFunctionShelf button.active, .domainTabs button.active, .labTabs button.on, .garageFlowPanel button.activeStep {
+  background: var(--np-yellow) !important; border-color: #e6c74a !important; box-shadow: 0 2px 0 #d9b938 !important;
+}
+.garageMechanismCard > header, .functionNote, .pullOutLab, .flowStepCard, .pullOutBubble, .ControllerCard, .partIntroCard {
+  border-radius: var(--np-r) !important;
+}
+.garageMechanismCard > header { background: var(--np-paper-2) !important; border: 0 !important; box-shadow: none !important; }
+.functionNote { background: var(--np-paper-2) !important; border: 0 !important; }
+.garageMechanismCard header h1, .domainFunctionShelf h2 { font-weight: 600 !important; color: var(--np-ink) !important; }
+.garageV2 .viewAxisLabel, .domainFunctionShelf > small, .garageMechanismCard header small { color: var(--np-red) !important; }
+
+/* ---------- primary actions: red rubber stamp everywhere ---------- */
+.garageProceed, .sharedDialogue .primary, .catSpeech .primary, .faultDialogueScene .primary, .staticCutscene .primary,
+.failureAnalysis .primary, .repairV .primary, .cinematic .primary {
+  border: 2px solid var(--np-red) !important; border-radius: var(--np-r) !important; background: #fff6f3 !important; color: var(--np-red) !important;
+  font-weight: 600 !important; box-shadow: 0 3px 0 rgba(160,40,30,.3), 0 6px 10px rgba(60,20,10,.16) !important; text-shadow: none !important;
+}
+.garageProceed:active, .sharedDialogue .primary:active, .catSpeech .primary:active, .staticCutscene .primary:active, .failureAnalysis .primary:active, .repairV .primary:active, .cinematic .primary:active {
+  transform: translateY(2px) !important; box-shadow: 0 1px 0 rgba(160,40,30,.3) !important;
+}
+
+/* ---------- race HUD: readable paper notes over the 3D road ---------- */
+.raceFeed > div { padding: 8px 12px !important; }
+.raceZoneSign i, .raceFeed .tbIcon { color: var(--np-red); }
+.raceV2 > .routeTracker .routeLabels b { color: var(--np-red) !important; }
+.keyGuideCard kbd, .raceControls kbd { border-radius: 4px !important; background: var(--np-paper) !important; color: var(--np-ink) !important; border: 1.5px solid #d9c9b3 !important; box-shadow: 0 2px 0 #d9c9b3 !important; }
+.gearPrompt b, .driveMission b { color: var(--np-red) !important; }
+
+/* ---------- dialogue and captions ---------- */
+.sharedDialogue b, .catSpeech b, .stillStoryCard h1, .getawayBriefingCard h1, .finaleCaptionCard h1 { color: var(--np-ink) !important; font-weight: 600 !important; }
+.sharedDialogue small, .stillStoryCard small, .getawayBriefingCard small, .finaleCaptionCard small { color: var(--np-red) !important; }
+.faultLamp small { color: var(--np-red) !important; }
+
+/* ---------- sound toggles: small paper buttons ---------- */
+.soundToggle button { border-radius: 50% !important; background: var(--np-paper) !important; color: var(--np-ink) !important; box-shadow: var(--np-shadow-sm) !important; border: 0 !important; }
+
+/* garage: empty flow panel text never runs under the proceed button */
+.garageV2 .garageFlowEmpty .flowRelationship { position: static !important; inset: auto !important; transform: none !important; margin: 0 !important; grid-column: 1 !important; grid-row: 2 !important; min-width: 0 !important; text-align: left !important; justify-self: start !important; align-self: center !important; }
+.garageV2 .garageFlowEmpty > div { display: none !important; }
+/* race: the journey rail is narrow here — show only the current stage name */
+.raceV2 .journeyRail article:not(.active) > span { display: none !important; }
+/* shared ActionButton (prologue, dialogues, cutscenes, verify-fail, endings): primary = red stamp, others = paper */
+button.clayAction.tone-primary { border: 2px solid var(--np-red) !important; border-radius: var(--np-r) !important; background: #fff6f3 !important; color: var(--np-red) !important; font-weight: 600 !important; box-shadow: 0 3px 0 rgba(160,40,30,.3), 0 6px 10px rgba(60,20,10,.16) !important; text-shadow: none !important; }
+button.clayAction.tone-neutral, button.clayAction.tone-secondary { border: 1.5px solid #d9c9b3 !important; border-radius: var(--np-r) !important; background: var(--np-paper) !important; color: var(--np-ink) !important; font-weight: 500 !important; box-shadow: 0 2px 0 #d9c9b3 !important; }
+button.clayAction:active { transform: translateY(2px) !important; }
+button.clayAction .keycap, button.clayAction kbd { border-radius: 4px !important; background: var(--np-paper-2) !important; color: var(--np-ink) !important; }
+/* race: on narrow windows the regen hint chip would run under the rear mirror — the key bar already shows Q/E */
+@media (max-width: 1240px) { .raceV2 .raceTripHud > em { display: none !important; } }

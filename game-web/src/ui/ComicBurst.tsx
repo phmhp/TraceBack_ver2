@@ -2,6 +2,7 @@
 // sound/music toggle. Used for police closing in, crashes and fault moments.
 import React, { useEffect, useState } from "react";
 import { play, setMusic, setSfx, soundPrefs } from "./sfx";
+import { Icon } from "./Icon";
 
 type BurstTone = "police" | "crash" | "fault";
 
@@ -29,7 +30,7 @@ export function SoundToggle() {
   const [prefs, setPrefs] = useState(soundPrefs);
   useEffect(() => { const sync = () => setPrefs(soundPrefs()); addEventListener("tb-music-scene", sync); return () => removeEventListener("tb-music-scene", sync); }, []);
   return <div className="soundToggle">
-    <button aria-label="효과음 켜기/끄기" className={prefs.sfx ? "on" : ""} onClick={() => { setSfx(!prefs.sfx); setPrefs(soundPrefs()); }}>{prefs.sfx ? "🔊" : "🔈"}</button>
-    <button aria-label="배경음 켜기/끄기" className={prefs.music ? "on" : ""} onClick={() => { setMusic(!prefs.music); setPrefs(soundPrefs()); }}>🎵</button>
+    <button aria-label="효과음 켜기/끄기" className={prefs.sfx ? "on" : ""} onClick={() => { setSfx(!prefs.sfx); setPrefs(soundPrefs()); }}>{prefs.sfx ? <Icon name="sound" /> : <Icon name="mute" />}</button>
+    <button aria-label="배경음 켜기/끄기" className={prefs.music ? "on" : ""} onClick={() => { setMusic(!prefs.music); setPrefs(soundPrefs()); }}><Icon name="music" /></button>
   </div>;
 }

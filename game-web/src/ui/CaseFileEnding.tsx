@@ -6,6 +6,7 @@ import React from "react";
 import type { Campaign, CaseId } from "../game/runtime";
 import { SCENARIOS } from "../game/scenarios";
 import { SceneBackdrop } from "./game-shell";
+import { Icon, type IconName } from "./Icon";
 
 const A = "/assets/";
 const SHEET = `${A}cutscene-character-master-v1.png`; // 1536 × 1024 turnaround sheet
@@ -107,11 +108,11 @@ function SafetyView({ id }: { id: CaseId }) {
   const item = CASE_SAFETY[id];
   return <div className="cfSafety">
     <div className="cfSafetyFlow">
-      <span className="is-hazard"><i>⚠</i><em>위험(Hazard)</em><b>{item.hazard}</b></span>
-      <span className="is-detect"><i>🔎</i><em>감지(안전 메커니즘)</em><b>{item.detect}</b></span>
-      <span className="is-safe"><i>🛡</i><em>안전 상태(Safe state)</em><b>{item.safeState}</b></span>
+      <span className="is-hazard"><i><Icon name="warning" /></i><em>위험(Hazard)</em><b>{item.hazard}</b></span>
+      <span className="is-detect"><i><Icon name="clue" /></i><em>감지(안전 메커니즘)</em><b>{item.detect}</b></span>
+      <span className="is-safe"><i><Icon name="shield" /></i><em>안전 상태(Safe state)</em><b>{item.safeState}</b></span>
     </div>
-    <p className="cfLesson">🧩 {item.insight}</p>
+    <p className="cfLesson"><Icon name="puzzle" /> {item.insight}</p>
   </div>;
 }
 
@@ -156,14 +157,14 @@ function Steps({ state, id, status }: { state: Campaign; id: CaseId; status: Cas
   const picked = state.hypothesis[id];
   const correct = picked === scenario.root;
   const solved = status === "solved";
-  const steps: { icon: string; label: string; state: "done" | "warn" | "fail" | "todo"; extra?: React.ReactNode }[] = [
-    { icon: "👁", label: "증상", state: "done" },
-    { icon: "🔍", label: "증거", state: found > 0 || solved ? "done" : "todo", extra: <span className="cfDots">{Array.from({ length: total }, (_, i) => <i key={i} className={i < found ? "on" : ""} />)}</span> },
-    { icon: "🎯", label: "원인", state: correct ? "done" : solved ? "warn" : picked ? "fail" : "todo" },
-    { icon: "🧪", label: "검증·수리", state: solved ? "done" : "fail" },
+  const steps: { icon: IconName; label: string; state: "done" | "warn" | "fail" | "todo"; extra?: React.ReactNode }[] = [
+    { icon: "eye" as IconName, label: "증상", state: "done" },
+    { icon: "search" as IconName, label: "증거", state: found > 0 || solved ? "done" : "todo", extra: <span className="cfDots">{Array.from({ length: total }, (_, i) => <i key={i} className={i < found ? "on" : ""} />)}</span> },
+    { icon: "target" as IconName, label: "원인", state: correct ? "done" : solved ? "warn" : picked ? "fail" : "todo" },
+    { icon: "beaker" as IconName, label: "검증·수리", state: solved ? "done" : "fail" },
   ];
   return <ol className="cfSteps">{steps.map(step => <li key={step.label} className={`is-${step.state}`}>
-    <i>{step.icon}</i><span>{step.label}</span>{step.extra}
+    <i><Icon name={step.icon} /></i><span>{step.label}</span>{step.extra}
   </li>)}</ol>;
 }
 
@@ -181,7 +182,7 @@ function CaseRow({ state, id, safety }: { state: Campaign; id: CaseId; safety: b
     {active && safety && <SafetyView id={id} />}
     {active && !safety && <>
       <div className="cfVisual"><SignalChain id={id} status={status} found={found || status === "solved"} /><Meter id={id} /></div>
-      <div className="cfLessonRow"><Steps state={state} id={id} status={status} /><p className="cfLesson">💡 {CASE_VISUAL[id].lesson}</p></div>
+      <div className="cfLessonRow"><Steps state={state} id={id} status={status} /><p className="cfLesson"><Icon name="bulb" /> {CASE_VISUAL[id].lesson}</p></div>
     </>}
   </article>;
 }
@@ -194,8 +195,8 @@ function CaseBrief({ state, escaped }: { state: Campaign; escaped: boolean }) {
       <small>{escaped ? "CASE FILE // TB-16 · CLOSED" : "CASE FILE // TB-16 · ARREST REPORT"}</small>
       <h2>사건 발생 개요</h2>
       <div className="cfLens" role="group" aria-label="보기 관점">
-        <button className={safety ? "" : "on"} onClick={() => setSafety(false)}>🔧 고장 추적</button>
-        <button className={safety ? "on" : ""} onClick={() => setSafety(true)}>🛡 안전 관점</button>
+        <button className={safety ? "" : "on"} onClick={() => setSafety(false)}><Icon name="wrench" /> 고장 추적</button>
+        <button className={safety ? "on" : ""} onClick={() => setSafety(true)}><Icon name="shield" /> 안전 관점</button>
       </div>
       <p>네오 베이 항만 레이스 추격 · 부두 탈출 작전</p>
     </header>

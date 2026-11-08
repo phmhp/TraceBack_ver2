@@ -3,6 +3,7 @@
 // actuators and vehicle behaviour on the right. The selected function's parts are highlighted,
 // everything else stays visible but dimmed (whole-vehicle view, domain as a highlight filter).
 import React, { useLayoutEffect, useRef, useState } from "react";
+import { Icon } from "../../ui/Icon";
 
 type Role = "input" | "control" | "network" | "actuator" | "result";
 const ECU_BOXES = [
@@ -55,7 +56,7 @@ export function EeBlueprint({ chain, roles, active, removed, onPick, signals }: 
     return () => observer.disconnect();
   }, [chain.join("|"), roles.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
   const hue = (i: number) => 205 - (i / Math.max(1, chain.length - 1)) * 190; // blue (input) → red (vehicle)
-  const chip = (item: { label: string; i: number }) => <button data-ee={item.i} key={`${item.label}-${item.i}`} className={`eeChip ${item.i === active ? "active" : ""} ${item.i === removed ? "out" : ""}`} onClick={() => onPick?.(item.i)}>{item.i === removed ? "🚫 " : ""}{item.label}</button>;
+  const chip = (item: { label: string; i: number }) => <button data-ee={item.i} key={`${item.label}-${item.i}`} className={`eeChip ${item.i === active ? "active" : ""} ${item.i === removed ? "out" : ""}`} onClick={() => onPick?.(item.i)}>{item.i === removed ? <><Icon name="ban" /> </> : null}{item.label}</button>;
   return <div className="eeBlueprint" ref={box}>
     <svg className="eeFlow" width={size.w} height={size.h} viewBox={`0 0 ${size.w} ${size.h}`}>
       <defs>
@@ -73,7 +74,7 @@ export function EeBlueprint({ chain, roles, active, removed, onPick, signals }: 
     <div className="eeCore">
       {[0, 1].map(row => <div key={row} className="eeRow">{ECU_BOXES.filter(box => box.row === row).map(box => { const parts = ecuParts(box); return <div key={box.id} className={`eeEcu ${parts.length ? "lit" : ""}`}><b>{box.label}</b>{parts.map(chip)}</div>; })}</div>)}
       <div className="eeBus"><span>CAN 버스</span><i>게이트웨이</i>{network.map(chip)}</div>
-      <div className="eePower">⚡ 12V·고전압 전원선 (모든 제어기에 공급)</div>
+      <div className="eePower"><Icon name="bolt" /> 12V·고전압 전원선 (모든 제어기에 공급)</div>
     </div>
     <div className="eeCol eeActuators"><small>부품 · 차량 반응</small>{actuators.map(chip)}</div>
   </div>;

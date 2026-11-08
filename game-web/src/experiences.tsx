@@ -16,6 +16,7 @@ import { getComponent } from "./sim/registry";
 import { Picto, SimulinkDiagram, blockKind, plainText } from "./features/garage/SimulinkDiagram";
 import { EeBlueprint } from "./features/garage/EeBlueprint";
 import { DRIVER, DUO, ENGINEER } from "./game/cast";
+import { Icon, type IconName } from "./ui/Icon";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
 
@@ -25,6 +26,7 @@ export type DomainId = "drive" | "brake" | "steer" | "gear" | "power" | "thermal
 
 // "도메인" here follows E/E architecture practice (not an ISO 26262 term): functions grouped by domain controller.
 const DOMAIN_GROUP: Record<DomainId, string> = { drive: "파워트레인", power: "파워트레인", gear: "파워트레인", thermal: "파워트레인", brake: "섀시", steer: "섀시", suspension: "섀시" };
+const DOMAIN_ICON: Record<DomainId, IconName> = { drive: "bolt", brake: "disc", steer: "wheel", power: "battery", gear: "shift", thermal: "thermo", suspension: "spring" };
 const learningLayers = [
   // ISO 26262 abstraction: item (vehicle function) → system architecture (HW/SW elements) → SW architecture & unit design
   { name: "Vehicle / System", tag: "차량 기능 · 운전자 입력 → 차량 거동" },
@@ -406,7 +408,7 @@ function DomainSignature({ domain, activeStep }: { domain: DomainId; activeStep:
 function RemovedPartMarker({ position }: { position: [number, number, number] }) {
   return <group position={position}>
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.38, 0]}><ringGeometry args={[.42, .5, 40]} /><meshBasicMaterial color="#e0483c" transparent opacity={.85} /></mesh>
-    <PartLabel position={[0, .25, 0]} className="removedPartLabel">🚫 빠짐</PartLabel>
+    <PartLabel position={[0, .25, 0]} className="removedPartLabel"><Icon name="ban" /> 빠짐</PartLabel>
   </group>;
 }
 
@@ -490,7 +492,7 @@ function AllDomainsSystem({ domain, overlay = false }: { domain: DomainId | null
   // labels live outside the rigs so a slow part model never hides a name
   const labels = ids.map((id, index) => {
     const position: [number, number, number] = overlay ? [-3.6 + index * 1.2, 2.3 + (index % 2) * .35, 0] : [slot(index)[0], 1.7, slot(index)[2]];
-    return <PartLabel key={`label-${id}`} className={`allDomainLabel ${id === domain ? "allDomainOn" : ""}`} position={position}>{domainContent[id].icon} {domainContent[id].label}</PartLabel>;
+    return <PartLabel key={`label-${id}`} className={`allDomainLabel ${id === domain ? "allDomainOn" : ""}`} position={position}><Icon name={DOMAIN_ICON[id]} /> {domainContent[id].label}</PartLabel>;
   });
   // overlay: every domain sits in the same vehicle space, like layers of one car
   // the very first label after the canvas remounts is dropped by the label library, so a hidden one goes first
@@ -565,8 +567,8 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
     </Canvas>
     <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동</span>
     <div className="viewToggles">
-      {level === 0 && <span className="view3dSeg">{(noDomain ? [["grid", "🧩 나란히"], ["overlay", "🚗 겹쳐 보기"]] as const : [["one", "🔎 이 도메인"], ["grid", "🧩 나란히"], ["overlay", "🚗 겹쳐 보기"]] as const).map(([id, label]: readonly [string, string]) => <button key={id} className={`shellToggle ${view3d === id ? "on" : ""}`} onClick={() => setView3d(id as "one" | "grid" | "overlay")}>{label}</button>)}</span>}
-      {!allDomains && <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}>🚗 차체 {shell ? "숨기기" : "보기"}</button>}
+      {level === 0 && <span className="view3dSeg">{(noDomain ? [["grid", "나란히"], ["overlay", "겹쳐 보기"]] as const : [["one", "이 도메인"], ["grid", "나란히"], ["overlay", "겹쳐 보기"]] as const).map(([id, label]: readonly [string, string]) => <button key={id} className={`shellToggle ${view3d === id ? "on" : ""}`} onClick={() => setView3d(id as "one" | "grid" | "overlay")}><Icon name={id === "one" ? "search" : id === "grid" ? "grid" : "layers"} /> {label}</button>)}</span>}
+      {!allDomains && <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}><Icon name="car" /> 차체 {shell ? "숨기기" : "보기"}</button>}
     </div>
   </div>;
 }
@@ -588,12 +590,12 @@ const ROLE_TEXT: Record<PartRole, { tag: string; what: string; safe: string; clu
   result: { tag: "차량 반응", what: "부품이 아니라 결과예요!", safe: "", clue: "" },
 };
 const DOMAIN_SYMPTOM: Record<DomainId, string> = {
-  drive: "🚗 페달을 밟아도 가속이 안 되거나 약해져요",
-  brake: "🛑 제동이 약해지거나 정지 거리가 늘어나요",
-  steer: "🌀 핸들이 무거워지거나 원하는 만큼 안 돌아요",
-  power: "🔋 READY가 안 켜지거나 출력이 제한돼요",
+  drive: "페달을 밟아도 가속이 안 되거나 약해져요",
+  brake: "제동이 약해지거나 정지 거리가 늘어나요",
+  steer: "핸들이 무거워지거나 원하는 만큼 안 돌아요",
+  power: "READY가 안 켜지거나 출력이 제한돼요",
   gear: "🅿️ 변속이 안 되거나 P에서 안 풀려요",
-  thermal: "🌡️ 온도가 올라 출력이 제한돼요(파워다운)",
+  thermal: "온도가 올라 출력이 제한돼요(파워다운)",
   suspension: "〰️ 승차감이 나빠지고 자세 제어가 약해져요",
 };
 
@@ -601,7 +603,7 @@ function PullOutBubble({ domain, label, role }: { domain: DomainId; label: strin
   const text = ROLE_TEXT[role];
   return <div className="pullOutBubble" key={label}>
     <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />
-    <p><b>{label} 빠짐!</b>{text.what}{role !== "result" && <span className="pullOutChips"><em>{DOMAIN_SYMPTOM[domain]}</em><em className="safe">🛡 {text.safe}</em></span>}</p>
+    <p><b>{label} 빠짐!</b>{text.what}{role !== "result" && <span className="pullOutChips"><em>{DOMAIN_SYMPTOM[domain]}</em><em className="safe"><Icon name="shield" /> {text.safe}</em></span>}</p>
   </div>;
 }
 
@@ -665,8 +667,8 @@ function PartIntroCard({ label, role, domain, onClose, onPull }: { label: string
   const partId = partModelFor(domain, label);
   return <div className="ecuCard" role="dialog">
     <button className="ecuClose" onClick={onClose} aria-label="닫기">×</button>
-    {partId && ["accel_pedal", "brake_pedal", "traction_motor", "brake_caliper", "motor_temp_sensor", "cooling_fan"].includes(partId) ? <img src={`/assets/ending-thumbs/${partId}.png`} alt="" /> : <span className="ecuGeneric">{role === "input" ? "👀" : role === "network" ? "✉️" : role === "actuator" ? "🦾" : "🚗"}</span>}
-    <div><small>{ROLE_TEXT[role].tag}</small><b>{label}</b><div className="ecuRow"><i>💡</i><span><em className="do">{ROLE_INTRO[role]}</em></span></div>
+    {partId && ["accel_pedal", "brake_pedal", "traction_motor", "brake_caliper", "motor_temp_sensor", "cooling_fan"].includes(partId) ? <img src={`/assets/ending-thumbs/${partId}.png`} alt="" /> : <span className="ecuGeneric"><Icon name={role === "input" ? "eye" : role === "network" ? "mail" : role === "actuator" ? "arm" : "car"} /></span>}
+    <div><small>{ROLE_TEXT[role].tag}</small><b>{label}</b><div className="ecuRow"><i><Icon name="bulb" /></i><span><em className="do">{ROLE_INTRO[role]}</em></span></div>
     {role !== "result" && <button className="ecuPull" onClick={onPull}>이 부품 빼 보기</button>}</div>
   </div>;
 }
@@ -676,16 +678,16 @@ function ControllerCard({ label, onPull, onClose }: { label: string; onPull: () 
   const ko = (id: string) => getComponent(id)?.nameKo ?? id;
   return <div className="ecuCard" role="dialog">
     <button className="ecuClose" onClick={onClose} aria-label="닫기">×</button>
-    {ecu ? <img src={`/assets/ending-thumbs/${ecu.id}.png`} alt="" /> : <span className="ecuGeneric">🧠</span>}
+    {ecu ? <img src={`/assets/ending-thumbs/${ecu.id}.png`} alt="" /> : <span className="ecuGeneric"><Icon name="chip" /></span>}
     <div>
       <small>제어기 소개</small>
       <b>{label}</b>
       {ecu ? <>
-        <div className="ecuRow"><i>👀</i><span>{ecu.sensors.length ? ecu.sensors.map(id => <em key={id}>{ko(id)}</em>) : <em>다른 제어기의 메시지</em>}</span></div>
-        <div className="ecuRow"><i>🧠</i><span>{ecu.functions.map(item => <em key={item} className="do">{item}</em>)}</span></div>
-        <div className="ecuRow"><i>🦾</i><span>{ecu.actuators.length ? ecu.actuators.map(id => <em key={id}>{ko(id)}</em>) : <em>다른 제어기에 명령 전달</em>}</span></div>
+        <div className="ecuRow"><i><Icon name="eye" /></i><span>{ecu.sensors.length ? ecu.sensors.map(id => <em key={id}>{ko(id)}</em>) : <em>다른 제어기의 메시지</em>}</span></div>
+        <div className="ecuRow"><i><Icon name="chip" /></i><span>{ecu.functions.map(item => <em key={item} className="do">{item}</em>)}</span></div>
+        <div className="ecuRow"><i><Icon name="arm" /></i><span>{ecu.actuators.length ? ecu.actuators.map(id => <em key={id}>{ko(id)}</em>) : <em>다른 제어기에 명령 전달</em>}</span></div>
         <div className="ecuRow"><i>✉️</i><span>{ecu.interfaces.map(item => <em key={item} className="bus">{item}</em>)}</span></div>
-      </> : <div className="ecuRow"><i>🧠</i><span><em className="do">센서 값을 판단해 명령을 내리는 두뇌</em></span></div>}
+      </> : <div className="ecuRow"><i><Icon name="chip" /></i><span><em className="do">센서 값을 판단해 명령을 내리는 두뇌</em></span></div>}
       <button className="ecuPull" onClick={onPull}>이 제어기 빼 보기</button>
     </div>
   </div>;
@@ -738,7 +740,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       </button>)}
     </nav>
     <main className="garageStudio">
-      <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map((id, index) => <button key={id} className={chosen && domain === id ? "active" : ""} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span>{domainContent[id].icon}</span><b>{domainContent[id].label}</b><small>{DOMAIN_GROUP[id]}</small></button>)}</nav>
+      <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map((id, index) => <button key={id} className={chosen && domain === id ? "active" : ""} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span><Icon name={DOMAIN_ICON[id]} /></span><b>{domainContent[id].label}</b><small>{DOMAIN_GROUP[id]}</small></button>)}</nav>
       <section className="garageMechanismCard">
         {chosen ? <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
           : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "한 차 안에 7개 도메인이 함께 있어요. 위에서 도메인을 고르면 그 도메인만 자세히 볼 수 있어요."}</p></header>}
@@ -760,7 +762,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
           return <div className={`pullOutLab mode-${labMode}`}>
             <header>
               <nav className="labTabs">
-                <button className={labMode === "flow" ? "on" : ""} onClick={() => { setLabMode("flow"); setRemoved(null); setCulprit(null); setEcuCard(null); setActiveStep(0); }}>🧭 흐름 따라가기</button>
+                <button className={labMode === "flow" ? "on" : ""} onClick={() => { setLabMode("flow"); setRemoved(null); setCulprit(null); setEcuCard(null); setActiveStep(0); }}><Icon name="compass" /> 흐름 따라가기</button>
                 <button className={labMode === "intro" ? "on" : ""} onClick={() => { setLabMode("intro"); setRemoved(null); setCulprit(null); }}>① 부품 소개</button>
                 <button className={labMode === "pull" ? "on" : ""} onClick={() => { setLabMode("pull"); setCulprit(null); setEcuCard(null); }}>② 빼 보기</button>
                 <button className={labMode === "hunt" ? "on" : ""} onClick={startHunt}>③ 범인 찾기{caught ? ` · ${caught}` : ""}</button>
@@ -782,7 +784,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
             {labMode === "intro" && ecuCard !== null && <PartIntroCard label={chain[ecuCard]} role={partRole(chain[ecuCard], ecuCard, chain.length)} domain={domain} onClose={() => setEcuCard(null)} onPull={() => { setLabMode("pull"); pullOut(ecuCard); }} />}
             {labMode === "pull" && removed !== null && <PullOutBubble domain={domain} label={chain[removed]} role={partRole(chain[removed], removed, chain.length)} />}
             {labMode === "hunt" && culprit !== null && <div className="pullOutBubble huntQuiz"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><div>
-              <p><b>{guess?.right ? "맞아요. 빠진 부품을 찾았어요" : guess ? "그 부품은 정상이에요" : "어느 부품이 빠졌는지 단서로 찾아보세요"}</b>{DOMAIN_SYMPTOM[domain]}<span className="pullOutChips"><em>🔎 단서: {ROLE_TEXT[partRole(chain[culprit], culprit, chain.length)].clue}</em></span></p>
+              <p><b>{guess?.right ? "맞아요. 빠진 부품을 찾았어요" : guess ? "그 부품은 정상이에요" : "어느 부품이 빠졌는지 단서로 찾아보세요"}</b>{DOMAIN_SYMPTOM[domain]}<span className="pullOutChips"><em><Icon name="clue" /> 단서: {ROLE_TEXT[partRole(chain[culprit], culprit, chain.length)].clue}</em></span></p>
               <div className="quizChoices">{parts.map(item => <button key={item.index} disabled={Boolean(guess?.right)} className={guess?.index === item.index ? guess.right ? "right" : "wrong" : guess?.right && item.index === culprit ? "right" : ""} onClick={() => answer(item.index)}>{item.label}</button>)}</div>
               {guess?.right && <button className="huntButton" onClick={startHunt}>한 번 더!</button>}
             </div></div>}
@@ -1314,7 +1316,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         else {
           setGear(wanted); play("pop", wanted === "D" ? 1.2 : .9);
           // real cars need the brake to leave P; here it is a tip, not a blocker
-          setGearToast(gear === "P" && !brakeHeld ? { text: "💡 실제 차는 브레이크를 밟고 P에서 변속해요", id: Date.now() } : null);
+          setGearToast(gear === "P" && !brakeHeld ? { text: "실제 차는 브레이크를 밟고 P에서 변속해요", id: Date.now() } : null);
         }
       }
       if (event.key === "Escape") {
@@ -1478,9 +1480,9 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   }, [deckSettled, mode, send, sim.distance, sim.elapsed, sim.gap, state.caseId, state.lastRepairDistance, state.lastRepairElapsedSeconds]);
   const symptom = (mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80);
   const zone = mode === "normal" && sim.distance >= OVERTAKE_ZONE[0] - 40 && sim.distance < OVERTAKE_ZONE[1]
-    ? { icon: "🏁", title: "추월 구간", text: "W를 끝까지 밟아 추격차를 따돌려!" }
+    ? { icon: "finish" as IconName, title: "추월 구간", text: "W를 끝까지 밟아 추격차를 따돌려!" }
     : mode === "resume" && state.caseId === "propulsion" && sim.distance >= CLIMB_ZONE[0] - 40 && sim.distance < CLIMB_ZONE[1]
-      ? { icon: "🛣️", title: "장거리 고속 구간", text: "계속 밟아 속도를 유지해!" }
+      ? { icon: "road" as IconName, title: "장거리 고속 구간", text: "계속 밟아 속도를 유지해!" }
       : null;
   useEffect(() => {
     if (mode !== "assist" || parking || sim.distance < assistTarget) return;
@@ -1526,7 +1528,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>↓</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
       {gearToast && <div className="gearToast" key={gearToast.id}>{gearToast.text}</div>}
       {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
-      {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i>{zone.icon}</i><span><small>DRIVING ZONE</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
+      {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i><Icon name={zone.icon} /></i><span><small>DRIVING ZONE</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
       {symptom && <div className="faultBeacon" role="alert"><span /><div><small>VEHICLE WARNING</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "파워다운 표시등 · 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
       {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
       {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>DRIVING MISSION · 다음 검증용 주행 로그</small><b>{driveMission === "red" ? "적색 신호 정지 · 제동 시퀀스 기록" : "정차 후 READY 재인가 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(612-sim.distance))}m · S로 부드럽게 제동 · 정지선 이탈 금지` : "이 재출발 기록이 열관리 고장 재현 미션의 초기조건이 됩니다"}</span></div>}
@@ -1552,7 +1554,7 @@ const CLIMB_ZONE = [760, 960] as const; // sustained high-load section (cooling 
 // Warning lamp the driver sees for each case (generic EV cluster behaviour).
 const faultLamp: Record<CaseId, { icon: string; glyph: string; label: string; note: string }> = {
   propulsion: { icon: "none", glyph: "—", label: "경고등 없음", note: "제어기가 고장을 감지하지 못한 채 출력만 약해짐 (운전자 체감만 있음)" },
-  thermal: { icon: "power", glyph: "⚡", label: "파워다운(출력 제한) 표시등", note: "출력이 제한됨 · 설명서상 원인 후보: 배터리 잔량 부족, 배터리 온도, 구동계 온도" },
+  thermal: { icon: "power", glyph: "!", label: "파워다운(출력 제한) 표시등", note: "출력이 제한됨 · 설명서상 원인 후보: 배터리 잔량 부족, 배터리 온도, 구동계 온도" },
   brake: { icon: "brake", glyph: "(!)", label: "브레이크 경고등", note: "제동 계통 이상 — 제동 거리가 늘어날 수 있음" },
 };
 
@@ -1655,7 +1657,7 @@ export function ReplayRaceView({ caseId }: { caseId: CaseId }) {
     frame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frame);
   }, [caseId]);
-  return <div className="replayRaceWorld"><RaceWorld sim={sim} ship={false} /><div className="replayHud"><span>LAST 8.0 SEC</span><b>{Math.round(sim.speed)} km/h</b><em>{sim.speed < 40 ? "⚠ OUTPUT DROP" : "HV READY"}</em></div></div>;
+  return <div className="replayRaceWorld"><RaceWorld sim={sim} ship={false} /><div className="replayHud"><span>LAST 8.0 SEC</span><b>{Math.round(sim.speed)} km/h</b><em>{sim.speed < 40 ? "OUTPUT DROP" : "HV READY"}</em></div></div>;
 }
 
 // Signal measurement rail: stops along the signal chain. Measuring a stop shows
