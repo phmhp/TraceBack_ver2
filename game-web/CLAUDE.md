@@ -157,6 +157,7 @@
 - 2차: 이전/다음 버튼 겹침 수정(최소 폭 해제), 검증 입력 기법은 사건별로 실제 다른 입력만(`CASE_DERIVS`, 오류 추정·동치 분할 제외, 방법은 요구사항 기반 고정), 수리 후 회귀 주행 카드(`regressionCard`).
 - 남은 일 전체 목록 = `docs/IMPROVEMENT_PLAN_2026-11-08.md` 9절.
 - **추리 흐름 기준 = `docs/PLAY_FLOW_V2_2026-11-08.md`** (1단계: 위 왼쪽 증거 폴라로이드 · 위 오른쪽 전체 E/E 판 · 아래 머그샷 줄, 증거로 출력 선택 → 영향 준 후보만 머그샷 활성 → 하나씩 재며 도장으로 좁힘 / 2단계: 프롬프트 PART C / 3단계: 볼트 질문에 버튼 3개로 답, 서술형 금지).
+- **추리 3단계 v2 구현 완료(11-08):** 1단계 `src/features/board/EeTrace.tsx`(증거 | E/E 판 / 머그샷, 플레이어 도장), 2단계 `RefPuzzle`(연결 확인 → 예시 입력 슬라이더 → 기준 확정 → 기대값 카드 sessionStorage `tb-expect-<case>`, 옛 것은 `RefPuzzleV1`), 3단계 `TwinBenchExperience`(볼트 질문 카드 → 시험 카드 3장 → 잴 곳 최대 3 → 답 버튼 3개(정답키 `judgeRun`) → 보고서 → 조치 요청 → 같은 시험 재확인 → 회귀; 옛 v7은 `TwinBenchV7`). 정답/오답 도장 레이어는 이전·다음 버튼 뒤에 렌더(형제 선택자 유지).
 - 화면·문서에 "교육용 단순화", "실제 모델 아님", "실제 장비 연동 아님" 같은 문구 금지(사용자 지시).
 - 3차: 물고기 말풍선 내용은 몸통 기준 가운데(svg x 38–230), 조작법 바 윗줄 키·아랫줄 뜻. cooling_fan(날개 spin)·cooling_pump 코드 모델 → 시뮬 필수 28종 모두 모델 완료. 새 이미지(thermal·charging·network-diagnostics) 커밋, 썸네일(ending-thumbs)·board-photos(fan_actual, pump_flow) 추가. 라디에이터·밸브·OBC·충전구 등은 시뮬 부품이 아니라(테스트가 부품=시뮬 컴포넌트 요구) 모델 보류.
 

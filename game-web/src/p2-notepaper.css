@@ -358,3 +358,31 @@ body:has(.vbBench + .stageHistoryNav .stageBackButton + .stageForwardButton) .vb
 .refPuzzle.v2 .rpWorld.flowing .rpArrow { color: #e3bb45 !important; animation: rpFlow .9s ease-in-out infinite; }
 @keyframes rpFlow { 0%, 100% { transform: translateX(-4px); opacity: .6; } 50% { transform: translateX(4px); opacity: 1; } }
 .refPuzzle.v2 .rpReq { overflow-y: auto !important; }
+
+/* ===== stage 3 v2: answer 볼트's questions ===== */
+.qaTop { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.qaAsk { display: flex; align-items: center; gap: 10px; padding: 6px 16px 6px 6px; border-radius: 999px; background: #fff; box-shadow: 0 2px 0 #e3d3c3, 0 6px 14px rgba(30,15,5,.14); }
+.qaAsk img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; transform: scaleX(-1); background: #f3e2dd; }
+.qaAsk p { margin: 0; display: grid; } .qaAsk small { font: 600 11.5px Pretendard, system-ui; color: #9b6b64; } .qaAsk b { font: 700 16px Pretendard, system-ui; color: #33291f; }
+.qaDots { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.qaDots li { min-width: 26px; height: 26px; padding: 0 8px; display: grid; place-items: center; border-radius: 999px; background: #efe6dc; font: 600 11.5px Pretendard, system-ui; color: #7b6a5c; }
+.qaDots li.now { background: #fff1bf; color: #7a5a12; box-shadow: 0 0 0 2px #e3bb45; }
+.qaDots li.a-supported { background: #c0574a; color: #fff; } .qaDots li.a-refuted { background: #3f8a5c; color: #fff; }
+.qaExpect { display: inline-flex; gap: 5px; align-items: center; padding: 5px 10px; border-radius: 6px; background: #e3f1e7; font: 600 12px Pretendard, system-ui; color: #2f6b45; } .qaExpect svg { width: 13px; height: 13px; }
+.qaTop .v7CostChip { margin-left: auto; }
+.qaTests button { display: grid !important; justify-items: center; gap: 6px; width: clamp(200px, 24vw, 280px); padding: 16px 14px !important; }
+.qaTests button > i { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 12px; background: #f3e2dd; color: #9b6b64; } .qaTests button > i svg { width: 30px; height: 30px; }
+.qaTests button b { font: 700 15px Pretendard, system-ui; }
+.qaBtns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.qaBtns button { padding: 10px 8px; border-radius: 6px; border: 1px solid #d9c9b3; background: #fffaf2; font: 700 13.5px Pretendard, system-ui; color: #33291f; cursor: pointer; box-shadow: 0 3px 0 #d9c9b3; }
+.qaBtns .ans-supported { background: #fbe4df; border-color: #d9a093; box-shadow: 0 3px 0 #d9a093; }
+.qaBtns .ans-refuted { background: #e3f1e7; border-color: #8fbf9e; box-shadow: 0 3px 0 #8fbf9e; }
+.qaBtns button:active { transform: translateY(2px); box-shadow: 0 1px 0 #d9c9b3; }
+.vbMonitor .vbVal .w-같음 { color: #3f8a5c; } .vbMonitor .vbVal .w-낮음, .vbMonitor .vbVal .w-높음 { color: #ff8a7a; }
+.vbBench .vbGo.ghost { background: transparent !important; color: #e9dccb !important; border: 1px solid #a99787 !important; box-shadow: none !important; }
+.vbBench.qa .vbMonitor .vbReg { padding: 6px 8px; border-radius: 6px; background: #2c3330; }
+.vbBench.qa .vbMonitor .vbReg b { display: flex; gap: 5px; align-items: center; font: 600 12px Pretendard, system-ui; color: #e9dccb; margin-bottom: 4px; } .vbBench.qa .vbReg b svg { width: 13px; height: 13px; }
+.vbBench.qa .vbMonitor .vbReg ul { display: flex !important; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; max-height: 64px; overflow: hidden; }
+.vbBench.qa .vbMonitor .vbReg li { display: inline-flex !important; gap: 5px; align-items: center; height: auto !important; min-height: 0 !important; padding: 2px 7px !important; border-radius: 4px; background: #3a4440 !important; font: 500 11px Pretendard, system-ui; color: #cfd8d3; box-shadow: none !important; }
+.vbBench.qa .vbMonitor .vbReg li em { font-style: normal; font-weight: 700; color: #a99787; } .vbBench.qa .vbMonitor .vbReg li.ok em { color: #8fd6a8; }
+.vbBench.qa .vbMonitor .vbReg li span { white-space: nowrap; }
