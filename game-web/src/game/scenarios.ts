@@ -31,9 +31,9 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
     ],
   },
   thermal: {
-    title: "온도는 오르는데 냉각 팬이 돌지 않는다",
-    chapter: "CASE 02 · COOLING RESPONSE",
-    symptom: "파워다운 표시등이 켜지고 출력이 제한됐지만 냉각 팬 소리가 들리지 않습니다.",
+    title: "오래 달리자 힘이 빠지고 경고등이 켜졌다",
+    chapter: "CASE 02 · POWER DOWN",
+    symptom: "고속으로 오래 달리자 파워다운 표시등이 켜지고 가속이 약해졌습니다.",
     root: "fan_actuator",
     repair: "냉각 팬 액추에이터 응답 복원",
     evidence: [
