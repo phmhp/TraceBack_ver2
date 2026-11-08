@@ -1621,9 +1621,9 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   }, [sim.speed]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!regression) return; play(regression.ok ? "correct" : "error"); const timer = window.setTimeout(() => setRegression(previous => previous && { ...previous, title: "" }), 7000); return () => clearTimeout(timer); }, [regression?.text]); // eslint-disable-line react-hooks/exhaustive-deps
   const zone = mode === "normal" && sim.distance >= OVERTAKE_ZONE[0] - 40 && sim.distance < OVERTAKE_ZONE[1]
-    ? { icon: "finish" as IconName, title: "추월 구간", text: "W를 끝까지 밟아 추격차를 따돌려!" }
+    ? { icon: "finish" as IconName, title: "추월 구간", text: "가속(↑)을 끝까지 밟아 추격차와 거리를 벌리세요" }
     : mode === "resume" && state.caseId === "propulsion" && sim.distance >= CLIMB_ZONE[0] - 40 && sim.distance < CLIMB_ZONE[1]
-      ? { icon: "road" as IconName, title: "장거리 고속 구간", text: "계속 밟아 속도를 유지해!" }
+      ? { icon: "road" as IconName, title: "장거리 고속 구간", text: "가속을 유지해 속도를 지키세요" }
       : null;
   useEffect(() => {
     if (mode !== "assist" || parking || sim.distance < assistTarget) return;
@@ -1653,8 +1653,9 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     <RearMirror3D gap={sim.gap} visible={policeInWorld} />
     <div className="raceMiniMap"><b>LIVE CURVE MAP</b><svg viewBox="0 0 90 100"><path d={MINIMAP_PATH} /><circle className="cop" cx={mapPolice.x} cy={mapPolice.y} r="4" /><circle className="me" cx={mapPlayer.x} cy={mapPlayer.y} r="4.5" /></svg><small><i /> 자차 <em /> 경찰</small></div>
     <div className="raceControls keyBar">
-      <span><kbd>↑</kbd><em>가속</em></span><span><kbd>↓</kbd><em>브레이크</em></span><span><kbd>←</kbd><kbd>→</kbd><em>조향</em></span>
-      <span><kbd>1</kbd><kbd>4</kbd><em>P R N D</em></span><span><kbd>Q</kbd><kbd>E</kbd><em>회생 +/−</em></span><span><kbd>R</kbd><em>READY</em></span><span><kbd className="wide">Esc</kbd><em>멈춤</em></span>
+      {/* two rows per item: keys on top, meaning underneath */}
+      {([[["↑"], "가속"], [["↓"], "브레이크"], [["←", "→"], "조향"], [["1", "~", "4"], "기어 P·R·N·D"], [["Q", "E"], "회생 강·약"], [["R"], "READY"], [["Esc"], "멈춤"]] as [string[], string][]).map(([keys, meaning]) =>
+        <span key={meaning} className="keyItem"><i>{keys.map(key => key === "~" ? <small key={key}>~</small> : <kbd key={key} className={key.length > 1 ? "wide" : ""}>{key}</kbd>)}</i><em>{meaning}</em></span>)}
     </div>
     {mode === "normal" && (countdown > 0 || sim.speed < 3) && sim.distance < 40 && <div className="keyGuideCard" aria-label="조작법">
       <b>조작법</b>
