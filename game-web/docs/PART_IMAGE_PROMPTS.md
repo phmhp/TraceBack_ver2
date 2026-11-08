@@ -3,7 +3,7 @@
 > 자동 생성 파일입니다. 수정은 `scripts/image-prompt-data.mjs`에서 하고 `npm run prompts`를 실행하세요.
 > 생성 도구: ChatGPT(GPT 이미지) · 3D 변환: [TRELLIS.2 데모](https://huggingface.co/spaces/microsoft/TRELLIS.2)(MIT) · 부품 ID 기준: `src/sim/components.ts`
 
-부품 84종 + 사건 증거 11종 = **이미지 총 218장**
+부품 94종 + 사건 증거 11종 = **이미지 총 238장**
 
 ## 1. 규칙 — 코드 블록 하나 = 요청 1번 = 이미지 1장
 
@@ -140,3 +140,13 @@ v2에서는 한 번에 여러 스타일을 요청해 비슷한 이미지가 여�
 | `adas_camera` | 전방 카메라 | 2D | 1 | [향후 확장 도메인](image-prompts/11-future-domains.md#adas_camera) |
 | `adas_radar` | 전방 레이더 | 2D | 1 | [향후 확장 도메인](image-prompts/11-future-domains.md#adas_radar) |
 | `airbag_ecu` | 에어백 제어기 | 2D | 1 | [향후 확장 도메인](image-prompts/11-future-domains.md#airbag_ecu) |
+| `isolation_monitor` | 절연 저항 감시 장치(IMD)·팩 전압 감지 | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#isolation_monitor) |
+| `park_ecu` | 파킹 제어기(Park ECU) | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#park_ecu) |
+| `park_lock_actuator` | 파킹 락 액추에이터 | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#park_lock_actuator) |
+| `park_position_sensor` | 파킹 위치 센서 | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#park_position_sensor) |
+| `chassis_ecu` | 전자제어 현가 제어기(Chassis ECU) | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#chassis_ecu) |
+| `ride_height_sensor` | 차고(높이) 센서 | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#ride_height_sensor) |
+| `air_spring` | 에어 스프링 | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#air_spring) |
+| `air_compressor` | 에어 서스펜션 컴프레서·밸브 블록 | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#air_compressor) |
+| `cdc_damper` | 전자 감쇠 밸브 댐퍼(CDC) | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#cdc_damper) |
+| `eps_power_pack` | EPS 파워팩(모터+인버터 일체) | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#eps_power_pack) |

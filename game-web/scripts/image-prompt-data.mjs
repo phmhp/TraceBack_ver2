@@ -18,6 +18,7 @@ export const DOMAINS = [
   { file: "09-charging", title: "충전" },
   { file: "10-network-diagnostics", title: "통신·진단" },
   { file: "11-future-domains", title: "향후 확장 도메인" },
+  { file: "13-garage-additions", title: "차고 화면 보강 부품 (2026-11-08)" },
 ];
 
 export const PARTS = [
@@ -214,6 +215,29 @@ export const PARTS = [
   { domain: "10-network-diagnostics", id: "diagnostic_tool", ko: "진단 장비", method: "2D", styles: ["EVID"],
     subject: "Rugged handheld diagnostic tablet connected by cable to a vehicle interface adapter, screen showing abstract waveforms only",
     evid: { scene: "A rugged diagnostic tablet on a workbench connected to a vehicle interface adapter, its screen showing abstract waveforms only", ok: "smooth steady waveform on screen", fault: "jagged broken waveform with gaps on screen" } },
+
+
+  // ── 13 Garage additions (parts shown in the garage that had no reference image) ──
+  { domain: "13-garage-additions", id: "isolation_monitor", ko: "절연 저항 감시 장치(IMD)·팩 전압 감지", method: "직접", styles: ["REF", "CUT"],
+    subject: "High-voltage insulation monitoring device, a small sealed plastic module with a metal base, an orange high-voltage sense connector and a black low-voltage signal connector" },
+  { domain: "13-garage-additions", id: "park_ecu", ko: "파킹 제어기(Park ECU)", method: "직접", styles: ["REF", "CUT"],
+    subject: "Compact parking-lock control unit in a black plastic housing with an aluminum base plate, two mounting ears and one multi-pin connector" },
+  { domain: "13-garage-additions", id: "park_lock_actuator", ko: "파킹 락 액추에이터", method: "직접", styles: ["REF", "CUT"],
+    subject: "Electric parking-lock actuator for an EV reduction gearbox: a small cylindrical motor on a cast gear housing with an output shaft and a lever, sealed connector on top" },
+  { domain: "13-garage-additions", id: "park_position_sensor", ko: "파킹 위치 센서", method: "직접", styles: ["REF", "CUT"],
+    subject: "Small Hall-effect position sensor with a round plastic body, one mounting ear and a short pigtail cable ending in a three-pin connector" },
+  { domain: "13-garage-additions", id: "chassis_ecu", ko: "전자제어 현가 제어기(Chassis ECU)", method: "직접", styles: ["REF", "CUT"],
+    subject: "Chassis control unit for electronic suspension, flat aluminum housing with cooling ribs, four mounting ears and two multi-pin connectors" },
+  { domain: "13-garage-additions", id: "ride_height_sensor", ko: "차고(높이) 센서", method: "직접", styles: ["REF", "CUT"],
+    subject: "Suspension ride-height sensor: a small sensor body with a rotating lever arm and a vertical link rod with ball joints, three-pin connector" },
+  { domain: "13-garage-additions", id: "air_spring", ko: "에어 스프링", method: "직접", styles: ["REF", "CUT"],
+    subject: "Air suspension spring: black rubber bellows between a steel top plate with an air fitting and a lower piston" },
+  { domain: "13-garage-additions", id: "air_compressor", ko: "에어 서스펜션 컴프레서·밸브 블록", method: "직접", styles: ["REF", "CUT"],
+    subject: "Air suspension compressor unit: an electric motor and compressor head on rubber mounts with an attached solenoid valve block and air lines" },
+  { domain: "13-garage-additions", id: "cdc_damper", ko: "전자 감쇠 밸브 댐퍼(CDC)", method: "직접", styles: ["REF", "CUT"],
+    subject: "Electronically controlled damper: a steel shock absorber body with an external solenoid valve and connector on the side, piston rod and mounting eyes" },
+  { domain: "13-garage-additions", id: "eps_power_pack", ko: "EPS 파워팩(모터+인버터 일체)", method: "직접", styles: ["REF", "CUT"],
+    subject: "Electric power steering power pack: a cylindrical steering motor with an integrated control and inverter housing on its end, with power and signal connectors" },
 
   // ── 11 Future domains ──
   { domain: "11-future-domains", id: "ac_compressor", ko: "전동 에어컨 컴프레서", method: "AI", styles: ["REF", "CUT"],
