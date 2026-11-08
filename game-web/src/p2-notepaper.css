@@ -15,7 +15,7 @@
 /* pursuit strip: identical position and look in all three */
 .dtBoard .compactRouteTracker, .refPuzzle .compactRouteTracker, .vbBench .compactRouteTracker {
   position: absolute !important; z-index: 6 !important; left: 16px !important; right: 16px !important; top: 80px !important; width: auto !important; height: 40px !important;
-  transform: none !important; margin: 0 !important; padding: 4px 16px 6px 150px !important; box-sizing: border-box !important;
+  transform: none !important; margin: 0 !important; padding: 4px 16px 6px 16px !important; box-sizing: border-box !important;
   border: 0 !important; border-radius: var(--np-r) !important; background: var(--np-paper) !important; box-shadow: var(--np-shadow) !important; color: var(--np-ink) !important;
 }
 .dtBoard .compactRouteTracker .routeLabels, .refPuzzle .compactRouteTracker .routeLabels, .vbBench .compactRouteTracker .routeLabels { color: var(--np-soft) !important; font-weight: 500 !important; }
@@ -90,3 +90,16 @@
 .vbBench .vbSim nav button b { font-size: 12px !important; font-weight: 600 !important; white-space: nowrap; }
 .vbBench .vbSim nav button small { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; }
 .vbBench .vbEnv { font-size: 9.5px !important; padding: 0 4px !important; margin: 0 !important; }
+
+/* make room in the pursuit strip only for the history buttons that are actually shown */
+body:has(.dtBoard + .stageHistoryNav .stageBackButton) .dtBoard .compactRouteTracker,
+body:has(.refPuzzle + .stageHistoryNav .stageBackButton) .refPuzzle .compactRouteTracker,
+body:has(.vbBench + .stageHistoryNav .stageBackButton) .vbBench .compactRouteTracker,
+body:has(.dtBoard + .stageHistoryNav .stageForwardButton) .dtBoard .compactRouteTracker,
+body:has(.refPuzzle + .stageHistoryNav .stageForwardButton) .refPuzzle .compactRouteTracker,
+body:has(.vbBench + .stageHistoryNav .stageForwardButton) .vbBench .compactRouteTracker { padding-left: 128px !important; }
+body:has(.dtBoard + .stageHistoryNav .stageBackButton + .stageForwardButton) .dtBoard .compactRouteTracker,
+body:has(.refPuzzle + .stageHistoryNav .stageBackButton + .stageForwardButton) .refPuzzle .compactRouteTracker,
+body:has(.vbBench + .stageHistoryNav .stageBackButton + .stageForwardButton) .vbBench .compactRouteTracker { padding-left: 236px !important; }
+.dtBoard + .stageHistoryNav, .refPuzzle + .stageHistoryNav, .vbBench + .stageHistoryNav { gap: 6px !important; }
+.dtBoard + .stageHistoryNav .stageForwardButton, .refPuzzle + .stageHistoryNav .stageForwardButton, .vbBench + .stageHistoryNav .stageForwardButton { background: #fff8d6 !important; border-color: #e6cf7a !important; box-shadow: 0 2px 0 #e6cf7a !important; }

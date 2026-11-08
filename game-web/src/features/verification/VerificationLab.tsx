@@ -7,6 +7,7 @@ import { SAMPLES, divergeIndex, firstMismatch, simulate, type Lv, type Series, t
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
 import { ENGINEER } from "../../game/cast";
+import { Icon } from "../../ui/Icon";
 
 type Send = React.Dispatch<any>;
 type ProbeId = "input" | "control" | "output";
@@ -641,7 +642,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     setDeriv(id);
     if (!tech.deriv.includes(id)) { nope(tech.whyD[id]); return; }
     play("stamp"); setBubble(tech.whyD[id]);
-    window.setTimeout(() => { setStep(2); setBubble("같은 입력을 정상 설계와 현장 대상에 함께 넣어 비교해요. 보고 싶은 신호에 🔌 프로브를 꽂고 실행하세요. 다른 레벨 탭도 열어 볼 수 있어요."); }, 900);
+    window.setTimeout(() => { setStep(2); setBubble("같은 입력을 정상 설계와 현장 대상에 함께 넣어 비교해요. 보고 싶은 신호에 관측점을 꽂고 실행하세요. 다른 레벨 탭도 열어 볼 수 있어요."); }, 900);
   };
   const key = (lv: Lv, i: number) => `${lv}:${sim.levels[lv][i].id}`;
   const toggleProbe = (index: number) => {
@@ -668,7 +669,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       } else if (tab !== level) {
         play(seen === null ? "pop" : "error");
         setBubble(seen === null ? `${LV[order(tab)].name}에서는 정상 설계와 현장 대상이 똑같이 움직여요. 이 레벨 안에는 고장이 없다는 뜻이에요.` : `${LV[order(tab)].name}에서도 차이가 보여요(${sim.levels[tab][seen].name}). 하지만 원인 위치를 확정하는 건 선택한 레벨(${LV[order(level!)].name})에서 해요.`);
-      } else { play("error"); setBubble("FAIL 재현. 점선(정상 설계)과 실선(현장 대상)이 갈라지는 신호가 있어요. 가장 먼저 갈라진 신호에 🚩를 꽂으세요."); }
+      } else { play("error"); setBubble("FAIL 재현. 점선(정상 설계)과 실선(현장 대상)이 갈라지는 신호가 있어요. 가장 먼저 갈라진 신호에 깃발을 꽂으세요."); }
     };
     requestAnimationFrame(tick);
   };
@@ -681,7 +682,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     const upstreamUnchecked = chosenList.slice(0, first).some((_, i) => !probes.includes(key(level!, i)));
     const secs = (i: number) => (i / SAMPLES * sim.seconds).toFixed(1);
     if (at === null) { nope(`${sig.name}${eunNeun(sig.name)} 정상 설계와 똑같이 움직였어요. 갈라진 신호를 찾으세요.`); return; }
-    if (index !== first && at > firstAt) { nope(`${sig.name}${eunNeun(sig.name)} ⏱ ${secs(at)}${sim.timeUnit}에 갈라졌어요. 더 먼저 갈라진 신호가 있다면 이건 결과예요. 빨간 세로선 위치를 비교하세요.`); return; }
+    if (index !== first && at > firstAt) { nope(`${sig.name}${eunNeun(sig.name)} ${secs(at)}${sim.timeUnit}에 갈라졌어요. 더 먼저 갈라진 신호가 있다면 이건 결과예요. 빨간 세로선 위치를 비교하세요.`); return; }
     if (index !== first) { nope(`${sig.name}도 같은 순간에 달라졌지만, 신호 흐름상 더 앞쪽 신호가 먼저예요. 앞쪽을 보세요.`); return; }
     if (upstreamUnchecked) { nope("앞쪽 신호를 모두 확인하지 않았어요. 거기서 먼저 갈라졌을 수 있어요. 앞쪽에도 프로브를 꽂고 다시 실행하세요."); return; }
     play("stamp"); setBubble(`${sig.name}에서 처음 갈라졌어요 — FIRST MISMATCH. 원인이 확정됐어요. 이제 수정 방법을 고르세요.`);
@@ -706,7 +707,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
 
   return <div className="vbBench">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="SIMULATION VERIFICATION" title="시뮬레이션 검증 · 정상 vs 현장 비교" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="SIMULATION VERIFICATION" title="시뮬레이션 검증" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main className="vbLayout">
       <header className="vbHead">
@@ -715,7 +716,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       </header>
 
       {step === 0 && <section className="vbStage">
-        <h2>🏷 이 구간을 <b>처음</b> 관찰할 수 있는 검증 레벨은?</h2>
+        <h2><Icon name="tag" /> 이 구간을 <b>처음</b> 관찰할 수 있는 검증 레벨은?</h2>
         <p className="vbSub">{section ? `의심 구간: ${section}` : "앞 단계에서 좁힌 구간"} · 왼쪽일수록 범위가 좁고 싸고 빨라요</p>
         <div className="vbChoices four vbLevels">{LV.map((item, index) => <React.Fragment key={item.id}>{index > 0 && <i className="vbLvArrow">→</i>}<button className={level === item.id ? item.id === lvAnswer.answer ? "right" : "wrong" : ""} onClick={() => pickLevel(item.id)}><b>{item.name}</b><em>{item.std}</em><span className="vbEnvRow">{item.env.map(env => <i key={env} className="vbEnv">{env}</i>)}</span></button></React.Fragment>)}</div>
       </section>}
@@ -728,7 +729,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       </section>}
 
       {step === 3 && <section className="vbStage">
-        <h2>🔧 어떻게 고칠까요?</h2>
+        <h2><Icon name="wrench" /> 어떻게 고칠까요?</h2>
         <p className="vbSub">처음 갈라진 곳: <b>{first !== null ? chosenList[first].name : "-"}</b> · 원인을 없애야 해요</p>
         <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}>
           <img src={item.img} alt="" /><b>{item.label}</b>
@@ -742,14 +743,14 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
           <p className="vbScope"><b>{LV[order(simTab)].std}</b> {LV[order(simTab)].scope}</p>
         </div>
         <div className="vbMonitor">
-          <header><b>📟 신호 모니터 · 차이를 잡을 관측 경계 · {LV[order(simTab)].name}</b><span>⏱ {(u * sim.seconds).toFixed(1)} / {sim.seconds} {sim.timeUnit}</span></header>
-          <p className="vbLegend">입력: {tech.input} · <i className="d" /> 정상 설계 <i className="s" /> {fixed ? "고친 설계" : "현장 대상"} · 줄을 눌러 🔌{step === 2 && ranHere && simTab === level ? " · 🚩 처음 갈라진 곳" : ""}</p>
+          <header><b><Icon name="monitor" /> 신호 모니터 · 차이를 잡을 관측 경계 · {LV[order(simTab)].name}</b><span><Icon name="clock" /> {(u * sim.seconds).toFixed(1)} / {sim.seconds} {sim.timeUnit}</span></header>
+          <p className="vbLegend">입력: {tech.input} · <i className="d" /> 정상 설계 <i className="s" /> {fixed ? "고친 설계" : "현장 대상"} · 줄을 눌러 관측점 꽂기{step === 2 && ranHere && simTab === level ? " · 깃발 = 처음 갈라진 곳" : ""}</p>
           <ul>{list.map((sig, index) => { const probed = probes.includes(key(simTab, index)); const value = sample(sig.run); const off = probed && ranHere && divergeIndex(sig) !== null; return <li key={sig.id} className={`${probed ? "probed" : ""} ${off ? "off" : ""} ${flag === index && simTab === level ? "flagged" : ""}`}>
-            <button className="vbClip" onClick={() => toggleProbe(index)} title="프로브 꽂기/빼기">{probed ? "🔌" : "○"}</button>
+            <button className="vbClip" onClick={() => toggleProbe(index)} title="관측점 꽂기/빼기">{probed ? <Icon name="probe" /> : "○"}</button>
             <span className="vbSigName"><small>{index === 0 ? "입력 쪽" : index === list.length - 1 ? "출력 쪽" : `${index + 1}번째`}</small><b>{sig.name}</b></span>
             <SeriesTrace sig={sig} upto={u} probed={probed} />
             <em className="vbVal">{probed ? `${value.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}` : "—"}</em>
-            {step === 2 && ranHere && simTab === level && probed && <button className="vbFlag" onClick={() => plantFlag(index)}>🚩</button>}
+            {step === 2 && ranHere && simTab === level && probed && <button className="vbFlag" onClick={() => plantFlag(index)}><Icon name="flag" /></button>}
           </li>; })}</ul>
           <div className="vbMonitorFoot">
             {step === 2 && <button className="vbGo" disabled={running || !list.some((_, i) => probes.includes(key(simTab, i)))} onClick={() => runSim(false)}>{running ? "시험 중…" : ranHere ? "▶ 다시 실행" : list.some((_, i) => probes.includes(key(simTab, i))) ? "▶ 시험 실행" : "프로브를 먼저 꽂아요"}</button>}
@@ -757,7 +758,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
           </div>
         </div>
         {step === 4 && ran && <div className="vbAfter">
-          <div className="vbReg"><b>🔁 회귀 시험 (영향 범위)</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>
+          <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험 (영향 범위)</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>
           {regDone >= regression.length && <div className="vbDone"><span><small>방금 사용한 검증 사고법</small><b>{LV[order(level ?? lvAnswer.answer)].name} · {METHODS.find(item => item.id === method)?.name} · {DERIVS.find(item => item.id === deriv)?.name} → FIRST MISMATCH → 근본 수정 → 회귀</b></span><b className="vbStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b><button className="vbGo" onClick={finish}>검증 완료 · 수리 적용 →</button></div>}
         </div>}
       </section>}

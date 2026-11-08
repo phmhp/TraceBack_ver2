@@ -7,7 +7,7 @@
 //  3) When every candidate in front is normal, the current domino is the first domino.
 //  4) Cascade replay → zoom inside the first domino (SW block or HW part) →
 //     every fallen domino (chain + traps found = side effects) becomes the bench's regression list.
-// "🗺 전체 지도" shows the E/E path (센서 → 제어기 → CAN → 부품 → 차량) as subsystems,
+// "전체 지도" shows the E/E path (센서 → 제어기 → CAN → 부품 → 차량) as subsystems,
 // with the trace falling backward from the output.
 import React, { useEffect, useState } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
@@ -16,6 +16,7 @@ import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
 import { PursuitRouteBar, ReplayRaceView } from "../../experiences";
 import { ENGINEER } from "../../game/cast";
+import { Icon, type IconName } from "../../ui/Icon";
 
 type Send = React.Dispatch<any>;
 type Status = "ok" | "tol" | "bad";
@@ -32,7 +33,7 @@ type Section = { name: string; choices: { label: string; ok: boolean; why: strin
 type CaseData = { start: string; first: string; timeUnit: string; req: string; doms: Dom[]; zoom: Zoom; section: Section };
 
 const ZONES: Zone[] = ["센서", "제어기", "CAN", "부품", "차량"];
-const ZONE_ICON: Record<Zone, string> = { 센서: "🦶", 제어기: "🧠", CAN: "📡", 부품: "⚙️", 차량: "🚗" };
+const ZONE_ICON: Record<Zone, IconName> = { 센서: "sensor", 제어기: "chip", CAN: "signal", 부품: "gear", 차량: "car" };
 
 // generated images: evidence photos, part cut-outs, the 3×3 evidence atlas and the car
 const B = (name: string) => `/assets/board-photos/${name}.png`;
@@ -175,11 +176,11 @@ function Gauge({ dom }: { dom: Dom }) {
 
 type TileState = "hidden" | "clue" | "normal" | "tol" | "first" | "trap";
 function Polaroid({ dom, state, unit, small, onClick, fell, children }: { dom: Dom; state: TileState; unit: string; small?: boolean; onClick?: () => void; fell?: boolean; children?: React.ReactNode }) {
-  const mark = state === "clue" ? "🔎 단서" : state === "first" ? "🎯 시작점" : state === "trap" ? "↪ 결과였어" : state === "tol" ? "≈ 허용 범위" : "✓ 정상";
+  const mark = state === "clue" ? <><Icon name="clue" /> 단서</> : state === "first" ? <><Icon name="target" /> 시작점</> : state === "trap" ? "↪ 결과였어" : state === "tol" ? "≈ 허용 범위" : "✓ 정상";
   return <div className={`dtPol t-${state} ${small ? "small" : ""} ${onClick ? "click" : ""} ${fell ? "fell" : ""}`} onClick={onClick}>
-    <div className="dtPolPic"><Photo src={dom.img} />{state === "hidden" && <span className="dtQ">?</span>}{state !== "hidden" && dom.t !== undefined && dom.status === "bad" && <em className="dtTime">⏱ {fmt(dom.t)}{unit}</em>}</div>
+    <div className="dtPolPic"><Photo src={dom.img} />{state === "hidden" && <span className="dtQ">?</span>}{state !== "hidden" && dom.t !== undefined && dom.status === "bad" && <em className="dtTime"><Icon name="clock" /> {fmt(dom.t)}{unit}</em>}</div>
     <b>{dom.label}</b>
-    {state === "hidden" ? <em className="dtCheck">🔍 측정하기</em> : <><Gauge dom={dom} />{!small && <i className="dtMark">{mark}</i>}</>}
+    {state === "hidden" ? <em className="dtCheck"><Icon name="search" /> 측정하기</em> : <><Gauge dom={dom} />{!small && <i className="dtMark">{mark}</i>}</>}
     {children}
   </div>;
 }
@@ -199,7 +200,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
   const [phase, setPhase] = useState<"trace" | "cascade" | "zoom" | "done">("trace");
   const [fallIdx, setFallIdx] = useState(-1);
   const [zoomPick, setZoomPick] = useState<string | null>(null); // picked section label
-  const [bubble, setBubble] = useState(`${dom(data.start).label}${josa(dom(data.start).label, "이", "가")} 기준과 달라요. 후보를 측정해 원인 쪽으로 거슬러 올라가세요. ⏱ 언제 달라졌는지가 핵심이에요.`);
+  const [bubble, setBubble] = useState(`${dom(data.start).label}${josa(dom(data.start).label, "이", "가")} 기준과 달라요. 후보를 측정해 원인 쪽으로 거슬러 올라가세요. 언제 달라졌는지가 핵심이에요.`);
   const [shake, setShake] = useState("");
   const [help, setHelp] = useState(true);
   const [mapOpen, setMapOpen] = useState(false);
@@ -225,7 +226,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     const d = dom(id);
     play("zip");
     window.setTimeout(() => play(d.status === "bad" ? "stamp" : "pop"), 160);
-    setBubble(d.status === "bad" ? `${d.label}도 기준과 달라요. ⏱ ${fmt(d.t!)}${unit}에 달라지기 시작했어요. ${cur.label}(⏱ ${fmt(cur.t!)}${unit})보다 먼저인가요, 나중인가요?`
+    setBubble(d.status === "bad" ? `${d.label}도 기준과 달라요. ${fmt(d.t!)}${unit}에 달라지기 시작했어요. ${cur.label}(${fmt(cur.t!)}${unit})보다 먼저인가요, 나중인가요?`
       : d.status === "tol" ? `${d.label}${josa(d.label, "은", "는")} 조금 다르지만 허용 범위예요. 원인이 아니에요.`
         : `${d.label}${josa(d.label, "은", "는")} 기준과 같아요. 원인이 아니에요.`);
   };
@@ -235,7 +236,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
       // trap: it changed AFTER the current domino → it is an effect, not the cause
       setTraps(previous => previous.includes(id) ? previous : [...previous, id]);
       setMistakes(value => value + 1);
-      nope(id, `${d.label}${josa(d.label, "은", "는")} ⏱ ${fmt(d.t!)}${unit}에 달라졌어요. ${cur.label}(⏱ ${fmt(cur.t!)}${unit})보다 늦어요. 원인은 결과보다 먼저 일어나야 해요. 이건 ${cur.label} 때문에 생긴 영향이에요.`);
+      nope(id, `${d.label}${josa(d.label, "은", "는")} ${fmt(d.t!)}${unit}에 달라졌어요. ${cur.label}(${fmt(cur.t!)}${unit})보다 늦어요. 원인은 결과보다 먼저 일어나야 해요. 이건 ${cur.label} 때문에 생긴 영향이에요.`);
       return;
     }
     play("squish");
@@ -306,13 +307,13 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
 
   return <div className="dtBoard">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="ROOT CAUSE TRACE" title="원인 역추적 · 의심 구간 좁히기" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="ROOT CAUSE TRACE" title="원인 역추적" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main className="dtLayout">
       <header className="dtHead">
         <button className="dtMapBtn" onClick={() => { setMapOpen(true); play("pop"); }}>
           <span className="dtMini">{ZONES.map(zone => <i key={zone} className={zone === cur.zone && !traced ? "now" : chain.some(id => dom(id).zone === zone) ? "seen" : ""} />)}</span>
-          🗺 전체 지도
+          <Icon name="map" /> 전체 지도
         </button>
         <div className="dtSteps">{["거꾸로 따라가기", "의심 구간 정하기", "영향 범위"].map((label, index) => <span key={label} className={index < step ? "done" : index === step ? "now" : ""}><i>{index < step ? "✓" : index + 1}</i>{label}</span>)}</div>
         <div className="dtButtons">
@@ -339,30 +340,30 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
       {phase === "trace" && <section className="dtQuestion">
         <h2><b>{cur.label}</b>{josa(cur.label, "이", "가")} 기준과 달라진 원인은?</h2>
         <div className="dtTimeline">
-          <span className="dtTlEdge">⏱ 먼저 달라짐</span>
+          <span className="dtTlEdge"><Icon name="clock" /> 먼저 달라짐</span>
           <div className="dtTlAxis">
             {marks.map(d => <i key={d.id} className={`dtTlMark ${d.id === current ? "cur" : (d.t ?? 0) < (cur.t ?? 0) ? "early" : "late"}`} style={{ left: `${4 + (d.t ?? 0) / tMax * 92}%` }}><em>{d.label} · {fmt(d.t!)}{unit}</em></i>)}
           </div>
-          <span className="dtTlEdge">나중에 달라짐 ⏱</span>
+          <span className="dtTlEdge">나중에 달라짐 <Icon name="clock" /></span>
         </div>
         <div className={`dtCands ${candidates.length > 3 ? "many" : ""}`}>{candidates.map(id => {
           const d = dom(id); const open = checked.includes(id);
           const tileState: TileState = !open ? "hidden" : traps.includes(id) ? "trap" : d.status === "bad" ? "clue" : d.status === "tol" ? "tol" : "normal";
           return <div key={id} className={`dtCand ${shake === id ? "shake" : ""} ${justOpened === id ? "flipIn" : ""}`}>
             <Polaroid dom={d} unit={unit} state={tileState} onClick={open ? undefined : () => measure(id)}>
-              {open && d.status === "bad" && !traps.includes(id) && <span className="dtPinWrap"><button className={`dtPin ${thread?.id === id ? "pulling" : ""}`} onPointerDown={event => startThread(id, event)} title="압정을 끌어 위의 도미노에 연결" /><em>📌 끌어서 위 도미노에 연결</em></span>}
+              {open && d.status === "bad" && !traps.includes(id) && <span className="dtPinWrap"><button className={`dtPin ${thread?.id === id ? "pulling" : ""}`} onPointerDown={event => startThread(id, event)} title="압정을 끌어 위의 도미노에 연결" /><em><Icon name="pin" /> 끌어서 위 도미노에 연결</em></span>}
             </Polaroid>
           </div>;
         })}</div>
         <div className="dtCall">
           {allOpen && !earlierBad
-            ? <button className="dtFirst" onClick={callFirst}>들어오는 입력이 모두 정상 → 🎯 {cur.label}{josa(cur.label, "이", "가")} 시작점!</button>
-            : <span className="dtTip">사진을 눌러 측정 · 수상하면 📌 압정을 끌어 실로 연결 · 원인은 결과보다 <b>먼저</b> 달라져요</span>}
+            ? <button className="dtFirst" onClick={callFirst}>들어오는 입력이 모두 정상 → <Icon name="target" /> {cur.label}{josa(cur.label, "이", "가")} 시작점!</button>
+            : <span className="dtTip">사진을 눌러 측정 · 수상하면 압정을 끌어 실로 연결 · 원인은 결과보다 <b>먼저</b> 달라져요</span>}
         </div>
       </section>}
 
       {(phase === "zoom" || phase === "done") && <section className="dtZoom">
-        <h2>🔍 처음 어긋난 곳: 어느 구간을 정밀 검증할까요?</h2>
+        <h2><Icon name="search" /> 처음 어긋난 곳: 어느 구간을 정밀 검증할까요?</h2>
         <div className="dtBoundary">
           <div className="dtBIn"><small>들어오는 값 · 모두 정상</small>{causesOf(data.first).map(dom).map(d => <span key={d.id}>✓ {d.label} <em>{refText(d)}</em></span>)}</div>
           <i>→</i>
@@ -373,7 +374,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
         {phase === "zoom" && <div className="dtSecChoices">{data.section.choices.map(c => <button key={c.label} className={zoomPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}>{c.label}</button>)}</div>}
         {phase === "done" && <div className="dtImpact">
           <DominoFall chain={ordered} traps={traps} parentOf={id => chain.find(c => causesOf(c).includes(id)) ?? data.start} labelOf={id => dom(id).label} />
-          <b>📋 함께 쓰러진 곳 = 고친 뒤 다시 확인할 곳 (영향도 분석 → 회귀 시험 목록)</b>
+          <b><Icon name="clipboard" /> 함께 쓰러진 곳 = 고친 뒤 다시 확인할 곳 (영향도 분석 → 회귀 시험 목록)</b>
           <div>{effects.map(d => <span key={d.id}>{d.label}</span>)}</div>
           <b className="dtStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b>
           <button className="dtNext" onClick={finish}>이 구간의 정상 동작 복원하기 →</button>
@@ -387,11 +388,11 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
     {mapOpen && <TraceMap data={data} chain={chain} checked={checked} traps={traps} first={traced ? data.first : null} onClose={() => setMapOpen(false)} />}
 
     {help && <div className="dtModal" onClick={() => setHelp(false)}><article onClick={event => event.stopPropagation()}>
-      <h2>🕵️ 원인 역추적 방법</h2>
+      <h2><Icon name="detective" /> 원인 역추적 방법</h2>
       <div className="dtHow">
-        <div><span className="pic">📸</span><b>1. 사진 측정</b><small>기준과 같은지, 언제 달라졌는지</small></div>
-        <div><span className="pic">⏱</span><b>2. 먼저 달라진 쪽이 원인</b><small>나중에 달라진 건 결과(함정)</small></div>
-        <div><span className="pic">🎯</span><b>3. 의심 구간 정하기</b><small>입력이 모두 정상인데 출력만 다르면 그 안쪽</small></div>
+        <div><span className="pic"><Icon name="camera" /></span><b>1. 사진 측정</b><small>기준과 같은지, 언제 달라졌는지</small></div>
+        <div><span className="pic"><Icon name="clock" /></span><b>2. 먼저 달라진 쪽이 원인</b><small>나중에 달라진 건 결과(함정)</small></div>
+        <div><span className="pic"><Icon name="target" /></span><b>3. 의심 구간 정하기</b><small>입력이 모두 정상인데 출력만 다르면 그 안쪽</small></div>
       </div>
       <p className="dtHowNote">막대: <i className="dash" /> 기준 · <i className="fill" /> 이번 주행 · 틀리면 ♥이 줄어요</p>
       <button onClick={() => setHelp(false)}>시작</button>
@@ -424,7 +425,7 @@ function TraceMap({ data, chain, checked, traps, first, onClose }: { data: CaseD
   const order = (id: string) => chain.indexOf(id);
   const reached = new Set(chain.slice(0, shown).map(id => dom(id).zone));
   return <div className="dtModal" onClick={onClose}><article className="dtMap" onClick={event => event.stopPropagation()}>
-    <header><h2>🗺 전체 지도 · 신호는 → 로 흐르고, 추리는 ← 로 거슬러 가요</h2><button onClick={onClose}>닫기</button></header>
+    <header><h2><Icon name="map" /> 전체 지도 · 신호는 → 로 흐르고, 추리는 ← 로 거슬러 가요</h2><button onClick={onClose}>닫기</button></header>
     <div className="dtSubs">
       {ZONES.map((zone, zi) => {
         const inChain = chain.filter(id => dom(id).zone === zone);
@@ -433,10 +434,10 @@ function TraceMap({ data, chain, checked, traps, first, onClose }: { data: CaseD
           {zi > 0 && <div className="dtWire"><i className="fwd" /><i className={`back ${reached.has(zone) ? "on" : ""}`} /></div>}
           <div className={`dtSub ${reached.has(zone) ? "hit" : ""}`}>
             <span className="dtPort in" /><span className="dtPort out" />
-            <small>Subsystem</small><b>{ZONE_ICON[zone]} {zone}</b>
+            <small>Subsystem</small><b><Icon name={ZONE_ICON[zone]} /> {zone}</b>
             <div className="dtSubBody">
               {inChain.map(id => <span key={id} className={`dtChip ${order(id) < shown ? "fell" : ""} ${id === first ? "first" : ""}`}><em>{order(id) + 1}</em>{dom(id).label}</span>)}
-              {others.map(id => traps.includes(id) ? <span key={id} className="dtChip trap">↪ {dom(id).label}</span> : dom(id).status === "bad" ? <span key={id} className="dtChip clue">🔎 {dom(id).label}</span> : <span key={id} className="dtChip ok">✓ {dom(id).label}</span>)}
+              {others.map(id => traps.includes(id) ? <span key={id} className="dtChip trap">↪ {dom(id).label}</span> : dom(id).status === "bad" ? <span key={id} className="dtChip clue"><Icon name="clue" /> {dom(id).label}</span> : <span key={id} className="dtChip ok">✓ {dom(id).label}</span>)}
               {!inChain.length && !others.length && <span className="dtChip unknown">?</span>}
             </div>
           </div>

@@ -11,3 +11,4 @@ html, body, body *:not(svg):not(path) {
 .rpDisplay, .vbVal, .vbMonitor header span { font-variant-numeric: tabular-nums; }
 h1, h2, h3, h4, b, strong, small, em, button, label, span, li, dt, dd { text-wrap: balance; }
 p { text-wrap: pretty; }
+.tbIcon { display: inline-block; vertical-align: -0.14em; flex: none; }

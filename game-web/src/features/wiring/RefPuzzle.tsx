@@ -4,7 +4,7 @@
 // - Placing a piece draws nothing and shows no value. The player checks the build by pressing ▶ 실행:
 //   values flow left → right and stop at the first slot that breaks the requirement (first mismatch).
 // - Parallel logic: a side input (limit / other sensors) climbs into the merge block.
-// - 📒 차고 노트 = open book: re-open the garage Control SW drawing (costs a hint).
+// - 차고 노트 = open book: re-open the garage Control SW drawing (costs a hint).
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
@@ -12,6 +12,7 @@ import { play } from "../../ui/sfx";
 import { KIND_TAG, Picto, blockKind, plainText, type Kind } from "../garage/SimulinkDiagram";
 import { PursuitRouteBar, getFeatureLayer, piecePath, type DomainId, type Nub } from "../../experiences";
 import { ENGINEER } from "../../game/cast";
+import { Icon } from "../../ui/Icon";
 
 type Send = React.Dispatch<any>;
 type Blk = { id: string; label: string; kind: Kind | "hw"; ee?: boolean; img?: string; tag?: string; out?: string; bad?: string; why?: string; from: string; does?: string };
@@ -278,12 +279,12 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const requirementDone = (slot: number) => Boolean(reached(slot));
   return <div className="refPuzzle">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="REQUIREMENT-BASED REFERENCE" title="요구사항 기반 정상 동작 복원" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="REQUIREMENT-BASED REFERENCE" title="정상 동작 복원" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <header className="rpHead">
       <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p>앞에서 좁힌 구간이 <b>정상이라면</b> 어떻게 동작해야 하는지, 요구사항과 차고에서 본 블록으로 복원해요.</p></div>
       <div className="rpTools">
-        <button onClick={openNote} disabled={!noteReady} title={noteReady ? "" : "한 번 실행해 본 뒤 열 수 있어요"}>📒 차고 노트{noteUsed ? "" : noteReady ? " · -5m" : " · 실행 후"}</button>
+        <button onClick={openNote} disabled={!noteReady} title={noteReady ? "" : "한 번 실행해 본 뒤 열 수 있어요"}><Icon name="book" /> 차고 노트{noteUsed ? "" : noteReady ? " · -5m" : " · 실행 후"}</button>
         <button onClick={reset}>↺ 초기화</button>
       </div>
     </header>
@@ -343,15 +344,15 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       <div className="pieceZoomStage rpZoomStage"><div className={`rpPiece ${zoom.kind === "hw" ? "hw" : "sw"}`} style={{ "--piece": "inset(6px 12px 6px 12px round 12px)" } as React.CSSProperties}><PieceFace b={zoom} /></div></div>
       <div className="pieceZoomText">
         <small>{zoom.kind === "hw" ? "부품 (하드웨어)" : `SW 블록 · ${KIND_TAG[zoom.kind]}`}</small><h2>{zoom.label}{zoom.tag ? ` · ${zoom.tag}` : ""}</h2>
-        <p className="pzDo">💡 {doesOf(zoom)}</p>
-        <p className="rpFrom">🔧 차고에서 본 곳: <b>{zoom.from}</b></p>
+        <p className="pzDo"><Icon name="bulb" /> {doesOf(zoom)}</p>
+        <p className="rpFrom"><Icon name="wrench" /> 차고에서 본 곳: <b>{zoom.from}</b></p>
         <p className="pzTip">값이 맞는지는 끼운 뒤 ▶ 실행해서 확인해요.</p>
       </div>
     </article></div>}
 
     {noteOpen && <div className="pieceZoom" onClick={() => setNoteOpen(false)}><article className="rpNote" onClick={event => event.stopPropagation()}>
       <button className="pieceZoomClose" onClick={() => setNoteOpen(false)}>×</button>
-      <small>📒 차고 노트 · Control Software</small><h2>차고에서 본 블록 카드</h2>
+      <small><Icon name="book" /> 차고 노트 · Control Software</small><h2>차고에서 본 블록 카드</h2>
       <p className="pzTip">순서는 섞여 있어요. 각 블록이 하는 일만 다시 확인하고, 순서는 요구사항으로 판단하세요.</p>
       {ref.notes.map(note => <section key={note.name}><b>{note.name}</b><div className="rpNoteCards">
         {[...getFeatureLayer(note.domain, note.feature, 3)].sort((a, b) => a.localeCompare(b, "ko")).map(label => { const kind = blockKind(label); return <div key={label} className={`rpNoteCard kind-${kind}`}><div className="flowBlock"><Picto kind={kind} /><small>{KIND_TAG[kind]}</small></div><b>{label}</b><span>{plainText(label, kind)}</span></div>; })}
