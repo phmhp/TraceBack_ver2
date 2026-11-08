@@ -21,8 +21,8 @@ import { showVerdict } from "../../ui/Verdict";
 
 type Send = React.Dispatch<any>;
 type Status = "ok" | "tol" | "bad";
-type Zone = "센서" | "제어기" | "CAN" | "부품" | "차량";
-type Dom = {
+export type Zone = "센서" | "제어기" | "CAN" | "부품" | "차량";
+export type Dom = {
   id: string; label: string; img: string; zone: Zone;
   ref: number | string; run: number | string; unit: string; status: Status;
   t?: number; causes?: string[]; ev?: string;
@@ -30,11 +30,11 @@ type Dom = {
 type Zoom = { where: string; kind: "sw" | "hw"; reference: [string, string][]; run: [string, string][]; part?: [string, string, string]; culprit: string; lesson: string };
 // the board ends on a SUSPECT SECTION (inputs normal, output wrong), not on the exact part:
 // the exact cause is confirmed later on the bench by simulation.
-type Section = { name: string; choices: { label: string; ok: boolean; why: string }[] };
-type CaseData = { start: string; first: string; timeUnit: string; req: string; doms: Dom[]; zoom: Zoom; section: Section };
+export type Section = { name: string; choices: { label: string; ok: boolean; why: string }[] };
+export type CaseData = { start: string; first: string; timeUnit: string; req: string; doms: Dom[]; zoom: Zoom; section: Section };
 
-const ZONES: Zone[] = ["센서", "제어기", "CAN", "부품", "차량"];
-const ZONE_ICON: Record<Zone, IconName> = { 센서: "sensor", 제어기: "chip", CAN: "signal", 부품: "gear", 차량: "car" };
+export const ZONES: Zone[] = ["센서", "제어기", "CAN", "부품", "차량"];
+export const ZONE_ICON: Record<Zone, IconName> = { 센서: "sensor", 제어기: "chip", CAN: "signal", 부품: "gear", 차량: "car" };
 
 // generated images: evidence photos, part cut-outs, the 3×3 evidence atlas and the car
 const B = (name: string) => `/assets/board-photos/${name}.png`;
@@ -47,7 +47,7 @@ const RADIATOR = "/assets/ASSET_030_Radiator_Cooling_Fan_TRANSPARENT.png";
 
 const OK = (id: string, label: string, img: string, zone: Zone, ref: number | string, unit: string, status: Status = "ok", run?: number | string): Dom => ({ id, label, img, zone, ref, run: run ?? ref, unit, status });
 
-const CASES: Record<CaseId, CaseData> = {
+export const CASES: Record<CaseId, CaseData> = {
   propulsion: {
     start: "accel", first: "vcu_in", timeUnit: "ms",
     req: "요구사항: 가속 페달을 60% 밟으면 모터가 204 Nm를 내야 한다.",
@@ -151,22 +151,22 @@ const CASES: Record<CaseId, CaseData> = {
   },
 };
 
-const fmt = (value: number | string) => typeof value === "string" ? value : Number.isInteger(value) ? String(value) : value.toFixed(1);
+export const fmt = (value: number | string) => typeof value === "string" ? value : Number.isInteger(value) ? String(value) : value.toFixed(1);
 /** Korean particle: picks 이/가, 은/는 … from the last Hangul syllable. */
-const josa = (word: string, withBatchim: string, without: string) => {
+export const josa = (word: string, withBatchim: string, without: string) => {
   const hangul = word.replace(/\([^)]*\)/g, "").replace(/[^가-힣]/g, "");
   const code = hangul.charCodeAt(hangul.length - 1) - 0xac00;
   return code >= 0 && code % 28 ? withBatchim : without;
 };
-const refText = (d: Dom) => `${fmt(d.ref)}${d.unit ? ` ${d.unit}` : ""}`;
+export const refText = (d: Dom) => `${fmt(d.ref)}${d.unit ? ` ${d.unit}` : ""}`;
 
-function Photo({ src }: { src: string }) {
+export function Photo({ src }: { src: string }) {
   if (src.startsWith("atlas:")) { const cell = Number(src.slice(6)); return <i className="dtPhoto atlas" style={{ backgroundPosition: `${(cell % 3) * 50}% ${Math.floor(cell / 3) * 50}%` }} />; }
   return <i className="dtPhoto"><img src={src} alt="" draggable={false} /></i>;
 }
 
 /** Reference vs this drive: dashed outline = reference, filled = this drive. */
-function Gauge({ dom }: { dom: Dom }) {
+export function Gauge({ dom }: { dom: Dom }) {
   if (typeof dom.ref === "string" || typeof dom.run === "string") return <div className={`dtGauge g-${dom.status}`}><span className="dtGaugeTxt">기준 {fmt(dom.ref)} · 지금 <b>{fmt(dom.run)}</b></span></div>;
   const max = Math.max(dom.ref, dom.run, 0.001) * 1.15;
   return <div className={`dtGauge g-${dom.status}`}>
@@ -406,7 +406,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
 
 /** Whole E/E path as Simulink-like subsystems; the trace falls backward from the output. */
 /** Dominoes fall cause → effect; side effects (traps found) fall off as branches = impact analysis. */
-function DominoFall({ chain, traps, parentOf, labelOf }: { chain: string[]; traps: string[]; parentOf: (id: string) => string; labelOf: (id: string) => string }) {
+export function DominoFall({ chain, traps, parentOf, labelOf }: { chain: string[]; traps: string[]; parentOf: (id: string) => string; labelOf: (id: string) => string }) {
   const [run, setRun] = useState(0);
   useEffect(() => { const timer = window.setTimeout(() => { setRun(1); chain.forEach((_, i) => window.setTimeout(() => play("pop", .8 + i * .12), i * 380)); }, 150); return () => clearTimeout(timer); }, [chain.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
   return <div className={`dtFall ${run ? "go" : ""}`} onClick={() => { setRun(0); window.setTimeout(() => setRun(1), 60); }} title="눌러서 다시 쓰러뜨리기">

@@ -61,6 +61,7 @@ import { installGlobalSfx, setMusic, setMusicScene, setSfx, soundPrefs } from ".
 import { SuspectBoard } from "./features/board/SuspectBoard";
 import { DominoBoard } from "./features/board/DominoBoard";
 import { DominoTrace } from "./features/board/DominoTrace";
+import { EeTrace } from "./features/board/EeTrace";
 import { Icon } from "./ui/Icon";
 import { VerdictLayer } from "./ui/Verdict";
 const A = "/assets/";
@@ -1495,7 +1496,7 @@ function App() {
     return frame(<RaceExperience state={state} send={send} mode="ship" />);
   if (state.scene === "FAULT_CUE")
     return frame(<FaultDialogue state={state} send={send} />);
-  if (state.scene === "BOARD") return frame(<DominoTrace state={state} send={send} />); // older DominoBoard / InvestigationBoard / SuspectBoard kept for reference
+  if (state.scene === "BOARD") return frame(<EeTrace state={state} send={send} />); // stage 1 v2 (E/E board + mugshots); DominoTrace / DominoBoard / InvestigationBoard / SuspectBoard kept unused
   if (state.scene === "WIRING") return frame(<RefPuzzle state={state} send={send} />); // old WiringPuzzle kept unused
   if (state.scene === "TWIN_BENCH") return frame(<TwinBenchExperience state={state} send={send} />);
   if (state.scene === "VERIFY_FAIL")

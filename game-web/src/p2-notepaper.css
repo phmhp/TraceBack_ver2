@@ -254,3 +254,86 @@ body:has(.vbBench + .stageHistoryNav .stageBackButton + .stageForwardButton) .vb
 .v7Report li.hyp-supported em { background: #c0574a; color: #fff; }
 .v7Report li span strong { display: block; font-weight: 600; color: #33291f; }
 .v7Report li span small { display: block; color: #7b6a5c; }
+
+/* ===== stage 1 v2: evidence | E/E board on top, mugshot row at the bottom ===== */
+.etLayout { display: grid !important; grid-template-columns: minmax(250px, 1fr) minmax(0, 2.3fr); grid-template-rows: minmax(0, 1fr) minmax(178px, 30%) auto !important; gap: 10px !important; }
+.etLayout > section { position: relative; min-height: 0; border-radius: var(--np-r); background: #fffdf6; box-shadow: 0 1px 0 #e3d3c3, 0 3px 8px rgba(30,15,5,.12); padding: 10px 12px; overflow: hidden; }
+.etLayout > section > header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.etLayout > section > header b { display: inline-flex; gap: 5px; align-items: center; font: 600 14px Pretendard, system-ui; color: #33291f; }
+.etLayout > section > header b svg { width: 15px; height: 15px; }
+.etLayout > section > header small { font: 500 12px Pretendard, system-ui; color: #7b6a5c; }
+.etMugs, .etBubble { grid-column: 1 / -1; }
+.etBubble { display: flex; gap: 10px; align-items: center; justify-self: center; max-width: min(760px, 100%); padding: 5px 16px 5px 5px; border-radius: 999px; background: #fff; box-shadow: 0 2px 6px rgba(30,15,5,.15); }
+.etBubble img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+.etBubble p { margin: 0; font: 500 13px/1.45 Pretendard, system-ui; } .etBubble b { margin-right: 8px; color: #9b6b64; font-weight: 600; }
+
+/* evidence polaroids */
+.etFind { display: grid; gap: 8px; height: calc(100% - 30px); grid-template-rows: auto auto 1fr; }
+.etPol { position: relative; display: grid; grid-template-columns: 40px 1fr; gap: 2px 10px; align-items: center; text-align: left; padding: 8px 10px; border-radius: 4px; border: 0; background: #fff; box-shadow: 0 1px 1px rgba(0,0,0,.15), 0 4px 8px rgba(30,15,5,.16); cursor: zoom-in; transition: transform .15s; }
+.etPol:hover { transform: translateY(-2px) scale(1.01); }
+.etPol > i { grid-row: span 2; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 4px; background: #f6efe6; overflow: hidden; }
+.etPol > i img { width: 100%; height: 100%; object-fit: cover; } .etPol > i svg { width: 22px; height: 22px; color: #c0574a; }
+.etPol b { font: 600 13px Pretendard, system-ui; color: #33291f; } .etPol em { font: 500 12px/1.4 Pretendard, system-ui; font-style: normal; color: #6b5a4c; }
+.etPol.record { grid-template-columns: 1fr; align-content: start; }
+.etPair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.etPair > span { position: relative; aspect-ratio: 4 / 3; border-radius: 3px; overflow: hidden; background: #eee; }
+.etPair > span small { position: absolute; left: 4px; bottom: 4px; padding: 1px 6px; border-radius: 4px; background: #fffdf6e6; font: 600 11px Pretendard, system-ui; }
+.etPair > span.odd { outline: 2px dashed transparent; }
+.etPol.record:hover .etPair > span.odd { outline-color: #e3bb45; }
+.etLoupe { display: inline-flex; gap: 4px; align-items: center; justify-self: end; color: #9b6b64 !important; font-weight: 600 !important; }
+.etLoupe svg { width: 14px; height: 14px; }
+.etCards { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; overflow: auto; max-height: calc(100% - 30px); }
+.etCards li { display: grid; grid-template-columns: 46px 1fr; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 4px; background: #fff; box-shadow: 0 1px 1px rgba(0,0,0,.12), 0 3px 6px rgba(30,15,5,.12); animation: npPop .25s ease-out; }
+.etCards li > .dtPhoto { position: relative; width: 46px; height: 46px; border-radius: 3px; overflow: hidden; }
+.etCards li b { font: 600 12.5px Pretendard, system-ui; }
+
+/* E/E board */
+.etBoard { background: repeating-linear-gradient(0deg, transparent 0 27px, rgba(150,180,210,.18) 27px 28px), repeating-linear-gradient(90deg, transparent 0 27px, rgba(150,180,210,.18) 27px 28px), #fbfdff !important; }
+.etLines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.etLines path { fill: none; stroke-width: 2.5; }
+.etLines path.path { stroke: #c0574a; }
+.etLines path.hot { stroke: #e3bb45; stroke-dasharray: 6 5; animation: etDash 1s linear infinite; }
+@keyframes etDash { to { stroke-dashoffset: -22; } }
+.etZones { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; height: calc(100% - 30px); }
+.etZone { display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 6px; background: rgba(255,255,255,.6); border: 1px dashed #d9c9b3; overflow: hidden; }
+.etZone > small { display: inline-flex; gap: 4px; align-items: center; font: 600 11.5px Pretendard, system-ui; color: #7b6a5c; }
+.etZone > small svg { width: 13px; height: 13px; }
+.etEcus { display: flex; flex-wrap: wrap; gap: 3px; } .etEcus i { font: 500 10px Pretendard, system-ui; font-style: normal; padding: 1px 5px; border-radius: 4px; background: #efe9e0; color: #a99787; }
+.etNode { position: relative; padding: 5px 7px; border-radius: 5px; border: 1px solid #e3d3c3; background: #fff; font: 500 11.5px/1.3 Pretendard, system-ui; color: #a99787; text-align: left; transition: all .2s; }
+.etNode em { margin-left: 4px; padding: 0 5px; border-radius: 4px; font: 600 10px Pretendard, system-ui; font-style: normal; }
+.etNode.n-pickable { color: #33291f; border-color: #e3bb45; cursor: pointer; box-shadow: 0 0 0 3px #ffe8a855; animation: npPulse 1.6s ease-in-out infinite; }
+.etNode.n-suspect { color: #33291f; border: 1.5px solid #e3bb45; background: #fff8d6; cursor: pointer; }
+.etNode.n-focus { color: #fff; background: #c0574a; border-color: #c0574a; font-weight: 600; box-shadow: 0 0 0 4px #c0574a33; }
+.etNode.n-likely { color: #7a2e25; background: #fbe4df; border-color: #d9a093; } .etNode.n-likely em { background: #c0574a; color: #fff; }
+.etNode.n-refuted { color: #b5a89b; text-decoration: line-through; } .etNode.n-refuted em { background: #d9cfc4; color: #fff; }
+.etFall { position: absolute; left: 12px; right: 12px; bottom: 10px; z-index: 3; padding: 6px; border-radius: 6px; background: #fffdf6ee; }
+
+/* mugshot row */
+.etMugs { display: flex; gap: 12px; align-items: stretch; justify-content: center; background: #f3ece2 !important; }
+.etEmpty { margin: auto; display: inline-flex; gap: 8px; align-items: center; font: 500 13px Pretendard, system-ui; color: #7b6a5c; } .etEmpty svg { width: 18px; height: 18px; }
+.etMug { position: relative; width: 168px; display: grid; grid-template-rows: auto 1fr auto auto auto; gap: 3px; padding: 6px 8px 8px; border-radius: 4px; background: #fff; box-shadow: 0 1px 1px rgba(0,0,0,.14), 0 5px 10px rgba(30,15,5,.18); animation: npPop .25s ease-out; }
+.etMug header { display: flex; justify-content: space-between; align-items: center; font: 600 10.5px Pretendard, system-ui; color: #7b6a5c; }
+.etMug .stamp { font-style: normal; padding: 1px 6px; border-radius: 4px; border: 1.5px solid currentColor; font: 700 10.5px Pretendard, system-ui; transform: rotate(-4deg); }
+.st-untested { color: #a99787; } .st-measured { color: #c78a12; } .st-likely { color: #c0574a; } .st-refuted { color: #8a8f94; } .st-hold { color: #c78a12; }
+.etMugPhoto { position: relative; min-height: 56px; border-radius: 3px; overflow: hidden; background: #e9e6e1; }
+.etHeights { position: absolute; inset: 0; background: repeating-linear-gradient(180deg, transparent 0 11px, rgba(60,40,30,.12) 11px 12px); pointer-events: none; }
+.etMug > b { font: 600 13px Pretendard, system-ui; color: #33291f; } .etMug > small { font: 500 11px Pretendard, system-ui; color: #7b6a5c; }
+.etMug.m-refuted { opacity: .55; } .etMug.m-likely { box-shadow: 0 0 0 2px #c0574a, 0 5px 10px rgba(30,15,5,.18); }
+.etMeasure, .etStampBtns button { padding: 5px 8px; border-radius: 6px; border: 1px solid #d9c9b3; background: #fffaf2; font: 600 12px Pretendard, system-ui; color: #4b3a2f; cursor: pointer; box-shadow: 0 2px 0 #d9c9b3; display: inline-flex; gap: 4px; align-items: center; justify-content: center; }
+.etMeasure svg { width: 13px; height: 13px; }
+.etStampBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.etStampBtns button:last-child { background: #fbe4df; border-color: #d9a093; box-shadow: 0 2px 0 #d9a093; }
+.etMug .dtGauge { transform: scale(.92); transform-origin: left; }
+.etCarry { width: 100%; display: grid; gap: 8px; align-content: center; justify-items: center; }
+.etCarry h3 { margin: 0; display: inline-flex; gap: 6px; align-items: center; font: 600 15px Pretendard, system-ui; color: #33291f; } .etCarry h3 svg { width: 17px; height: 17px; }
+.etSecs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.etSecs button { padding: 9px 14px; border-radius: 6px; border: 1px solid #d9c9b3; background: #fff; font: 600 13px Pretendard, system-ui; cursor: pointer; box-shadow: 0 2px 0 #d9c9b3; }
+.etSecs button.right { background: #e3f1e7; border-color: #8fbf9e; } .etSecs button.wrong { background: #fbe4df; border-color: #d9a093; }
+.etCarryRow { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.etCarryRow span { display: inline-flex; gap: 6px; align-items: center; padding: 5px 10px; border-radius: 6px; background: #fff; border: 1px solid #e3d3c3; font: 500 12.5px Pretendard, system-ui; }
+.etCarryRow span em { font-style: normal; font-weight: 700; font-size: 11px; padding: 1px 6px; border-radius: 4px; }
+.etCarryRow .hold em { background: #ffe8a8; color: #7a5a12; } .etCarryRow .out { opacity: .6; } .etCarryRow .out b { text-decoration: line-through; } .etCarryRow .out em { background: #d9cfc4; color: #fff; }
+.etNext { display: flex; gap: 12px; align-items: center; font: 500 12.5px Pretendard, system-ui; color: #7b6a5c; }
+.etPair > span { aspect-ratio: 16 / 8; } .etPol.record { gap: 4px; padding: 6px 10px; }
+.etFall { inset: 38px 10px 10px !important; display: grid; place-items: center; background: #fffdf6f2 !important; box-shadow: inset 0 0 0 1px #e3d3c3; }
+.etFall::before { content: "출력에서 원인 쪽으로 거꾸로 쓰러진 경로 · 아래 줄은 함께 쓰러진 영향(회귀 시험)"; position: absolute; top: 8px; left: 12px; font: 600 12px Pretendard, system-ui; color: #7b6a5c; }
