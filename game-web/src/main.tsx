@@ -1145,12 +1145,12 @@ function Bench({
   const allPass = allDone && tests.every((test) => results[test.id]);
   const referenceLevels = [
     { label: "로직 수준", detail: "조건·명령 일치", ok: true },
-    { label: "HILS 관점", detail: "교육용 신호·인터페이스", ok: true },
+    { label: "HILS 관점", detail: "신호·인터페이스", ok: true },
     { label: "시스템 수준", detail: "차량 응답 정상", ok: true },
   ];
   const playerLevels = [
     { label: "로직 수준", detail: currentPass ? "판단 블록 일치" : "조건/가설 불일치", ok: currentPass },
-    { label: "HILS 관점", detail: currentPass ? "교육용 명령 전달 일치" : "기대/실제 차이", ok: currentPass },
+    { label: "HILS 관점", detail: currentPass ? "명령 전달 일치" : "기대/실제 차이", ok: currentPass },
     { label: "시스템 수준", detail: currentPass ? "응답 범위 충족" : "증상 재발", ok: currentPass },
   ];
   return (

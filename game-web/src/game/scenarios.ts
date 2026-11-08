@@ -90,7 +90,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
     trigger: "추월 구간에서 가속 페달 전개(레이스 OVERTAKE_ZONE)",
     injection: "VCU 입력 처리 단계에 설계에 없는 보정 계수 ×0.45 (vehicleSim pedalScale 0.45 · simModel proc)",
     faultModel: "페달 60% → 처리값 27% → 토크 요청 92 Nm",
-    normalSpec: "페달 0~100% → 토크 요청 0~340 Nm 선형(교육용 단순화), 60% → 204 Nm, 가용 토크 한계 260 Nm 이하",
+    normalSpec: "페달 0~100% → 토크 요청 0~340 Nm 선형, 60% → 204 Nm, 가용 토크 한계 260 Nm 이하",
     fix: "보정 계수 블록 제거 후 SW 배포",
     regression: "같은 SW 단위 시험(페달 60% 계단 입력) PASS + 영향 범위 신호",
     status: "implemented", review: "수치 일치 확인(60×0.45=27, 204×0.45≈92)",

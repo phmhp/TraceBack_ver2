@@ -1042,7 +1042,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         <div className="v7View">
           <nav className="v7Tabs">{([["sw", "SW 로직"], ["ecu", "제어기·I/O"], ["plant", "부품·차량"]] as const).map(([id, name]) => <button key={id} className={viewTab === id ? "on" : ""} onClick={() => { setViewTab(id); play("pop"); }}>{name}{(id === "sw" ? true : id === "ecu" ? level === "embedded" || level === "vehicle" : level === "vehicle") ? <i>실물</i> : <i className="model">모델</i>}</button>)}</nav>
           <div className={`vbSimView ${running ? "running" : ""}`}>{tabVisual}{tabNote && <span className="v7TabNote">{tabNote}</span>}{ran && lastVerdict && <span className={`vbStamp ${lastVerdict === "PASS" ? "pass" : lastVerdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastVerdict]}</span>}</div>
-          <p className="vbScope">{LV[order(level)].scope} <small className="vbModelNote">교육용 수치 모델로 계산 · 실제 시험 장비 연동 아님</small></p>
+          <p className="vbScope">{LV[order(level)].scope}</p>
           {note && noteRows.length > 0 && <div className="v7Judge">
             <header><b><Icon name="clipboard" /> 판정 노트</b><small>이번 결과가 각 가설에 무엇을 뜻하나요?</small></header>
             <p className="v7JudgeEv">{LV[order(log[note.run].level)].name} · {VERDICT_KO[log[note.run].verdict]} · {Object.values(log[note.run].vals ?? {}).join(" · ")}</p>

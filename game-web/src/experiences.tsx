@@ -838,7 +838,7 @@ function PartInspector() {
           {ecu && ecuIdFor(label) && ecu.actuators.length > 0 && <div><dt>구동 대상</dt><dd>{ecu.actuators.map(ko).join(" · ")}</dd></div>}
           {model?.moving[0] && <div><dt>움직임</dt><dd>{MOVE_TEXT[model.moving[0].mode] ?? "움직이는 부분"} 표시</dd></div>}
         </dl>
-        <p className="piNote">{partId ? "형상은 교육용으로 단순화한 모델이에요." : "아직 전용 3D 모델이 없어 기본 도형으로 보여요."}</p>
+        {!partId && <p className="piNote">아직 전용 3D 모델이 없어 기본 도형으로 보여요.</p>}
       </section>
     </article>
   </div>, document.body);
