@@ -1296,8 +1296,8 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
 // The card states the prediction ("if this suspect is the cause, this test must show …") and which parts are real
 // in the chosen test, so the answer is reasoned from expectation vs. observation, not guessed.
 const PREDICT: Record<string, string> = {
-  vcu_sw: "VCU SW가 원인이라면: SW만 PC에서 돌려도 '페달 처리값'이 기준보다 낮게 나와야 해요. 제어기·차량 시험에서 재는 신호(입력 핀 전압·CAN 토크 명령)만으로는 SW와 입력 회로를 가를 수 없어요.",
-  vcu_hw: "입력 회로가 원인이라면: 회로가 없는 'SW만 PC' 시험에서는 '페달 처리값'이 정상으로 나와야 해요. 제어기·차량 시험에서 재는 신호(입력 핀 전압·CAN 토크 명령)만으로는 SW와 회로를 가를 수 없어요.",
+  vcu_sw: "VCU SW가 원인이라면: SW만 PC에서 돌려도 '페달 처리값'이 기준보다 낮게 나와요. 제어기·차량 시험 표에는 VCU 안쪽 값('페달 처리값')이 없어서, SW 탓인지 입력 회로 탓인지 구별할 수 없어요.",
+  vcu_hw: "입력 회로가 원인이라면: 입력 회로가 빠진 'SW만 PC' 시험에서는 '페달 처리값'이 정상으로 나와요. 제어기·차량 시험 표에는 VCU 안쪽 값('페달 처리값')이 없어서, SW 탓인지 입력 회로 탓인지 구별할 수 없어요.",
   fan_sw: "팬 제어 SW가 원인이라면: SW만 PC에서 돌려도 'PWM 비율'이 기준과 달라야 해요.",
   fan_path: "출력단·배선·전원이 원인이라면: 실제 부품을 붙인 시험에서 '팬 커넥터 PWM'이나 '팬 커넥터 전원 전압'이 기준보다 낮게(안 오게) 나와야 해요. 기준 이상으로 도착했다면 전달은 정상이에요. 팬이 모델인 시험에선 알 수 없어요.",
   fan_motor: "팬 모터가 원인이라면: 실제 부품을 붙인 시험에서 커넥터에 PWM·전원은 오는데 '팬 실제 회전'만 0이어야 해요. 팬이 모델인 시험에선 알 수 없어요.",
