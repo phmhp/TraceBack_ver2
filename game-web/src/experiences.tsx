@@ -34,9 +34,9 @@ const SHOW_EE_TABS = false; // E/E "흐름 따라가기/부품 소개" strip: re
 const garageAutoTour = false; // the old 1.45 s background tour fought the pause button
 const learningLayers = [
   // ISO 26262 abstraction: item (vehicle function) → system architecture (HW/SW elements) → SW architecture & unit design
-  { name: "Vehicle / System", tag: "차량 기능 · 운전자 입력 → 차량 거동" },
-  { name: "E/E Architecture", tag: "시스템 구조 · 센서·ECU·액추에이터·통신" },
-  { name: "Control Software", tag: "SW 구조·단위 설계 · ECU 안 계산" },
+  { name: "Vehicle / System", tag: "어디서 움직이나 · 차 안의 부품 위치" },
+  { name: "E/E Architecture", tag: "무엇과 연결되나 · 전기·전자 연결(센서·제어기·통신)" },
+  { name: "Control Software", tag: "왜 그렇게 하나 · 제어기 안 판단(제어 SW)" },
 ] as const;
 
 // Garage navigation has three learning lenses.  The content model keeps a
@@ -252,6 +252,7 @@ function GarageFlowPart({ label, position, kind, active, running, role, partId, 
     onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = operable ? "pointer" : inspect ? "zoom-in" : "help"; }}
     onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; if (operable) press(false); }}
     onDoubleClick={event => { if (!inspect) return; event.stopPropagation(); play("pop"); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: inspect })); }}
+    onClick={!operable && inspect ? event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-garage-step", { detail: { index: inspect.index } })); } : undefined}
   >
     <HardwarePart kind={kind} active={active} running={running} partId={partId} />
     {hovered && <PartLabel position={[0, 1.16, 0]}>{operable ? `${label} · 꾹 누르면 입력` : `${label}${inspect ? " · 더블클릭: 자세히" : ""}`}</PartLabel>}
@@ -945,8 +946,9 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   useEffect(() => { setConds(new Set()); setGateMsg(""); setCleared(false); setApplyState("idle"); }, [domain, feature]);
   useEffect(() => {
     const onInput = (event: Event) => setApplying(Boolean((event as CustomEvent).detail?.on));
-    addEventListener("tb-garage-input", onInput);
-    return () => removeEventListener("tb-garage-input", onInput);
+    const onStep = (event: Event) => { setActiveStep(Number((event as CustomEvent).detail?.index) || 0); play("pop"); };
+    addEventListener("tb-garage-input", onInput); addEventListener("tb-garage-step", onStep);
+    return () => { removeEventListener("tb-garage-input", onInput); removeEventListener("tb-garage-step", onStep); };
   });
   useEffect(() => {
     if (applyState === "idle") return;
@@ -984,7 +986,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       { icon: "layers", text: "왼쪽에서 관점을 바꿔요: 3D 부품 위치 → E/E 연결 → Control SW 판단. 아래 단계 칸을 눌러 신호를 한 단계씩 보내 보세요." },
     ]} />
     <nav className="garageLayerNav" aria-label="설계 추상화 단계">
-      <small className="viewAxisLabel">차량 레이어 관점</small>
+      <small className="viewAxisLabel">같은 기능, 세 관점</small>
       {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={`${routeLevel === index ? "active" : ""} ${!chosen && index > 0 ? "needsDomain" : ""}`} title={!chosen && index > 0 ? "도메인을 먼저 고르면 열려요" : ""}>
         <span>{String(index + 1).padStart(2, "0")}</span><b>{layer.name}</b><small>{!chosen && index > 0 ? "도메인을 고르면 열려요" : layer.tag}</small>
       </button>)}
@@ -1202,7 +1204,7 @@ export function PursuitRouteBar({ distance, gap, compact = false }: { distance: 
   const routeProgress = Math.min(100, distance / (1200 / 100));
   const playerMarker = Math.max(5, routeProgress);
   const policeProgress = Math.max(1, Math.min(96, playerMarker - Math.max(4, gap / 12)));
-  return <div className={`routeTracker ${compact ? "compactRouteTracker" : ""}`}><div className="routeLabels"><span>START</span><b>추격차와 {Math.round(gap)}m</b><span>FINISH</span></div><div className="routeLine"><i className="policeIcon" style={{ left: `${policeProgress}%` }}><img src="/assets/ui/icons/police-car.svg" alt="" /></i><i className="playerIcon" style={{ left: `${playerMarker}%` }}><img src="/assets/ui/icons/getaway-car.svg" alt="" /></i><em /></div></div>;
+  return <div className={`routeTracker ${compact ? "compactRouteTracker" : ""}`}><div className="routeLabels"><span>출발</span><b>추격차와 {Math.round(gap)}m</b><span>도착</span></div><div className="routeLine"><i className="policeIcon" style={{ left: `${policeProgress}%` }}><img src="/assets/ui/icons/police-car.svg" alt="" /></i><i className="playerIcon" style={{ left: `${playerMarker}%` }}><img src="/assets/ui/icons/getaway-car.svg" alt="" /></i><em /></div></div>;
 }
 
 function CatRider({ color, x }: { color: string; x: number }) {

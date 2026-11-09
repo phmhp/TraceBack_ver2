@@ -126,3 +126,65 @@
 .garageV2 .garageFlowPanel { padding-right: 14px !important; }
 .garageV2 .garageFlowPanel > div { width: auto !important; max-width: none !important; right: 262px !important; overflow: hidden !important; }
 .softwareView .liveBadge { display: none !important; }
+
+/* ── Race HUD: one box style for logo · drive time · chase gap · minimap · key bar · cluster ── */
+.raceV2 .raceIdentity > button, .raceV2 .raceTripHud > span, .raceV2 > .routeTracker, .raceV2 .raceMiniMap, .raceV2 .raceControls, .raceV2 .cockpitGauge {
+  background: #fffaf0f2 !important; color: #3b2f25 !important; border: 2px solid #e6d3ad !important; border-radius: 14px !important;
+  box-shadow: 0 4px 0 #d9c39a, 0 10px 22px rgba(40, 30, 15, .18) !important; backdrop-filter: none !important; font-family: Pretendard, system-ui !important;
+}
+.raceV2 .raceIdentity > button span { color: #3b2f25 !important; }
+.raceV2 .raceTripHud small, .raceV2 .cockpitGauge > small, .raceV2 .raceMiniMap > b, .raceV2 > .routeTracker .routeLabels { color: #8a6a43 !important; font: 700 11px Pretendard, system-ui !important; letter-spacing: 0 !important; }
+.raceV2 .raceTripHud b { color: #3b2f25 !important; font: 800 16px Pretendard, system-ui !important; }
+.raceV2 .cockpitGauge > b { color: #3b2f25 !important; }
+.raceV2 .cockpitGauge > span { color: #8a6a43 !important; }
+.raceV2 .cockpitGauge > div { background: #eadfcb !important; }
+.raceV2 .cluster1109 .clusterRow { color: #3b2f25; }
+.raceV2 .cluster1109 .clusterRow.sub { color: #6b5643; }
+.raceV2 .cluster1109 .prnd i { color: #8a7a6a; }
+.raceV2 .cluster1109 .prnd i.on { color: #3b2f25; }
+.raceV2 .raceMiniMap > small { color: #6b5643 !important; }
+.raceV2 .raceControls em { color: #6b5643 !important; }
+.routeTracker .routeLabels b { font: 800 13px Pretendard, system-ui !important; color: #b5482f !important; }
+.routeTracker .routeLabels span { font: 700 11px Pretendard, system-ui !important; }
+.raceV2 > .routeTracker { height: 58px !important; }
+
+/* ── Domino trace: replay input, observed evidence, hypothesis sorting, open book ── */
+.tbLayout > section > header { flex-wrap: nowrap; }
+.etReplay { margin-left: auto; flex: none; padding: 6px 12px; border-radius: 8px; border: 1.5px solid #c98f7f; background: linear-gradient(#fff6ef, #f6dfd3); color: #6b3b2e; font: 700 12.5px Pretendard, system-ui; cursor: pointer; box-shadow: 0 2px 0 #c98f7f; white-space: nowrap; }
+.etReplay.on { border-color: #86b897; background: #e7f3ea; color: #2f5a3d; box-shadow: 0 2px 0 #86b897; cursor: default; }
+.tbEvidence > header { align-items: center !important; }
+.openBookBtn { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 7px; border: 1px solid #d9c9b3; background: #fff; color: #5b4636; font: 600 12px Pretendard, system-ui; cursor: pointer; white-space: nowrap; }
+.openBookBtn svg { width: 14px; height: 14px; }
+.tbEvidence { grid-template-rows: auto auto minmax(0, 1fr) auto !important; }
+.etObserved { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 6px 10px 0; }
+.etObserved span { display: grid; grid-template-columns: 18px 1fr; column-gap: 5px; align-items: center; padding: 4px 6px; border-radius: 6px; background: #f7efe3; }
+.etObserved span svg { grid-row: span 2; width: 16px; height: 16px; color: #9b6b64; }
+.etObserved small { font: 600 10.5px Pretendard, system-ui; color: #8a7a6a; }
+.etObserved b { font: 700 11.5px Pretendard, system-ui; color: #33291f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tbSort { display: grid !important; gap: 4px; }
+.tbSort span { display: flex !important; align-items: center; gap: 5px; padding: 4px 6px !important; }
+.tbSort span b { flex: 1; font-weight: 600 !important; }
+.tbSort span.todo { background: #fffaf0 !important; border-style: dashed !important; }
+.tbSort span button { padding: 2px 8px; border-radius: 6px; border: 1px solid #d9c9b3; background: #fff; font: 600 11.5px Pretendard, system-ui; cursor: pointer; }
+.tbSort span.out { opacity: .65; }
+.dtNext:disabled { opacity: .45; cursor: not-allowed; }
+.openBook .obReq { margin: 4px 0 8px; display: flex; gap: 6px; align-items: flex-start; padding: 6px 10px; border-radius: 8px; background: #fff7e3; font: 600 13px/1.5 Pretendard, system-ui; color: #4a3b2e; }
+.openBook .obReq svg { flex: none; width: 15px; height: 15px; margin-top: 3px; }
+.openBook .obPath { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-bottom: 8px; }
+.openBook .obPath span { padding: 4px 9px; border-radius: 7px; background: #eef4f8; border: 1px solid #cfe0f2; font: 600 12.5px Pretendard, system-ui; }
+.openBook .obPath i { font-style: normal; color: #9aa9b4; font-weight: 700; }
+
+/* ── First-case tutorial: pulse the thing to do next (never the answer) ── */
+@keyframes coachPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(233, 120, 74, .55); } 60% { box-shadow: 0 0 0 7px rgba(233, 120, 74, 0); } }
+[data-coach="replay"] .etReplay,
+[data-coach="measure"] .eeActuators,
+[data-coach="pick"] .tbPick,
+[data-coach="section"] .tbSecs,
+[data-coach="sort"] .tbSort,
+[data-coach="next"] .dtNext,
+[data-coach="pick-test"] .qaTests,
+[data-coach="run"] .vbGo,
+[data-coach="answer"] .qaAnswers,
+[data-coach="gaps"] .rpGap,
+[data-coach="check"] .rpCheckBtn { outline: 2.5px solid #e9784a; outline-offset: 3px; border-radius: 10px; animation: coachPulse 1.6s ease-out infinite; }
+.coachTag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: #e9784a; color: #fff; font: 700 11px Pretendard, system-ui; vertical-align: 1px; }

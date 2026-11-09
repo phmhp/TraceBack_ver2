@@ -15,6 +15,7 @@ import { PursuitRouteBar } from "../../experiences";
 import { DRIVER, ENGINEER } from "../../game/cast";
 import { Icon } from "../../ui/Icon";
 import { StageIntro, showVerdict } from "../../ui/Verdict";
+import { OpenBookButton } from "../../ui/OpenBook";
 import { CASES, DominoFall, Gauge, Photo, ZONES, ZONE_ICON, fmt, josa, refText, type Dom } from "./DominoTrace";
 import { EeBlueprint } from "../garage/EeBlueprint";
 
@@ -231,6 +232,14 @@ const TRACE: Record<string, { chain: TNode[]; signals: string[]; first: number }
 
 // Zoom into the first deviation like a subsystem: only the boundary values are known; the inside stays "?"
 // until verification (the trace narrows the suspect section, it does not convict a block).
+// What the team can observe without measuring (driver, cluster, input log, road): different angles, no cause.
+const OBSERVED: Record<string, { icon: "detective" | "warning" | "clipboard" | "road"; label: string; value: string }[]> = {
+  propulsion: [{ icon: "detective", label: "운전자 체감", value: "끝까지 밟아도 가속 약함" }, { icon: "warning", label: "계기판", value: "경고등 없음" }, { icon: "clipboard", label: "페달 입력 기록", value: "60% 유지" }, { icon: "road", label: "도로", value: "마른 평지 직선" }],
+  thermal: [{ icon: "detective", label: "운전자 체감", value: "고속 유지 중 힘 빠짐" }, { icon: "warning", label: "계기판", value: "파워다운 표시등" }, { icon: "clipboard", label: "주행 기록", value: "고속 연속 주행" }, { icon: "road", label: "바깥 기온", value: "25°C" }],
+  brake: [{ icon: "detective", label: "운전자 체감", value: "밟아도 덜 섬" }, { icon: "warning", label: "계기판", value: "브레이크 경고등" }, { icon: "clipboard", label: "페달 입력 기록", value: "55% 유지" }, { icon: "road", label: "노면", value: "마른 노면" }],
+};
+const REPLAY: Record<string, string> = { propulsion: "페달 60% 기록", thermal: "고속 연속 주행 기록", brake: "페달 55% 기록" };
+
 const SUBSYS: Record<string, { where: string; inLabel: string; outLabel: string; stages: string[] }> = {
   propulsion: { where: "VCU", inLabel: "페달 신호 60%", outLabel: "토크 명령 92 Nm (기준 204)", stages: ["입력 회로", "페달 처리", "토크 계산"] },
   thermal: { where: "냉각 팬 구동 경로", inLabel: "팬 명령 100%", outLabel: "팬 회전 0 rpm (기준 1850)", stages: ["ECU 출력단", "배선·전원", "팬 모터"] },
@@ -247,12 +256,14 @@ export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
   const last = chain.length - 1;
   const dom = (id: string) => data.doms.find(item => item.id === id)!;
   const [measured, setMeasured] = useState<number[]>([last]);
+  const [replayed, setReplayed] = useState(false);
+  const [sorted, setSorted] = useState<Record<string, "out" | "hold">>({});
   const [picking, setPicking] = useState(false);
   const [found, setFound] = useState(false);
   const [sectionPick, setSectionPick] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [mistakes, setMistakes] = useState(0);
-  const [bubble, setBubble] = useState(`오른쪽 증거는 '${dom(chain[last].dom).label}'이에요. 왼쪽 E/E 그림에서 출력 쪽부터 부품을 눌러 재 보세요.`);
+  const [bubble, setBubble] = useState(`오른쪽 증거는 '${dom(chain[last].dom).label}'이에요. 먼저 '고장 당시 입력 재생'을 누른 뒤, 출력 쪽부터 부품을 눌러 재 보세요.`);
   const isBad = (i: number) => dom(chain[i].dom).status === "bad";
   const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
   const pick = (i: number) => {
@@ -268,6 +279,7 @@ export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
       setBubble(!isBad(i) ? `${chain[i].label}${josa(chain[i].label, "은", "는")} 정상이에요. 이상이 시작된 곳이 아니에요.` : `${chain[i].label}보다 앞쪽에서도 이미 이상해요. 더 앞을 보세요.`);
       return;
     }
+    if (!replayed) { setBubble("먼저 위의 '고장 당시 입력 재생'을 눌러 같은 입력을 다시 넣어야 잴 수 있어요."); play("error"); return; }
     if (measured.includes(i)) return;
     setMeasured(previous => [...previous, i]);
     const d = dom(chain[i].dom);
@@ -280,6 +292,15 @@ export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
     if (choice.ok) { showVerdict(true, "의심 구간"); window.setTimeout(() => setDone(true), 800); }
     else { setMistakes(n => n + 1); showVerdict(false); }
   };
+  const replay = () => { if (replayed) return; setReplayed(true); play("zip"); window.setTimeout(() => play("pop", 1.2), 300); setBubble(`${REPLAY[caseId]}을 다시 넣었어요. 이제 출력 쪽부터 부품을 눌러 재 보세요.`); };
+  const sortHyp = (id: string, pick: "out" | "hold") => {
+    const h = meta.hypotheses.find(item => item.id === id)!;
+    const right = h.stage1 ? "out" : "hold";
+    if (pick !== right) { setMistakes(n => n + 1); showVerdict(false); setBubble(pick === "out" ? `'${h.label}'을(를) 배제할 측정값은 아직 없어요. 검증에서 시험해요.` : `${h.stage1} 그래서 이 가설은 반박돼요.`); return; }
+    setSorted(previous => ({ ...previous, [id]: pick })); play(pick === "out" ? "stamp" : "pop");
+    setBubble(pick === "out" ? `${h.stage1 ?? ""} 반박했어요.` : `'${h.label}'은(는) 측정만으로 가를 수 없어요. 검증으로 넘겨요.`);
+  };
+  const allSorted = meta.hypotheses.every(h => sorted[h.id]);
   const effects = chain.filter((_, i) => i > trace.first && isBad(i)).map(node => dom(node.dom));
   const finish = () => {
     try { sessionStorage.setItem(`tb-impact-${caseId}`, JSON.stringify(effects.map(d => `${d.label} 정상 복귀 (기준 ${refText(d)})`))); } catch { /* ignore */ }
@@ -289,12 +310,13 @@ export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
     try { sessionStorage.setItem(`tb-section-${caseId}`, data.section.name); } catch { /* ignore */ }
     send({ type: "OPEN_WIRING" });
   };
-  const reveal = () => { setMeasured(chain.map((_, i) => i)); setFound(true); setSectionPick(data.section.choices.find(c => c.ok)!.label); setDone(true); };
+  const reveal = () => { setReplayed(true); setMeasured(chain.map((_, i) => i)); setFound(true); setSectionPick(data.section.choices.find(c => c.ok)!.label); setDone(true); setSorted(Object.fromEntries(meta.hypotheses.map(h => [h.id, h.stage1 ? "out" : "hold"])) as Record<string, "out" | "hold">); };
   const marks: Record<number, "ok" | "bad" | "first" | "next"> = {};
   chain.forEach((_, i) => { marks[i] = found && i === trace.first ? "first" : measured.includes(i) ? (isBad(i) ? "bad" : "ok") : "next"; });
   const order = [...measured].sort((a, b) => b - a); // output first
 
-  return <div className="dtBoard tbTrace">
+  const coach = state.completedCases.length ? "" : !replayed ? "replay" : measured.length < 3 ? "measure" : !found ? "pick" : !done ? "section" : !allSorted ? "sort" : "next";
+  return <div className="dtBoard tbTrace" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="원인 추적" title="도미노 역추적" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
@@ -305,22 +327,23 @@ export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
     ]} />
     <main className="dtLayout tbLayout">
       <section className={`tbBoard ${picking ? "picking" : ""}`}>
-        <header><b><Icon name="layers" /> 차량 E/E 아키텍처</b><small>{picking ? "처음 어긋난 부품을 누르세요" : "부품을 눌러 재기 · 신호는 → 방향으로 흘러요"}</small></header>
-        <EeBlueprint chain={chain.map(node => node.label)} roles={chain.map(node => node.role)} active={chain.length} removed={null} onPick={pick} signals={trace.signals} marks={marks} />
+        <header><b><Icon name="layers" /> 차량 E/E 아키텍처</b><small>{picking ? "처음 어긋난 부품을 누르세요" : replayed ? "부품을 눌러 재기 · 두 부품을 모두 재면 그 사이 신호가 보여요" : "먼저 고장 당시 입력을 재생하세요"}</small><button className={`etReplay ${replayed ? "on" : ""}`} onClick={replay}>{replayed ? "✓ 입력 재생 중" : `▶ 고장 당시 입력 재생 · ${REPLAY[caseId]}`}</button></header>
+        <EeBlueprint chain={chain.map(node => node.label)} roles={chain.map(node => node.role)} active={chain.length} removed={null} onPick={pick} signals={trace.signals} marks={marks} showPath={i => measured.includes(i) && measured.includes(i + 1)} />
         {found && SUBSYS[caseId] && <div className="etZoom" aria-label="처음 어긋난 곳 들여다보기"><b><Icon name="search" /> {SUBSYS[caseId].where} 안 들여다보기</b>
           <div className="etZoomRow"><span className="io ok">들어오는 값<em>{SUBSYS[caseId].inLabel}</em></span>{SUBSYS[caseId].stages.map(st => <React.Fragment key={st}><i>→</i><span className="stage">{st}<em>?</em></span></React.Fragment>)}<i>→</i><span className="io bad">나가는 값<em>{SUBSYS[caseId].outLabel}</em></span></div>
           <small>안쪽 중 어디가 원인인지는 아직 몰라요. 검증 단계에서 시험으로 가려요.</small></div>}
       </section>
       <aside className="tbEvidence">
-        <header><b><Icon name="camera" /> 증거</b><small>{scenario.title}</small></header>
+        <header><b><Icon name="camera" /> 증거</b><small>{scenario.title}</small><OpenBookButton caseId={caseId} /></header>
+        <div className="etObserved">{OBSERVED[caseId].map(o => <span key={o.label}><Icon name={o.icon} /><small>{o.label}</small><b>{o.value}</b></span>)}</div>
         <ul>{order.map(i => { const d = dom(chain[i].dom); return <li key={i} className={`s-${d.status} ${found && i === trace.first ? "first" : ""}`}>
           <Photo src={d.img} /><span><b>{i === last ? "증상 · " : ""}{d.label}</b><Gauge dom={d} /></span><em className={`tbStamp ${d.status === "bad" ? "bad" : "ok"}`}>{d.status === "bad" ? "이상" : "정상"}</em>
         </li>; })}</ul>
         <div className="tbAct">
           {!found ? <button className={`tbPick ${picking ? "on" : ""}`} onClick={() => { setPicking(v => !v); play("pop"); setBubble(picking ? "측정을 계속하세요." : "처음 어긋난 부품을 왼쪽 그림에서 누르세요."); }}><Icon name="target" /> {picking ? "지목 취소" : "처음 어긋난 곳 지목"}</button>
             : !done ? <div className="tbSecs"><small>처음 어긋난 곳: {chain[trace.first].label} · 의심 구간을 고르세요</small>{data.section.choices.map(c => <button key={c.label} className={sectionPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}>{c.label}</button>)}</div>
-              : <div className="tbCarry"><small>검증 단계로 넘기는 용의자</small><div>{meta.hypotheses.map(h => <span key={h.id} className={h.stage1 ? "out" : "hold"}><b>{h.label}</b><em>{h.stage1 ? "반박됨" : "판단 보류"}</em></span>)}</div>
-                <button className="dtNext" onClick={finish}>다음: 요구사항 기반 로직 퍼즐 → <span>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</span></button></div>}
+              : <div className="tbCarry"><small>가설 정리 · 측정으로 반박되면 '반박', 아직 모르면 '보류'</small><div className="tbSort">{meta.hypotheses.map(h => <span key={h.id} className={sorted[h.id] ?? "todo"}><b>{h.label}</b>{sorted[h.id] ? <em>{sorted[h.id] === "out" ? "반박됨" : "판단 보류"}</em> : <><button onClick={() => sortHyp(h.id, "out")}>반박</button><button onClick={() => sortHyp(h.id, "hold")}>보류</button></>}</span>)}</div>
+                <button className="dtNext" disabled={!allSorted} onClick={finish}>다음: 요구사항 기반 로직 퍼즐 → <span>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</span></button></div>}
         </div>
       </aside>
       <div className="etBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>

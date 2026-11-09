@@ -21,12 +21,14 @@ const ECU_BOXES = [
 export type EeLayer = "logic" | "part" | "mix";
 export type EeInspector = { index: number; input: string; does: string; output: string; tag: string };
 
-export function EeBlueprint({ chain, roles, active, removed, onPick, signals, marks, layer = "logic", photo, inspector, onCloseInspector }: {
+export function EeBlueprint({ chain, roles, active, removed, onPick, signals, marks, layer = "logic", photo, inspector, onCloseInspector, showPath }: {
   chain: string[]; roles: Role[]; active: number; removed: number | null; onPick?: (index: number) => void; signals?: string[];
   /** logic = connection diagram, part = the same nodes shown as the real part, mix = both (opacity layers) */
   layer?: EeLayer; photo?: (index: number) => string | undefined;
   /** node popup: what the clicked node receives, does and sends */
   inspector?: EeInspector | null; onCloseInspector?: () => void;
+  /** hide a signal arrow until the player has earned it (root-cause trace: both ends measured) */
+  showPath?: (index: number) => boolean;
   /** optional per-part state (root-cause trace): measured normal / abnormal / first deviation / can be measured now */
   marks?: Record<number, "ok" | "bad" | "first" | "next">;
 }) {
@@ -84,13 +86,13 @@ export function EeBlueprint({ chain, roles, active, removed, onPick, signals, ma
         {paths.map(p => <linearGradient key={p.i} id={`eeG${p.i}`} gradientUnits="userSpaceOnUse" x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2}><stop offset="0" stopColor={`hsl(${hue(p.i)} 75% 55%)`} /><stop offset="1" stopColor={`hsl(${hue(p.i + 1)} 75% 55%)`} /></linearGradient>)}
         {paths.map(p => <marker key={p.i} id={`eeM${p.i}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill={`hsl(${hue(p.i + 1)} 75% 50%)`} /></marker>)}
       </defs>
-      {paths.map(p => <g key={p.i} className={p.i === active ? "hot" : p.i < active ? "done" : "later"}>
+      {paths.filter(p => !showPath || showPath(p.i)).map(p => <g key={p.i} className={p.i === active ? "hot" : p.i < active ? "done" : "later"}>
         <path d={p.d} className="eeFlowBase" stroke={`url(#eeG${p.i})`} markerEnd={`url(#eeM${p.i})`} />
         <path d={p.d} className="eeFlowRun" style={{ animationDelay: `${p.i * -0.25}s` }} />
         <circle cx={p.mx} cy={p.my} r="9" className="eeStepDot" fill={`hsl(${hue(p.i)} 70% 48%)`} /><text x={p.mx} y={p.my + 3.5} textAnchor="middle" className="eeStepNum">{p.i + 1}</text>
       </g>)}
     </svg>
-    {signals && paths.filter(p => p.i === active).map(p => <span key={p.i} className="eeSignalTag" style={{ left: p.mx, top: p.my }}>✉ {signals[p.i]}</span>)}
+    {signals && paths.filter(p => p.i === active && (!showPath || showPath(p.i))).map(p => <span key={p.i} className="eeSignalTag" style={{ left: p.mx, top: p.my }}>✉ {signals[p.i]}</span>)}
     <div className="eeCol eeSensors"><small>센서 · 운전자 입력</small>{sensors.map(chip)}</div>
     <div className="eeCore">
       {[0, 1].map(row => <div key={row} className="eeRow">{ECU_BOXES.filter(box => box.row === row).map(box => { const parts = ecuParts(box); return <div key={box.id} className={`eeEcu ${parts.length ? "lit" : ""}`}><b>{box.label}</b>{parts.map(chip)}</div>; })}</div>)}
