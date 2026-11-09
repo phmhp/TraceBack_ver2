@@ -104,7 +104,7 @@ export function EeBlueprint({ chain, roles, active, removed, onPick, signals, ma
         <circle cx={p.mx} cy={p.my} r="9" className="eeStepDot" fill={`hsl(${hue(p.i)} 70% 48%)`} /><text x={p.mx} y={p.my + 3.5} textAnchor="middle" className="eeStepNum">{p.i + 1}</text>
       </g>)}
     </svg>
-    {signals && paths.filter(p => p.i === active && (!showPath || showPath(p.i))).map(p => <span key={p.i} className="eeSignalTag" style={{ left: p.mx, top: p.my }}>✉ {signals[p.i]}</span>)}
+    {signals && paths.filter(p => p.i === active && (!showPath || showPath(p.i))).map(p => <span key={p.i} className="eeSignalTag" style={{ left: p.mx + (Math.abs(p.x2 - p.x1) < 60 ? 90 : 0), top: p.my }}>✉ {signals[p.i]}</span>)}
     <div className="eeCol eeSensors"><small>센서 · 운전자 입력</small>{sensors.map(chip)}</div>
     <div className="eeCore">
       {[0, 1].map(row => <div key={row} className="eeRow">{ECU_BOXES.filter(box => box.row === row).map(box => { const parts = ecuParts(box); return <div key={box.id} className={`eeEcu ${parts.length ? "lit" : ""}`}><b>{box.label}</b>{parts.map(chip)}</div>; })}</div>)}

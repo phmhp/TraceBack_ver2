@@ -507,6 +507,12 @@ function Title({
 }
 function Prologue({ send }: { send: React.Dispatch<any> }) {
   const [slide, setSlide] = useState(0);
+  // Enter / Space advance the story (same as the button; the title screen promises Enter = 대화 넘기기)
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => { if (event.repeat || (event.key !== "Enter" && event.code !== "Space")) return; event.preventDefault(); if (slide < 4) setSlide(slide + 1); else send({ type: "CONTINUE_PROLOGUE" }); };
+    addEventListener("keydown", key);
+    return () => removeEventListener("keydown", key);
+  }, [send, slide]);
   // story (see src/game/cast.ts): champions → swindled and framed → fired and broke → take it back → race to the ship
   const lines: [string, string, string][] = [
     ["우승", "이야기", `${DRIVER}와 ${ENGINEER}는 직접 만든 차로 시즌 우승을 하고 최고 상금을 받았다.`],
@@ -527,10 +533,10 @@ function Prologue({ send }: { send: React.Dispatch<any> }) {
     <div className="cinematic">
       <SceneBackdrop image={images[slide]} shade="deep" />
       <div className="cinTop">
-        <b>ACT 00 // PROLOGUE [{slide + 1}/{lines.length}]</b>
+        <b>프롤로그 {slide + 1}/{lines.length}</b>
         <span>{lines[slide][0]}</span>
         <button onClick={() => send({ type: "CONTINUE_PROLOGUE" })}>
-          SKIP »
+          건너뛰기 »
         </button>
       </div>
       <DialoguePanel

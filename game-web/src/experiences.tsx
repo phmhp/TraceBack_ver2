@@ -729,6 +729,8 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
 type PartRole = "input" | "control" | "network" | "actuator" | "result";
 const partRole = (label: string, index: number, length: number): PartRole => {
   if (index === 0) return "input";
+  // sensors are inputs wherever they sit in the chain (e.g. pack voltage/insulation sensing before the BMS)
+  if (/센서|Sensor|IMU|리졸버/.test(label) && !/ECU|VCU|BMS/.test(label)) return "input";
   if (/CAN|통신|메시지|Permit|Torque$|Limit$/.test(label) && !/ECU|VCU|BMS/.test(label)) return "network";
   if (/ECU|VCU|BMS|MCU|Interlock|Coordinator|제어기/.test(label)) return "control";
   if (index === length - 1 && (/^(차량|차체|노면)/.test(label) || /(가속|감속|진로 변경|거동|안정|유지|고정|복원|저감|추진력|구동력)$/.test(label))) return "result";
