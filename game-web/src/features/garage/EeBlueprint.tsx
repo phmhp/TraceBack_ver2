@@ -23,8 +23,10 @@ const ECU_BOXES = [
 export type EeLayer = "logic" | "part" | "mix";
 export type EeInspector = { index: number; input: string; does: string; output: string; tag: string };
 
-export function EeBlueprint({ chain, roles, active, removed, onPick, signals, marks, layer = "logic", photo, inspector, onCloseInspector, showPath, partId }: {
+export function EeBlueprint({ chain, roles, active, energizedThrough = active, removed, onPick, signals, marks, layer = "logic", photo, inspector, onCloseInspector, showPath, partId }: {
   chain: string[]; roles: Role[]; active: number; removed: number | null; onPick?: (index: number) => void; signals?: string[];
+  /** Last node reached by a live input. -1 keeps the diagram visible but electrically inactive. */
+  energizedThrough?: number;
   /** logic = connection diagram, part = the same nodes shown as the real part, mix = both (opacity layers) */
   layer?: EeLayer; photo?: (index: number) => string | undefined;
   /** code-built part id for a node (drawn in 3D inside the node in the part / mix layers) */
@@ -86,7 +88,7 @@ export function EeBlueprint({ chain, roles, active, removed, onPick, signals, ma
       <hemisphereLight intensity={1.7} color="#fff5dc" groundColor="#6d8c7b" />
       <directionalLight position={[200, 300, 400]} intensity={2.4} />
       {parts3d.map(({ i, id, box: b }) => <group key={i} position={[b!.x + b!.w / 2 - size.w / 2, size.h / 2 - (b!.y + 30), 0]} rotation={[.42, -.62, 0]}>
-        <FittedPart id={id!} size={48} castShadow={false} demo={i <= active && active < chain.length} />
+        <FittedPart id={id!} size={48} castShadow={false} demo={i <= energizedThrough && energizedThrough < chain.length} />
       </group>)}
     </Canvas>}
     {inspector && pop && <div className="eeInspector" style={{ left: popLeft, top: popTop }} role="dialog">
@@ -98,13 +100,13 @@ export function EeBlueprint({ chain, roles, active, removed, onPick, signals, ma
         {paths.map(p => <linearGradient key={p.i} id={`eeG${p.i}`} gradientUnits="userSpaceOnUse" x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2}><stop offset="0" stopColor={`hsl(${hue(p.i)} 75% 55%)`} /><stop offset="1" stopColor={`hsl(${hue(p.i + 1)} 75% 55%)`} /></linearGradient>)}
         {paths.map(p => <marker key={p.i} id={`eeM${p.i}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill={`hsl(${hue(p.i + 1)} 75% 50%)`} /></marker>)}
       </defs>
-      {paths.filter(p => !showPath || showPath(p.i)).map(p => <g key={p.i} className={p.i === active ? "hot" : p.i < active ? "done" : "later"}>
+      {paths.filter(p => !showPath || showPath(p.i)).map(p => <g key={p.i} className={p.i === energizedThrough ? "hot" : p.i < energizedThrough ? "done" : "later"}>
         <path d={p.d} className="eeFlowBase" stroke={`url(#eeG${p.i})`} markerEnd={`url(#eeM${p.i})`} />
         <path d={p.d} className="eeFlowRun" style={{ animationDelay: `${p.i * -0.25}s` }} />
         <circle cx={p.mx} cy={p.my} r="9" className="eeStepDot" fill={`hsl(${hue(p.i)} 70% 48%)`} /><text x={p.mx} y={p.my + 3.5} textAnchor="middle" className="eeStepNum">{p.i + 1}</text>
       </g>)}
     </svg>
-    {signals && paths.filter(p => p.i === active && (!showPath || showPath(p.i))).map(p => <span key={p.i} className="eeSignalTag" style={{ left: p.mx + (Math.abs(p.x2 - p.x1) < 60 ? 90 : 0), top: p.my }}>✉ {signals[p.i]}</span>)}
+    {signals && paths.filter(p => p.i === energizedThrough && (!showPath || showPath(p.i))).map(p => <span key={p.i} className="eeSignalTag" style={{ left: p.mx + (Math.abs(p.x2 - p.x1) < 60 ? 90 : 0), top: p.my }}>{signals[p.i]}</span>)}
     <div className="eeCol eeSensors"><small>센서 · 운전자 입력</small>{sensors.map(chip)}</div>
     <div className="eeCore">
       {[0, 1].map(row => <div key={row} className="eeRow">{ECU_BOXES.filter(box => box.row === row).map(box => { const parts = ecuParts(box); return <div key={box.id} className={`eeEcu ${parts.length ? "lit" : ""}`}><b>{box.label}</b>{parts.map(chip)}</div>; })}</div>)}

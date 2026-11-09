@@ -17,6 +17,7 @@ const autoDriveFinale = process.env.TRACEBACK_CAPTURE_AUTODRIVE === "1";
 const shipCaptureDistance = process.env.TRACEBACK_CAPTURE_SHIP_DISTANCE;
 const skipIntros = process.env.TRACEBACK_CAPTURE_SKIP_INTROS === "1";
 const printMetrics = process.env.TRACEBACK_CAPTURE_METRICS === "1";
+const activateGarageInput = process.env.TRACEBACK_CAPTURE_GARAGE_ACTIVE === "1";
 
 const screens = [
   { name: "00_title.png", url: "/?new=1", wait: 1200 },
@@ -219,6 +220,12 @@ async function main() {
         awaitPromise: true,
         returnByValue: true,
       });
+      if (activateGarageInput && screen.url.includes("qa=GARAGE_L1")) {
+        await page.send("Runtime.evaluate", {
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); for (;;) { const next = [...document.querySelectorAll(".conditionCtl")].find(button => !button.disabled && !button.classList.contains("on")); if (!next) break; next.click(); await wait(120); } const input = document.querySelector(".mainCtl"); input?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "mouse", isPrimary: true })); })()`,
+          awaitPromise: true,
+        });
+      }
       if (autoDriveFinale && screen.name.includes("final_dock_race")) {
         await page.send("Page.bringToFront");
         await page.send("Runtime.evaluate", { expression: "window.focus(); document.body?.focus(); true", returnByValue: true });

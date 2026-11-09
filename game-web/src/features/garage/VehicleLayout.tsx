@@ -206,6 +206,15 @@ function PlacedPart({ node, arrived, isInput, domain, feature }: { node: Node; a
   </group>;
 }
 
+function SupportPart({ node, active }: { node: Node; active: boolean }) {
+  const model = useMemo(() => getPartModel(node.id), [node.id]);
+  const mode = model.moving[0]?.mode;
+  const input = active ? (mode === "spin" ? 9 : mode === "rotate" ? .45 : 1) : 0;
+  return <group position={offsetOf(node)} rotation={node.place.r ?? [0, 0, 0]}>
+    <PartModel id={node.id} scale={U * (node.place.s ?? 1)} input={input} castShadow={false} />
+  </group>;
+}
+
 /** Faint car around the parts: body outline, floor and four tyres at the real wheel positions. */
 function CarContext({ strong }: { strong: boolean }) {
   const body = useMemo(() => {
@@ -225,22 +234,37 @@ function CarContext({ strong }: { strong: boolean }) {
 
 export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell }: { domain: DomainId; feature: number; activeStep: number; inputOn: boolean; shell: boolean }) {
   const { nodes, segments } = useMemo(() => layoutOf(domain, feature), [domain, feature]);
+  const drivePower = useMemo(() => {
+    if (domain !== "drive" || feature !== 0) return null;
+    const inverter = nodes.find(node => node.id === "inverter");
+    if (!inverter) return null;
+    const battery: Node = { index: -2, id: "hv_battery", place: PLACE.hv_battery, copy: 0 };
+    const contactor: Node = { index: -1, id: "main_contactor", place: PLACE.main_contactor, copy: 0 };
+    return { battery, contactor, inverter };
+  }, [domain, feature, nodes]);
   const signals = getFeatureLayer(domain, feature, 0);
   // centre the used parts in the view (the car moves with them)
   const centre = useMemo(() => {
     const xs = nodes.map(n => n.place.p[0]), zs = nodes.map(n => n.place.p[2]);
     return [-(Math.min(...xs) + Math.max(...xs)) / 2 * U, -.25, -(Math.min(...zs) + Math.max(...zs)) / 2 * U] as V3;
   }, [nodes]);
-  const arrived = (index: number) => index === 0 ? inputOn || activeStep > 0 : activeStep >= index;
+  const energizedStep = inputOn ? activeStep : -1;
+  const arrived = (index: number) => inputOn && energizedStep >= index;
   const signalAt = (index: number) => signals[Math.min(signals.length - 1, Math.round(index * (signals.length - 1) / Math.max(1, getFeatureLayer(domain, feature, 1).length - 1)))];
   return <group position={centre} rotation={[0, -.18, 0]}>
     {/* drei Html drops the first label after a canvas remount: a hidden one goes first */}
     <Html position={[0, -40, 0]}><span /></Html>
     <CarContext strong={shell} />
+    {drivePower && <>
+      <SupportPart node={drivePower.battery} active={inputOn} />
+      <SupportPart node={drivePower.contactor} active={inputOn} />
+      <FlowCable a={anchorWorld(drivePower.battery, "out", "dc_out")} b={anchorWorld(drivePower.contactor, "in", "hv_in")} flow="electrical_power" on={inputOn} />
+      <FlowCable a={anchorWorld(drivePower.contactor, "out", "hv_out")} b={anchorWorld(drivePower.inverter, "in", "dc_in")} flow="electrical_power" on={inputOn} tag={inputOn ? "고전압 전력 · 구동 에너지" : undefined} />
+    </>}
     {nodes.map(node => <PlacedPart key={`${node.id}-${node.copy}`} node={node} arrived={arrived(node.index)} isInput={node.index === 0} domain={domain} feature={feature} />)}
     {segments.map((seg, k) => {
-      const on = activeStep > seg.from.index || (seg.from.index === 0 && inputOn && activeStep > 0);
-      const newest = on && activeStep <= seg.to.index && activeStep > seg.from.index;
+      const on = inputOn && energizedStep > seg.from.index;
+      const newest = on && energizedStep <= seg.to.index && energizedStep > seg.from.index;
       return <FlowCable key={k} a={anchorWorld(seg.from, "out", seg.fromPort)} b={anchorWorld(seg.to, "in", seg.toPort)} flow={seg.flow} on={on}
         tag={newest ? `${(FLOW_INFO[seg.flow] ?? FLOW_INFO.digital).label} · ${signalAt(seg.to.index)}` : undefined} />;
     })}
@@ -252,6 +276,6 @@ export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell }
 
 /** Cable kinds used by a feature, for the on-screen legend. */
 export function flowLegend(domain: DomainId, feature: number) {
-  const flows = [...new Set(layoutOf(domain, feature).segments.map(seg => seg.flow))];
+  const flows = [...new Set([...layoutOf(domain, feature).segments.map(seg => seg.flow), ...(domain === "drive" && feature === 0 ? ["electrical_power"] : [])])];
   return flows.map(flow => ({ flow, ...(FLOW_INFO[flow] ?? FLOW_INFO.digital) }));
 }

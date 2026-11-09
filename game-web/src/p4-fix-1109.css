@@ -378,6 +378,10 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
 .inputBar .ctlBtn > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .inputBar .mainCtl { width: 190px; min-width: 190px; }
 .inputBar .mainCtl small { margin-left: auto; }
+.inputBar .ctlBtn:disabled { cursor: not-allowed; color: #8b8f89; background: #e9ece7; border-color: #cfd5ce; box-shadow: 0 3px 0 #bdc4bc; opacity: .78; }
+.inputBar .ctlBtn:disabled i { color: #7c827c; border-color: #aeb6ae; }
+.eeFlow g.later .eeFlowBase { stroke: #9ba7a2 !important; opacity: .32; marker-end: none; }
+.eeFlow g.later .eeStepDot { fill: #aeb8b3 !important; opacity: .65; }
 .garageMechanismCard > .swStepControls { position: absolute; z-index: 9; right: 14px; top: 14px; display: flex; gap: 6px; }
 .garageMechanismCard > .swStepControls .ctlBtn { width: 82px; min-width: 82px; height: 32px; justify-content: center; padding: 0 8px; border-radius: 9px; border: 1.5px solid #cdb79a; background: #fffdf6; color: #5b4636; font: 700 12px Pretendard, system-ui; box-shadow: 0 2px 0 #cdb79a; cursor: pointer; }
 .stageIntro { z-index: 500 !important; }

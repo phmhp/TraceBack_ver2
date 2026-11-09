@@ -128,7 +128,7 @@ const featureFlows: Record<DomainId, FeatureFlow[]> = {
   drive: [
     { summary: "페달 요구를 차량이 낼 수 있는 안전한 토크 요청으로 변환합니다.", layers: [["운전자 가속", "차량 토크 요구", "전륜 추진력", "차량 가속"], ["APS 이중 센서", "VCU", "CAN Torque", "인버터·모터"], ["Signal Adapter", "Driver Request SWC", "Torque Arbiter", "Command Port"], ["입력 상관성", "페달 맵", "가용 토크 MIN", "출력 제한"]] },
     { summary: "D단과 READY 조건이 모두 맞을 때만 구동 토크를 허용합니다.", layers: [["D단 선택", "구동 허용", "토크 전달", "안전 출발"], ["PRND 센서", "VCU Interlock", "CAN Permit", "인버터 Enable"], ["Gear Adapter", "Drive Permit SWC", "Safety Gate", "Enable Port"], ["Gear==D", "READY 확인", "고장 래치", "Permit Gate"]] },
-    { summary: "토크 명령을 인버터 전류와 모터 축 토크로 정밀하게 만듭니다.", layers: [["토크 요구", "전류 변환", "모터 회전", "축 토크"], ["VCU", "인버터 ECU", "3상 전력", "PMSM 모터"], ["Torque Command", "Current Control", "PWM Service", "Rotor Feedback"], ["dq 변환", "전류 PI", "PWM 제한", "토크 추정"]] },
+    { summary: "토크 명령을 전륜 PMSM·감속기 어셈블리의 모터 축 토크로 정밀하게 만듭니다.", layers: [["토크 요구", "전류 변환", "모터 회전", "축 토크"], ["VCU", "인버터 ECU", "3상 전력", "PMSM 모터"], ["Torque Command", "Current Control", "PWM Service", "Rotor Feedback"], ["dq 변환", "전류 PI", "PWM 제한", "토크 추정"]] },
     { summary: "모터 회전을 전륜 감속기와 차동기어로 나누어 양쪽 바퀴에 전달합니다.", layers: [["모터 회전", "감속", "좌우 분배", "노면 구동력"], ["모터", "감속기", "차동기어", "전륜 속도센서"], ["Speed Observer", "Slip Monitor", "Torque Vector", "Wheel Feedback"], ["기어비", "차동 보정", "슬립 제한", "피드백 필터"]] },
   ],
   brake: [
@@ -174,7 +174,7 @@ const featureFlows: Record<DomainId, FeatureFlow[]> = {
 // function, while retaining the compact source data above as a fallback.
 const featureLayerOverrides: Record<DomainId, Record<number, Partial<Record<number, string[]>>>> = {
   drive: {
-    0: { 0: ["가속 페달 조작", "가속 의도", "가용 토크 판단", "전륜 추진력", "차량 가속"], 1: ["APS A/B 가속 페달", "VCU", "CAN 토크", "인버터", "전륜 PMSM·감속기"], 3: ["A/B 상관성", "입력 필터", "페달 맵", "구동 허용", "가용 토크 MIN", "램프율", "토크 출력"] },
+    0: { 0: ["가속 페달 조작", "가속 의도", "가용 토크 판단", "전륜 추진력", "차량 가속"], 1: ["APS A/B 가속 페달", "VCU", "CAN 토크", "MCU·인버터 ECU", "인버터", "전륜 PMSM 모터", "전륜 감속기", "차동기어", "드라이브 샤프트", "전륜"], 3: ["A/B 상관성", "입력 필터", "페달 맵", "구동 허용", "가용 토크 MIN", "램프율", "토크 출력"] },
     1: { 0: ["D단 선택", "READY 확인", "구동 허용", "안전 출발"], 1: ["PRND 센서", "VCU Interlock", "CAN Permit", "인버터 Enable"], 3: ["Gear==D", "HV READY", "브레이크 인터록", "고장 래치", "Permit Gate"] },
     2: { 0: ["토크 요구", "전류 목표", "dq 제어", "PWM", "모터 회전", "축 토크"], 1: ["VCU", "CAN", "인버터 MCU", "3상 브리지", "PMSM", "리졸버"], 3: ["명령 수신", "dq 변환", "전류 PI", "전압 제한", "PWM 생성", "리졸버 피드백", "토크 추정"] },
     3: { 0: ["모터 회전", "1단 감속", "차동 분배", "전륜 반축", "노면 구동력"], 1: ["PMSM", "전륜 감속기", "차동기어", "좌·우 드라이브샤프트", "전륜"], 3: ["회전속도", "기어비", "차동 보정", "슬립 제한", "휠 피드백"] },
@@ -701,11 +701,11 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
     };
     const inspector = inspect === null || inspect >= chain.length ? null : { index: inspect, tag: ROLE_TEXT[roles[inspect]].tag, input: inspect === 0 ? "운전자 조작 또는 센서가 재는 물리량" : signals[inspect - 1], does: ROLE_DOES[roles[inspect]](signals[inspect]), output: signals[inspect] };
     return <div className="mechanismViewer eeView eeBlueprintView">
-      <EeBlueprint chain={chain} roles={roles} active={activeStep} removed={removed} onPick={pickNode} signals={signals} layer={eeLayer} photo={photo} partId={index => partModelFor(domain, chain[index])} inspector={eeLayer === "part" ? null : inspector} onCloseInspector={() => setInspect(null)} />
+      <EeBlueprint chain={chain} roles={roles} active={activeStep} energizedThrough={inputOn ? activeStep : -1} removed={removed} onPick={pickNode} signals={signals} layer={eeLayer} photo={photo} partId={index => partModelFor(domain, chain[index])} inspector={eeLayer === "part" ? null : inspector} onCloseInspector={() => setInspect(null)} />
       <PartInspector />
     </div>;
   }
-  if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={activeStep} onJump={onJump} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
+  if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={inputOn ? activeStep : -1} onJump={onJump} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
   return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
     <Canvas key={`${domain}-${view3d}`} shadows camera={{ position: view3d === "grid" ? [7.2, 7.4, 9.4] : view3d === "overlay" ? [6.4, 4.6, 7.6] : [2.9, 1.9, 3.3], fov: 38 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
       {import.meta.env.DEV && <DevRenderProbe name="garage" />}
@@ -952,6 +952,18 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const [cleared, setCleared] = useState(false);
   const mission = INPUT_MISSION[domain];
   const missing = mission.needs.filter(item => !conds.has(item.id));
+  const toggleCondition = (id: string, index: number) => {
+    setApplyState(previous => previous === "on" ? "release" : previous);
+    setConds(previous => {
+      const next = new Set(previous);
+      if (next.has(id)) mission.needs.slice(index).forEach(item => next.delete(item.id));
+      else if (mission.needs.slice(0, index).every(item => next.has(item.id))) next.add(id);
+      return next;
+    });
+    setGateMsg("");
+    setCleared(false);
+    play("pop", conds.has(id) ? .8 : 1.15);
+  };
   const setApplying = (on: boolean) => {
     if (on && missing.length) { setGateMsg(missing[0].why); play("error"); return; }
     if (on) setGateMsg("");
@@ -1018,9 +1030,9 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         <MechanismViewer key={chosen ? "domain" : "all"} inputOn={applying} eeLayer={eeLayer} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {chosen && <div className="inputBar" aria-label="입력 넣기">
-          <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (cleared ? "출력까지 전달됐어요" : "조건을 켠 뒤 입력을 꾹 누르세요")}</p>
-          {mission.needs.map((item, index) => <button key={item.id} className={`ctlBtn conditionCtl ${conds.has(item.id) ? "on" : ""}`} onClick={() => { setConds(previous => { const next = new Set(previous); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next; }); setGateMsg(""); play("pop", conds.has(item.id) ? .8 : 1.15); }}><i>{conds.has(item.id) ? "✓" : index + 1}</i><span>{item.label}</span></button>)}
-          <button className={`ctlBtn mainCtl ${applying ? "pressing" : ""}`} onPointerDown={event => { event.preventDefault(); setApplying(true); }} onPointerUp={() => setApplying(false)} onPointerLeave={() => setApplying(false)} onPointerCancel={() => setApplying(false)}><i>{mission.needs.length + 1}</i><span>{INPUT_ACTION[domain]}</span><small>꾹 · Space</small></button>
+          <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (applying ? "입력이 전달되는 중" : cleared ? "출력까지 전달됐어요" : missing.length ? `${conds.size ? "준비 중" : "차량 OFF"} · ${missing[0].label}부터 켜세요` : "구동 준비 완료 · 입력을 꾹 누르세요")}</p>
+          {mission.needs.map((item, index) => { const locked = mission.needs.slice(0, index).some(previous => !conds.has(previous.id)); return <button key={item.id} disabled={locked} className={`ctlBtn conditionCtl ${conds.has(item.id) ? "on" : ""} ${locked ? "locked" : ""}`} onClick={() => toggleCondition(item.id, index)}><i>{conds.has(item.id) ? "✓" : index + 1}</i><span>{item.label}</span></button>; })}
+          <button disabled={missing.length > 0} className={`ctlBtn mainCtl ${applying ? "pressing" : ""}`} onPointerDown={event => { event.preventDefault(); setApplying(true); }} onPointerUp={() => setApplying(false)} onPointerLeave={() => setApplying(false)} onPointerCancel={() => setApplying(false)}><i>{mission.needs.length + 1}</i><span>{INPUT_ACTION[domain]}</span><small>꾹 · Space</small></button>
         </div>}
         {chosen && routeLevel === 2 && <div className="swStepControls" aria-label="제어 소프트웨어 단계 조작"><button className="ctlBtn" onClick={() => { setApplyState("idle"); setActiveStep(0); play("pop"); }}>처음</button><button className="ctlBtn" onClick={() => { if (missing.length) { setGateMsg(missing[0].why); play("error"); return; } setActiveStep(value => Math.min(getFeatureLayer(domain, feature, 3).length - 1, value + 1)); play("pop", 1.1); }}>한 단계</button></div>}
         {SHOW_EE_TABS && chosen && routeLevel === 1 && (() => {
