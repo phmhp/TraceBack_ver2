@@ -7,6 +7,7 @@ const latestCss = readFileSync(new URL("../src/p4-fix-1109.css", import.meta.url
 const capture = readFileSync(new URL("../scripts/capture-ui.mjs", import.meta.url), "utf8");
 const vehicleLayout = readFileSync(new URL("../src/features/garage/VehicleLayout.tsx", import.meta.url), "utf8");
 const eeBlueprint = readFileSync(new URL("../src/features/garage/EeBlueprint.tsx", import.meta.url), "utf8");
+const eeTrace = readFileSync(new URL("../src/features/board/EeTrace.tsx", import.meta.url), "utf8");
 
 test("V4 STEP 01 keeps one stable frame across all three learning views", () => {
   assert.match(experience, /className="garageViewTools"/);
@@ -53,4 +54,15 @@ test("the representative propulsion lesson separates control, HV energy and mech
   assert.match(vehicleLayout, /main_contactor/);
   assert.match(vehicleLayout, /flow="electrical_power"/);
   assert.match(vehicleLayout, /mechanical_torque/);
+});
+
+test("K-5 keeps the reverse trace central, evidence on the right, and a tactile memo board below", () => {
+  assert.match(eeTrace, /중앙 도미노 역추적/);
+  assert.match(eeTrace, /관찰·계측 증거/);
+  assert.match(eeTrace, /역추적 메모판/);
+  assert.match(eeTrace, /검증 전에는 확정하지 않음/);
+  assert.match(latestCss, /\.etLayout > \.etBoard \{ grid-column: 1; grid-row: 1; \}/);
+  assert.match(latestCss, /\.etLayout > \.etEvidence \{ grid-column: 2; grid-row: 1; \}/);
+  assert.match(latestCss, /\.etLayout > \.etMugs \{ grid-column: 1 \/ -1; grid-row: 2; \}/);
+  assert.match(latestCss, /-webkit-line-clamp: 2/);
 });

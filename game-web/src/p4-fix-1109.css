@@ -325,6 +325,48 @@
 .etFall .dtDomino { width: 66px !important; }
 .polBoard { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px 7px; }
 .pol b { font-size: 10.5px; } .pol small { font-size: 9.5px; }
+
+/* ── K-5 domino trace: central path, independent right evidence rail, tactile memo board ── */
+.dtLayout.etLayout { grid-template-columns: minmax(0, 1fr) 286px !important; grid-template-rows: minmax(0, 1fr) 210px auto !important; }
+.etLayout > .etBoard { grid-column: 1; grid-row: 1; }
+.etLayout > .etEvidence { grid-column: 2; grid-row: 1; }
+.etLayout > .etMugs { grid-column: 1 / -1; grid-row: 2; }
+.etLayout > .etBubble { grid-column: 1 / -1; grid-row: 3; }
+.etEvidence .polBoard { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px 8px; overflow-y: auto; overscroll-behavior: contain; }
+.etEvidence > header { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 7px !important; }
+.etEvidence > header > b, .etEvidence > header > small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.etEvidence > header > small { grid-column: 1; }
+.etEvidence > header > .openBookButton { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+.etEvidence .pol b { min-height: 25px; display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; }
+.etEvidence .pol small { min-height: 24px; display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; }
+.etMugs { align-content: start !important; padding-top: 7px !important; }
+.etMemoHead { flex: 0 0 100%; min-height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 4px 4px; border-bottom: 1px dashed #cdbb9e; color: #4a382b; }
+.etMemoHead > b { display: inline-flex; align-items: center; gap: 5px; font: 800 12px Pretendard, system-ui; }
+.etMemoHead > b svg { width: 14px; height: 14px; color: #bd5a47; }
+.etMemoHead > small { color: #756456; font: 600 10px Pretendard, system-ui; }
+.etMemoHead > span { margin-left: auto; display: flex; gap: 4px; }
+.etMemoHead > span i { padding: 2px 6px; border-radius: 99px; background: #fff9e8; color: #8a6a43; font: 800 9px Pretendard, system-ui; font-style: normal; }
+.etMemoSeed { flex: 1 1 100%; min-width: 0; display: grid; grid-template-columns: minmax(230px, .8fr) minmax(0, 1.7fr); align-items: center; gap: 14px; padding: 4px 12px; }
+.etMemoSeed .etEmpty { margin: 0; }
+.etMemoSeed > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.etMemoSeed > div > span { position: relative; min-width: 0; min-height: 62px; padding: 10px 9px 7px; border: 1px solid #d8c699; border-radius: 3px; background: #fff7cd; box-shadow: 0 3px 7px #5f463326; transform: rotate(-.5deg); }
+.etMemoSeed > div > span:nth-child(2) { background: #f5e7da; transform: rotate(.5deg); }
+.etMemoSeed > div > span:nth-child(3) { background: #e8efe7; transform: rotate(-.35deg); }
+.etMemoSeed > div > span::before { content: ""; position: absolute; top: -5px; left: 50%; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ff8a7a, #b83d32 70%); box-shadow: 0 2px 2px #38261f55; }
+.etMemoSeed small, .etMemoSeed b { display: block; overflow: hidden; text-overflow: ellipsis; }
+.etMemoSeed small { color: #b25242; font: 800 9px Pretendard, system-ui; }
+.etMemoSeed b { margin-top: 5px; color: #47382c; font: 800 11px/1.3 Pretendard, system-ui; white-space: normal; }
+.etMugs > .etCarry { align-self: stretch; align-content: start; gap: 4px; padding-top: 1px; }
+.etMugs .etCarry > h3 { font-size: 11px; line-height: 1.2; }
+.etMugs .etCarryRow.tbSort { width: min(700px, 100%); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 6px; }
+.etMugs .etCarryRow.tbSort > span { min-width: 0; min-height: 27px; padding: 3px 6px !important; font-size: 10px; }
+.etMugs .etCarryRow.tbSort > span b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.etMugs .etNext { min-height: 31px; }
+.etMugs .etNext .dtNext { min-height: 30px; padding: 5px 10px; }
+@media (max-width: 1100px) {
+  .dtLayout.etLayout { grid-template-columns: minmax(0, 1fr) 280px !important; }
+  .etMemoHead > small { display: none; }
+}
 /* modals always above the chase bar and headers */
 .pieceZoom { z-index: 400 !important; }
 .pieceZoom .rpNote { max-height: 84vh !important; }

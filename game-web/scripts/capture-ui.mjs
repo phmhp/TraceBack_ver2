@@ -18,6 +18,9 @@ const shipCaptureDistance = process.env.TRACEBACK_CAPTURE_SHIP_DISTANCE;
 const skipIntros = process.env.TRACEBACK_CAPTURE_SKIP_INTROS === "1";
 const printMetrics = process.env.TRACEBACK_CAPTURE_METRICS === "1";
 const activateGarageInput = process.env.TRACEBACK_CAPTURE_GARAGE_ACTIVE === "1";
+const solveBoard = process.env.TRACEBACK_CAPTURE_BOARD_SOLVED === "1";
+const zoomBoardEvidence = process.env.TRACEBACK_CAPTURE_BOARD_ZOOM === "1";
+const forceIntros = process.env.TRACEBACK_CAPTURE_FORCE_INTROS === "1";
 
 const screens = [
   { name: "00_title.png", url: "/?new=1", wait: 1200 },
@@ -205,9 +208,9 @@ async function main() {
     await page.send("Runtime.enable");
     await page.send("Emulation.setDeviceMetricsOverride", { width: viewportWidth, height: viewportHeight, deviceScaleFactor: 1, mobile: false });
     await page.send("Emulation.setVisibleSize", { width: viewportWidth, height: viewportHeight });
-    if (skipIntros) {
+    if (skipIntros || forceIntros) {
       await page.send("Page.addScriptToEvaluateOnNewDocument", {
-        source: `["garage","puzzle","puzzle-v2","trace-v2","trace-v3","bench","bench-qa","bench-qa2"].forEach(id => localStorage.setItem("tb-intro-" + id, "1"));`,
+        source: `["garage","puzzle","puzzle-v2","trace-v2","trace-v3","bench","bench-qa","bench-qa2"].forEach(id => localStorage.${forceIntros ? "removeItem" : "setItem"}("tb-intro-" + id${forceIntros ? "" : ", \"1\""}));`,
       });
     }
 
@@ -225,6 +228,12 @@ async function main() {
           expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); for (;;) { const next = [...document.querySelectorAll(".conditionCtl")].find(button => !button.disabled && !button.classList.contains("on")); if (!next) break; next.click(); await wait(120); } const input = document.querySelector(".mainCtl"); input?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "mouse", isPrimary: true })); })()`,
           awaitPromise: true,
         });
+      }
+      if (screen.url.includes("qa=BOARD") && solveBoard) {
+        await page.send("Runtime.evaluate", { expression: "document.querySelector('.secretSolve')?.click()" });
+      }
+      if (screen.url.includes("qa=BOARD") && zoomBoardEvidence) {
+        await page.send("Runtime.evaluate", { expression: "document.querySelector('.pol.record')?.click()" });
       }
       if (autoDriveFinale && screen.name.includes("final_dock_race")) {
         await page.send("Page.bringToFront");

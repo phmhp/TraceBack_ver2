@@ -194,17 +194,17 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       { icon: "search", text: "입력을 재생하고 용의자를 하나씩 재서 반박·유력 도장을 찍어요." },
     ]} />
     <main className="dtLayout etLayout">
-      {/* top-left: case & evidence */}
+      {/* right: independent evidence rail */}
       <section className="etEvidence">
-        <header><b><Icon name="camera" /> 사건·증거</b><small>{scenario.title}</small><OpenBookButton caseId={caseId} /></header>
+        <header><b><Icon name="camera" /> 관찰·계측 증거</b><small>독립 증거 레일 · {scenario.title}</small><OpenBookButton caseId={caseId} /></header>
         <div className="polBoard">{pols.map(item => <button key={item.id} className={`pol ${item.kind} ${item.id === "record" && phase === "evidence" ? "find" : ""}`} onClick={() => { setZoomPol(item.id); play("pop"); }}>
           <i className="pin" /><span className="polPhoto">{item.photo}</span><b>{item.title}</b><small>{item.sub}</small>
         </button>)}</div>
       </section>
 
-      {/* top-right: whole-vehicle E/E board */}
+      {/* center: whole-vehicle reverse trace */}
       <section className={`etBoard phase-${phase}`} ref={boardRef}>
-        <header><b><Icon name="layers" /> 차량 E/E 아키텍처</b><small>{phase === "output" ? "증거에 나온 증상을 만드는 출력을 고르세요" : phase === "trace" ? `지금 출력: ${dom(focus).label}` : "센서 → 제어기 → CAN → 부품 → 차량"}</small></header>
+        <header><b><Icon name="layers" /> 중앙 도미노 역추적</b><small>{phase === "output" ? "증거에 나온 증상을 만드는 출력을 고르세요" : phase === "trace" ? `지금 출력: ${dom(focus).label}` : "센서 → 제어기 → CAN → 부품 → 차량"}</small></header>
         <svg className="etLines">{lines.map((l, i) => <path key={i} d={l.d} className={l.hot ? "hot" : "path"} />)}</svg>
         <div className="etZones">{ZONES.map(zone => <div key={zone} className="etZone">
           <small><Icon name={ZONE_ICON[zone]} /> {zone}</small>
@@ -214,9 +214,10 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
         {phase === "done" && <div className="etFall"><DominoFall chain={[...chain].reverse()} traps={traps} parentOf={id => chain.find(c => causesOf(c).includes(id)) ?? data.start} labelOf={id => dom(id).label} /></div>}
       </section>
 
-      {/* bottom: mugshot row */}
+      {/* bottom: tactile memo board */}
       <section className="etMugs">
-        {phase === "evidence" || phase === "output" ? <p className="etEmpty"><Icon name="detective" /> 출력을 고르면, 그 출력에 영향을 준 부품이 여기에 용의자로 올라와요.</p>
+        <header className="etMemoHead"><b><Icon name="pin" /> 역추적 메모판</b><small>관찰 사실과 최초 편차를 원인 후보와 분리해 기록합니다.</small><span><i>관찰</i><i>최초 편차</i><i>원인 후보</i></span></header>
+        {phase === "evidence" || phase === "output" ? <div className="etMemoSeed"><p className="etEmpty"><Icon name="detective" /> 출력을 고르면, 그 출력에 영향을 준 부품이 압정 카드로 올라와요.</p><div><span><small>관찰 사실</small><b>{start.label} 기준 이탈</b></span><span><small>최초 편차</small><b>아직 추적 전</b></span><span><small>원인 후보</small><b>검증 전에는 확정하지 않음</b></span></div></div>
           : phase === "trace" ? <><div className="etMugHead"><button className={`etReplay ${replayed ? "on" : ""}`} onClick={replay}>{replayed ? "✓ 입력 재생 중" : "▶ 고장 당시 입력 재생"}</button><small>지금 출력: {dom(focus).label} · 영향을 준 부품 {suspects.length}개</small></div>{suspects.map((id, k) => { const d = dom(id), st = mugStatus(id); return <article key={id} className={`etMug m-${st} ${shake === id ? "shake" : ""}`}>
             <header><span>용의자 {String(k + 1).padStart(2, "0")}</span><em className={`stamp st-${st}`}>{STAMP_KO[st]}</em></header>
             <div className="etMugPhoto"><Photo src={d.img} /><i className="etHeights" /></div>
