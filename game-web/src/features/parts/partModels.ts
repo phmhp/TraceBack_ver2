@@ -1103,20 +1103,6 @@ const DEFS: Record<string, Def> = {
       anchors: { in: [-.02, .022, .068], out: [.02, .022, .068] },
     }),
   },
-  // Parking lock actuator: motor can on a gear housing with an output shaft.
-  park_lock_actuator: {
-    ref: "drivetrain/reduction_gear__REF.png",
-    build: () => ({
-      statics: [
-        S("steel", cylX(.028, .08, 24), [-.06, .03, 0]),
-        S("castAl", rbox(.08, .07, .07, .01), [.01, .035, 0]),
-        S("steel", cyl(.01, .03, 12), [.01, .085, 0]),
-        S("steel", box(.04, .008, .012), [.025, .1, 0]),
-        ...within(connector(.022, .016, .016, 3, 1), [-.06, .065, 0], [-Math.PI / 2, 0, 0]),
-      ],
-      anchors: { in: [-.06, .083, 0], out: [.045, .1, 0] },
-    }),
-  },
   // Hall-type position sensor with pigtail (park position).
   position_sensor: {
     ref: "sensors/rotor_position_sensor__REF.png",
@@ -1193,33 +1179,244 @@ const DEFS: Record<string, Def> = {
       anchors: { in: [.06, .08, 0], out: [0, .36, 0] },
     }),
   },
-  // Air spring: rubber bellows between a top plate and a piston.
+  // ── Garage additions (images in intake/images/garage-additions) ──
+  // Insulation monitor: black sealed box on an aluminium base with four ears,
+  // orange two-pole HV sense connector and a black six-pin signal connector on the front.
+  isolation_monitor: {
+    ref: "garage-additions/isolation_monitor__REF.png",
+    build: () => ({
+      statics: [
+        S("castAl", rbox(.13, .008, .105, .003), [0, .004, 0]),
+        ...[-1, 1].flatMap(sx => [-1, 1].map(sz => S("castAl", ear(.016, .016, .006, .0035), [sx * .065, .003, sz * .03], [0, sx * Math.PI / 2, 0]))),
+        S("plastic", rbox(.11, .045, .09, .008), [0, .0305, 0]),
+        S("plastic", rbox(.09, .006, .07, .004), [0, .055, -.005]),
+        ...[-1, 1].flatMap(sx => [-1, 1].map(sz => S("steel", screwHead(.0035), [sx * .049, .054, sz * .039]))),
+        ...within(connector(.036, .034, .022, 2, 1, "hvOrange"), [-.028, .03, .045]),
+        ...within(connector(.026, .022, .016, 3, 2), [.024, .026, .045]),
+      ],
+      anchors: { in: [-.028, .03, .069], out: [.024, .026, .063] },
+    }),
+  },
+  // Park ECU: black lidded housing on an aluminium plate with two diagonal ears, one 2×10 connector.
+  park_ecu: {
+    ref: "garage-additions/park_ecu__REF.png",
+    build: () => ({
+      statics: [
+        S("castAl", rbox(.13, .01, .11, .004), [0, .005, 0]),
+        S("castAl", ear(.022, .02, .01, .004), [-.07, .005, .03], [0, -Math.PI / 2, 0]),
+        S("castAl", ear(.022, .02, .01, .004), [.07, .005, -.03], [0, Math.PI / 2, 0]),
+        S("plastic", rbox(.115, .04, .095, .008), [0, .03, 0]),
+        S("plastic", rbox(.08, .005, .065, .004), [0, .052, -.008]),
+        ...[-1, 1].flatMap(sx => [-1, 1].map(sz => S("steel", screwHead(.0035), [sx * .05, .051, sz * .041]))),
+        ...within(connector(.06, .028, .02, 10, 2), [0, .026, .047]),
+      ],
+      anchors: { in: [-.02, .026, .069], out: [.02, .026, .069] },
+    }),
+  },
+  // Chassis ECU: finned cast aluminium housing with a large and a small connector.
+  chassis_ecu: {
+    ref: "garage-additions/chassis_ecu__REF.png",
+    build: () => {
+      const w = .16, h = .045, d = .13;
+      return {
+        statics: [
+          ...finnedHousing(w, h, d, 10),
+          ...within(connector(.062, .03, .02, 9, 2), [-.03, .022, d / 2]),
+          ...within(connector(.038, .026, .018, 5, 2), [.04, .022, d / 2]),
+        ],
+        anchors: { in: [-.03, .022, d / 2 + .022], out: [.04, .022, d / 2 + .02] },
+      };
+    },
+  },
+  // Parking lock actuator: motor can on a cast gearbox, sealed connector on top,
+  // output shaft with a lever that swings when the lock engages.
+  park_lock_actuator: {
+    ref: "garage-additions/park_lock_actuator__REF.png",
+    build: () => {
+      const pivot: V3 = [.01, -.005, .052];
+      const lever: Spec[] = [
+        S("castAl", rbox(.016, .07, .006, .003), [.01 + .016, -.005 - .03, .058], [0, 0, .5]),
+        S("steel", cylZ(.006, .01, 14), [pivot[0], pivot[1], .06]),
+        S("steel", cylZ(.004, .008, 10), [.044, -.063, .06]),
+      ];
+      return {
+        statics: [
+          S("steel", cylX(.03, .075, 28), [-.07, 0, 0]),
+          S("plastic", cylX(.024, .012, 24), [-.112, 0, 0]),
+          S("castAl", cylX(.033, .008, 28), [-.03, 0, 0]),
+          S("castAl", rbox(.07, .08, .06, .012), [.01, 0, 0]),
+          S("castAl", cylZ(.03, .02, 28), [.01, -.005, .036]),
+          S("rubber", cylZ(.013, .006, 20), pivot),
+          ...[[-.02, .03], [.035, .03], [-.02, -.035]].map(([x, y]) => S("steel", screwHead(.004).rotateX(Math.PI / 2), [x, y, .031])),
+          S("castAl", ear(.022, .02, .008, .004), [.045, -.025, 0], [Math.PI / 2, 0, -Math.PI / 2]),
+          S("castAl", ear(.022, .02, .008, .004), [-.025, -.04, 0], [Math.PI / 2, 0, Math.PI]),
+          ...within(connector(.022, .018, .018, 3, 1), [-.005, .04, 0], [-Math.PI / 2, 0, 0]),
+        ],
+        moving: [{ name: "lever", pivot, axis: "z", mode: "press", range: .6, specs: lever }],
+        anchors: { in: [-.005, .06, 0], out: [.044, -.063, .066] },
+      };
+    },
+  },
+  // Park position sensor: round Hall sensor with one bushed ear, pigtail and a three-pin plug.
+  park_position_sensor: {
+    ref: "garage-additions/park_position_sensor__REF.png",
+    build: () => ({
+      statics: [
+        S("plastic", cyl(.017, .03, 24), [0, .015, 0]),
+        S("plastic", cyl(.019, .006, 24), [0, .028, 0]),
+        S("plastic", cyl(.013, .008, 24), [0, .035, 0]),
+        S("plastic", ear(.03, .018, .006, .005), [0, .022, 0], [0, Math.PI * .75, 0]),
+        S("steel", cyl(.005, .007, 12), [-.017, .022, .017]),
+        S("plastic", rbox(.014, .012, .016, .003), [.014, .028, -.012]),
+        S("rubber", tube([[.018, .03, -.018], [.05, .045, -.03], [.075, .035, 0], [.07, .02, .03]], .004, 24)),
+        S("wireRed", cylZ(.0012, .012, 6), [.067, .02, .036]),
+        S("hvOrange", cylZ(.0012, .012, 6), [.072, .02, .036]),
+        ...within(connector(.022, .016, .018, 3, 1), [.07, .02, .042]),
+      ],
+      anchors: { in: [0, 0, 0], out: [.07, .02, .062] },
+    }),
+  },
+  // Ride-height sensor: body bolted to the body (shaft toward the viewer), lever arm and
+  // a vertical link rod with ball joints down to the control arm. The arm turns with ride height.
+  ride_height_sensor: {
+    ref: "garage-additions/ride_height_sensor__REF.png",
+    build: () => {
+      const pivot: V3 = [0, .012, .03];
+      const arm: Spec[] = [
+        S("plastic", rbox(.12, .014, .008, .003), [.06, .012, .034]),
+        S("plastic", cylZ(.009, .012, 18), [.12, .012, .036]),
+        S("steel", cylZ(.004, .004, 12), [.12, .012, .043]),
+        S("steel", cyl(.0035, .07, 10), [.12, -.026, .042]),
+        S("steel", cyl(.005, .006, 6), [.12, -.002, .042]),
+        S("steel", cyl(.005, .006, 6), [.12, -.052, .042]),
+        S("plastic", cylZ(.009, .012, 18), [.12, -.066, .042]),
+        S("steel", cylZ(.004, .004, 12), [.12, -.066, .049]),
+      ];
+      return {
+        statics: [
+          S("plastic", rbox(.06, .05, .012, .004), [0, 0, .006]),
+          ...[-1, 1].map(sx => S("plastic", cylZ(.011, .012, 18), [sx * .036, -.012, .006])),
+          ...[-1, 1].map(sx => S("steel", cylZ(.005, .013, 12), [sx * .036, -.012, .006])),
+          S("plastic", cylZ(.019, .016, 24), [0, pivot[1], .02]),
+          S("plastic", cylZ(.016, .01, 24), pivot),
+          S("steel", cylZ(.006, .004, 14), [0, pivot[1], .036]),
+          ...within(connector(.022, .016, .016, 3, 1), [-.026, -.012, .012], [0, -Math.PI / 2, 0]),
+        ],
+        moving: [{ name: "arm", pivot, axis: "z", mode: "press", range: .35, specs: arm }],
+        anchors: { in: [.12, -.066, .05], out: [-.044, -.012, .012] },
+      };
+    },
+  },
+  // Air spring: steel top plate with studs and an air fitting, rolling rubber bellows, piston and lower eye.
   air_spring: {
-    ref: "steering-suspension/strut_assembly__REF.png",
-    build: () => ({
-      statics: [
-        ...within([S("rubber", bellowsX(.16, .07, .07, 3))], [0, .12, 0], [0, 0, Math.PI / 2]),
-        S("steel", cyl(.075, .01, 28), [0, .205, 0]),
-        S("gunmetal", cyl(.045, .07, 24), [0, .035, 0]),
-        S("steel", cyl(.005, .03, 8), [.04, .225, 0]),
-      ],
-      anchors: { in: [.04, .24, 0], out: [0, 0, 0] },
-    }),
+    ref: "garage-additions/air_spring__REF.png",
+    build: () => {
+      const prof: [number, number][] = [[0, .04], [.048, .04], [.058, .055]];
+      for (let i = 0; i < 14; i++) prof.push([i % 2 ? .06 : .057, .062 + i * .009]);
+      prof.push([.064, .19], [.066, .215], [.063, .238], [.058, .25], [0, .25]);
+      return {
+        statics: [
+          S("rubber", new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 32)),
+          S("rubber", torusZ(.06, .004, 32).rotateX(Math.PI / 2), [0, .25, 0]),
+          S("steel", cyl(.06, .008, 32), [0, .256, 0]),
+          ...[[-.03, -.02], [.0, .035], [.02, -.01]].map(([x, z]) => S("steel", cyl(.0035, .03, 8), [x, .275, z])),
+          S("castAl", cyl(.008, .008, 12), [.035, .264, .015]),
+          S("copper", cyl(.005, .01, 6), [.035, .272, .015]),
+          S("plastic", cylX(.005, .018, 10), [.044, .282, .015]),
+          S("coolant", cylX(.006, .005, 12), [.055, .282, .015]),
+          S("plastic", cyl(.045, .035, 28), [0, .02, 0]),
+          S("castAl", box(.022, .02, .02), [0, -.008, 0]),
+          S("rubber", cylZ(.014, .018, 20), [0, -.024, 0]),
+          S("steel", cylZ(.006, .02, 12), [0, -.024, 0]),
+        ],
+        anchors: { in: [.058, .282, .015], out: [0, -.038, 0] },
+      };
+    },
   },
-  // Air compressor with valve block.
+  // Air suspension compressor: finned compressor head, motor can, dryer on top, solenoid valve block,
+  // all on a black plate with rubber mounts.
   air_compressor: {
-    ref: "steering-suspension/strut_assembly__CUT.png",
-    build: () => ({
-      statics: [
-        S("steel", cylX(.035, .1, 24), [-.05, .04, 0]),
-        S("castAl", rbox(.07, .08, .07, .01), [.04, .04, 0]),
-        S("plastic", rbox(.05, .03, .05, .006), [.04, .095, 0]),
-        S("steel", cyl(.004, .03, 8), [.06, .125, 0]),
-        ...within(connector(.022, .016, .016, 3, 1), [-.05, .078, 0], [-Math.PI / 2, 0, 0]),
-      ],
-      anchors: { in: [-.05, .096, 0], out: [.06, .14, 0] },
-    }),
+    ref: "garage-additions/air_compressor__REF.png",
+    build: () => {
+      const statics: Spec[] = [
+        S("plastic", box(.2, .008, .1), [0, .03, 0]),
+        ...[-1, 1].flatMap(sx => [-1, 1].map(sz => S("rubber", cyl(.012, .022, 16), [sx * .085, .013, sz * .04]))),
+        ...[-1, 1].flatMap(sx => [-1, 1].map(sz => S("steel", cyl(.005, .008, 6), [sx * .085, .036, sz * .04]))),
+        S("steel", cylX(.04, .09, 28), [.015, .08, 0]),
+        S("plastic", cylX(.042, .01, 28), [-.03, .08, 0]),
+        S("plastic", cylX(.036, .012, 28), [.064, .08, 0]),
+        S("castAl", rbox(.055, .09, .08, .008), [-.06, .08, 0]),
+        S("castAl", cylX(.026, .006, 24), [-.09, .07, 0]),
+        S("castAl", rbox(.05, .02, .07, .005), [-.06, .135, 0]),
+        S("plastic", rbox(.08, .04, .05, .006), [-.005, .14, 0]),
+        S("castAl", box(.06, .024, .03), [.08, .155, -.015]),
+        S("plastic", box(.012, .06, .03), [.08, .11, -.025]),
+        S("rubber", tube([[-.04, .16, .0], [-.03, .2, .0], [.03, .2, .0], [.05, .16, -.01]], .004, 24)),
+        S("rubber", tube([[.11, .155, -.015], [.13, .14, .0], [.12, .1, .01], [.09, .08, .01]], .003, 20)),
+        ...within(connector(.022, .018, .016, 2, 2), [.07, .08, 0], [0, Math.PI / 2, 0]),
+      ];
+      for (let i = 0; i < 4; i++) statics.push(S("castAl", box(.05, .004, .082), [-.06, .05 + i * .016, 0]));
+      for (let i = 0; i < 3; i++) {
+        statics.push(S("plastic", rbox(.016, .022, .018, .003), [.062 + i * .018, .178, -.015]));
+        statics.push(S("copper", cyl(.005, .006, 10), [.062 + i * .018, .166, -.015]));
+      }
+      return { statics, anchors: { in: [.088, .08, 0], out: [.11, .155, -.015] } };
+    },
   },
+  // Electronically controlled damper (CDC): black body with steel bands, side solenoid valve and
+  // connector, piston rod and eyes. The rod moves in and out with the input.
+  cdc_damper: {
+    ref: "garage-additions/cdc_damper__REF.png",
+    build: () => {
+      const eye = (y: number): Spec[] => [
+        S("plastic", cylZ(.017, .02, 22), [0, y, 0]),
+        S("steel", cylZ(.008, .022, 14), [0, y, 0]),
+      ];
+      return {
+        statics: [
+          S("plastic", cyl(.026, .17, 28), [0, .12, 0]),
+          S("steel", cyl(.0265, .008, 28), [0, .19, 0]),
+          S("steel", cyl(.0265, .008, 28), [0, .055, 0]),
+          S("plastic", cyl(.024, .008, 28), [0, .208, 0]),
+          S("plastic", cyl(.012, .012, 16), [0, .03, 0]),
+          ...eye(.012),
+          S("plastic", box(.012, .05, .02), [.03, .11, 0]),
+          S("castAl", cyl(.012, .018, 20), [.042, .125, 0]),
+          S("steel", cyl(.005, .008, 6), [.042, .138, 0]),
+          S("plastic", rbox(.02, .03, .02, .004), [.042, .105, 0]),
+          ...within(connector(.018, .014, .014, 2, 1), [.052, .1, 0], [0, Math.PI / 2, 0]),
+        ],
+        moving: [{ name: "rod", pivot: [0, .212, 0], axis: "y", mode: "push", range: .03, specs: [
+          S("steel", cyl(.009, .09, 16), [0, .255, 0]),
+          S("plastic", cyl(.012, .008, 16), [0, .298, 0]),
+          ...eye(.315),
+        ] }],
+        anchors: { in: [.066, .1, 0], out: [0, .33, 0] },
+      };
+    },
+  },
+  // EPS power pack: steering motor can with its controller/inverter housing built onto the end.
+  eps_power_pack: {
+    ref: "garage-additions/eps_power_pack__REF.png",
+    build: () => {
+      const statics: Spec[] = [
+        S("castAl", cylX(.05, .1, 32), [-.07, 0, 0]),
+        S("castAl", cylX(.046, .01, 32), [-.125, 0, 0]),
+        S("steel", cylX(.01, .02, 14), [-.14, 0, 0]),
+        S("rubber", cylX(.051, .006, 32), [-.02, 0, 0]),
+        S("castAl", rbox(.08, .1, .1, .01), [.025, 0, 0]),
+        S("castAl", ear(.02, .02, .01, .005), [-.005, .05, 0], [Math.PI / 2, 0, 0]),
+        S("castAl", ear(.02, .02, .01, .005), [-.04, -.05, .02], [-Math.PI / 2, 0, 0]),
+        ...[-1, 1].flatMap(sy => [-1, 1].map(sz => S("steel", screwHead(.0035).rotateZ(Math.PI / 2), [.066, sy * .042, sz * .042]))),
+        ...within(connector(.03, .028, .02, 2, 1), [.065, .022, .0], [0, Math.PI / 2, 0]),
+        S("hvOrange", box(.002, .012, .02), [.0865, .022, 0]),
+        ...within(connector(.028, .022, .018, 4, 2), [.065, -.024, .0], [0, Math.PI / 2, 0]),
+      ];
+      for (let i = 0; i < 5; i++) statics.push(S("castAl", box(.07, .004, .07), [.025, .052, -.03 + i * .015]));
+      return { statics, anchors: { in: [.085, -.024, 0], out: [-.15, 0, 0] } };
+    },
+  },
+
   // Body corner: a piece of floor pan and sill where the suspension pushes on the body.
   body_shell: {
     ref: "steering-suspension/strut_assembly__REF.png",
@@ -1238,7 +1435,7 @@ const DEFS: Record<string, Def> = {
 /** Parts modelled so far, in build order. */
 export const PART_MODEL_IDS = Object.keys(DEFS);
 /** Garage-only parts (not simulation components). Their anchors are "in" / "out". */
-export const VISUAL_ONLY_IDS = ["can_harness", "hv_cable", "steering_torque_sensor", "steering_column", "imu_sensor", "cell_monitor_board", "hv_junction_box", "charging_port", "obc", "dcdc_converter", "lv_battery", "instrument_cluster", "generic_ecu", "park_lock_actuator", "position_sensor", "height_sensor", "coolant_valve", "radiator", "coil_spring", "damper", "air_spring", "air_compressor", "body_shell"];
+export const VISUAL_ONLY_IDS = ["can_harness", "hv_cable", "steering_torque_sensor", "steering_column", "imu_sensor", "cell_monitor_board", "hv_junction_box", "charging_port", "obc", "dcdc_converter", "lv_battery", "instrument_cluster", "generic_ecu", "park_lock_actuator", "position_sensor", "height_sensor", "coolant_valve", "radiator", "coil_spring", "damper", "air_spring", "air_compressor", "body_shell", "isolation_monitor", "park_ecu", "chassis_ecu", "park_position_sensor", "ride_height_sensor", "cdc_damper", "eps_power_pack"];
 
 const cache = new Map<string, PartModel>();
 
