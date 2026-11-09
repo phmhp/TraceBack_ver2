@@ -377,6 +377,12 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
 // 2) after a good connection, an example-input slider shows the value leaving every block (explore, nothing graded)
 // 3) the player decides "요구사항과 같아요 → 기준 확정"; only then is the requirement checked (wrong table → explained)
 // 4) the confirmed reference becomes the expected-value card that the bench uses as its dashed baseline.
+// What the finished rig is for: the hypotheses the bench will tell apart with it.
+const RIG_GOAL: Record<CaseId, string> = {
+  propulsion: "VCU 계산 SW 문제인지, 입력 회로 문제인지",
+  thermal: "팬 제어 SW, 출력단·배선·전원, 팬 모터 중 어디인지",
+  brake: "배분 SW, 유압 경로, 캘리퍼 중 어디인지",
+};
 const SPEC: Record<CaseId, { text: string; input?: { label: string; unit: string; min: number; max: number; at: number }; expect: string }> = {
   propulsion: { text: "페달 0~100% → 토크 요청 0~340 Nm 선형 · 가용 토크 한계 260 Nm(BMS·온도) · D단·READY일 때만 통과",
     input: { label: "가속 페달", unit: "%", min: 0, max: 100, at: 60 }, expect: "페달 60% → 토크 요청 204 Nm → 모터 204 Nm" },
@@ -528,7 +534,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       { icon: "clipboard", text: "요구사항과 같으면 '기준 확정'. 이 값이 검증 단계의 기대값이 돼요." },
     ]} />
     <header className="rpHead">
-      <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p>요구사항을 읽고 정상 동작이 되도록 빈칸을 채우세요. <b>값의 단위가 바뀌는 곳</b>(예: % → Nm)이 단서예요.</p></div>
+      <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p><b>목표</b> 검증에 쓸 정상 기준 장치를 완성해요 · <b>가려낼 가설</b> {RIG_GOAL[caseId]}</p></div>
       <div className="rpTools">
         <button onClick={openNote} disabled={!noteReady} title={noteReady ? "" : "한 번 확인해 본 뒤 열 수 있어요"}><Icon name="book" /> 차고 노트{noteUsed ? "" : noteReady ? " · -5m" : " · 확인 후"}</button>
         <button onClick={reset}>↺ 초기화</button>
