@@ -360,5 +360,38 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
 .sharedDialogue { right: 108px !important; max-width: calc(100% - 140px) !important; }
 .softwareView { padding-bottom: 92px !important; }
 .inputBar .ctlBtn { flex: none; white-space: nowrap; }
+
+/* ── V4 STEP 01: stable three-view frame and controls ── */
+.garageViewTools { flex: 0 0 72px; height: 72px; min-height: 72px; box-sizing: border-box; margin: 0 2px 2px; }
+.garageViewContext { height: 100%; box-sizing: border-box; display: grid; align-content: center; gap: 4px; padding: 8px 9px; border: 1px solid #ecd9c4; border-radius: 10px; background: #fff7ee; color: #5b4636; }
+.garageViewContext b { font: 700 11.5px/1.2 Pretendard, system-ui; }
+.garageViewContext span { font: 500 10.5px/1.3 Pretendard, system-ui; color: #8a7a6a; word-break: keep-all; }
+.garageViewTools .eeLayerSwitch { height: 100%; box-sizing: border-box; margin: 0; padding: 5px 6px; align-content: center; }
+.garageViewTools .eeLayerSwitch em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.garageV2 .garageLayerNav > button { flex: 0 0 78px; min-height: 78px !important; height: 78px; box-sizing: border-box; transform: none !important; }
+.garageV2 .garageLayerNav > button.active { transform: none !important; }
+.garageV2 .garageStudio { grid-template-rows: 44px minmax(0, 1fr) 122px !important; }
+.garageV2 .garageMechanismCard, .garageV2 .domainFunctionShelf { min-height: 0; }
+.garageV2 .garageFlowPanel { min-height: 122px; height: 122px; box-sizing: border-box; }
+.inputBar { width: min(94%, 590px); justify-content: center; }
+.inputBar .ctlBtn { width: 124px; min-width: 124px; height: 40px; box-sizing: border-box; justify-content: flex-start; padding: 0 10px; }
+.inputBar .ctlBtn > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.inputBar .mainCtl { width: 190px; min-width: 190px; }
+.inputBar .mainCtl small { margin-left: auto; }
+.garageMechanismCard > .swStepControls { position: absolute; z-index: 9; right: 14px; top: 14px; display: flex; gap: 6px; }
+.garageMechanismCard > .swStepControls .ctlBtn { width: 82px; min-width: 82px; height: 32px; justify-content: center; padding: 0 8px; border-radius: 9px; border: 1.5px solid #cdb79a; background: #fffdf6; color: #5b4636; font: 700 12px Pretendard, system-ui; box-shadow: 0 2px 0 #cdb79a; cursor: pointer; }
+.stageIntro { z-index: 500 !important; }
+.garageV2 .gameHeader { z-index: 30 !important; }
+.garageV2 .garageLayerNav, .garageV2 .garageStudio { z-index: 10 !important; }
+
+@media (max-width: 1120px) {
+  .garageV2 .garageLayerNav { top: 124px !important; bottom: 137px !important; width: 162px !important; height: auto !important; padding: 9px !important; gap: 5px !important; }
+  .garageV2 .garageStudio { left: 195px !important; right: 12px !important; grid-template-columns: minmax(0, 1fr) 226px !important; gap: 8px !important; }
+  .garageV2 .garageLayerNav > button { flex-basis: 88px; min-height: 88px !important; height: 88px; padding: 8px 7px 8px 38px !important; }
+  .garageViewTools { flex-basis: 68px; height: 68px; min-height: 68px; }
+  .inputBar { width: 96%; gap: 5px; }
+  .inputBar .ctlBtn { width: 112px; min-width: 112px; padding: 0 8px; font-size: 12px; }
+  .inputBar .mainCtl { width: 176px; min-width: 176px; }
+}
 /* arrest record: the stamp sits over the photos, never over the note text */
 .is-caught .cfStamp { bottom: auto !important; top: 26% !important; right: 34% !important; font-size: 40px !important; padding: 2px 18px !important; opacity: .9; }

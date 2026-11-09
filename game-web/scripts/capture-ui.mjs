@@ -15,6 +15,8 @@ const viewportWidth = Math.max(800, Number(process.env.TRACEBACK_CAPTURE_WIDTH |
 const viewportHeight = Math.max(600, Number(process.env.TRACEBACK_CAPTURE_HEIGHT || 900));
 const autoDriveFinale = process.env.TRACEBACK_CAPTURE_AUTODRIVE === "1";
 const shipCaptureDistance = process.env.TRACEBACK_CAPTURE_SHIP_DISTANCE;
+const skipIntros = process.env.TRACEBACK_CAPTURE_SKIP_INTROS === "1";
+const printMetrics = process.env.TRACEBACK_CAPTURE_METRICS === "1";
 
 const screens = [
   { name: "00_title.png", url: "/?new=1", wait: 1200 },
@@ -202,6 +204,11 @@ async function main() {
     await page.send("Runtime.enable");
     await page.send("Emulation.setDeviceMetricsOverride", { width: viewportWidth, height: viewportHeight, deviceScaleFactor: 1, mobile: false });
     await page.send("Emulation.setVisibleSize", { width: viewportWidth, height: viewportHeight });
+    if (skipIntros) {
+      await page.send("Page.addScriptToEvaluateOnNewDocument", {
+        source: `["garage","puzzle","puzzle-v2","trace-v2","trace-v3","bench","bench-qa","bench-qa2"].forEach(id => localStorage.setItem("tb-intro-" + id, "1"));`,
+      });
+    }
 
     for (const [index, screen] of selectedScreens.entries()) {
       const loaded = page.waitFor("Page.loadEventFired");
@@ -237,6 +244,13 @@ async function main() {
         expression: "new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))",
         awaitPromise: true,
       });
+      if (printMetrics) {
+        const metrics = await page.send("Runtime.evaluate", {
+          expression: `JSON.stringify(Object.fromEntries([".garageLayerNav",".garageStudio",".garageMechanismCard",".domainFunctionShelf",".garageFlowPanel",".inputBar"].map(selector => { const element = document.querySelector(selector); if (!element) return [selector, null]; const box = element.getBoundingClientRect(); return [selector, { x: box.x, y: box.y, width: box.width, height: box.height }]; })))`,
+          returnByValue: true,
+        });
+        process.stdout.write(`[metrics] ${screen.name} ${metrics.result?.value ?? "{}"}\n`);
+      }
       const { data } = await page.send("Page.captureScreenshot", {
         format: "png", fromSurface: true, captureBeyondViewport: false,
       });

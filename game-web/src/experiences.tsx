@@ -1001,7 +1001,11 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     ]} />
     <nav className="garageLayerNav" aria-label="설계 추상화 단계">
       <small className="viewAxisLabel">같은 기능, 세 관점</small>
-      {chosen && routeLevel === 1 && <div className="eeLayerSwitch" role="group" aria-label="E/E 보기"><span>E/E 보기</span><div>{([["logic", "연결"], ["mix", "겹쳐"], ["part", "실제 부품"]] as const).map(([id, label]) => <button key={id} className={eeLayer === id ? "on" : ""} onClick={() => { setEeLayer(id); play("pop"); }}>{label}</button>)}</div><em>논리 배치는 실제 위치가 아니에요</em></div>}
+      <div className="garageViewTools">
+        {chosen && routeLevel === 1
+          ? <div className="eeLayerSwitch" role="group" aria-label="E/E 보기"><span>E/E 보기</span><div>{([["logic", "연결"], ["mix", "겹쳐"], ["part", "실제 부품"]] as const).map(([id, label]) => <button key={id} className={eeLayer === id ? "on" : ""} onClick={() => { setEeLayer(id); play("pop"); }}>{label}</button>)}</div><em>논리·물리 관점을 바꿔 봅니다</em></div>
+          : <div className="garageViewContext"><b>{routeLevel === 0 ? "부품 위치 보기" : "판단 흐름 보기"}</b><span>{routeLevel === 0 ? "차량 안에서 어디가 움직이는지 봅니다" : "입력부터 출력까지 한 단계씩 봅니다"}</span></div>}
+      </div>
       {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={`${routeLevel === index ? "active" : ""} ${!chosen && index > 0 ? "needsDomain" : ""}`} title={!chosen && index > 0 ? "도메인을 먼저 고르면 열려요" : ""}>
         <span>{String(index + 1).padStart(2, "0")}</span><b>{layer.name}</b><small>{!chosen && index > 0 ? "도메인을 고르면 열려요" : layer.tag}</small>
       </button>)}
@@ -1015,10 +1019,10 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {chosen && <div className="inputBar" aria-label="입력 넣기">
           <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (cleared ? "출력까지 전달됐어요" : "조건을 켠 뒤 입력을 꾹 누르세요")}</p>
-          {mission.needs.map(item => <button key={item.id} className={`ctlBtn ${conds.has(item.id) ? "on" : ""}`} onClick={() => { setConds(previous => { const next = new Set(previous); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next; }); setGateMsg(""); play("pop", conds.has(item.id) ? .8 : 1.15); }}><i>{conds.has(item.id) ? "✓" : ""}</i>{item.label}</button>)}
-          <button className={`ctlBtn mainCtl ${applying ? "pressing" : ""}`} onPointerDown={event => { event.preventDefault(); setApplying(true); }} onPointerUp={() => setApplying(false)} onPointerLeave={() => setApplying(false)} onPointerCancel={() => setApplying(false)}><i>▶</i>{INPUT_ACTION[domain]} <small>꾹 · Space</small></button>
-          {routeLevel === 2 && <><button className="ctlBtn" onClick={() => { setApplyState("idle"); setActiveStep(0); play("pop"); }}><i>⏮</i>처음</button><button className="ctlBtn" onClick={() => { if (missing.length) { setGateMsg(missing[0].why); play("error"); return; } setActiveStep(value => Math.min(getFeatureLayer(domain, feature, 3).length - 1, value + 1)); play("pop", 1.1); }}><i>▶</i>한 단계</button></>}
+          {mission.needs.map((item, index) => <button key={item.id} className={`ctlBtn conditionCtl ${conds.has(item.id) ? "on" : ""}`} onClick={() => { setConds(previous => { const next = new Set(previous); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next; }); setGateMsg(""); play("pop", conds.has(item.id) ? .8 : 1.15); }}><i>{conds.has(item.id) ? "✓" : index + 1}</i><span>{item.label}</span></button>)}
+          <button className={`ctlBtn mainCtl ${applying ? "pressing" : ""}`} onPointerDown={event => { event.preventDefault(); setApplying(true); }} onPointerUp={() => setApplying(false)} onPointerLeave={() => setApplying(false)} onPointerCancel={() => setApplying(false)}><i>{mission.needs.length + 1}</i><span>{INPUT_ACTION[domain]}</span><small>꾹 · Space</small></button>
         </div>}
+        {chosen && routeLevel === 2 && <div className="swStepControls" aria-label="제어 소프트웨어 단계 조작"><button className="ctlBtn" onClick={() => { setApplyState("idle"); setActiveStep(0); play("pop"); }}>처음</button><button className="ctlBtn" onClick={() => { if (missing.length) { setGateMsg(missing[0].why); play("error"); return; } setActiveStep(value => Math.min(getFeatureLayer(domain, feature, 3).length - 1, value + 1)); play("pop", 1.1); }}>한 단계</button></div>}
         {SHOW_EE_TABS && chosen && routeLevel === 1 && (() => {
           const parts = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
           const pullOut = (index: number) => { setRemoved(index); setActiveStep(index); setEcuCard(null); setTriedRemovals(previous => new Set(previous).add(`${domain}-${feature}-${index}`)); play("squish"); };
