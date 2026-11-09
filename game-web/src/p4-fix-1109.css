@@ -360,3 +360,5 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
 .sharedDialogue { right: 108px !important; max-width: calc(100% - 140px) !important; }
 .softwareView { padding-bottom: 92px !important; }
 .inputBar .ctlBtn { flex: none; white-space: nowrap; }
+/* arrest record: the stamp sits over the photos, never over the note text */
+.is-caught .cfStamp { bottom: auto !important; top: 26% !important; right: 34% !important; font-size: 40px !important; padding: 2px 18px !important; opacity: .9; }

@@ -2,6 +2,7 @@
 // - escaped: a WANTED poster (Lou & Ming portraits + bounty) next to the case brief
 // - caught:  a police booking sheet (mugshots in prison stripes) next to the same brief
 // The case brief summarises every fault case: symptom → evidence → cause → verified repair.
+import { DRIVER, ENGINEER } from "../game/cast";
 import React from "react";
 import type { Campaign, CaseId } from "../game/runtime";
 import { SCENARIOS } from "../game/scenarios";
@@ -13,8 +14,8 @@ const SHEET = `${A}cutscene-character-master-v1.png`; // 1536 × 1024 turnaround
 const SHEET_W = 1536, SHEET_H = 1024;
 // Front-view head-and-shoulders crops on the sheet (x, y, w, h).
 const CATS = [
-  { id: "lou", name: "LOU", role: "드라이버", crop: [40, 20, 250, 300] },
-  { id: "ming", name: "MING", role: "엔지니어", crop: [40, 510, 250, 300] },
+  { id: "lou", name: DRIVER, role: "드라이버", crop: [40, 20, 250, 300] },
+  { id: "ming", name: ENGINEER, role: "엔지니어", crop: [40, 510, 250, 300] },
 ] as const;
 
 const cropStyle = ([x, y, w, h]: readonly number[]): React.CSSProperties => ({
@@ -192,7 +193,7 @@ function CaseBrief({ state, escaped }: { state: Campaign; escaped: boolean }) {
   const [safety, setSafety] = React.useState(false);
   return <section className="cfBrief">
     <header className="cfBriefHead">
-      <small>{escaped ? "CASE FILE // TB-16 · CLOSED" : "CASE FILE // TB-16 · ARREST REPORT"}</small>
+      <small>{escaped ? "사건 파일 TB-16 · 종결" : "사건 파일 TB-16 · 체포 보고"}</small>
       <h2>사건 발생 개요</h2>
       <div className="cfLens" role="group" aria-label="보기 관점">
         <button className={safety ? "" : "on"} onClick={() => setSafety(false)}><Icon name="wrench" /> 고장 추적</button>
@@ -228,9 +229,9 @@ export function WantedEnding({ state, send }: { state: Campaign; send: React.Dis
           <div className="cfPhoto" style={cropStyle(cat.crop)} />
           <figcaption><b>{cat.name}</b><span>{cat.role}</span></figcaption>
         </figure>)}</div>
-        <div className="cfBounty"><small>REWARD</small><b>₩ {bounty.toLocaleString()}</b></div>
+        <div className="cfBounty"><small>현상금</small><b>₩ {bounty.toLocaleString()}</b></div>
         <p className="cfNote">고장 난 차를 달리면서 고쳐 부두에서 배로 탈출함. 최종 목격 지점: 네오 베이 항만 램프.</p>
-        <span className="cfStamp">ESCAPED</span>
+        <span className="cfStamp">탈출 성공</span>
       </section>
       <CaseBrief state={state} escaped />
       <div className="cfActions">
@@ -247,7 +248,7 @@ export function BustedEnding({ state, send }: { state: Campaign; send: React.Dis
     <SceneBackdrop image={`${A}stitch23/fail-rain.png`} position="center" shade="deep" />
     <div className="cfSheet">
       <section className="cfPoster cfBooking">
-        <header><small>NEO BAY POLICE DEPT.</small><h1>BOOKING RECORD</h1></header>
+        <header><small>네오베이 경찰서</small><h1>체포 기록</h1></header>
         <div className="cfPhotos">{CATS.map((cat, index) => <figure key={cat.id}>
           <div className="cfMug">
             <div className="cfPhoto" style={cropStyle(cat.crop)} />
@@ -258,7 +259,7 @@ export function BustedEnding({ state, send }: { state: Campaign; send: React.Dis
         </figure>)}</div>
         <p className="cfNote">체포 지점: {Math.round(state.raceDistance).toLocaleString()} m · 진행 중이던 사건: {scenario.chapter}</p>
         <p className="cfTip">고장 원인을 더 빨리 좁힐수록 추격차와의 격차가 덜 줄어요. 증거를 다시 확인해 보세요.</p>
-        <span className="cfStamp">ARRESTED</span>
+        <span className="cfStamp">체포</span>
       </section>
       <CaseBrief state={state} escaped={false} />
       <div className="cfActions">

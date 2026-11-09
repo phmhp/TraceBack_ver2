@@ -13,7 +13,7 @@ type Scenario = {
 export const SCENARIOS: Record<CaseId, Scenario> = {
   propulsion: {
     title: "가속 페달 입력 대비 가속 성능 저하",
-    chapter: "CASE 01 · ACCELERATION RESPONSE",
+    chapter: "사건 1 · 가속 응답",
     symptom: "가속 페달을 절반 이상 밟았지만 차가 힘없이 천천히 가속합니다.",
     root: "gateway",
     repair: "페달 신호 변환 비율을 정상 값으로 복원",
@@ -32,7 +32,7 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
   },
   thermal: {
     title: "장시간 고속 주행 후 출력 제한·경고등 점등",
-    chapter: "CASE 02 · POWER DOWN",
+    chapter: "사건 2 · 출력 제한",
     symptom: "고속으로 오래 달리자 파워다운 표시등이 켜지고 가속이 약해졌습니다.",
     root: "fan_actuator",
     repair: "냉각 팬 액추에이터 응답 복원",
@@ -50,7 +50,7 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
   },
   brake: {
     title: "제동 페달 입력 대비 감속 부족",
-    chapter: "OPTIONAL · BRAKE RESPONSE",
+    chapter: "선택 사건 · 제동 응답",
     symptom: "브레이크 페달을 밟았지만 회생제동만 작동하고 마찰제동 반응이 약합니다.",
     root: "brake_actuator", // id kept for saves; the fault is pressure delivery in the hydraulic path (vehicleSim brakePressureGain 0.19)
     repair: "유압 경로 압력 전달 복원",
