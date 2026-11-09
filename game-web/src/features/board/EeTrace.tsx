@@ -229,6 +229,14 @@ const TRACE: Record<string, { chain: TNode[]; signals: string[]; first: number }
     { label: "차량 감속", role: "result", dom: "decel" }] },
 };
 
+// Zoom into the first deviation like a subsystem: only the boundary values are known; the inside stays "?"
+// until verification (the trace narrows the suspect section, it does not convict a block).
+const SUBSYS: Record<string, { where: string; inLabel: string; outLabel: string; stages: string[] }> = {
+  propulsion: { where: "VCU", inLabel: "페달 신호 60%", outLabel: "토크 명령 92 Nm (기준 204)", stages: ["입력 회로", "페달 처리", "토크 계산"] },
+  thermal: { where: "냉각 팬 구동 경로", inLabel: "팬 명령 100%", outLabel: "팬 회전 0 rpm (기준 1850)", stages: ["ECU 출력단", "배선·전원", "팬 모터"] },
+  brake: { where: "유압 경로", inLabel: "압력 명령 42 bar", outLabel: "캘리퍼 압력 8 bar (기준 42)", stages: ["유압 모듈", "브레이크 라인", "캘리퍼"] },
+};
+
 export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
   const caseId = state.caseId;
   const scenario = SCENARIOS[caseId];
@@ -299,6 +307,9 @@ export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
       <section className={`tbBoard ${picking ? "picking" : ""}`}>
         <header><b><Icon name="layers" /> 차량 E/E 아키텍처</b><small>{picking ? "처음 어긋난 부품을 누르세요" : "부품을 눌러 재기 · 신호는 → 방향으로 흘러요"}</small></header>
         <EeBlueprint chain={chain.map(node => node.label)} roles={chain.map(node => node.role)} active={chain.length} removed={null} onPick={pick} signals={trace.signals} marks={marks} />
+        {found && SUBSYS[caseId] && <div className="etZoom" aria-label="처음 어긋난 곳 들여다보기"><b><Icon name="search" /> {SUBSYS[caseId].where} 안 들여다보기</b>
+          <div className="etZoomRow"><span className="io ok">들어오는 값<em>{SUBSYS[caseId].inLabel}</em></span>{SUBSYS[caseId].stages.map(st => <React.Fragment key={st}><i>→</i><span className="stage">{st}<em>?</em></span></React.Fragment>)}<i>→</i><span className="io bad">나가는 값<em>{SUBSYS[caseId].outLabel}</em></span></div>
+          <small>안쪽 중 어디가 원인인지는 아직 몰라요. 검증 단계에서 시험으로 가려요.</small></div>}
       </section>
       <aside className="tbEvidence">
         <header><b><Icon name="camera" /> 증거</b><small>{scenario.title}</small></header>

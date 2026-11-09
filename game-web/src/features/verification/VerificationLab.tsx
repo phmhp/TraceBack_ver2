@@ -798,6 +798,22 @@ function SeriesTrace({ sig, upto, probed }: { sig: Series; upto: number; probed:
 }
 const clampTo = (v: number) => Math.max(0, Math.min(1.05, v));
 
+/** Normal scenario (dashed, full) overlaid with this test (solid, drawn up to `upto`); red mark = first divergence. */
+function OverlayGraph({ list, upto, look }: { list: Series[]; upto: number; look: Set<string> }) {
+  return <div className="ovGraph">
+    <p className="ovLegend"><i className="ref" /> 정상 시나리오 <i className="run" /> 이번 시험 <i className="split" /> 처음 달라진 때</p>
+    {list.map(sig => {
+      const n = sig.ref.length - 1, last = Math.round(upto * n), d = divergeIndex(sig);
+      const y = (v: number) => (34 - clampTo(v / sig.max) * 30).toFixed(1);
+      const pts = (arr: number[], to: number) => arr.slice(0, to + 1).map((v, i) => `${(i / n * 200).toFixed(1)},${y(v)}`).join(" ");
+      return <div key={sig.id} className={`ovRow ${look.has(sig.id) ? "look" : ""}`}>
+        <span>{sig.name}<small>{sig.unit}</small></span>
+        <svg className="vbTrace" viewBox="0 0 200 36" preserveAspectRatio="none"><polyline className="ref" points={pts(sig.ref, n)} />{upto > 0 && <polyline className={`run ${d === null ? "ok" : ""}`} points={pts(sig.run, last)} />}{d !== null && upto > 0 && last >= d && <g className="split"><line x1={d / n * 200} y1="0" x2={d / n * 200} y2="36" /></g>}</svg>
+      </div>;
+    })}
+  </div>;
+}
+
 // ===== Bench v7 (docs/REDESIGN_2026-11-08.md §2) =====
 // Mission A · 정상 시나리오 확인: requirement input — does this level behave as the requirement says?
 // Mission B · 고장 재현: field condition — does the same symptom come back, and where does it first split?
@@ -1296,8 +1312,8 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
 // The card states the prediction ("if this suspect is the cause, this test must show …") and which parts are real
 // in the chosen test, so the answer is reasoned from expectation vs. observation, not guessed.
 const PREDICT: Record<string, string> = {
-  vcu_sw: "VCU SW가 원인이라면: SW만 PC에서 돌려도 '페달 처리값'이 기준보다 낮게 나와요. 제어기·차량 시험 표에는 VCU 안쪽 값('페달 처리값')이 없어서, SW 탓인지 입력 회로 탓인지 구별할 수 없어요.",
-  vcu_hw: "입력 회로가 원인이라면: 입력 회로가 빠진 'SW만 PC' 시험에서는 '페달 처리값'이 정상으로 나와요. 제어기·차량 시험 표에는 VCU 안쪽 값('페달 처리값')이 없어서, SW 탓인지 입력 회로 탓인지 구별할 수 없어요.",
+  vcu_sw: "VCU SW가 원인이라면: SW만 PC에서 돌려도 '페달 처리값'이 낮게 나와요. 제어기·차량 시험에서는 이 값이 안 보여서 SW인지 입력 회로인지 구별이 안 돼요.",
+  vcu_hw: "입력 회로가 원인이라면: 입력 회로가 없는 'SW만 PC' 시험에서는 '페달 처리값'이 정상으로 나와요. 제어기·차량 시험에서는 이 값이 안 보여서 구별이 안 돼요.",
   fan_sw: "팬 제어 SW가 원인이라면: SW만 PC에서 돌려도 'PWM 비율'이 기준과 달라야 해요.",
   fan_path: "출력단·배선·전원이 원인이라면: 실제 부품을 붙인 시험에서 '팬 커넥터 PWM'이나 '팬 커넥터 전원 전압'이 기준보다 낮게(안 오게) 나와야 해요. 기준 이상으로 도착했다면 전달은 정상이에요. 팬이 모델인 시험에선 알 수 없어요.",
   fan_motor: "팬 모터가 원인이라면: 실제 부품을 붙인 시험에서 커넥터에 PWM·전원은 오는데 '팬 실제 회전'만 0이어야 해요. 팬이 모델인 시험에선 알 수 없어요.",
@@ -1324,7 +1340,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [mistakes, setMistakes] = useState(0);
   const [fix, setFix] = useState<number | null>(null);
   const [regDone, setRegDone] = useState(0);
-  const [viewTab, setViewTab] = useState<"sw" | "ecu" | "plant">("sw");
+  const [viewTab, setViewTab] = useState<"sw" | "ecu" | "plant" | "graph">("sw");
   const [bubble, setBubble] = useState(`${DRIVER_NAME}의 질문에 시험 결과로 답하세요. '판단 기준'을 먼저 읽고 시험을 고르세요.`);
   const [help, setHelp] = useState(false);
   const q = questions[qi];
@@ -1361,13 +1377,14 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       const { obs, verdict } = observe(lst, lst.map(sig => sig.id)); // every signal of this test is measured
       const vals = Object.fromEntries(lst.map(sig => { const i = at(sig); return [sig.id, `${sig.name} ${fmtV(sig, sig.run[i])} (기준 ${fmtV(sig, sig.ref[i])})`]; }));
       setLastRun({ obs, verdict, vals, fixed: isFixed, level: lv });
+      setViewTab("graph");
       if (isFixed) {
         if (verdict === "PASS") { play("stamp"); showVerdict(true, "통과"); setBubble("수리한 차량이 같은 시험에서 기대값과 같아요. 영향을 받았던 곳도 회귀 시험해요."); regression.forEach((_, i) => window.setTimeout(() => { setRegDone(i + 1); play("pop", 1 + i * .1); }, 600 + i * 420)); window.setTimeout(() => setPhase("done"), 700 + regression.length * 420); }
         else setBubble("아직 기대값과 달라요.");
         return;
       }
       play(verdict === "FAIL" ? "error" : "pop");
-      setBubble(`결과가 나왔어요. 표에서 '볼 곳' 줄을 판단 기준과 비교하고 답하세요.`);
+      setBubble(`결과가 나왔어요. 그래프의 점선(정상)과 실선(이번 시험)을 비교하고, 판단 기준대로 답하세요.`);
     };
     requestAnimationFrame(tick);
   };
@@ -1403,7 +1420,8 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const finish = () => send({ type: "BENCH_RESULT", pass: true, causeCorrect: true });
   const reveal = () => { setAnswers(Object.fromEntries(questions.map(item => { const h = meta.hypotheses.find(x => x.id === item.hyp)!; return [item.hyp, { answer: h.truth ? "supported" as Answer : "refuted" as Answer, why: h.rules[0]?.why ?? h.stage1 ?? "", evidence: "개발용 정답" }]; }))); setPhase("report"); };
 
-  const tabVisual = viewTab === "sw" ? <RefPuzzleTrack key={`sw-${level}-${fixed}`} mode={level === "unit" ? "unit" : "swint"} caseId={caseId} progress={u} fixed={fixed} same={fixed || swSame} running={running} />
+  const tabVisual = viewTab === "graph" ? <OverlayGraph list={list} upto={shown ? 1 : running ? u : 0} look={lookAt} />
+    : viewTab === "sw" ? <RefPuzzleTrack key={`sw-${level}-${fixed}`} mode={level === "unit" ? "unit" : "swint"} caseId={caseId} progress={u} fixed={fixed} same={fixed || swSame} running={running} />
     : viewTab === "ecu" ? <EmbeddedBench3D caseId={caseId} running={running} works={ecuReal ? works : true} />
       : caseId === "propulsion" ? <BenchVisual tab="vehicle" caseId={caseId} running={running} works={plantReal ? works : true} /> : <EmbeddedBench3D caseId={caseId} running={running} works={plantReal ? works : true} />;
   const tabNote = viewTab === "ecu" && !ecuReal ? "이 시험에는 제어기 하드웨어가 연결되지 않아요. SW만 PC에서 실행해요."
@@ -1454,7 +1472,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         </section>
           : <section className="v7Lab2 qaLab">
             <div className="v7View">
-              <nav className="v7Tabs">{([["sw", "SW 로직"], ["ecu", "제어기·I/O"], ["plant", "부품·차량"]] as const).map(([id, name]) => <button key={id} className={viewTab === id ? "on" : ""} onClick={() => { setViewTab(id); play("pop"); }}>{name}{(id === "sw" ? true : id === "ecu" ? ecuReal : plantReal) ? <i>실물</i> : <i className="model">모델</i>}</button>)}</nav>
+              <nav className="v7Tabs">{([["sw", "SW 로직"], ["ecu", "제어기·I/O"], ["plant", "부품·차량"]] as const).map(([id, name]) => <button key={id} className={viewTab === id ? "on" : ""} onClick={() => { setViewTab(id); play("pop"); }}>{name}{(id === "sw" ? true : id === "ecu" ? ecuReal : plantReal) ? <i>실물</i> : <i className="model">모델</i>}</button>)}<button className={`graphTab ${viewTab === "graph" ? "on" : ""}`} onClick={() => { setViewTab("graph"); play("pop"); }}>신호 그래프</button></nav>
               <div className={`vbSimView ${running ? "running" : ""}`}>{tabVisual}{tabNote && <span className="v7TabNote">{tabNote}</span>}{shown && lastRun && <span className={`vbStamp ${lastRun.verdict === "PASS" ? "pass" : lastRun.verdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastRun.verdict]}</span>}</div>
               <p className="vbScope"><b>{TEST_CARD[level].name}</b> · 입력: {tech.input}</p>
             </div>
