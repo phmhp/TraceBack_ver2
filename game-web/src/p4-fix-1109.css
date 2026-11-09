@@ -523,3 +523,8 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
   .qa2 .qaContractSummary dd { font-size: 9.5px; }
   .qa2 .qaTimeline { grid-template-columns: 190px minmax(0, 1fr); }
 }
+
+/* ── K-4 STEP 01: domain-specific normal-operation feedback ── */
+.garageV2 .domainTabs button.learned { border-color: #55a77f !important; background: #edf7ee !important; box-shadow: inset 0 0 0 1px #55a77f42, 0 3px 7px #2c6d4d18 !important; }
+.garageV2 .domainTabs button.learned small { color: #28785b !important; font-weight: 900 !important; }
+.garageV2 .inputStatus.ok { color: #236f54 !important; background: #e8f6eb !important; border-color: #62aa86 !important; }

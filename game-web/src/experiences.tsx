@@ -950,6 +950,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const [conds, setConds] = useState<Set<string>>(() => new Set());
   const [gateMsg, setGateMsg] = useState("");
   const [cleared, setCleared] = useState(false);
+  const [completedLessons, setCompletedLessons] = useState<Set<string>>(() => new Set());
   const mission = INPUT_MISSION[domain];
   const missing = mission.needs.filter(item => !conds.has(item.id));
   const toggleCondition = (id: string, index: number) => {
@@ -981,7 +982,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     const length = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
     if (applyState === "on") play("zip", 1.1);
     const timer = window.setInterval(() => setActiveStep(value => {
-      if (applyState === "on") { if (value + 1 >= length - 1 && !cleared) { setCleared(true); window.setTimeout(() => play("success"), 0); } return Math.min(length - 1, value + 1); }
+      if (applyState === "on") { if (value + 1 >= length - 1 && !cleared) { setCleared(true); setCompletedLessons(previous => new Set(previous).add(`${domain}-${feature}`)); window.setTimeout(() => play("success"), 0); } return Math.min(length - 1, value + 1); }
       if (value <= 0) { setApplyState("idle"); return 0; }
       return value - 1;
     }), applyState === "on" ? 520 : 240);
@@ -1023,14 +1024,14 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       </button>)}
     </nav>
     <main className="garageStudio">
-      <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map((id, index) => <button key={id} className={chosen && domain === id ? "active" : ""} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span><Icon name={DOMAIN_ICON[id]} /></span><b>{domainContent[id].label}</b><small>{DOMAIN_GROUP[id]}</small></button>)}</nav>
+      <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map(id => { const learned = Array.from(completedLessons).some(key => key.startsWith(`${id}-`)); return <button key={id} className={`${chosen && domain === id ? "active" : ""} ${learned ? "learned" : ""}`} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span><Icon name={DOMAIN_ICON[id]} /></span><b>{domainContent[id].label}</b><small>{learned ? "✓ 정상 동작 확인" : DOMAIN_GROUP[id]}</small></button>; })}</nav>
       <section className="garageMechanismCard">
         {chosen ? <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
           : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위 탭에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레이어로 같은 기능을 다른 관점에서 봅니다."}</p></header>}
         <MechanismViewer key={chosen ? "domain" : "all"} inputOn={applying} eeLayer={eeLayer} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {chosen && <div className="inputBar" aria-label="입력 넣기">
-          <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (applying ? "입력이 전달되는 중" : cleared ? "출력까지 전달됐어요" : missing.length ? `${conds.size ? "준비 중" : "차량 OFF"} · ${missing[0].label}부터 켜세요` : "구동 준비 완료 · 입력을 꾹 누르세요")}</p>
+          <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (applying ? `${INPUT_ACTION[domain]} 입력이 전달되는 중` : cleared ? NORMAL_RESPONSE[domain] : missing.length ? `${conds.size ? "준비 중" : "차량 OFF"} · ${missing[0].label}부터 켜세요` : READY_RESPONSE[domain])}</p>
           {mission.needs.map((item, index) => { const locked = mission.needs.slice(0, index).some(previous => !conds.has(previous.id)); return <button key={item.id} disabled={locked} className={`ctlBtn conditionCtl ${conds.has(item.id) ? "on" : ""} ${locked ? "locked" : ""}`} onClick={() => toggleCondition(item.id, index)}><i>{conds.has(item.id) ? "✓" : index + 1}</i><span>{item.label}</span></button>; })}
           <button disabled={missing.length > 0} className={`ctlBtn mainCtl ${applying ? "pressing" : ""}`} onPointerDown={event => { event.preventDefault(); setApplying(true); }} onPointerUp={() => setApplying(false)} onPointerLeave={() => setApplying(false)} onPointerCancel={() => setApplying(false)}><i>{mission.needs.length + 1}</i><span>{INPUT_ACTION[domain]}</span><small>꾹 · Space</small></button>
         </div>}
@@ -1108,6 +1109,24 @@ const INPUT_MISSION: Record<DomainId, { needs: { id: string; label: string; why:
   suspension: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 전자제어 댐퍼가 동작하지 않아요." }] },
 };
 const INPUT_ACTION: Record<DomainId, string> = { drive: "가속 페달 밟기", brake: "브레이크 밟기", steer: "핸들 돌리기", power: "시동 버튼 누르기", gear: "D단 고르기", thermal: "고속 주행 열 부하", suspension: "요철 지나가기" };
+const NORMAL_RESPONSE: Record<DomainId, string> = {
+  drive: "토크 명령이 모터와 전륜까지 전달돼 차량이 가속해요.",
+  brake: "회생·마찰 제동 명령이 합쳐져 차량이 안정적으로 감속해요.",
+  steer: "EPS 보조 토크가 생기고 랙이 움직여 전륜 각도가 바뀌어요.",
+  power: "팩 안전 확인과 프리차지를 거쳐 접촉기가 닫히고 READY가 켜져요.",
+  gear: "변속 인터록을 통과한 D단 상태가 구동계와 계기판에 전달돼요.",
+  thermal: "펌프·팬 명령이 출력되고 냉각수가 순환해 온도를 낮춰요.",
+  suspension: "댐퍼 명령과 스프링 변위가 노면 충격을 흡수해 차체를 안정시켜요.",
+};
+const READY_RESPONSE: Record<DomainId, string> = {
+  drive: "구동 조건 완료 · 가속 입력을 꾹 누르세요",
+  brake: "제동 제어 준비 완료 · 브레이크 입력을 꾹 누르세요",
+  steer: "EPS 준비 완료 · 핸들 입력을 꾹 누르세요",
+  power: "시동 조건 완료 · START 입력을 꾹 누르세요",
+  gear: "변속 조건 완료 · D단 입력을 꾹 누르세요",
+  thermal: "열관리 준비 완료 · 열 부하 입력을 꾹 누르세요",
+  suspension: "현가 제어 준비 완료 · 요철 입력을 꾹 누르세요",
+};
 
 function HeistCat3D({ groupRef, coat, role }: { groupRef: React.RefObject<THREE.Group | null>; coat: string; role: "driver" | "engineer" }) {
   const leftArm = useRef<THREE.Group>(null!);
