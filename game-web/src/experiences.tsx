@@ -15,7 +15,7 @@ import { engineStop, play } from "./ui/sfx";
 import { ECUS } from "./sim/components";
 import { getComponent } from "./sim/registry";
 import { Picto, SimulinkDiagram, blockKind, plainText } from "./features/garage/SimulinkDiagram";
-import { EeBlueprint } from "./features/garage/EeBlueprint";
+import { EeBlueprint, type EeLayer } from "./features/garage/EeBlueprint";
 import { DRIVER, DUO, ENGINEER } from "./game/cast";
 import { Icon, type IconName } from "./ui/Icon";
 import { StageIntro } from "./ui/Verdict";
@@ -30,6 +30,7 @@ export type DomainId = "drive" | "brake" | "steer" | "gear" | "power" | "thermal
 const DOMAIN_GROUP: Record<DomainId, string> = { drive: "파워트레인", power: "파워트레인", gear: "파워트레인", thermal: "파워트레인", brake: "섀시", steer: "섀시", suspension: "섀시" };
 const DOMAIN_ICON: Record<DomainId, IconName> = { drive: "bolt", brake: "disc", steer: "wheel", power: "battery", gear: "shift", thermal: "thermo", suspension: "spring" };
 const SHOW_PULL_TABS = false; // "빼 보기"·"범인 찾기" hidden: they added tabs without a clear task (code kept)
+const SHOW_EE_TABS = false; // E/E "흐름 따라가기/부품 소개" strip: replaced by the node popup (kept for reference)
 const garageAutoTour = false; // the old 1.45 s background tour fought the pause button
 const learningLayers = [
   // ISO 26262 abstraction: item (vehicle function) → system architecture (HW/SW elements) → SW architecture & unit design
@@ -240,15 +241,20 @@ function SignalCable({ from, to, color = "#ef8c58", via = [] }: { from: [number,
 
 function GarageFlowPart({ label, position, kind, active, running, role, partId, inspect }: { label: string; position: [number, number, number]; kind: HardwareKind; active: boolean; running: boolean; role: string; partId?: string; inspect?: PartInspectTarget }) {
   const [hovered, setHovered] = useState(false);
+  // the input part (pedal, wheel, start button, selector) is operated directly: press and hold it
+  const operable = role === "INPUT" && Boolean(inspect);
+  const press = (on: boolean) => dispatchEvent(new CustomEvent("tb-garage-input", { detail: { on } }));
   return <group
+    onPointerDown={operable ? event => { event.stopPropagation(); press(true); } : undefined}
+    onPointerUp={operable ? () => press(false) : undefined}
     position={position}
     scale={active ? 1.08 : .82}
-    onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = inspect ? "zoom-in" : "help"; }}
-    onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; }}
+    onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = operable ? "pointer" : inspect ? "zoom-in" : "help"; }}
+    onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; if (operable) press(false); }}
     onDoubleClick={event => { if (!inspect) return; event.stopPropagation(); play("pop"); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: inspect })); }}
   >
     <HardwarePart kind={kind} active={active} running={running} partId={partId} />
-    {hovered && <PartLabel position={[0, 1.16, 0]}>{role} · {label}{inspect ? " · 더블클릭: 자세히" : ""}</PartLabel>}
+    {hovered && <PartLabel position={[0, 1.16, 0]}>{operable ? `${label} · 꾹 누르면 입력` : `${label}${inspect ? " · 더블클릭: 자세히" : ""}`}</PartLabel>}
   </group>;
 }
 
@@ -666,15 +672,31 @@ function SimulinkFlow({ domain, feature, level, activeStep, onJump }: { domain: 
 function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, noDomain = false, onJump }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; noDomain?: boolean; onJump?: (level: number, step: number) => void }) {
   const [shell, setShell] = useState(false);
   const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "grid" : "one");
+  const [eeLayer, setEeLayer] = useState<EeLayer>("logic");
+  const [inspect, setInspect] = useState<number | null>(null);
+  useEffect(() => setInspect(null), [domain, feature, level]);
   const allDomains = view3d !== "one";
   const sourceLevel = garageLayerSource[level] ?? 3;
   if (level === 1) {
     const chain = getFeatureLayer(domain, feature, 1);
-    return <div className="mechanismViewer eeView eeBlueprintView"><EeBlueprint chain={chain} roles={chain.map((label, index) => partRole(label, index, chain.length))} active={activeStep} removed={removed} onPick={onPick} signals={flowSignals(domain, feature, chain.length)} /></div>;
+    const roles = chain.map((label, index) => partRole(label, index, chain.length));
+    const signals = flowSignals(domain, feature, chain.length);
+    const photo = (index: number) => { const id = partModelFor(domain, chain[index]); return id ? (PART_THUMBS.has(id) ? `/assets/ending-thumbs/${id}.png` : `/assets/intake/images/${getPartModel(id).ref}`) : undefined; };
+    const pickNode = (index: number) => {
+      onPick?.(index);
+      if (eeLayer === "part") { play("pop"); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: { domain, feature, index } })); return; }
+      setInspect(previous => previous === index ? null : index); play("pop");
+    };
+    const inspector = inspect === null || inspect >= chain.length ? null : { index: inspect, tag: ROLE_TEXT[roles[inspect]].tag, input: inspect === 0 ? "운전자 조작 또는 센서가 재는 물리량" : signals[inspect - 1], does: ROLE_DOES[roles[inspect]](signals[inspect]), output: signals[inspect] };
+    return <div className="mechanismViewer eeView eeBlueprintView">
+      <EeBlueprint chain={chain} roles={roles} active={activeStep} removed={removed} onPick={pickNode} signals={signals} layer={eeLayer} photo={photo} inspector={eeLayer === "part" ? null : inspector} onCloseInspector={() => setInspect(null)} />
+      <div className="eeLayerBar"><span>보기</span>{([["logic", "연결(논리)"], ["mix", "겹쳐 보기"], ["part", "실제 부품"]] as const).map(([id, label]) => <button key={id} className={eeLayer === id ? "on" : ""} onClick={() => { setEeLayer(id); setInspect(null); play("pop"); }}>{label}</button>)}<em>논리 배치는 실제 차량 안 위치가 아니에요{eeLayer === "part" ? " · 부품을 누르면 360° 보기" : " · 부품을 누르면 받는 값·하는 일·보내는 값"}</em></div>
+      <PartInspector />
+    </div>;
   }
   if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={activeStep} onJump={onJump} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
   return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
-    <Canvas key={`${domain}-${feature}-${view3d}`} shadows camera={{ position: view3d === "grid" ? [7.2, 7.4, 9.4] : view3d === "overlay" ? [6.4, 4.6, 7.6] : [5.9, 3.35, 6.6], fov: 36 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
+    <Canvas key={`${domain}-${view3d}`} shadows camera={{ position: view3d === "grid" ? [7.2, 7.4, 9.4] : view3d === "overlay" ? [6.4, 4.6, 7.6] : [5.9, 3.35, 6.6], fov: 36 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
       {import.meta.env.DEV && <DevRenderProbe name="garage" />}
       <color attach="background" args={["#eef5ef"]} />
       <hemisphereLight intensity={2.25} color="#fff8e5" groundColor="#6d8c7b" />
@@ -909,25 +931,41 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   // (button or Space). Releasing removes the input and the signal falls back to the start.
   const [applyState, setApplyState] = useState<"idle" | "on" | "release">("idle");
   const applying = applyState === "on";
-  const setApplying = (on: boolean) => setApplyState(previous => on ? "on" : previous === "on" ? "release" : previous);
+  // Short Overcooked-style mission: switch on the preconditions, then hold the input.
+  const [conds, setConds] = useState<Set<string>>(() => new Set());
+  const [gateMsg, setGateMsg] = useState("");
+  const [cleared, setCleared] = useState(false);
+  const mission = INPUT_MISSION[domain];
+  const missing = mission.needs.filter(item => !conds.has(item.id));
+  const setApplying = (on: boolean) => {
+    if (on && missing.length) { setGateMsg(missing[0].why); play("error"); return; }
+    if (on) setGateMsg("");
+    setApplyState(previous => on ? "on" : previous === "on" ? "release" : previous);
+  };
+  useEffect(() => { setConds(new Set()); setGateMsg(""); setCleared(false); setApplyState("idle"); }, [domain, feature]);
+  useEffect(() => {
+    const onInput = (event: Event) => setApplying(Boolean((event as CustomEvent).detail?.on));
+    addEventListener("tb-garage-input", onInput);
+    return () => removeEventListener("tb-garage-input", onInput);
+  });
   useEffect(() => {
     if (applyState === "idle") return;
-    const length = getFeatureLayer(domain, feature, 1).length;
+    const length = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
     if (applyState === "on") play("zip", 1.1);
     const timer = window.setInterval(() => setActiveStep(value => {
-      if (applyState === "on") return Math.min(length - 1, value + 1);
+      if (applyState === "on") { if (value + 1 >= length - 1 && !cleared) { setCleared(true); window.setTimeout(() => play("success"), 0); } return Math.min(length - 1, value + 1); }
       if (value <= 0) { setApplyState("idle"); return 0; }
       return value - 1;
     }), applyState === "on" ? 520 : 240);
     return () => window.clearInterval(timer);
-  }, [applyState, domain, feature]);
+  }, [applyState, domain, feature, routeLevel, cleared]);
   useEffect(() => {
-    if (!chosen || routeLevel === 2) return;
+    if (!chosen) return;
     const down = (event: KeyboardEvent) => { if (event.code === "Space" && !event.repeat && !(event.target instanceof HTMLInputElement)) { event.preventDefault(); setApplying(true); } };
     const up = (event: KeyboardEvent) => { if (event.code === "Space") setApplying(false); };
     addEventListener("keydown", down); addEventListener("keyup", up);
     return () => { removeEventListener("keydown", down); removeEventListener("keyup", up); };
-  }, [chosen, routeLevel]);
+  });
   useEffect(() => { setFeature(0); setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); }, [domain]);
   useEffect(() => { setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("flow"); }, [feature, routeLevel]);
   useEffect(() => {
@@ -958,10 +996,16 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
           : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위 탭에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레이어로 같은 기능을 다른 관점에서 봅니다."}</p></header>}
         <MechanismViewer key={chosen ? "domain" : "all"} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
-        {chosen && routeLevel < 2 && <button className={`applyInput lv-${routeLevel} ${applying ? "on" : ""}`} onPointerDown={event => { event.preventDefault(); setApplying(true); }} onPointerUp={() => setApplying(false)} onPointerLeave={() => setApplying(false)} onPointerCancel={() => setApplying(false)}>
+        {chosen && <div className={`inputMission lv-${routeLevel}`}>
+          {mission.needs.map(item => <button key={item.id} className={conds.has(item.id) ? "on" : ""} onClick={() => { setConds(previous => { const next = new Set(previous); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next; }); setGateMsg(""); play("pop", conds.has(item.id) ? .8 : 1.15); }}><i>{conds.has(item.id) ? "✓" : ""}</i>{item.label}</button>)}
+          {gateMsg && <span className="gateMsg" role="status">{gateMsg}</span>}
+          {cleared && !gateMsg && <span className="gateOk" role="status">출력까지 전달됐어요</span>}
+          {routeLevel === 2 && <span className="swStep"><button onClick={() => { setApplyState("idle"); setActiveStep(0); play("pop"); }}>⏮ 처음</button><button onClick={() => { if (missing.length) { setGateMsg(missing[0].why); play("error"); return; } setActiveStep(value => Math.min(getFeatureLayer(domain, feature, 3).length - 1, value + 1)); play("pop", 1.1); }}>한 단계 ▶</button></span>}
+        </div>}
+        {chosen && <button className={`applyInput lv-${routeLevel} ${applying ? "on" : ""}`} onPointerDown={event => { event.preventDefault(); setApplying(true); }} onPointerUp={() => setApplying(false)} onPointerLeave={() => setApplying(false)} onPointerCancel={() => setApplying(false)}>
           <b>{INPUT_ACTION[domain]}</b><small>{applying ? "입력 중 · 손을 떼면 멈춰요" : "꾹 누르고 있기 (Space)"}</small>
         </button>}
-        {chosen && routeLevel === 1 && (() => {
+        {SHOW_EE_TABS && chosen && routeLevel === 1 && (() => {
           const parts = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
           const pullOut = (index: number) => { setRemoved(index); setActiveStep(index); setEcuCard(null); setTriedRemovals(previous => new Set(previous).add(`${domain}-${feature}-${index}`)); play("squish"); };
           const startHunt = () => {
@@ -1022,6 +1066,17 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   </div>;
 }
 
+const PART_THUMBS = new Set(["accel_pedal", "bms", "brake_caliper", "brake_ecu", "brake_pedal", "can_harness", "charging_port", "coolant_valve", "cooling_fan", "cooling_pump", "eps_ecu", "mcu", "motor_temp_sensor", "obc", "radiator", "thermal_ecu", "traction_motor", "vcu"]);
+// Preconditions before the input does anything (game simplification of real interlocks: READY, brake, gear).
+const INPUT_MISSION: Record<DomainId, { needs: { id: string; label: string; why: string }[] }> = {
+  drive: { needs: [{ id: "ready", label: "READY 켜기", why: "READY(주행 준비)가 꺼져 있으면 구동 토크가 나가지 않아요." }, { id: "d", label: "D단", why: "D단이 아니면 VCU가 구동 토크를 막아요(변속 인터록)." }] },
+  brake: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 제동 협조(회생) 계산이 시작되지 않아요." }] },
+  steer: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 EPS 보조가 동작하지 않아요." }] },
+  power: { needs: [{ id: "brake", label: "브레이크 밟기", why: "브레이크를 밟은 상태에서 시동 버튼을 눌러야 READY가 돼요." }] },
+  gear: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 변속할 수 없어요." }, { id: "brake", label: "브레이크 밟기", why: "브레이크를 밟아야 P에서 다른 단으로 바뀌어요(변속 잠금)." }] },
+  thermal: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 냉각 펌프·팬 제어가 시작되지 않아요." }] },
+  suspension: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 전자제어 댐퍼가 동작하지 않아요." }] },
+};
 const INPUT_ACTION: Record<DomainId, string> = { drive: "가속 페달 밟기", brake: "브레이크 밟기", steer: "핸들 돌리기", power: "시동 버튼 누르기", gear: "D단 고르기", thermal: "고속 주행 열 부하", suspension: "요철 지나가기" };
 
 function HeistCat3D({ groupRef, coat, role }: { groupRef: React.RefObject<THREE.Group | null>; coat: string; role: "driver" | "engineer" }) {

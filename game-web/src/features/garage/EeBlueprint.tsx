@@ -18,8 +18,15 @@ const ECU_BOXES = [
   { id: "dcu", label: "변속·Park ECU", row: 0, col: 3, match: /Park ECU|Cluster|PRND/ },
 ];
 
-export function EeBlueprint({ chain, roles, active, removed, onPick, signals, marks }: {
+export type EeLayer = "logic" | "part" | "mix";
+export type EeInspector = { index: number; input: string; does: string; output: string; tag: string };
+
+export function EeBlueprint({ chain, roles, active, removed, onPick, signals, marks, layer = "logic", photo, inspector, onCloseInspector }: {
   chain: string[]; roles: Role[]; active: number; removed: number | null; onPick?: (index: number) => void; signals?: string[];
+  /** logic = connection diagram, part = the same nodes shown as the real part, mix = both (opacity layers) */
+  layer?: EeLayer; photo?: (index: number) => string | undefined;
+  /** node popup: what the clicked node receives, does and sends */
+  inspector?: EeInspector | null; onCloseInspector?: () => void;
   /** optional per-part state (root-cause trace): measured normal / abnormal / first deviation / can be measured now */
   marks?: Record<number, "ok" | "bad" | "first" | "next">;
 }) {
@@ -32,6 +39,7 @@ export function EeBlueprint({ chain, roles, active, removed, onPick, signals, ma
   const box = useRef<HTMLDivElement>(null);
   const [paths, setPaths] = useState<{ d: string; i: number; x1: number; y1: number; x2: number; y2: number; mx: number; my: number }[]>([]);
   const [size, setSize] = useState({ w: 1, h: 1 });
+  const [chipBox, setChipBox] = useState<Record<number, { x: number; y: number; w: number; h: number }>>({});
   useLayoutEffect(() => {
     const measure = () => {
       const root = box.current; if (!root) return;
@@ -52,6 +60,9 @@ export function EeBlueprint({ chain, roles, active, removed, onPick, signals, ma
         next.push({ d, i, x1, y1, x2, y2, mx: (x1 + x2) / 2, my: (y1 + y2) / 2 });
       }
       setPaths(next);
+      const boxes: Record<number, { x: number; y: number; w: number; h: number }> = {};
+      rects.forEach((r, i) => { if (r) boxes[i] = { x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height }; });
+      setChipBox(boxes);
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -59,8 +70,15 @@ export function EeBlueprint({ chain, roles, active, removed, onPick, signals, ma
     return () => observer.disconnect();
   }, [chain.join("|"), roles.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
   const hue = (i: number) => 205 - (i / Math.max(1, chain.length - 1)) * 190; // blue (input) → red (vehicle)
-  const chip = (item: { label: string; i: number }) => <button data-ee={item.i} key={`${item.label}-${item.i}`} className={`eeChip ${item.i === active ? "active" : ""} ${item.i === removed ? "out" : ""} ${marks?.[item.i] ? `mark-${marks[item.i]}` : ""}`} onClick={() => onPick?.(item.i)}>{item.i === removed ? <><Icon name="ban" /> </> : null}{item.label}{marks?.[item.i] === "ok" && <em className="eeMark">정상</em>}{marks?.[item.i] === "bad" && <em className="eeMark">이상</em>}{marks?.[item.i] === "first" && <em className="eeMark">처음 어긋남</em>}</button>;
-  return <div className="eeBlueprint" ref={box}>
+  const chip = (item: { label: string; i: number }) => <button data-ee={item.i} key={`${item.label}-${item.i}`} className={`eeChip ${item.i === active ? "active" : ""} ${item.i === removed ? "out" : ""} ${marks?.[item.i] ? `mark-${marks[item.i]}` : ""}`} onClick={() => onPick?.(item.i)}>{item.i === removed ? <><Icon name="ban" /> </> : null}{layer !== "logic" && photo?.(item.i) && <img className="eePhoto" src={photo(item.i)} alt="" />}{item.label}{marks?.[item.i] === "ok" && <em className="eeMark">정상</em>}{marks?.[item.i] === "bad" && <em className="eeMark">이상</em>}{marks?.[item.i] === "first" && <em className="eeMark">처음 어긋남</em>}</button>;
+  const pop = inspector && chipBox[inspector.index];
+  const popLeft = pop ? Math.max(8, Math.min(size.w - 308, pop.x + pop.w / 2 - 150)) : 0;
+  const popTop = pop ? (pop.y + pop.h + 112 > size.h ? Math.max(4, pop.y - 110) : pop.y + pop.h + 8) : 0;
+  return <div className={`eeBlueprint layer-${layer}`} ref={box}>
+    {inspector && pop && <div className="eeInspector" style={{ left: popLeft, top: popTop }} role="dialog">
+      <header><span>{inspector.tag}</span><b>{chain[inspector.index]}</b><button aria-label="닫기" onClick={onCloseInspector}>×</button></header>
+      <div><p><small>받는 값</small>{inspector.input}</p><i>→</i><p><small>하는 일</small>{inspector.does}</p><i>→</i><p><small>보내는 값</small>{inspector.output}</p></div>
+    </div>}
     <svg className="eeFlow" width={size.w} height={size.h} viewBox={`0 0 ${size.w} ${size.h}`}>
       <defs>
         {paths.map(p => <linearGradient key={p.i} id={`eeG${p.i}`} gradientUnits="userSpaceOnUse" x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2}><stop offset="0" stopColor={`hsl(${hue(p.i)} 75% 55%)`} /><stop offset="1" stopColor={`hsl(${hue(p.i + 1)} 75% 55%)`} /></linearGradient>)}

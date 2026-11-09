@@ -80,3 +80,49 @@
 .applyInput.on { transform: translateX(-50%) translateY(3px); box-shadow: 0 1px 0 #c98f7f, 0 4px 10px rgba(80, 40, 20, .16); background: linear-gradient(#ffe3d6, #f1c4b2); }
 .applyInput.lv-1 { left: auto; right: 16px; top: 14px; bottom: auto; transform: none; padding: 6px 16px; }
 .applyInput.lv-1.on { transform: translateY(3px); }
+
+/* ── Garage: condition mission chips (READY / brake / D) next to the input button ── */
+.inputMission { position: absolute; z-index: 7; left: 50%; bottom: 66px; transform: translateX(-50%); display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; white-space: nowrap; }
+.inputMission > button { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 999px; border: 1.5px solid #cdb79a; background: #fffaf2; color: #5b4636; font: 600 12.5px Pretendard, system-ui; cursor: pointer; box-shadow: 0 2px 0 #cdb79a; }
+.inputMission > button i { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid #cdb79a; display: grid; place-items: center; font-style: normal; font-size: 10px; }
+.inputMission > button.on { background: #e7f3ea; border-color: #86b897; color: #2f5a3d; box-shadow: 0 2px 0 #86b897; }
+.inputMission > button.on i { background: #4f9d6a; border-color: #4f9d6a; color: #fff; }
+.inputMission .gateMsg { padding: 5px 10px; border-radius: 8px; background: #fbe4df; color: #8a3324; font: 600 12px Pretendard, system-ui; animation: vrPop .3s; }
+.inputMission .gateOk { padding: 5px 10px; border-radius: 8px; background: #e3f1e7; color: #2f5a3d; font: 600 12px Pretendard, system-ui; }
+.inputMission .swStep { display: inline-flex; gap: 4px; }
+.inputMission .swStep button { padding: 5px 10px; border-radius: 8px; border: 1.5px solid #cdb79a; background: #fff; font: 600 12px Pretendard, system-ui; cursor: pointer; }
+.inputMission.lv-1, .inputMission.lv-2 { left: auto; right: 170px; top: 22px; bottom: auto; transform: none; }
+.applyInput.lv-2 { left: auto; right: 16px; top: 14px; bottom: auto; transform: none; padding: 6px 16px; }
+.applyInput.lv-2.on { transform: translateY(3px); }
+
+/* ── Garage E/E: layer switch (logic / overlay / real part) + node popup ── */
+.eeLayerBar { position: absolute; z-index: 6; left: 14px; bottom: 10px; display: flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 10px; background: #fffdf6ee; border: 1px solid #e3d3c3; font: 600 12px Pretendard, system-ui; color: #5b4636; }
+.eeLayerBar > span { color: #8a7a6a; margin-right: 2px; }
+.eeLayerBar button { padding: 4px 10px; border-radius: 7px; border: 1px solid #d9c9b3; background: #fff; font: 600 12px Pretendard, system-ui; color: #5b4636; cursor: pointer; }
+.eeLayerBar button.on { background: #9b6b64; border-color: #9b6b64; color: #fff; }
+.eeLayerBar em { font-style: normal; font-weight: 500; color: #8a7a6a; margin-left: 6px; }
+.eeBlueprint .eePhoto { display: none; width: 34px; height: 34px; object-fit: contain; margin-right: 5px; vertical-align: middle; border-radius: 6px; background: #fff; }
+.eeBlueprint.layer-mix .eePhoto, .eeBlueprint.layer-part .eePhoto { display: inline-block; }
+.eeBlueprint.layer-part .eeEcu, .eeBlueprint.layer-part .eeBus, .eeBlueprint.layer-part .eePower, .eeBlueprint.layer-part .eeCol > small { opacity: .18; }
+.eeBlueprint.layer-part .eeEcu .eeChip, .eeBlueprint.layer-part .eeBus .eeChip { opacity: 1; }
+.eeBlueprint.layer-part .eeFlow { opacity: .35; }
+.eeBlueprint.layer-mix .eeEcu, .eeBlueprint.layer-mix .eeBus { opacity: .7; }
+.eeInspector { position: absolute; z-index: 9; width: 300px; padding: 8px 10px; border-radius: 10px; background: #fffdf6; border: 1.5px solid #c9a98f; box-shadow: 0 8px 22px rgba(40, 25, 10, .22); animation: vrPop .25s; }
+.eeInspector header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.eeInspector header span { padding: 1px 6px; border-radius: 5px; background: #f3e6cf; font: 700 11px Pretendard, system-ui; color: #7a5a3a; }
+.eeInspector header b { flex: 1; font: 700 13px Pretendard, system-ui; color: #33291f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eeInspector header button { border: 0; background: none; font-size: 16px; cursor: pointer; color: #8a7a6a; }
+.eeInspector > div { display: grid; gap: 3px; }
+.eeInspector p { margin: 0; padding: 4px 8px; border-radius: 7px; background: #f7efe3; font: 600 12px/1.35 Pretendard, system-ui; color: #3b2f25; display: grid; grid-template-columns: 58px 1fr; align-items: baseline; }
+.eeInspector p small { font-weight: 700; font-size: 11px; color: #b5482f; }
+.eeInspector > div > i { display: none; }
+/* flow step cards shrink to their column so they never slide under the "다음" button */
+.garageV2 .garageFlowPanel > div { min-width: 0 !important; overflow: hidden; }
+.garageV2 .garageFlowPanel > div > button { min-width: 0 !important; flex: 1 1 0 !important; max-width: 178px !important; }
+.garageV2 .garageFlowPanel > div > em { flex: none; }
+/* the garage screen must never scroll (focus on a lower button used to shift it by a few px) */
+.garageV2 { overflow: clip !important; }
+.inputMission > button, .applyInput b, .applyInput small { white-space: nowrap; }
+.garageV2 .garageFlowPanel { padding-right: 14px !important; }
+.garageV2 .garageFlowPanel > div { width: auto !important; max-width: none !important; right: 262px !important; overflow: hidden !important; }
+.softwareView .liveBadge { display: none !important; }
