@@ -4,6 +4,8 @@
 // everything else stays visible but dimmed (whole-vehicle view, domain as a highlight filter).
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "../../ui/Icon";
+import { Canvas } from "@react-three/fiber";
+import { FittedPart } from "../parts/PartModel";
 
 type Role = "input" | "control" | "network" | "actuator" | "result";
 const ECU_BOXES = [
@@ -21,10 +23,12 @@ const ECU_BOXES = [
 export type EeLayer = "logic" | "part" | "mix";
 export type EeInspector = { index: number; input: string; does: string; output: string; tag: string };
 
-export function EeBlueprint({ chain, roles, active, removed, onPick, signals, marks, layer = "logic", photo, inspector, onCloseInspector, showPath }: {
+export function EeBlueprint({ chain, roles, active, removed, onPick, signals, marks, layer = "logic", photo, inspector, onCloseInspector, showPath, partId }: {
   chain: string[]; roles: Role[]; active: number; removed: number | null; onPick?: (index: number) => void; signals?: string[];
   /** logic = connection diagram, part = the same nodes shown as the real part, mix = both (opacity layers) */
   layer?: EeLayer; photo?: (index: number) => string | undefined;
+  /** code-built part id for a node (drawn in 3D inside the node in the part / mix layers) */
+  partId?: (index: number) => string | undefined;
   /** node popup: what the clicked node receives, does and sends */
   inspector?: EeInspector | null; onCloseInspector?: () => void;
   /** hide a signal arrow until the player has earned it (root-cause trace: both ends measured) */
@@ -70,13 +74,21 @@ export function EeBlueprint({ chain, roles, active, removed, onPick, signals, ma
     const observer = new ResizeObserver(measure);
     if (box.current) observer.observe(box.current);
     return () => observer.disconnect();
-  }, [chain.join("|"), roles.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [chain.join("|"), roles.join("|"), layer]); // eslint-disable-line react-hooks/exhaustive-deps
   const hue = (i: number) => 205 - (i / Math.max(1, chain.length - 1)) * 190; // blue (input) → red (vehicle)
-  const chip = (item: { label: string; i: number }) => <button data-ee={item.i} key={`${item.label}-${item.i}`} className={`eeChip ${item.i === active ? "active" : ""} ${item.i === removed ? "out" : ""} ${marks?.[item.i] ? `mark-${marks[item.i]}` : ""}`} onClick={() => onPick?.(item.i)}>{item.i === removed ? <><Icon name="ban" /> </> : null}{layer !== "logic" && photo?.(item.i) && <img className="eePhoto" src={photo(item.i)} alt="" />}{item.label}{marks?.[item.i] === "ok" && <em className="eeMark">정상</em>}{marks?.[item.i] === "bad" && <em className="eeMark">이상</em>}{marks?.[item.i] === "first" && <em className="eeMark">처음 어긋남</em>}</button>;
+  const chip = (item: { label: string; i: number }) => <button data-ee={item.i} key={`${item.label}-${item.i}`} className={`eeChip ${item.i === active ? "active" : ""} ${item.i === removed ? "out" : ""} ${marks?.[item.i] ? `mark-${marks[item.i]}` : ""}`} onClick={() => onPick?.(item.i)}>{item.i === removed ? <><Icon name="ban" /> </> : null}{item.label}{marks?.[item.i] === "ok" && <em className="eeMark">정상</em>}{marks?.[item.i] === "bad" && <em className="eeMark">이상</em>}{marks?.[item.i] === "first" && <em className="eeMark">처음 어긋남</em>}</button>;
   const pop = inspector && chipBox[inspector.index];
   const popLeft = pop ? Math.max(8, Math.min(size.w - 308, pop.x + pop.w / 2 - 150)) : 0;
   const popTop = pop ? (pop.y + pop.h + 112 > size.h ? Math.max(4, pop.y - 110) : pop.y + pop.h + 8) : 0;
+  const parts3d = layer !== "logic" && partId ? chain.map((_, i) => ({ i, id: partId(i), box: chipBox[i] })).filter(item => item.id && item.box) : [];
   return <div className={`eeBlueprint layer-${layer}`} ref={box}>
+    {parts3d.length > 0 && <Canvas className="eeParts3d" orthographic camera={{ position: [0, 0, 400], zoom: 1, near: .1, far: 2000 }} dpr={[1, 1.5]} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2 }}>
+      <hemisphereLight intensity={1.7} color="#fff5dc" groundColor="#6d8c7b" />
+      <directionalLight position={[200, 300, 400]} intensity={2.4} />
+      {parts3d.map(({ i, id, box: b }) => <group key={i} position={[b!.x + b!.w / 2 - size.w / 2, size.h / 2 - (b!.y + 30), 0]} rotation={[.42, -.62, 0]}>
+        <FittedPart id={id!} size={48} castShadow={false} demo={i <= active && active < chain.length} />
+      </group>)}
+    </Canvas>}
     {inspector && pop && <div className="eeInspector" style={{ left: popLeft, top: popTop }} role="dialog">
       <header><span>{inspector.tag}</span><b>{chain[inspector.index]}</b><button aria-label="닫기" onClick={onCloseInspector}>×</button></header>
       <div><p><small>받는 값</small>{inspector.input}</p><i>→</i><p><small>하는 일</small>{inspector.does}</p><i>→</i><p><small>보내는 값</small>{inspector.output}</p></div>

@@ -103,8 +103,8 @@
 .eeLayerBar em { font-style: normal; font-weight: 500; color: #8a7a6a; margin-left: 6px; }
 .eeBlueprint .eePhoto { display: none; width: 34px; height: 34px; object-fit: contain; margin-right: 5px; vertical-align: middle; border-radius: 6px; background: #fff; }
 .eeBlueprint.layer-mix .eePhoto, .eeBlueprint.layer-part .eePhoto { display: inline-block; }
-.eeBlueprint.layer-part .eeEcu, .eeBlueprint.layer-part .eeBus, .eeBlueprint.layer-part .eePower, .eeBlueprint.layer-part .eeCol > small { opacity: .18; }
-.eeBlueprint.layer-part .eeEcu .eeChip, .eeBlueprint.layer-part .eeBus .eeChip { opacity: 1; }
+.eeBlueprint.layer-part .eeEcu, .eeBlueprint.layer-part .eeBus { background: transparent !important; border-color: #d8e0dc80 !important; }
+.eeBlueprint.layer-part .eeEcu > b, .eeBlueprint.layer-part .eeBus > span, .eeBlueprint.layer-part .eeBus > i, .eeBlueprint.layer-part .eePower, .eeBlueprint.layer-part .eeCol > small { opacity: .3; }
 .eeBlueprint.layer-part .eeFlow { opacity: .35; }
 .eeBlueprint.layer-mix .eeEcu, .eeBlueprint.layer-mix .eeBus { opacity: .7; }
 .eeInspector { position: absolute; z-index: 9; width: 300px; padding: 8px 10px; border-radius: 10px; background: #fffdf6; border: 1.5px solid #c9a98f; box-shadow: 0 8px 22px rgba(40, 25, 10, .22); animation: vrPop .25s; }
@@ -215,3 +215,50 @@
 .v3dToggle button.on { background: #3b4a55; border-color: #3b4a55; color: #fff; }
 /* 3D part name on hover: readable contrast, never wraps or overflows */
 .garage3dLabel.hoverPartLabel { display: block !important; white-space: nowrap !important; max-width: none !important; padding: 5px 10px !important; border-radius: 8px !important; border: 1.5px solid #c9a98f !important; background: #fffdf6 !important; color: #33291f !important; font: 700 12px Pretendard, system-ui !important; box-shadow: 0 4px 10px rgba(40, 25, 10, .2) !important; pointer-events: none; }
+
+/* ── Garage 3D (real layout): legend of what each cable carries, cable tag, step badges ── */
+.flowLegend { position: absolute; z-index: 5; left: 14px; bottom: 12px; display: grid; gap: 3px; padding: 7px 10px; border-radius: 10px; background: #fffdf6ee; border: 1px solid #e3d3c3; font: 600 11.5px Pretendard, system-ui; color: #4a3b2e; }
+.flowLegend b { font-size: 11px; color: #8a6a43; }
+.flowLegend span { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.flowLegend i { width: 18px; height: 5px; border-radius: 3px; }
+.cableTag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 7px; border: 1.5px solid; background: #fffdf6; color: #33291f; font: 700 12px Pretendard, system-ui; white-space: nowrap; box-shadow: 0 3px 8px rgba(40, 25, 10, .18); pointer-events: none; }
+.cableTag i { width: 8px; height: 8px; border-radius: 50%; }
+.stepBadge { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #fffdf6; border: 1.5px solid #b9a37a; color: #6b5643; font: 800 11px Pretendard, system-ui; pointer-events: none; }
+.stepBadge.on { background: #e9784a; border-color: #e9784a; color: #fff; }
+
+/* ── Garage input bar: every control the same size/colour; the status line has its own fixed slot ── */
+.inputMission, .applyInput { display: none !important; }
+.inputBar { position: absolute; z-index: 8; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; white-space: nowrap; }
+.inputBar .inputStatus { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); margin: 0; padding: 4px 10px; border-radius: 8px; background: #fffdf6f2; border: 1px solid #e3d3c3; font: 600 12px Pretendard, system-ui; color: #6b5643; white-space: nowrap; pointer-events: none; }
+.inputBar .inputStatus.warn { background: #fbe4df; border-color: #d9a093; color: #8a3324; }
+.inputBar .inputStatus.ok { background: #e3f1e7; border-color: #86b897; color: #2f5a3d; }
+.ctlBtn { height: 38px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 10px; border: 1.5px solid #cdb79a; background: #fffaf2; color: #5b4636; font: 700 13px Pretendard, system-ui; cursor: pointer; box-shadow: 0 3px 0 #cdb79a; user-select: none; touch-action: none; transition: transform .06s, box-shadow .06s; }
+.ctlBtn i { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #cdb79a; display: grid; place-items: center; font-style: normal; font-size: 9px; }
+.ctlBtn small { font-weight: 500; font-size: 11px; color: #8a7a6a; }
+.ctlBtn.on i { background: #4f9d6a; border-color: #4f9d6a; color: #fff; }
+.ctlBtn.on { border-color: #86b897; box-shadow: 0 3px 0 #86b897; }
+.ctlBtn.mainCtl i { border-color: #9b6b64; color: #9b6b64; }
+.ctlBtn.pressing { transform: translateY(3px); box-shadow: 0 0 0 #cdb79a; }
+
+/* ── Garage E/E: same box size as the other views; compact step card; switch in the left box ── */
+.garageStudio:has(.garageFlowPanel .flowStepCard) { grid-template-rows: 44px minmax(0, 1fr) 122px !important; }
+.garageV2 .garageFlowPanel .flowStepCard { gap: 4px !important; padding: 8px 12px !important; }
+.garageV2 .garageFlowPanel .flowStepBody > div { padding: 4px 10px !important; }
+.garageV2 .garageFlowPanel .flowStepBody b { font-size: 13.5px !important; }
+.garageV2 .garageFlowPanel .flowStepBody span, .garageV2 .garageFlowPanel .flowStepBody em { font-size: 11.5px !important; }
+.eeLayerBar { display: none !important; }
+.eeLayerSwitch { display: grid; gap: 4px; margin: 0 2px 8px; padding: 6px; border-radius: 10px; background: #fff7ee; border: 1px solid #ecd9c4; }
+.eeLayerSwitch > span { font: 700 11.5px Pretendard, system-ui; color: #8a6a43; }
+.eeLayerSwitch > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+.eeLayerSwitch button { height: 28px; padding: 0 4px; border-radius: 7px; border: 1px solid #d9c9b3; background: #fff; font: 600 11.5px Pretendard, system-ui; color: #5b4636; cursor: pointer; white-space: nowrap; }
+.eeLayerSwitch button.on { background: #9b6b64; border-color: #9b6b64; color: #fff; }
+.eeLayerSwitch em { font-style: normal; font: 500 10.5px Pretendard, system-ui; color: #8a7a6a; }
+/* E/E keeps room for the input bar at the bottom */
+.eeBlueprintView { padding-bottom: 54px !important; }
+/* part / mix layers: each node gets room above its name for the 3D part */
+.eeBlueprint.layer-part .eeChip, .eeBlueprint.layer-mix .eeChip { min-height: 74px; padding-top: 52px !important; background: #ffffffcc; }
+.eeBlueprint.layer-part .eeChip { background: transparent; box-shadow: none; }
+
+.garageLayerNav .eeLayerSwitch button { min-height: 0 !important; height: 28px !important; padding: 0 4px !important; display: block !important; text-align: center !important; border-radius: 7px !important; border: 1px solid #d9c9b3 !important; background: #fff !important; color: #5b4636 !important; font: 600 11.5px Pretendard, system-ui !important; box-shadow: none !important; }
+.garageLayerNav .eeLayerSwitch button.on { background: #9b6b64 !important; border-color: #9b6b64 !important; color: #fff !important; }
+.garageLayerNav .eeLayerSwitch button::before, .garageLayerNav .eeLayerSwitch button::after { display: none !important; content: none !important; }

@@ -16,6 +16,7 @@ import { ECUS } from "./sim/components";
 import { getComponent } from "./sim/registry";
 import { Picto, SimulinkDiagram, blockKind, plainText } from "./features/garage/SimulinkDiagram";
 import { EeBlueprint, type EeLayer } from "./features/garage/EeBlueprint";
+import { VehicleLayoutRig, flowLegend } from "./features/garage/VehicleLayout";
 import { DRIVER, DUO, ENGINEER } from "./game/cast";
 import { Icon, type IconName } from "./ui/Icon";
 import { StageIntro } from "./ui/Verdict";
@@ -283,9 +284,23 @@ const domainHardware: Record<DomainId, { kinds: HardwareKind[]; labels: string[]
 
 // Garage/bench label → code-built part model (src/features/parts). Labels without a
 // model yet keep the primitive HardwarePart below, so new models appear automatically.
-const partModelFor = (domain: DomainId, label: string): string | undefined => {
+export const partModelFor = (domain: DomainId, label: string): string | undefined => {
   const id =
     /START 버튼|시동 버튼|START 시동/.test(label) ? "start_button"
+    : /3상 브리지/.test(label) ? "inverter"
+    : /압력 제어기|^유압 모듈$|솔레노이드 밸브/.test(label) ? "hydraulic_modulator"
+    : /유압 라인/.test(label) ? "brake_line"
+    : /요·횡가속/.test(label) ? "imu_sensor"
+    : /핸들각/.test(label) ? "steering_wheel"
+    : /차속 CAN/.test(label) ? "can_harness"
+    : /피니언|^랙$/.test(label) ? "steering_rack"
+    : /너클/.test(label) ? "wheel"
+    : /^릴레이$/.test(label) ? "main_contactor"
+    : /HV 버스/.test(label) ? "hv_cable"
+    : /HV Junction/.test(label) ? "hv_junction_box"
+    : /LV 부하/.test(label) ? "instrument_cluster"
+    : /Power Coordinator/.test(label) ? "vcu"
+    : domain === "steer" && /감속기/.test(label) ? "eps_motor"
     : /^CAN/.test(label) ? "can_harness"
     : /3상 전력/.test(label) ? "hv_cable"
     : /압력 명령/.test(label) ? "hydraulic_modulator"
@@ -579,12 +594,9 @@ function VehiclePlatformShell({ active }: { active: boolean }) {
   </group>;
 }
 
-function FullVehicleSystem({ domain, feature, activeStep, removed = null, shell = false }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null; shell?: boolean }) {
-  return <group rotation={[0, -.18, 0]}>
-    {shell && <VehiclePlatformShell active />}
-    <DomainFlowRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} />
-    <PartLabel className="garageStaticLabel" position={[0, 2.12, 0]}>{domainContent[domain].functions[feature]} · 운전자 입력에서 차량 거동까지</PartLabel>
-  </group>;
+function FullVehicleSystem({ domain, feature, activeStep, shell = false, inputOn = false }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean }) {
+  // real positions, real sizes, port-to-port cables (src/features/garage/VehicleLayout.tsx)
+  return <VehicleLayoutRig domain={domain} feature={feature} activeStep={activeStep} inputOn={inputOn} shell={shell} />;
 }
 
 // Whole vehicle: every domain's chain side by side (selected domain runs, others idle)
@@ -631,8 +643,8 @@ function EcuSoftwareRig({ domain, feature, detailed }: { domain: DomainId; featu
   </group>;
 }
 
-function MechanismModel({ domain, level, feature, activeStep, removed = null, shell = false }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; shell?: boolean }) {
-  if (level === 0) return <FullVehicleSystem domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />;
+function MechanismModel({ domain, level, feature, activeStep, removed = null, shell = false, inputOn = false }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean }) {
+  if (level === 0) return <FullVehicleSystem domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} />;
   return <EeArchitectureRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />;
 }
 
@@ -670,10 +682,9 @@ function SimulinkFlow({ domain, feature, level, activeStep, onJump }: { domain: 
   </div>;
 }
 
-function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, noDomain = false, onJump }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; noDomain?: boolean; onJump?: (level: number, step: number) => void }) {
+function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, noDomain = false, onJump, inputOn = false, eeLayer = "logic" }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; noDomain?: boolean; onJump?: (level: number, step: number) => void; inputOn?: boolean; eeLayer?: EeLayer }) {
   const [shell, setShell] = useState(false);
   const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "grid" : "one");
-  const [eeLayer, setEeLayer] = useState<EeLayer>("logic");
   const [inspect, setInspect] = useState<number | null>(null);
   useEffect(() => setInspect(null), [domain, feature, level]);
   const allDomains = view3d !== "one";
@@ -690,23 +701,23 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
     };
     const inspector = inspect === null || inspect >= chain.length ? null : { index: inspect, tag: ROLE_TEXT[roles[inspect]].tag, input: inspect === 0 ? "운전자 조작 또는 센서가 재는 물리량" : signals[inspect - 1], does: ROLE_DOES[roles[inspect]](signals[inspect]), output: signals[inspect] };
     return <div className="mechanismViewer eeView eeBlueprintView">
-      <EeBlueprint chain={chain} roles={roles} active={activeStep} removed={removed} onPick={pickNode} signals={signals} layer={eeLayer} photo={photo} inspector={eeLayer === "part" ? null : inspector} onCloseInspector={() => setInspect(null)} />
-      <div className="eeLayerBar"><span>보기</span>{([["logic", "연결(논리)"], ["mix", "겹쳐 보기"], ["part", "실제 부품"]] as const).map(([id, label]) => <button key={id} className={eeLayer === id ? "on" : ""} onClick={() => { setEeLayer(id); setInspect(null); play("pop"); }}>{label}</button>)}<em>논리 배치는 실제 차량 안 위치가 아니에요{eeLayer === "part" ? " · 부품을 누르면 360° 보기" : " · 부품을 누르면 받는 값·하는 일·보내는 값"}</em></div>
+      <EeBlueprint chain={chain} roles={roles} active={activeStep} removed={removed} onPick={pickNode} signals={signals} layer={eeLayer} photo={photo} partId={index => partModelFor(domain, chain[index])} inspector={eeLayer === "part" ? null : inspector} onCloseInspector={() => setInspect(null)} />
       <PartInspector />
     </div>;
   }
   if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={activeStep} onJump={onJump} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
   return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
-    <Canvas key={`${domain}-${view3d}`} shadows camera={{ position: view3d === "grid" ? [7.2, 7.4, 9.4] : view3d === "overlay" ? [6.4, 4.6, 7.6] : [5.9, 3.35, 6.6], fov: 36 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
+    <Canvas key={`${domain}-${view3d}`} shadows camera={{ position: view3d === "grid" ? [7.2, 7.4, 9.4] : view3d === "overlay" ? [6.4, 4.6, 7.6] : [2.9, 1.9, 3.3], fov: 38 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
       {import.meta.env.DEV && <DevRenderProbe name="garage" />}
       <color attach="background" args={["#eef5ef"]} />
       <hemisphereLight intensity={2.25} color="#fff8e5" groundColor="#6d8c7b" />
       <directionalLight castShadow position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
-      {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />}
-      <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={2.5} maxDistance={allDomains ? 22 : 10} maxPolarAngle={Math.PI * .49} target={[0, .65, 0]} />
+      {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} />}
+      <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={allDomains ? 2.5 : .8} maxDistance={allDomains ? 22 : 10} maxPolarAngle={Math.PI * .49} target={allDomains ? [0, .65, 0] : [0, .55, 0]} />
     </Canvas>
     <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동{level === 0 && !allDomains ? " · 부품 더블클릭: 자세히" : ""}</span>
     {level === 0 && <PartInspector />}
+    {level === 0 && !allDomains && !noDomain && <div className="flowLegend" aria-label="배선이 전달하는 것"><b>전달하는 것</b>{flowLegend(domain, feature).map(item => <span key={item.flow}><i style={{ background: item.color }} />{item.label}</span>)}</div>}
     <div className="viewToggles">
       {level === 0 && <span className="view3dSeg">{(noDomain ? [["grid", "나란히"], ["overlay", "겹쳐 보기"]] as const : [["one", "이 도메인"], ["grid", "나란히"], ["overlay", "겹쳐 보기"]] as const).map(([id, label]: readonly [string, string]) => <button key={id} className={`shellToggle ${view3d === id ? "on" : ""}`} onClick={() => setView3d(id as "one" | "grid" | "overlay")}><Icon name={id === "one" ? "search" : id === "grid" ? "grid" : "layers"} /> {label}</button>)}</span>}
       {!allDomains && <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}><Icon name="car" /> 차체 {shell ? "숨기기" : "보기"}</button>}
@@ -930,6 +941,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   };
   // Hold-to-apply input: the signal travels one step at a time only while the player keeps pressing
   // (button or Space). Releasing removes the input and the signal falls back to the start.
+  const [eeLayer, setEeLayer] = useState<EeLayer>("logic");
   const [applyState, setApplyState] = useState<"idle" | "on" | "release">("idle");
   const applying = applyState === "on";
   // Short Overcooked-style mission: switch on the preconditions, then hold the input.
@@ -987,6 +999,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     ]} />
     <nav className="garageLayerNav" aria-label="설계 추상화 단계">
       <small className="viewAxisLabel">같은 기능, 세 관점</small>
+      {chosen && routeLevel === 1 && <div className="eeLayerSwitch" role="group" aria-label="E/E 보기"><span>E/E 보기</span><div>{([["logic", "연결"], ["mix", "겹쳐"], ["part", "실제 부품"]] as const).map(([id, label]) => <button key={id} className={eeLayer === id ? "on" : ""} onClick={() => { setEeLayer(id); play("pop"); }}>{label}</button>)}</div><em>논리 배치는 실제 위치가 아니에요</em></div>}
       {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={`${routeLevel === index ? "active" : ""} ${!chosen && index > 0 ? "needsDomain" : ""}`} title={!chosen && index > 0 ? "도메인을 먼저 고르면 열려요" : ""}>
         <span>{String(index + 1).padStart(2, "0")}</span><b>{layer.name}</b><small>{!chosen && index > 0 ? "도메인을 고르면 열려요" : layer.tag}</small>
       </button>)}
@@ -996,17 +1009,14 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       <section className="garageMechanismCard">
         {chosen ? <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
           : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위 탭에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레이어로 같은 기능을 다른 관점에서 봅니다."}</p></header>}
-        <MechanismViewer key={chosen ? "domain" : "all"} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
+        <MechanismViewer key={chosen ? "domain" : "all"} inputOn={applying} eeLayer={eeLayer} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
-        {chosen && <div className={`inputMission lv-${routeLevel}`}>
-          {mission.needs.map(item => <button key={item.id} className={conds.has(item.id) ? "on" : ""} onClick={() => { setConds(previous => { const next = new Set(previous); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next; }); setGateMsg(""); play("pop", conds.has(item.id) ? .8 : 1.15); }}><i>{conds.has(item.id) ? "✓" : ""}</i>{item.label}</button>)}
-          {gateMsg && <span className="gateMsg" role="status">{gateMsg}</span>}
-          {cleared && !gateMsg && <span className="gateOk" role="status">출력까지 전달됐어요</span>}
-          {routeLevel === 2 && <span className="swStep"><button onClick={() => { setApplyState("idle"); setActiveStep(0); play("pop"); }}>⏮ 처음</button><button onClick={() => { if (missing.length) { setGateMsg(missing[0].why); play("error"); return; } setActiveStep(value => Math.min(getFeatureLayer(domain, feature, 3).length - 1, value + 1)); play("pop", 1.1); }}>한 단계 ▶</button></span>}
+        {chosen && <div className="inputBar" aria-label="입력 넣기">
+          <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (cleared ? "출력까지 전달됐어요" : "조건을 켠 뒤 입력을 꾹 누르세요")}</p>
+          {mission.needs.map(item => <button key={item.id} className={`ctlBtn ${conds.has(item.id) ? "on" : ""}`} onClick={() => { setConds(previous => { const next = new Set(previous); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next; }); setGateMsg(""); play("pop", conds.has(item.id) ? .8 : 1.15); }}><i>{conds.has(item.id) ? "✓" : ""}</i>{item.label}</button>)}
+          <button className={`ctlBtn mainCtl ${applying ? "pressing" : ""}`} onPointerDown={event => { event.preventDefault(); setApplying(true); }} onPointerUp={() => setApplying(false)} onPointerLeave={() => setApplying(false)} onPointerCancel={() => setApplying(false)}><i>▶</i>{INPUT_ACTION[domain]} <small>꾹 · Space</small></button>
+          {routeLevel === 2 && <><button className="ctlBtn" onClick={() => { setApplyState("idle"); setActiveStep(0); play("pop"); }}><i>⏮</i>처음</button><button className="ctlBtn" onClick={() => { if (missing.length) { setGateMsg(missing[0].why); play("error"); return; } setActiveStep(value => Math.min(getFeatureLayer(domain, feature, 3).length - 1, value + 1)); play("pop", 1.1); }}><i>▶</i>한 단계</button></>}
         </div>}
-        {chosen && <button className={`applyInput lv-${routeLevel} ${applying ? "on" : ""}`} onPointerDown={event => { event.preventDefault(); setApplying(true); }} onPointerUp={() => setApplying(false)} onPointerLeave={() => setApplying(false)} onPointerCancel={() => setApplying(false)}>
-          <b>{INPUT_ACTION[domain]}</b><small>{applying ? "입력 중 · 손을 떼면 멈춰요" : "꾹 누르고 있기 (Space)"}</small>
-        </button>}
         {SHOW_EE_TABS && chosen && routeLevel === 1 && (() => {
           const parts = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
           const pullOut = (index: number) => { setRemoved(index); setActiveStep(index); setEcuCard(null); setTriedRemovals(previous => new Set(previous).add(`${domain}-${feature}-${index}`)); play("squish"); };

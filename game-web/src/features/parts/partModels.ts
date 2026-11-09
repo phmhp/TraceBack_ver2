@@ -1417,6 +1417,27 @@ const DEFS: Record<string, Def> = {
     },
   },
 
+  // Brake line: bent steel tube from the modulator to the caliper hose, flare nuts and a clip bracket.
+  brake_line: {
+    ref: "brake/brake_line__CUT.png",
+    build: () => {
+      const path: V3[] = [[0, 0, 0], [.06, 0, 0], [.12, -.02, .03], [.2, -.06, .03], [.28, -.06, -.02], [.36, -.1, -.02], [.42, -.16, .02]];
+      return {
+        statics: [
+          S("steel", tube(path, .0035, 64, 8)),
+          S("gunmetal", cylX(.007, .014, 6), [.004, 0, 0]),
+          S("gunmetal", cyl(.007, .014, 6).rotateZ(.6), [.418, -.152, .02]),
+          S("plastic", rbox(.022, .012, .02, .003), [.2, -.065, .03]),
+          S("steel", cyl(.0075, .02, 12).rotateZ(.6), [.43, -.17, .02]),
+          S("rubber", tube([[.44, -.18, .02], [.52, -.24, .03], [.54, -.34, .04], [.5, -.43, .04], [.43, -.46, .04]], .007, 40)),
+          S("steel", cylX(.0075, .03, 12), [.415, -.46, .04]),
+          S("steel", torusZ(.012, .005, 20), [.388, -.46, .04]),
+        ],
+        anchors: { in: [0, 0, 0], out: [.388, -.46, .04] },
+      };
+    },
+  },
+
   // Body corner: a piece of floor pan and sill where the suspension pushes on the body.
   body_shell: {
     ref: "steering-suspension/strut_assembly__REF.png",
@@ -1435,7 +1456,7 @@ const DEFS: Record<string, Def> = {
 /** Parts modelled so far, in build order. */
 export const PART_MODEL_IDS = Object.keys(DEFS);
 /** Garage-only parts (not simulation components). Their anchors are "in" / "out". */
-export const VISUAL_ONLY_IDS = ["can_harness", "hv_cable", "steering_torque_sensor", "steering_column", "imu_sensor", "cell_monitor_board", "hv_junction_box", "charging_port", "obc", "dcdc_converter", "lv_battery", "instrument_cluster", "generic_ecu", "park_lock_actuator", "position_sensor", "height_sensor", "coolant_valve", "radiator", "coil_spring", "damper", "air_spring", "air_compressor", "body_shell", "isolation_monitor", "park_ecu", "chassis_ecu", "park_position_sensor", "ride_height_sensor", "cdc_damper", "eps_power_pack"];
+export const VISUAL_ONLY_IDS = ["can_harness", "hv_cable", "steering_torque_sensor", "steering_column", "imu_sensor", "cell_monitor_board", "hv_junction_box", "charging_port", "obc", "dcdc_converter", "lv_battery", "instrument_cluster", "generic_ecu", "park_lock_actuator", "position_sensor", "height_sensor", "coolant_valve", "radiator", "coil_spring", "damper", "air_spring", "air_compressor", "body_shell", "isolation_monitor", "park_ecu", "chassis_ecu", "park_position_sensor", "ride_height_sensor", "cdc_damper", "eps_power_pack", "brake_line"];
 
 const cache = new Map<string, PartModel>();
 
