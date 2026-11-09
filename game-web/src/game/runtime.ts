@@ -1,5 +1,8 @@
 export type CaseId = "propulsion" | "thermal" | "brake";
 
+export type InvestigationStep = "locked" | "board" | "wiring" | "bench" | "repair" | "done";
+export type JourneyStageId = "garage" | "heist" | "race" | "board" | "wiring" | "bench" | "repair" | "escape";
+
 export type Scene =
   | "TITLE"
   | "PROLOGUE"
@@ -30,6 +33,7 @@ export type Campaign = {
   forwardScene?: Scene;
   caseId: CaseId;
   completedCases: CaseId[];
+  investigationProgress: Record<CaseId, InvestigationStep>;
   optionalBrake: "undecided" | "accepted" | "skipped";
   evidence: Record<CaseId, string[]>;
   hypothesis: Record<CaseId, string>;
@@ -54,6 +58,7 @@ export const initialCampaign = (): Campaign => ({
   scene: "TITLE",
   caseId: "propulsion",
   completedCases: [],
+  investigationProgress: { propulsion: "locked", thermal: "locked", brake: "locked" },
   optionalBrake: "undecided",
   checkpoint: "start",
   evidence: { propulsion: [], thermal: [], brake: [] },
@@ -77,15 +82,108 @@ export const initialCampaign = (): Campaign => ({
 
 export function hydrateCampaign(saved: Partial<Campaign>): Campaign {
   const base = initialCampaign();
-  return {
+  const hydrated: Campaign = {
     ...base,
     ...saved,
     evidence: { ...base.evidence, ...(saved.evidence ?? {}) },
     hypothesis: { ...base.hypothesis, ...(saved.hypothesis ?? {}) },
     program: { ...base.program, ...(saved.program ?? {}) },
+    investigationProgress: { ...base.investigationProgress, ...(saved.investigationProgress ?? {}) },
     gapJudgements: { ...(saved.gapJudgements ?? {}) },
     hintClaims: { ...(saved.hintClaims ?? {}) },
   };
+  hydrated.completedCases.forEach(caseId => { hydrated.investigationProgress[caseId] = "done"; });
+  const inferred = investigationStepForScene(hydrated.scene);
+  if (stepRank(inferred) > stepRank(hydrated.investigationProgress[hydrated.caseId])) {
+    hydrated.investigationProgress[hydrated.caseId] = inferred;
+  }
+  return hydrated;
+}
+
+const investigationSteps: InvestigationStep[] = ["locked", "board", "wiring", "bench", "repair", "done"];
+const stepRank = (step: InvestigationStep) => investigationSteps.indexOf(step);
+const investigationStepForScene = (scene: Scene): InvestigationStep => {
+  if (scene === "BOARD" || scene === "OPTIONAL_FAULT") return "board";
+  if (scene === "WIRING") return "wiring";
+  if (scene === "TWIN_BENCH" || scene === "VERIFY_FAIL") return "bench";
+  if (scene === "REPAIR") return "repair";
+  return "locked";
+};
+const unlockInvestigation = (s: Campaign, step: InvestigationStep) => {
+  s.investigationProgress ??= { propulsion: "locked", thermal: "locked", brake: "locked" };
+  if (stepRank(step) > stepRank(s.investigationProgress[s.caseId])) {
+    s.investigationProgress[s.caseId] = step;
+  }
+  return s;
+};
+
+const journeyStageForScene = (scene: Scene): JourneyStageId => {
+  if (scene.startsWith("GARAGE")) return "garage";
+  if (scene === "DRIVE_BRIEFING") return "heist";
+  if (["CHASE_NORMAL", "CHASE_RESUME", "FAULT_CUE", "ASSIST_CHASE"].includes(scene)) return "race";
+  if (scene === "BOARD" || scene === "OPTIONAL_FAULT") return "board";
+  if (scene === "WIRING") return "wiring";
+  if (scene === "TWIN_BENCH" || scene === "VERIFY_FAIL") return "bench";
+  if (scene === "REPAIR") return "repair";
+  return "escape";
+};
+
+export type JourneyStageAccess = {
+  status: "active" | "done" | "available" | "locked";
+  reason?: string;
+  target?: Scene;
+};
+
+export function journeyStageAccess(state: Campaign, stage: JourneyStageId): JourneyStageAccess {
+  const current = journeyStageForScene(state.scene);
+  if (stage === current) return { status: "active", target: state.scene };
+
+  const progress = state.investigationProgress?.[state.caseId] ?? investigationStepForScene(state.scene);
+  const deductionStarted = stepRank(progress) >= stepRank("board");
+  if (stage === "garage") {
+    return deductionStarted
+      ? { status: "locked", reason: "추리 진입 이후에는 차량 도메인 학습으로 돌아갈 수 없습니다." }
+      : { status: "available", target: "GARAGE_L1" };
+  }
+  if (stage === "heist" || stage === "race") {
+    return { status: "locked", reason: "이 구간은 주행 서사에 따라 자동으로 진행됩니다." };
+  }
+
+  const requirements: Partial<Record<JourneyStageId, InvestigationStep>> = {
+    board: "board",
+    wiring: "wiring",
+    bench: "bench",
+    repair: "repair",
+  };
+  const targets: Partial<Record<JourneyStageId, Scene>> = {
+    board: "BOARD",
+    wiring: "WIRING",
+    bench: "TWIN_BENCH",
+    repair: "REPAIR",
+  };
+  const required = requirements[stage];
+  if (required) {
+    if (stepRank(progress) < stepRank(required)) {
+      const reasons: Record<InvestigationStep, string> = {
+        locked: "주행 이상을 관찰하고 도미노 추리를 시작해야 열립니다.",
+        board: "도미노에서 근거와 우선 가설을 확정해야 열립니다.",
+        wiring: "가설을 검증할 로직 퍼즐을 구성해야 열립니다.",
+        bench: "시뮬레이션 결과로 가설을 검증해야 열립니다.",
+        repair: "검증된 수리 적용을 완료해야 열립니다.",
+        done: "",
+      };
+      return { status: "locked", reason: reasons[progress] };
+    }
+    return {
+      status: stepRank(progress) > stepRank(required) ? "done" : "available",
+      target: targets[stage],
+    };
+  }
+
+  const escapeUnlocked = ["propulsion", "thermal"].every(caseId => state.completedCases.includes(caseId as CaseId)) || state.scene.startsWith("SHIP") || state.scene === "ENDING";
+  return escapeUnlocked
+    ? { status: "available", target: "SHIP_ESCAPE" }
+    : { status: "locked", reason: "필수 추리와 수리를 마친 뒤 최종 탈출이 열립니다." };
 }
 
 const enter = (s: Campaign, scene: Scene): Campaign => ({
@@ -167,9 +265,9 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
     case "CONTINUE_FAULT":
       // flow (docs/VERIFICATION_FLOW_STANDARD.md): fault → root-cause trace narrows to a suspect section (board)
       // → requirement-based normal behaviour of that section (puzzle) → simulation verification (bench)
-      return enter(s, "BOARD");
+      return enter(unlockInvestigation(s, "board"), "BOARD");
     case "OPEN_BOARD":
-      return enter(s, "BOARD");
+      return enter(unlockInvestigation(s, "board"), "BOARD");
     case "RECORD_EVIDENCE": {
       const id = String(event.id);
       s.evidence[s.caseId] = s.evidence[s.caseId].includes(id)
@@ -184,7 +282,7 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
     }
     case "OPEN_WIRING":
       return s.hypothesis[s.caseId] && (s.scene === "BOARD" || s.evidence[s.caseId].length >= 2)
-        ? enter(s, "WIRING")
+        ? enter(unlockInvestigation(s, "wiring"), "WIRING")
         : reject(s, "증거 2개와 가설을 먼저 선택하세요.");
     case "SOLVE_BOARD": {
       const answers: Record<CaseId, { evidence: string[]; root: string }> = {
@@ -207,7 +305,7 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       s.program[s.caseId] = String(event.program);
       return s;
     case "OPEN_BENCH":
-      return enter(s, "TWIN_BENCH");
+      return enter(unlockInvestigation(s, "bench"), "TWIN_BENCH");
     case "BENCH_RESULT": {
       s.benchRuns++;
       const correct = Boolean(event.causeCorrect);
@@ -217,12 +315,13 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       s.policeGapMeters = clampGap(s, s.policeGapMeters + nextScore - previousScore);
       s.gapJudgements[s.caseId] = correct ? "correct" : "wrong";
       if (s.policeGapMeters <= 0) return enter(s, "CAUGHT");
-      return enter(s, event.pass ? "REPAIR" : "VERIFY_FAIL");
+      return enter(event.pass ? unlockInvestigation(s, "repair") : s, event.pass ? "REPAIR" : "VERIFY_FAIL");
     }
     case "RETRY_WIRING":
       return enter(s, "WIRING");
     case "APPLY_REPAIR":
       s.completedCases = Array.from(new Set([...s.completedCases, s.caseId]));
+      unlockInvestigation(s, "done");
       s.lastRepairElapsedSeconds = s.raceElapsedSeconds;
       s.lastRepairDistance = s.raceDistance;
       if (s.caseId === "propulsion") {
@@ -241,7 +340,7 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       return enter({ ...s, optionalBrake: "skipped" }, "SHIP_ESCAPE");
     case "OPTIONAL_BRAKE":
       return event.accept
-        ? enter({ ...s, optionalBrake: "accepted", caseId: "brake" }, "WIRING")
+        ? enter(unlockInvestigation({ ...s, optionalBrake: "accepted", caseId: "brake" }, "wiring"), "WIRING")
         : enter({ ...s, optionalBrake: "skipped" }, "SHIP_ESCAPE");
     case "FINISH_ESCAPE": {
       // Make the hand-off atomic.  The old implementation dispatched SYNC_RACE
@@ -298,6 +397,15 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       return s.forwardScene
         ? enter(s, s.forwardScene)
         : reject(s, "되돌아온 단계가 있을 때만 다음 단계 이동을 사용할 수 있습니다.");
+    case "NAV_STAGE": {
+      const access = journeyStageAccess(s, String(event.stage) as JourneyStageId);
+      if (!access.target || access.status === "locked") {
+        return reject(s, access.reason ?? "아직 이동할 수 없는 단계입니다.");
+      }
+      if (access.target === s.scene) return s;
+      const returnScene = s.forwardScene ?? s.scene;
+      return { ...enter(s, access.target), forwardScene: returnScene };
+    }
     case "TITLE":
       return enter(s, "TITLE");
     case "COLLISION":
@@ -315,7 +423,7 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake" };
       s.hypothesis[s.caseId] = roots[s.caseId];
       s.program[s.caseId] = programs[s.caseId];
-      return enter(s, "REPAIR");
+      return enter(unlockInvestigation(s, "repair"), "REPAIR");
     }
     default:
       return reject(s, "UNKNOWN_EVENT");

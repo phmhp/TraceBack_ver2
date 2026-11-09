@@ -455,3 +455,16 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
 }
 /* arrest record: the stamp sits over the photos, never over the note text */
 .is-caught .cfStamp { bottom: auto !important; top: 26% !important; right: 34% !important; font-size: 40px !important; padding: 2px 18px !important; opacity: .9; }
+
+/* ── P0 L-6: clickable journey stages, sequential locks and lock reasons ── */
+.journeyRailTrack article { isolation: isolate; }
+.journeyRailTrack .journeyStageHit { position: absolute; z-index: 5; inset: -5px -2px -4px; appearance: none; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
+.journeyRailTrack article.isNavigable:not(.active):hover { opacity: 1; }
+.journeyRailTrack article.isNavigable:not(.active):hover > i { transform: translateY(-1px); box-shadow: 0 0 0 3px #59a98529; }
+.journeyRailTrack article.active .journeyStageHit { cursor: default; }
+.journeyRailTrack article.isLocked .journeyStageHit { cursor: not-allowed; }
+.journeyRailTrack article.isLocked > i { border-color: #b7bcb8 !important; color: #66706b !important; background: #e6e9e6 !important; font-size: 8px !important; filter: grayscale(1); }
+.journeyRailTrack article.available { opacity: .82; }
+.journeyRailTrack article.available > i { border-color: #4b9275; color: #37735d; background: #e7f3ec; }
+.journeyRailTrack article.available:hover > span,
+.journeyRailTrack article.done:hover > span { color: #287256; }

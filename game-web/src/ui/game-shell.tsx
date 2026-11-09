@@ -1,4 +1,22 @@
-import { type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
+import { journeyStageAccess, type Campaign, type JourneyStageId } from "../game/runtime";
+
+const JourneyNavigationContext = createContext<{
+  campaign: Campaign;
+  navigate: (stage: JourneyStageId) => void;
+} | null>(null);
+
+export function JourneyNavigationProvider({
+  campaign,
+  navigate,
+  children,
+}: {
+  campaign: Campaign;
+  navigate: (stage: JourneyStageId) => void;
+  children: ReactNode;
+}) {
+  return <JourneyNavigationContext.Provider value={{ campaign, navigate }}>{children}</JourneyNavigationContext.Provider>;
+}
 
 type ActionTone = "primary" | "neutral" | "danger" | "honey";
 
@@ -86,9 +104,31 @@ const stageForScene = (scene: string) => {
 };
 
 export function JourneyProgress({ scene }: { scene: string }) {
+  const navigation = useContext(JourneyNavigationContext);
   const active = stageForScene(scene);
   return <nav className="journeyProgress journeyRail" aria-label={`전체 진행 ${active + 1}/${journeyStages.length}`}>
-    <div className="journeyRailTrack">{journeyStages.map((stage, index) => <article key={stage.id} className={index < active ? "done" : index === active ? "active" : "future"} title={`${stage.label} · ${stage.detail}`}><i>{index < active ? "✓" : index + 1}</i><span>{stage.label}</span>{index < journeyStages.length - 1 && <em />}</article>)}</div>
+    <div className="journeyRailTrack">{journeyStages.map((stage, index) => {
+      const access = navigation
+        ? journeyStageAccess(navigation.campaign, stage.id)
+        : { status: index < active ? "done" : index === active ? "active" : "locked" } as const;
+      const locked = access.status === "locked";
+      const activeStage = access.status === "active";
+      const title = locked && "reason" in access && access.reason
+        ? `${stage.label} 잠김 · ${access.reason}`
+        : `${stage.label} · ${stage.detail}${activeStage ? " · 현재 단계" : " · 클릭하여 이동"}`;
+      return <article key={stage.id} className={`${access.status} ${locked ? "isLocked" : "isNavigable"}`} title={title}>
+        <button
+          type="button"
+          className="journeyStageHit"
+          aria-label={title}
+          aria-disabled={locked || activeStage}
+          onClick={() => !locked && !activeStage && navigation?.navigate(stage.id)}
+        />
+        <i>{locked ? "🔒" : access.status === "done" ? "✓" : index + 1}</i>
+        <span>{stage.label}</span>
+        {index < journeyStages.length - 1 && <em />}
+      </article>;
+    })}</div>
     <strong><small>NOW · {active + 1}/{journeyStages.length}</small>{journeyStages[active].label}</strong>
   </nav>;
 }
