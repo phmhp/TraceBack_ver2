@@ -11,6 +11,7 @@ import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
 import { DRIVER as DRIVER_NAME, ENGINEER } from "../../game/cast";
 import { Icon } from "../../ui/Icon";
+import { contractStorageKey, fallbackVerificationContract, type VerificationContract } from "../../game/verificationContract";
 
 type Send = React.Dispatch<any>;
 type ProbeId = "input" | "control" | "output";
@@ -1327,6 +1328,12 @@ const ANSWER_BTN: Record<Answer, [string, string]> = { supported: ["가능성 �
 
 export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
   const caseId = state.caseId;
+  const contract: VerificationContract = (() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(contractStorageKey(caseId)) ?? "null");
+      return saved?.version === 1 && saved.caseId === caseId ? saved : fallbackVerificationContract(caseId);
+    } catch { return fallbackVerificationContract(caseId); }
+  })();
   const meta = SCENARIO_META[caseId];
   const questions = QUESTIONS[caseId];
   const expect = (() => { try { return sessionStorage.getItem(`tb-expect-${caseId}`) ?? ""; } catch { return ""; } })();
@@ -1449,7 +1456,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
           ? <div className="qaAsk done"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><small>{DRIVER_NAME}</small><b>{phase === "report" ? "그래서 뭘 고치면 돼?" : "고친 뒤에는 괜찮아?"}</b></p></div>
           : <div className="qaAsk"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><small>{DRIVER_NAME}의 질문 {qi + 1}/{questions.length}</small><b>"{q.ask}"</b></p></div>}
         <ol className="qaDots">{questions.map((item, k) => { const a = answers[item.hyp]; return <li key={item.hyp} className={a ? `a-${a.answer}` : k === qi && phase !== "report" ? "now" : ""} title={item.ask}>{a ? ANSWER_KO[a.answer] : k + 1}</li>; })}</ol>
-        {expect && <span className="qaExpect"><Icon name="clipboard" /> 기대값 · {expect}</span>}
+        <span className="qaExpect" title={`${contract.objective} · ${contract.comparison.timeAxis}`}><Icon name="clipboard" /> STEP03 계약 · {expect || contract.expected.value}</span>
         <OpenBookButton caseId={caseId} />
         <span className="v7CostChip">비용 {cost} · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span>
         <button className="qaHelpBtn" aria-label="도움말" onClick={() => { setHelp(v => !v); play("pop"); }}>?</button>

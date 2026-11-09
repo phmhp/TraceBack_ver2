@@ -21,6 +21,8 @@ const activateGarageInput = process.env.TRACEBACK_CAPTURE_GARAGE_ACTIVE === "1";
 const solveBoard = process.env.TRACEBACK_CAPTURE_BOARD_SOLVED === "1";
 const zoomBoardEvidence = process.env.TRACEBACK_CAPTURE_BOARD_ZOOM === "1";
 const forceIntros = process.env.TRACEBACK_CAPTURE_FORCE_INTROS === "1";
+const solvePuzzle = process.env.TRACEBACK_CAPTURE_PUZZLE_SOLVED === "1";
+const openPuzzleContract = process.env.TRACEBACK_CAPTURE_PUZZLE_CONTRACT === "1";
 
 const screens = [
   { name: "00_title.png", url: "/?new=1", wait: 1200 },
@@ -234,6 +236,12 @@ async function main() {
       }
       if (screen.url.includes("qa=BOARD") && zoomBoardEvidence) {
         await page.send("Runtime.evaluate", { expression: "document.querySelector('.pol.record')?.click()" });
+      }
+      if (screen.url.includes("qa=WIRING") && solvePuzzle) {
+        await page.send("Runtime.evaluate", {
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); document.querySelector('.secretSolve')?.click(); await wait(100); document.querySelector('.rpRun')?.click(); await wait(4000); document.querySelector('.rpRun')?.click(); await wait(250); ${openPuzzleContract ? "document.querySelector('.rpExpect')?.click();" : ""} })()`,
+          awaitPromise: true,
+        });
       }
       if (autoDriveFinale && screen.name.includes("final_dock_race")) {
         await page.send("Page.bringToFront");

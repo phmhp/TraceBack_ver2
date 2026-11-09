@@ -17,6 +17,8 @@ import { Icon } from "../../ui/Icon";
 import { StageIntro, showVerdict } from "../../ui/Verdict";
 import { Canvas } from "@react-three/fiber";
 import { PartModel } from "../parts/PartModel";
+import { SCENARIOS, SCENARIO_META } from "../../game/scenarios";
+import { buildVerificationContract, contractStorageKey, type VerificationContract } from "../../game/verificationContract";
 
 type Send = React.Dispatch<any>;
 type Blk = { id: string; label: string; kind: Kind | "hw"; ee?: boolean; spec?: string; img?: string; tag?: string; out?: string; bad?: string; why?: string; from: string; does?: string };
@@ -455,6 +457,8 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   useEffect(() => { const key = (e: KeyboardEvent) => { if (["Delete", "Backspace", "Escape"].includes(e.key)) setZoomState(null); }; addEventListener("keydown", key); return () => removeEventListener("keydown", key); }, []);
   const [noteOpen, setNoteOpen] = useState(false);
   const [reaction, setReaction] = useState<"ok" | "weak" | null>(null);
+  const [contract, setContract] = useState<VerificationContract | null>(null);
+  const [contractOpen, setContractOpen] = useState(false);
   const [scale, setScale] = useState(.8);
   const noteKey = `${caseId}:garageNote`;
   const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ref.ecu; } catch { return ref.ecu; } })();
@@ -532,7 +536,16 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     const wrong = ref.gaps.find(g => place[g] !== ref.board[g]);
     if (wrong !== undefined) { const b = ref.blocks[place[wrong]!]; setFails(f => f + 1); showVerdict(false); setReaction("weak"); setMsg(`${spec.input ? `예시 입력을 요구사항 값(${spec.input.at}${spec.input.unit})에 두고 출력을 보세요. ` : ""}${(b.why ?? "요구사항과 다른 칸이 있어요.").replace("실행 결과", "결과가")}`); return; }
     setConfirmed(true); setReaction("ok"); showVerdict(true, "기준 확정"); play("success");
-    try { sessionStorage.setItem(`tb-expect-${caseId}`, spec.expect); } catch { /* ignore */ }
+    const hypothesisId = state.hypothesis[caseId];
+    const hypothesisLabel = SCENARIO_META[caseId].hypotheses.find(item => item.id === hypothesisId)?.label
+      ?? SCENARIOS[caseId].hypotheses.find(item => item.id === hypothesisId)?.label
+      ?? "선택한 원인 후보";
+    const nextContract = buildVerificationContract(caseId, { hypothesisId, hypothesisLabel, suspectSection: section, expectedValue: spec.expect });
+    setContract(nextContract);
+    try {
+      sessionStorage.setItem(`tb-expect-${caseId}`, spec.expect);
+      sessionStorage.setItem(contractStorageKey(caseId), JSON.stringify(nextContract));
+    } catch { /* ignore */ }
     setMsg("정상 기준이 정해졌어요. 이 기대값이 검증 단계의 판정 기준(점선)이 돼요.");
   };
   const solve = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, ref.board[g]]))); setCheck(null); setConfirmed(false); setMsg("정답 배치 완료. 연결 확인을 누르세요."); };
@@ -613,13 +626,19 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     <footer className="rpFoot">
       <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(msg)}</p></div>
       {connected && spec.input && !confirmed && <label className="rpSlider"><small>예시 입력 · {spec.input.label}</small><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label>}
-      {confirmed && <div className="rpExpect"><small><Icon name="clipboard" /> 기대값 카드</small><b>{spec.expect}</b></div>}
+      {confirmed && <button className="rpExpect" onClick={() => setContractOpen(true)}><small><Icon name="clipboard" /> STEP04 실험 계약 · 보기</small><b>{spec.expect}</b></button>}
       <span className="rpStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}<small>다시 시도 {fails}번</small></span>
       {confirmed ? <button className="rpNext" onClick={() => { send({ type: "COMPILE", program: ref.program }); send({ type: "OPEN_BENCH" }); }}>다음: 시뮬레이션 검증 →</button>
         : connected ? <button className="rpRun" onClick={confirm}>요구사항과 같아요 · 기준 확정</button>
           : <button className="rpRun" disabled={!filled || check?.status === "running"} onClick={startCheck}>{!filled ? `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음` : check?.status === "running" ? "확인 중…" : "연결 확인"}</button>}
     </footer>
     <button className="secretSolve" title="개발용 정답 적용" onClick={solve}>정답 보기</button>
+    {contractOpen && contract && <div className="verificationContractModal" onClick={() => setContractOpen(false)}><article onClick={event => event.stopPropagation()}>
+      <button className="contractClose" aria-label="실험 계약 닫기" onClick={() => setContractOpen(false)}>×</button>
+      <small>STEP03 → STEP04 · 실행 계약</small><h2>{contract.hypothesisLabel} — 어떻게 시험할까?</h2>
+      <dl><div><dt>목적</dt><dd>{contract.objective}</dd></div><div><dt>초기 조건</dt><dd>{contract.preconditions.join(" · ")}</dd></div><div><dt>입력</dt><dd>{contract.stimulus.sequence}</dd></div><div><dt>기대</dt><dd>{contract.expected.value}</dd></div><div><dt>관찰</dt><dd>{contract.observations.map(item => item.label).join(" → ")}</dd></div><div><dt>비교</dt><dd>{contract.comparison.baseline} · 같은 입력 · {contract.comparison.timeAxis} · {contract.comparison.units}</dd></div></dl>
+      <p>{contract.limitation}</p><button className="primary" onClick={() => setContractOpen(false)}>계약 저장 완료</button>
+    </article></div>}
     {noteOpen && <div className="pieceZoom" onClick={() => setNoteOpen(false)}><article className="rpNote" onClick={event => event.stopPropagation()}>
       <button className="pieceZoomClose" onClick={() => setNoteOpen(false)}>×</button>
       <small><Icon name="book" /> 차고 노트 · Control Software</small><h2>차고에서 본 블록 카드</h2>

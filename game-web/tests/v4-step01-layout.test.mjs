@@ -8,6 +8,9 @@ const capture = readFileSync(new URL("../scripts/capture-ui.mjs", import.meta.ur
 const vehicleLayout = readFileSync(new URL("../src/features/garage/VehicleLayout.tsx", import.meta.url), "utf8");
 const eeBlueprint = readFileSync(new URL("../src/features/garage/EeBlueprint.tsx", import.meta.url), "utf8");
 const eeTrace = readFileSync(new URL("../src/features/board/EeTrace.tsx", import.meta.url), "utf8");
+const refPuzzle = readFileSync(new URL("../src/features/wiring/RefPuzzle.tsx", import.meta.url), "utf8");
+const verificationLab = readFileSync(new URL("../src/features/verification/VerificationLab.tsx", import.meta.url), "utf8");
+const verificationContract = readFileSync(new URL("../src/game/verificationContract.ts", import.meta.url), "utf8");
 
 test("V4 STEP 01 keeps one stable frame across all three learning views", () => {
   assert.match(experience, /className="garageViewTools"/);
@@ -65,4 +68,14 @@ test("K-5 keeps the reverse trace central, evidence on the right, and a tactile 
   assert.match(latestCss, /\.etLayout > \.etEvidence \{ grid-column: 2; grid-row: 1; \}/);
   assert.match(latestCss, /\.etLayout > \.etMugs \{ grid-column: 1 \/ -1; grid-row: 2; \}/);
   assert.match(latestCss, /-webkit-line-clamp: 2/);
+});
+
+test("K-6 hands an explicit STEP03 experiment contract to STEP04", () => {
+  for (const field of ["hypothesisId", "objective", "preconditions", "stimulus", "expected", "observations", "comparison", "limitation", "createdBy"]) {
+    assert.match(verificationContract, new RegExp(field));
+  }
+  assert.match(refPuzzle, /contractStorageKey/);
+  assert.match(refPuzzle, /STEP03 → STEP04 · 실행 계약/);
+  assert.match(verificationLab, /fallbackVerificationContract/);
+  assert.match(verificationLab, /STEP03 계약/);
 });

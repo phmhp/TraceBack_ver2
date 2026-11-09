@@ -367,6 +367,20 @@
   .dtLayout.etLayout { grid-template-columns: minmax(0, 1fr) 280px !important; }
   .etMemoHead > small { display: none; }
 }
+
+/* ── K-6 STEP03 → STEP04 explicit experiment contract ── */
+.rpExpect { appearance: none; border: 0; text-align: left; cursor: pointer; }
+.verificationContractModal { position: fixed; z-index: 420; inset: 0; display: grid; place-items: center; padding: 24px; background: #1d2825a8; backdrop-filter: blur(5px); }
+.verificationContractModal > article { position: relative; width: min(720px, 92vw); max-height: 86vh; overflow: auto; padding: 20px; border: 5px solid #e8d39d; border-radius: 18px; color: #34443f; background: #fffdf3; box-shadow: 0 24px 60px #101a1766; }
+.verificationContractModal article > small { color: #bd5a47; font: 900 11px Pretendard, system-ui; }
+.verificationContractModal h2 { margin: 5px 34px 12px 0; font: 900 21px/1.25 Pretendard, system-ui; }
+.verificationContractModal dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin: 0; }
+.verificationContractModal dl div { min-width: 0; padding: 8px 10px; border: 1px solid #d7ded6; border-radius: 9px; background: #edf4ec; }
+.verificationContractModal dt { color: #b45443; font: 900 9px Pretendard, system-ui; }
+.verificationContractModal dd { margin: 3px 0 0; font: 800 12px/1.35 Pretendard, system-ui; }
+.verificationContractModal article > p { margin: 9px 0; padding: 8px 10px; border-left: 4px solid #df9c45; background: #fff2d8; font: 700 11px/1.4 Pretendard, system-ui; }
+.verificationContractModal .primary { width: 100%; min-height: 38px; }
+.contractClose { position: absolute; right: 12px; top: 9px; border: 0; background: transparent; font-size: 24px; cursor: pointer; }
 /* modals always above the chase bar and headers */
 .pieceZoom { z-index: 400 !important; }
 .pieceZoom .rpNote { max-height: 84vh !important; }
