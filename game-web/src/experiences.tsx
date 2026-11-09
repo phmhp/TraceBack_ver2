@@ -1421,44 +1421,10 @@ function SkyDome() {
   </group>;
 }
 
-function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: DriveSim; ship: boolean; policeVisible: boolean; waterFall?: boolean }) {
-  const player = useRef<THREE.Group>(null!);
-  const police = useRef<THREE.Group>(null!);
-  const lookTarget = useRef(new THREE.Vector3());
+// Scenery that never changes during a run: rendered once, not on every sim step.
+const TrackStatic = React.memo(function TrackStatic({ ship, signalRed }: { ship: boolean; signalRed: boolean }) {
   const deckFrame = trackFrame(DECK_TOUCH + 28);
   const harborFrame = trackFrame((RAMP_START + DECK_STOP) / 2);
-  useFrame(({ camera }, delta) => {
-    const roadLane = 3.35 + sim.lane;
-    const playerFrame = trackFrame(sim.distance, roadLane);
-    const boarding = ship ? boardingPose(sim.distance) : { y: .02, pitch: 0, airborne: false };
-    // Keep the chase car physically behind the player model.  A zero gap is
-    // handled by the state machine before the meshes are allowed to overlap.
-    const freePoliceDistance = Math.max(0, sim.distance - Math.max(5.8, sim.gap));
-    const policeDistance = ship && sim.distance >= RAMP_START ? Math.min(RAMP_START - 12, freePoliceDistance) : freePoliceDistance;
-    const policeFrame = trackFrame(policeDistance, 3.35 + sim.lane * .42);
-    player.current.position.x = THREE.MathUtils.damp(player.current.position.x, playerFrame.x, waterFall ? 2.2 : 10, delta);
-    player.current.position.y = THREE.MathUtils.damp(player.current.position.y, waterFall ? -2.2 : boarding.y, waterFall ? 2.2 : 11, delta);
-    player.current.position.z = THREE.MathUtils.damp(player.current.position.z, playerFrame.z, waterFall ? 2.2 : 10, delta);
-    // Front-wheel steering: the front axle turns first and the body follows a
-    // smaller bicycle-model yaw.  Rear wheels never receive a steering angle.
-    player.current.rotation.y = THREE.MathUtils.damp(player.current.rotation.y, playerFrame.yaw - sim.steer * .34, 9, delta);
-    player.current.rotation.z = THREE.MathUtils.damp(player.current.rotation.z, -sim.steer * .08, 10, delta);
-    player.current.rotation.x = THREE.MathUtils.damp(player.current.rotation.x, waterFall ? .72 : boarding.pitch, waterFall ? 2.3 : 9, delta);
-    police.current.position.x = THREE.MathUtils.damp(police.current.position.x, policeFrame.x, 8, delta);
-    police.current.position.y = THREE.MathUtils.damp(police.current.position.y, .02, 8, delta);
-    police.current.position.z = THREE.MathUtils.damp(police.current.position.z, policeFrame.z, 8, delta);
-    police.current.rotation.y = THREE.MathUtils.damp(police.current.rotation.y, policeFrame.yaw, 8, delta);
-    const sideView = ship && boarding.airborne;
-    const chaseCam = trackFrame(sim.distance - (sideView ? 2 : 10.5), sideView ? -11.5 : 3.35 + sim.lane * .58);
-    const look = trackFrame(sim.distance + 17, 3.35 + sim.lane * .2);
-    camera.position.x = THREE.MathUtils.damp(camera.position.x, chaseCam.x, 5.2, delta);
-    camera.position.y = THREE.MathUtils.damp(camera.position.y, (sideView ? 4.35 : 3.92) + boarding.y * .45, 5.2, delta);
-    camera.position.z = THREE.MathUtils.damp(camera.position.z, chaseCam.z, 5.2, delta);
-    lookTarget.current.x = THREE.MathUtils.damp(lookTarget.current.x, look.x, 6.5, delta);
-    lookTarget.current.y = THREE.MathUtils.damp(lookTarget.current.y, .78 + boarding.y, 6.5, delta);
-    lookTarget.current.z = THREE.MathUtils.damp(lookTarget.current.z, look.z, 6.5, delta);
-    camera.lookAt(lookTarget.current);
-  });
   return <>
     <fog attach="fog" args={[SKY.horizon, 70, 260]} />
     <SkyDome />
@@ -1483,12 +1449,11 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
         {i % 10 === 0 && <RoundedBox args={[2.5, 1.1 + (i % 3) * .35, 3.1]} radius={.3} position={[x + Math.sign(x) * 4.3, .65, 0]} castShadow><meshStandardMaterial color={["#e98970", "#76b2aa", "#e6bf67", "#8da8c7"][i % 4]} roughness={.72} /></RoundedBox>}
       </React.Fragment>)}
     </group>})}
-    {[300, 620, 920].map(s => { const f = trackFrame(s); const missionSignalRed = s === 620 && sim.distance >= 540 && sim.distance <= 612.5; return <group key={`junction-${s}`} position={[f.x, .025, f.z]} rotation={[0, f.yaw, 0]}>
+    {[300, 620, 920].map(s => { const f = trackFrame(s); const missionSignalRed = s === 620 && signalRed; return <group key={`junction-${s}`} position={[f.x, .025, f.z]} rotation={[0, f.yaw, 0]}>
       {Array.from({ length: 9 }, (_, index) => <mesh key={index} rotation={[-Math.PI / 2, 0, 0]} position={[-6.4 + index * 1.6, .015, 0]}><planeGeometry args={[.72, 4.2]} /><meshStandardMaterial color="#f5efe2" /></mesh>)}
       {[-7.1, 7.1].map(x => <group key={x} position={[x, 2.25, -2.8]}><mesh><boxGeometry args={[.15, 4.5, .15]} /><meshStandardMaterial color="#303b39" metalness={.65} /></mesh><RoundedBox args={[.6, 1.45, .35]} radius={.12} position={[0, 1.7, 0]}><meshStandardMaterial color="#25302e" /></RoundedBox>{[.42, 0, -.42].map((y, n) => { const lit = missionSignalRed ? n === 0 : n === 2; const lamp = missionSignalRed ? "#ff3b30" : "#3ee072"; return <mesh key={y} position={[0, 1.7 + y, .2]}><sphereGeometry args={[.17, 18, 12]} /><meshStandardMaterial color={lit ? lamp : "#473f3b"} emissive={lit ? lamp : "#000"} emissiveIntensity={lit ? 2.4 : 0} /></mesh>; })}</group>)}
     </group>; })}
     <RoadsideEnvironment />
-    <TrafficFleet sim={sim} />
     {ship && <>
       {/* A continuous harbor basin sits above the green terrain plane from the
           final road approach through the far end of the ship. */}
@@ -1517,6 +1482,54 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
         <PartLabel position={[0,5.35,-14]}>FINAL · THE RED WHISKER · PHYSICAL DECK</PartLabel>
       </group>
     </>}
+  </>;
+});
+
+function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: DriveSim; ship: boolean; policeVisible: boolean; waterFall?: boolean }) {
+  const player = useRef<THREE.Group>(null!);
+  const police = useRef<THREE.Group>(null!);
+  const lookTarget = useRef(new THREE.Vector3());
+  // The sim is stepped in its own rAF loop and reaches this scene through React; the two loops are not in
+  // lockstep, so the raw distance moves in uneven steps (car judder). Extrapolate by speed between updates.
+  const simAt = useRef({ d: sim.distance, v: sim.speed, t: performance.now() });
+  if (simAt.current.d !== sim.distance) simAt.current = { d: sim.distance, v: sim.speed, t: performance.now() };
+  useFrame(({ camera }, delta) => {
+    const at = simAt.current;
+    const distance = at.d + at.v / 3.6 * Math.min(.06, (performance.now() - at.t) / 1000);
+    const roadLane = 3.35 + sim.lane;
+    const playerFrame = trackFrame(distance, roadLane);
+    const boarding = ship ? boardingPose(distance) : { y: .02, pitch: 0, airborne: false };
+    // Keep the chase car physically behind the player model.  A zero gap is
+    // handled by the state machine before the meshes are allowed to overlap.
+    const freePoliceDistance = Math.max(0, distance - Math.max(5.8, sim.gap));
+    const policeDistance = ship && sim.distance >= RAMP_START ? Math.min(RAMP_START - 12, freePoliceDistance) : freePoliceDistance;
+    const policeFrame = trackFrame(policeDistance, 3.35 + sim.lane * .42);
+    player.current.position.x = THREE.MathUtils.damp(player.current.position.x, playerFrame.x, waterFall ? 2.2 : 10, delta);
+    player.current.position.y = THREE.MathUtils.damp(player.current.position.y, waterFall ? -2.2 : boarding.y, waterFall ? 2.2 : 11, delta);
+    player.current.position.z = THREE.MathUtils.damp(player.current.position.z, playerFrame.z, waterFall ? 2.2 : 10, delta);
+    // Front-wheel steering: the front axle turns first and the body follows a
+    // smaller bicycle-model yaw.  Rear wheels never receive a steering angle.
+    player.current.rotation.y = THREE.MathUtils.damp(player.current.rotation.y, playerFrame.yaw - sim.steer * .34, 9, delta);
+    player.current.rotation.z = THREE.MathUtils.damp(player.current.rotation.z, -sim.steer * .08, 10, delta);
+    player.current.rotation.x = THREE.MathUtils.damp(player.current.rotation.x, waterFall ? .72 : boarding.pitch, waterFall ? 2.3 : 9, delta);
+    police.current.position.x = THREE.MathUtils.damp(police.current.position.x, policeFrame.x, 8, delta);
+    police.current.position.y = THREE.MathUtils.damp(police.current.position.y, .02, 8, delta);
+    police.current.position.z = THREE.MathUtils.damp(police.current.position.z, policeFrame.z, 8, delta);
+    police.current.rotation.y = THREE.MathUtils.damp(police.current.rotation.y, policeFrame.yaw, 8, delta);
+    const sideView = ship && boarding.airborne;
+    const chaseCam = trackFrame(distance - (sideView ? 2 : 10.5), sideView ? -11.5 : 3.35 + sim.lane * .58);
+    const look = trackFrame(distance + 17, 3.35 + sim.lane * .2);
+    camera.position.x = THREE.MathUtils.damp(camera.position.x, chaseCam.x, 5.2, delta);
+    camera.position.y = THREE.MathUtils.damp(camera.position.y, (sideView ? 4.35 : 3.92) + boarding.y * .45, 5.2, delta);
+    camera.position.z = THREE.MathUtils.damp(camera.position.z, chaseCam.z, 5.2, delta);
+    lookTarget.current.x = THREE.MathUtils.damp(lookTarget.current.x, look.x, 6.5, delta);
+    lookTarget.current.y = THREE.MathUtils.damp(lookTarget.current.y, .78 + boarding.y, 6.5, delta);
+    lookTarget.current.z = THREE.MathUtils.damp(lookTarget.current.z, look.z, 6.5, delta);
+    camera.lookAt(lookTarget.current);
+  });
+  return <>
+    <TrackStatic ship={ship} signalRed={sim.distance >= 540 && sim.distance <= 612.5} />
+    <TrafficFleet sim={sim} />
     <group ref={player}>{DEV_LEGACY_CAR ? <Convertible steer={sim.steer} spin={sim.distance * .11} /> : <HeroConvertible steer={sim.steer} spin={sim.distance * .11} speed={sim.speed} />}</group>
     <group ref={police} visible={policeVisible}><PoliceInterceptor spin={sim.distance * .11} /></group>
     {import.meta.env.DEV && <DevRenderProbe name="race" />}

@@ -262,3 +262,7 @@
 .garageLayerNav .eeLayerSwitch button { min-height: 0 !important; height: 28px !important; padding: 0 4px !important; display: block !important; text-align: center !important; border-radius: 7px !important; border: 1px solid #d9c9b3 !important; background: #fff !important; color: #5b4636 !important; font: 600 11.5px Pretendard, system-ui !important; box-shadow: none !important; }
 .garageLayerNav .eeLayerSwitch button.on { background: #9b6b64 !important; border-color: #9b6b64 !important; color: #fff !important; }
 .garageLayerNav .eeLayerSwitch button::before, .garageLayerNav .eeLayerSwitch button::after { display: none !important; content: none !important; }
+/* drive time: only the inner box is a card (the wrapper used to draw a second border around it) */
+.raceV2 .raceTripHud { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; backdrop-filter: none !important; }
+.raceV2 .raceTripHud::before, .raceV2 .raceTripHud::after, .raceV2 .raceTripHud > span::before, .raceV2 .raceTripHud > span::after { display: none !important; content: none !important; }
+.raceV2 .raceTripHud > span { min-width: 92px !important; padding: 8px 12px !important; }
