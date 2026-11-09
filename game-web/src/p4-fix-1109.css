@@ -202,3 +202,14 @@
 
 /* stage screens never scroll (focus or a late layout must not shift them) */
 .refPuzzle, .dtBoard, .vbBench, .garageV2, .raceV2 { overflow: clip !important; }
+
+/* ── Verification: input-condition chips, 3D normal/this-test toggle ── */
+.qaInputs { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 6px 0 2px; }
+.qaInputs small { font: 700 12px Pretendard, system-ui; color: #8a6a43; margin-right: 2px; }
+.qaInputs button { padding: 4px 9px; border-radius: 7px; border: 1px solid #d9c9b3; background: #fff; font: 600 11.5px Pretendard, system-ui; color: #5b4636; cursor: pointer; }
+.qaInputs button.on { background: #9b6b64; border-color: #9b6b64; color: #fff; }
+.qaTop .openBookBtn { margin-left: auto; }
+.qaTop .v7CostChip { margin-left: 0 !important; }
+.v3dToggle { display: inline-flex; gap: 4px; margin-left: 8px; }
+.v3dToggle button { padding: 3px 9px; border-radius: 7px; border: 1px solid #d9c9b3; background: #fff; font: 600 11.5px Pretendard, system-ui; cursor: pointer; }
+.v3dToggle button.on { background: #3b4a55; border-color: #3b4a55; color: #fff; }

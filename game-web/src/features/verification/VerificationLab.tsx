@@ -3,6 +3,7 @@ import type { Campaign, CaseId } from "../../game/runtime";
 import { HYP_LABEL, SCENARIOS, SCENARIO_META, judgeRun, type HypStatus, type Obs } from "../../game/scenarios";
 import { BenchVisual, EmbeddedBench3D, PursuitRouteBar, RestoredPuzzleVisual, type BenchTab } from "../../experiences";
 import { RefPuzzleTrack } from "../wiring/RefPuzzle";
+import { OpenBookButton } from "../../ui/OpenBook";
 import { StageIntro, showVerdict } from "../../ui/Verdict";
 import { SAMPLES, divergeIndex, firstMismatch, simulate, type Lv, type Series, type Tech } from "./simModel";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
@@ -1345,7 +1346,10 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [help, setHelp] = useState(false);
   const q = questions[qi];
   const fixed = phase === "retest" || phase === "done";
-  const deriv = qaDeriv(caseId, level);
+  // the player chooses the input condition of the test (same input goes to the normal and the fault model)
+  const [pickedDeriv, setPickedDeriv] = useState<Deriv | null>(null);
+  const [show3d, setShow3d] = useState<"run" | "normal">("run");
+  const deriv = pickedDeriv ?? qaDeriv(caseId, level);
   const tech = CASE_DERIVS[caseId].find(d => d.id === deriv)!;
   const sim = useMemo(() => simulate(caseId, tech.tech, fixed), [caseId, tech.tech, fixed]);
   const list = sim.levels[level];
@@ -1362,7 +1366,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const word = (sig: Series) => { const d = divergeIndex(sig); if (d === null) return "같음"; return sig.run[d] > sig.ref[d] ? "높음" : "낮음"; };
   const shown = Boolean(lastRun && lastRun.level === level && !running);
 
-  const pickTest = (lv: Lv) => { setLevel(lv); setViewTab(lv === "unit" || lv === "swint" ? "sw" : lv === "embedded" ? "ecu" : "plant"); setU(0); setLastRun(null); setPhase("lab"); play("pop");
+  const pickTest = (lv: Lv) => { setPickedDeriv(null); setShow3d("run"); setLevel(lv); setViewTab(lv === "unit" || lv === "swint" ? "sw" : lv === "embedded" ? "ecu" : "plant"); setU(0); setLastRun(null); setPhase("lab"); play("pop");
     setBubble(`${TEST_CARD[lv].name}. 이 시험에서 무엇이 실물인지 확인하고 '시험 실행'을 누르세요.`); };
   const run = () => {
     if (running) return;
@@ -1422,13 +1426,14 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
 
   const tabVisual = viewTab === "graph" ? <OverlayGraph list={list} upto={shown ? 1 : running ? u : 0} look={lookAt} />
     : viewTab === "sw" ? <RefPuzzleTrack key={`sw-${level}-${fixed}`} mode={level === "unit" ? "unit" : "swint"} caseId={caseId} progress={u} fixed={fixed} same={fixed || swSame} running={running} />
-    : viewTab === "ecu" ? <EmbeddedBench3D caseId={caseId} running={running} works={ecuReal ? works : true} />
-      : caseId === "propulsion" ? <BenchVisual tab="vehicle" caseId={caseId} running={running} works={plantReal ? works : true} /> : <EmbeddedBench3D caseId={caseId} running={running} works={plantReal ? works : true} />;
+    : viewTab === "ecu" ? <EmbeddedBench3D caseId={caseId} running={running} works={show3d === "normal" || (ecuReal ? works : true)} />
+      : caseId === "propulsion" ? <BenchVisual tab="vehicle" caseId={caseId} running={running} works={show3d === "normal" || (plantReal ? works : true)} /> : <EmbeddedBench3D caseId={caseId} running={running} works={show3d === "normal" || (plantReal ? works : true)} />;
   const tabNote = viewTab === "ecu" && !ecuReal ? "이 시험에는 제어기 하드웨어가 연결되지 않아요. SW만 PC에서 실행해요."
     : viewTab === "plant" && !plantReal ? "이 시험에는 실제 부품·차량이 연결되지 않아요. 부품은 모델이 대신해요." : "";
   const realChips = <span className="qaReal"><i className="on">SW 실물</i><i className={ecuReal ? "on" : ""}>제어기 {ecuReal ? "실물" : "없음"}</i><i className={plantReal ? "on" : ""}>부품·차량 {plantReal ? "실물" : "모델"}</i></span>;
 
-  return <div className="vbBench v7 qa qa2">
+  const coach = state.completedCases.length ? "" : phase === "pick" ? "pick-test" : phase === "lab" && !shown ? "run" : phase === "lab" ? "answer" : "";
+  return <div className="vbBench v7 qa qa2" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="검증" title="시뮬레이션 검증" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
@@ -1444,6 +1449,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
           : <div className="qaAsk"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><small>{DRIVER_NAME}의 질문 {qi + 1}/{questions.length}</small><b>"{q.ask}"</b></p></div>}
         <ol className="qaDots">{questions.map((item, k) => { const a = answers[item.hyp]; return <li key={item.hyp} className={a ? `a-${a.answer}` : k === qi && phase !== "report" ? "now" : ""} title={item.ask}>{a ? ANSWER_KO[a.answer] : k + 1}</li>; })}</ol>
         {expect && <span className="qaExpect"><Icon name="clipboard" /> 기대값 · {expect}</span>}
+        <OpenBookButton caseId={caseId} />
         <span className="v7CostChip">비용 {cost} · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span>
         <button className="qaHelpBtn" aria-label="도움말" onClick={() => { setHelp(v => !v); play("pop"); }}>?</button>
       </div>
@@ -1475,9 +1481,11 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               <nav className="v7Tabs">{([["sw", "SW 로직"], ["ecu", "제어기·I/O"], ["plant", "부품·차량"]] as const).map(([id, name]) => <button key={id} className={viewTab === id ? "on" : ""} onClick={() => { setViewTab(id); play("pop"); }}>{name}{(id === "sw" ? true : id === "ecu" ? ecuReal : plantReal) ? <i>실물</i> : <i className="model">모델</i>}</button>)}<button className={`graphTab ${viewTab === "graph" ? "on" : ""}`} onClick={() => { setViewTab("graph"); play("pop"); }}>신호 그래프</button></nav>
               <div className={`vbSimView ${running ? "running" : ""}`}>{tabVisual}{tabNote && <span className="v7TabNote">{tabNote}</span>}{shown && lastRun && <span className={`vbStamp ${lastRun.verdict === "PASS" ? "pass" : lastRun.verdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastRun.verdict]}</span>}</div>
               <p className="vbScope"><b>{TEST_CARD[level].name}</b> · 입력: {tech.input}</p>
+              {(viewTab === "ecu" || viewTab === "plant") && <span className="v3dToggle">{([["normal", "정상 시나리오"], ["run", "이번 시험"]] as const).map(([id, label]) => <button key={id} className={show3d === id ? "on" : ""} onClick={() => { setShow3d(id); play("pop"); }}>{label}</button>)}</span>}
             </div>
             <div className="qaPanel">
               {phase === "lab" && <div className="qaCriteria"><small><Icon name="target" /> 판단 기준 · "{q.ask}"</small><p>{PREDICT[q.hyp]}</p>{realChips}</div>}
+              {phase === "lab" && CASE_DERIVS[caseId].length > 1 && <div className="qaInputs"><small>입력 조건</small>{CASE_DERIVS[caseId].map(d => <button key={d.id} className={deriv === d.id ? "on" : ""} disabled={running} onClick={() => { setPickedDeriv(d.id); setLastRun(null); setU(0); play("pop"); setBubble(`입력을 '${d.input}'(으)로 바꿨어요. 정상 모델과 고장 모델에 같은 입력이 들어가요.`); }}>{d.input}</button>)}</div>}
               {phase !== "lab" && <div className="qaCriteria"><small><Icon name="repeat" /> 재시험</small><p>수리한 차량으로 같은 시험을 다시 해서 기대값과 같은지 확인해요.</p></div>}
               <table className="qaTable">
                 <thead><tr><th>신호</th><th>기대값</th><th>시험 결과</th><th>비교</th></tr></thead>
