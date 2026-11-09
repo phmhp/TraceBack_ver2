@@ -161,6 +161,12 @@
 - 화면·문서에 "교육용 단순화", "실제 모델 아님", "실제 장비 연동 아님" 같은 문구 금지(사용자 지시).
 - 3차: 물고기 말풍선 내용은 몸통 기준 가운데(svg x 38–230), 조작법 바 윗줄 키·아랫줄 뜻. cooling_fan(날개 spin)·cooling_pump 코드 모델 → 시뮬 필수 28종 모두 모델 완료. 새 이미지(thermal·charging·network-diagnostics) 커밋, 썸네일(ending-thumbs)·board-photos(fan_actual, pump_flow) 추가. 라디에이터·밸브·OBC·충전구 등은 시뮬 부품이 아니라(테스트가 부품=시뮬 컴포넌트 요구) 모델 보류.
 
+## 라운드 21 (2026-11-09, 마감 11-12)
+- garage-additions 10종 코드 모델 완료(isolation_monitor, park_ecu, chassis_ecu, park_lock_actuator, park_position_sensor, ride_height_sensor, air_spring, air_compressor, cdc_damper, eps_power_pack), `partModelFor` 라벨 연결.
+- 플레이 흐름 수정 목록·보류 이유 = `docs/PLAYFLOW_FIX_2026-11-09.md`. 레이싱 HUD(계기판 `cluster1109`에 기어·READY·회생), 고장 팝업 사건별 2줄 대사, 도미노 역추적 명칭, 검증 판정 통과/실패/판정 불가 + 가설 가능성 높음/낮음/아직 모름, 도움말 카드. 스타일은 `src/p4-fix-1109.css`(마지막 import).
+- 검증 화면 `.vbLayout`에 position을 주면 레이아웃이 깨짐(절대 배치). 팝업류는 position: fixed로.
+- 테스트는 이 PC(Node 24)에서 39개 모두 통과.
+
 ## 남은 일 (우선순위 순)
 0. 차고(도메인 동작 원리) 페이지를 '정비소 첫날' 단계형 체험으로: 정보 양 줄이기.
 0. 신규 고장 아이디어: 신호 대기 정차 후 READY 꺼짐·재시동 불가(전원 도메인).
