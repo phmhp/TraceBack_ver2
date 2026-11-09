@@ -287,9 +287,9 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
   const requirementDone = (slot: number) => Boolean(reached(slot));
   return <div className="refPuzzle">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="REQUIREMENT-BASED LOGIC" title="요구사항 기반 로직 퍼즐" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증 준비" title="요구사항 기반 로직 퍼즐" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
-    <StageIntro id="puzzle" title="요구사항 기반 로직 퍼즐" goal="의심 구간이 요구사항대로라면 어떤 블록이 어떤 순서로 있어야 하는지 맞춥니다." steps={[
+    <StageIntro id="puzzle" title="요구사항 기반 로직 퍼즐" goal="주어진 요구사항대로 퍼즐을 구성해요." steps={[
       { icon: "clipboard", text: "오른쪽 요구사항을 읽어요. 노란 줄이 이번에 맞춰야 할 칸이에요." },
       { icon: "puzzle", text: "아래 남은 조각을 빈칸으로 끌어 넣어요. 조각의 ? 버튼을 누르면 하는 일과 표 값이 나와요." },
       { icon: "monitor", text: "▶ 실행하면 값이 칸마다 흘러요. 요구사항과 처음 다른 칸에서 멈추면 그 칸을 다시 생각해요." },
@@ -520,9 +520,9 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
 
   return <div className="refPuzzle v2">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="REQUIREMENT-BASED LOGIC" title="요구사항 기반 로직 퍼즐" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증 준비" title="요구사항 기반 로직 퍼즐" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
-    <StageIntro id="puzzle-v2" title="요구사항 기반 로직 퍼즐" goal="정상이라면 이 입력에 어떤 출력이 나와야 하는지 정합니다. 여기서 정한 값이 검증의 기준이 돼요." steps={[
+    <StageIntro id="puzzle-v2" title="요구사항 기반 로직 퍼즐" goal="주어진 요구사항대로 퍼즐을 구성해요." steps={[
       { icon: "puzzle", text: "빈칸에 조각을 끌어 넣고 '연결 확인'을 눌러요. 연결만 확인하고 값은 아직 판정하지 않아요." },
       { icon: "monitor", text: "예시 입력을 움직여 칸마다 값이 어떻게 나오는지 봐요." },
       { icon: "clipboard", text: "요구사항과 같으면 '기준 확정'. 이 값이 검증 단계의 기대값이 돼요." },

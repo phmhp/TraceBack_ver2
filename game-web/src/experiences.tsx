@@ -759,7 +759,7 @@ function FlowStepCard({ chain, signals, step, onStep }: { chain: string[]; signa
     return () => clearTimeout(timer);
   }, [auto, step]); // eslint-disable-line react-hooks/exhaustive-deps
   const role = partRole(chain[step], step, chain.length);
-  const input = step === 0 ? "운전자·도로의 실제 상황" : signals[step - 1];
+  const input = step === 0 ? "운전자 조작 또는 센서가 재는 물리량" : signals[step - 1];
   const output = signals[step];
   return <div className="flowStepCard">
     <div className="flowStepHead"><b>{step + 1}/{chain.length}단계</b><span>{ROLE_TEXT[role].tag}</span><strong>{chain[step]}</strong>
@@ -916,11 +916,11 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   }, [domain, feature, routeLevel]);
   return <div className="garageV2">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
-    <GameHeader chapter="GARAGE · VEHICLE LOGIC LAB" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
-    <StageIntro id="garage" title="차량 도메인 동작 원리" goal="차가 운전자 입력을 어떻게 차량 동작으로 바꾸는지 미리 살펴보는 곳이에요. 뒤의 고장 추리에 그대로 쓰여요." steps={[
-      { icon: "car", text: "위 탭에서 도메인 하나를 고르세요. (예: 구동)" },
-      { icon: "clipboard", text: "오른쪽에서 그 도메인의 주요 기능 하나를 고르세요. (예: 운전자 토크 요청)" },
-      { icon: "layers", text: "왼쪽에서 보는 관점을 바꿔요: 차량 기능 → E/E(부품·배선) → Control SW(제어기 안 계산). 아래 흐름 칸에서 단계를 넘겨 보세요." },
+    <GameHeader chapter="차고지" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <StageIntro id="garage" title="차량 도메인 동작 원리" goal="차량 동작 원리를 파악하고 작동시켜보아요." steps={[
+      { icon: "car", text: "위 탭에서 도메인을 고르세요. (예: 구동)" },
+      { icon: "clipboard", text: "오른쪽에서 주요 기능을 고르세요. (예: 운전자 토크 요청)" },
+      { icon: "layers", text: "왼쪽에서 관점을 바꿔요: 3D 부품 위치 → E/E 연결 → Control SW 판단. 아래 단계 칸을 눌러 신호를 한 단계씩 보내 보세요." },
     ]} />
     <nav className="garageLayerNav" aria-label="설계 추상화 단계">
       <small className="viewAxisLabel">차량 레이어 관점</small>
@@ -969,7 +969,6 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
                 <em>{labMode === "intro" ? "소개" : labMode === "hunt" ? "?" : removed === index ? "↩ 다시 끼우기" : role === "result" ? "결과" : "빼 보기"}</em>
               </button>
             </React.Fragment>; })}</div>}
-            {labMode === "flow" && <div className="flowOverview"><small>단계 목록 · 눌러서 이동, 자세한 설명은 아래 칸</small><div>{chain.map((label, i) => <button key={`${label}-${i}`} className={i === Math.min(activeStep, chain.length - 1) ? "on" : i < activeStep ? "done" : ""} onClick={() => { setActiveStep(i); play("pop", 1 + i * .08); }}><i>{i + 1}</i>{label}</button>)}</div></div>}
             {labMode === "intro" && ecuCard !== null && <PartIntroCard label={chain[ecuCard]} role={partRole(chain[ecuCard], ecuCard, chain.length)} domain={domain} onClose={() => setEcuCard(null)} onPull={() => { setLabMode("pull"); pullOut(ecuCard); }} />}
             {labMode === "pull" && removed !== null && <PullOutBubble domain={domain} label={chain[removed]} role={partRole(chain[removed], removed, chain.length)} />}
             {labMode === "hunt" && culprit !== null && <div className="pullOutBubble huntQuiz"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><div>
@@ -980,18 +979,18 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
           </div>;
         })()}
       </section>
-      {!chosen && <aside className="domainFunctionShelf"><small>CORE CONTROL FUNCTIONS</small><h2>도메인을 골라 보세요</h2><div className="functionNote"><b>주요 기능</b><p>위 탭에서 도메인을 고르면 그 도메인의 주요 기능과 신호 흐름이 여기에 나와요.</p></div></aside>}
-      {!chosen && <section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → 제어기 → 출력 순서가 여기에 나와요.</b><div /><button className="garageProceed primary" onClick={() => send({ type: "START_RACE" })}>학습 마치고 도주 장면으로 →</button></section>}
+      {!chosen && <aside className="domainFunctionShelf"><small>주요 기능</small><h2>도메인을 골라 보세요</h2><div className="functionNote"><b>주요 기능</b><p>위 탭에서 도메인을 고르면 그 도메인의 주요 기능과 신호 흐름이 여기에 나와요.</p></div></aside>}
+      {!chosen && <section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → 제어기 → 출력 순서가 여기에 나와요.</b><div /><button className="garageProceed primary" onClick={() => send({ type: "START_RACE" })}>다음 →</button></section>}
       {chosen && <aside className="domainFunctionShelf">
-        <small>CORE CONTROL FUNCTIONS</small><h2>{content.label}의 주요 기능</h2>
+        <small>주요 기능</small><h2>{content.label}의 주요 기능</h2>
         {content.functions.map((item, index) => <button key={item} className={feature === index ? "active" : ""} onClick={() => setFeature(index)}><span>{index + 1}</span><b>{item}</b><i>›</i></button>)}
-        <div className="functionNote"><b>{content.functions[feature]}</b><p>{selectedFeature.summary}</p><small>주요 기능들은 서로 이어지는 단계가 아니라 같은 도메인 안의 형제 기능입니다.</small></div>
+        <div className="functionNote"><b>{content.functions[feature]}</b><p>{selectedFeature.summary}</p><small>기능마다 입력·제어기·출력 경로가 달라요.</small></div>
       </aside>}
       {chosen && <section className="garageFlowPanel">
         <small>{content.functions[feature]} · {learningLayers[routeLevel].tag}</small>
         <b className="flowRelationship">{routeLevel === 2 ? "핵심 제어 SW를 물리 입력·출력 경계와 함께 추적" : "선택한 기능에 필요한 경계만 표시 · 단계 수는 기능마다 달라집니다"}</b>
-        {routeLevel === 1 ? <FlowStepCard chain={chain} signals={flowSignals(domain, feature, chain.length)} step={Math.min(activeStep, chain.length - 1)} onStep={i => { setActiveStep(i); play("pop", 1 + i * .08); }} /> : <div>{(routeLevel === 2 ? [getFeatureLayer(domain, feature, 1)[0], getFeatureLayer(domain, feature, 1).at(-1)!] : getFeatureLayer(domain, feature, garageLayerSource[routeLevel])).map((node, index, flow) => { const step = index ? (routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length - 1 : index) : 0; return <React.Fragment key={`${node}-${index}`}><button onClick={() => inspectStep(index, step)} className={`${index === 0 || index === flow.length - 1 ? "focus" : ""} ${(activeStep === index || routeLevel === 2 && index === 1 && activeStep === getFeatureLayer(domain, feature, 3).length - 1) ? "activeStep" : ""}`}><i>{index + 1}</i><b>{node}</b><span>{index === 0 ? "PHYSICAL INPUT" : index === flow.length - 1 ? "OUTPUT ACTUATOR" : routeLevel === 0 ? "VEHICLE FUNCTION" : "HW / ECU"}</span></button>{index < flow.length - 1 && <em>→</em>}</React.Fragment>; })}</div>}
-        <button className="garageProceed primary" onClick={() => send({ type: "START_RACE" })}>학습 마치고 도주 장면으로 →</button>
+        {routeLevel === 1 ? <FlowStepCard chain={chain} signals={flowSignals(domain, feature, chain.length)} step={Math.min(activeStep, chain.length - 1)} onStep={i => { setActiveStep(i); play("pop", 1 + i * .08); }} /> : <div>{(routeLevel === 2 ? [getFeatureLayer(domain, feature, 1)[0], getFeatureLayer(domain, feature, 1).at(-1)!] : getFeatureLayer(domain, feature, garageLayerSource[routeLevel])).map((node, index, flow) => { const step = index ? (routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length - 1 : index) : 0; return <React.Fragment key={`${node}-${index}`}><button onClick={() => inspectStep(index, step)} className={`${index === 0 || index === flow.length - 1 ? "focus" : ""} ${(activeStep === index || routeLevel === 2 && index === 1 && activeStep === getFeatureLayer(domain, feature, 3).length - 1) ? "activeStep" : ""}`}><i>{index + 1}</i><b>{node}</b><span>{index === 0 ? "입력" : index === flow.length - 1 ? "출력" : routeLevel === 0 ? "기능 단계" : "부품·제어기"}</span></button>{index < flow.length - 1 && <em>→</em>}</React.Fragment>; })}</div>}
+        <button className="garageProceed primary" onClick={() => send({ type: "START_RACE" })}>다음 →</button>
       </section>}
     </main>
   </div>;
@@ -1096,7 +1095,7 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
   const heistCaptions = ["폭스의 저택 진입", "경보 패널 우회", "금고 발견", "빼앗긴 상금 회수", "경보 발생", "가방 들고 탈출", "직접 만든 차에 탑승", "시동 완료 · 출발 준비"];
   return <div className="driveBriefing heistIntro">
     <SceneBackdrop image={`${A}stitch23/prologue-night-drive.png`} position="center" shade="deep" />
-    <GameHeader chapter="HEIST COMPLETE · GETAWAY" title="부잣집 탈출 작전" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="도주 준비" title="부잣집 탈출 작전" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <main>
       <section className="heistStage">
         <Canvas shadows camera={{position:[0,3.15,9.2],fov:45}} dpr={[1,1.35]} gl={{antialias:true,powerPreference:"high-performance"}}><HeistCutsceneScene onBeat={setHeistFrame} onDone={() => setReady(true)} /></Canvas>
@@ -1447,7 +1446,7 @@ function RearMirror3D({ gap, visible }: { gap: number; visible: boolean }) {
       {Array.from({length:8},(_,i) => <group key={i} position={[i%2?-5.6:5.6,.4,-i*4]}><mesh position={[0,.55,0]}><cylinderGeometry args={[.08,.12,1.1,10]} /><meshStandardMaterial color="#70533e" /></mesh><mesh position={[0,1.35,0]}><sphereGeometry args={[.72,18,12]} /><meshStandardMaterial color="#5e9470" roughness={.9} /></mesh></group>)}
       <group visible={visible} position={[0,.02,-depth]} rotation={[0,Math.PI,0]} scale={.78}><PoliceInterceptor spin={gap*.08} /></group>
     </Canvas>
-    <small>REAR MIRROR · SAME 3D WORLD</small><em>{visible ? `${Math.round(gap)}m` : "…"}</em><strong>{visible ? "후방 카메라 실시간 렌더" : "출발 후 경찰차 합류"}</strong>
+    <small>REAR MIRROR</small>
   </div>;
 }
 
@@ -1736,23 +1735,20 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   return <div className={`raceV2 raceMode-${mode} ${impact ? "raceImpact" : ""} ${waterFall ? "waterFall" : ""}`} data-race-mode={mode} data-race-distance={sim.distance.toFixed(2)} data-race-speed={sim.speed.toFixed(2)} data-race-gap={sim.gap.toFixed(2)}>
     <RaceWorld sim={sim} ship={mode === "ship"} policeVisible={policeInWorld} waterFall={waterFall} />
     <JourneyProgress scene={mode === "ship" ? "SHIP_ESCAPE" : "CHASE_NORMAL"} />
-    <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button><div><small>{mode === "ship" ? "FINAL RUN" : "CHAPTER 04"}</small><b>{mode === "assist" ? "LIMITED DRIVE" : "ESCAPE RUN"}</b></div></div>
+    <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button></div>
     <PursuitRouteBar distance={sim.distance} gap={sim.gap} />
-    <div className="raceTripHud"><span><small>ELAPSED</small><b>{formatRaceTime(sim.elapsed)}</b></span><span><small>DRIVE · 회생 Q/E · 기어 1~4</small><b className="prnd">{(["P", "R", "N", "D"] as const).map(g => <i key={g} className={gear === g ? "on" : ""}>{g}</i>)} · 회생 {regen}</b></span><em>회생제동 단계 {regen} · Q 강하게 / E 약하게</em></div>
-    <div className="cockpitGauge"><small>SPEED</small><b>{Math.round(sim.speed)}</b><span>km/h</span><div><i style={{ width: `${Math.min(100, sim.speed)}%` }} /></div><em>{state.caseId === "thermal" ? `${Math.round(sim.heat)}°C` : "HV READY"}</em></div>
+    <div className="raceTripHud"><span><small>주행시간</small><b>{formatRaceTime(sim.elapsed)}</b></span></div>
+    <div className="cockpitGauge cluster1109" aria-label="계기판"><small>속도</small><b>{Math.round(sim.speed)}</b><span>km/h</span><div><i style={{ width: `${Math.min(100, sim.speed)}%` }} /></div>
+      <p className="clusterRow"><span className="prnd">{(["P", "R", "N", "D"] as const).map(g => <i key={g} className={gear === g ? "on" : ""}>{g}</i>)}</span><em className={driveMission === "restart" ? "readyOff" : "readyOn"}>{driveMission === "restart" ? "READY 꺼짐" : "READY"}</em></p>
+      <p className="clusterRow sub"><span>회생 {regen}단계</span>{state.caseId === "thermal" && <span>냉각수 {Math.round(sim.heat)}°C</span>}{symptom && <span className="warn">{mode === "normal" ? "출력 저하" : "출력 제한"}</span>}</p></div>
     <RearMirror3D gap={sim.gap} visible={policeInWorld} />
-    <div className="raceMiniMap"><b>LIVE CURVE MAP</b><svg viewBox="0 0 90 100"><path d={MINIMAP_PATH} /><circle className="cop" cx={mapPolice.x} cy={mapPolice.y} r="4" /><circle className="me" cx={mapPlayer.x} cy={mapPlayer.y} r="4.5" /></svg><small><i /> 자차 <em /> 경찰</small></div>
+    <div className="raceMiniMap"><b>미니맵</b><svg viewBox="0 0 90 100"><path d={MINIMAP_PATH} /><circle className="cop" cx={mapPolice.x} cy={mapPolice.y} r="4" /><circle className="me" cx={mapPlayer.x} cy={mapPlayer.y} r="4.5" /></svg><small><i /> 자차 <em /> 경찰</small></div>
     <div className="raceControls keyBar">
       {/* two rows per item: keys on top, meaning underneath */}
       {([[["↑"], "가속"], [["↓"], "브레이크"], [["←", "→"], "조향"], [["1", "~", "4"], "기어 P·R·N·D"], [["Q", "E"], "회생 강·약"], [["R"], "READY"], [["Esc"], "멈춤"]] as [string[], string][]).map(([keys, meaning]) =>
         <span key={meaning} className="keyItem"><i>{keys.map(key => key === "~" ? <small key={key}>~</small> : <kbd key={key} className={key.length > 1 ? "wide" : ""}>{key}</kbd>)}</i><em>{meaning}</em></span>)}
     </div>
-    {mode === "normal" && (countdown > 0 || sim.speed < 3) && sim.distance < 40 && <div className="keyGuideCard" aria-label="조작법">
-      <b>조작법</b>
-      <div className="wasd"><kbd className="k-w">↑</kbd><kbd className="k-a">←</kbd><kbd className="k-s">↓</kbd><kbd className="k-d">→</kbd></div>
-      <ul><li><kbd>↑</kbd> 가속 · <kbd>↓</kbd> 브레이크</li><li><kbd>←</kbd><kbd>→</kbd> 좌우 조향 (WASD도 돼요)</li><li><kbd>1</kbd>~<kbd>4</kbd> 기어 P·R·N·D (↓ 밟고)</li><li><kbd>Q</kbd><kbd>E</kbd> 회생제동 패들 강하게/약하게</li><li><kbd>R</kbd> 멈췄을 때 READY(시동) 다시 켜기</li></ul>
-    </div>}
-    {(countdown > 0 || goFlash) && <div className="startCountdown"><small>GET READY</small><b>{goFlash ? "GO!" : countdown}</b></div>}
+    {(countdown > 0 || goFlash) && <div className="startCountdown"><small>출발 준비</small><b>{goFlash ? "GO!" : countdown}</b></div>}
     {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="경찰 차량 접근" sound="siren" />}
     {symptom && <ComicBurst tone="fault" side="right" image="/assets/ending-thumbs/accel_pedal.png" title="가속 저하 발생" sound="alarm" />}
     {/* every message card lives in one column under the mirror, so cards never overlap */}
@@ -1760,12 +1756,12 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>↓</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
       {gearToast && <div className="gearToast" key={gearToast.id}>{gearToast.text}</div>}
       {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
-      {regression?.title && <div className={`regressionCard ${regression.ok ? "ok" : "no"}`} role="status"><i><Icon name="repeat" /></i><span><small>REGRESSION DRIVE · 같은 조건 재확인</small><b>{regression.title}</b><em>{regression.text}</em></span></div>}
-      {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i><Icon name={zone.icon} /></i><span><small>DRIVING ZONE</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
-      {symptom && <div className="faultBeacon" role="alert"><span /><div><small>VEHICLE WARNING</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "파워다운 표시등 · 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
+      {regression?.title && <div className={`regressionCard ${regression.ok ? "ok" : "no"}`} role="status"><i><Icon name="repeat" /></i><span><small>같은 조건 재주행</small><b>{regression.title}</b><em>{regression.text}</em></span></div>}
+      {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i><Icon name={zone.icon} /></i><span><small>주행 구간</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
+      {symptom && <div className="faultBeacon" role="alert"><span /><div><small>차량 경고</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "파워다운 표시등 · 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
       {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
-      {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>DRIVING MISSION · 다음 검증용 주행 로그</small><b>{driveMission === "red" ? "적색 신호 정지 · 제동 시퀀스 기록" : "정차 후 READY 재인가 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(612-sim.distance))}m · S로 부드럽게 제동 · 정지선 이탈 금지` : "이 재출발 기록이 열관리 고장 재현 미션의 초기조건이 됩니다"}</span></div>}
-      {mode === "ship" && sim.distance >= TRACK_LENGTH - 230 && <div className="finalRampCommit"><small>FINAL DOCK</small><b>{deckSettled ? "갑판 정차 완료 · 탈출 성공" : sim.distance >= DECK_TOUCH ? "해적선 갑판 착지 · 자동 감속" : sim.distance >= RAMP_START ? "실물 오르막 램프 진입" : "해적선 연결 램프 접근"}</b><span>{sim.distance >= RAMP_END && sim.distance < DECK_TOUCH ? "차량 도약 중 · 측면 카메라" : sim.distance >= DECK_TOUCH ? "네 바퀴 착지 확인 · 엔딩 전환 준비" : "중앙 유도 · 램프와 갑판 충돌면 활성"}</span></div>}
+      {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>주행 미션</small><b>{driveMission === "red" ? "적색 신호 정지 · 제동 시퀀스 기록" : "정차 후 READY 재인가 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(612-sim.distance))}m · S로 부드럽게 제동 · 정지선 이탈 금지` : "이 재출발 기록이 열관리 고장 재현 미션의 초기조건이 됩니다"}</span></div>}
+      {mode === "ship" && sim.distance >= TRACK_LENGTH - 230 && <div className="finalRampCommit"><small>도착 지점</small><b>{deckSettled ? "갑판 정차 완료 · 탈출 성공" : sim.distance >= DECK_TOUCH ? "해적선 갑판 착지 · 자동 감속" : sim.distance >= RAMP_START ? "실물 오르막 램프 진입" : "해적선 연결 램프 접근"}</b><span>{sim.distance >= RAMP_END && sim.distance < DECK_TOUCH ? "차량 도약 중 · 측면 카메라" : sim.distance >= DECK_TOUCH ? "네 바퀴 착지 확인 · 엔딩 전환 준비" : "중앙 유도 · 램프와 갑판 충돌면 활성"}</span></div>}
     </div>
   </div>;
 }
@@ -1795,9 +1791,15 @@ export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) 
   const [step, setStep] = useState(0);
   const [dialogueSim, setDialogueSim] = useState<DriveSim>({ speed: state.caseId === "thermal" ? 38 : 31, lane: 0, steer: 0, distance: state.raceDistance, gap: state.policeGapMeters, heat: state.caseId === "thermal" ? 84 : 39, elapsed: state.raceElapsedSeconds });
   const scenario = SCENARIOS[state.caseId];
+  // Short two-line exchange per case (symptom + warning lamp stated by the driver only; no cause hints).
+  const DRIVER_LINE: Record<CaseId, string> = {
+    propulsion: "페달을 끝까지 밟아도 가속이 안나와! 경고등도 안떴는데! 왜이러지?",
+    thermal: "오래 달렸더니 힘이 빠졌어! 계기판에 출력 제한 표시등이 켜졌어! 왜이러지?",
+    brake: "브레이크를 밟았는데 차가 잘 안 서! 브레이크 경고등까지 켜졌어! 왜이러지?",
+  };
   const dialogue = [
-    { who: `드라이버 ${DRIVER}`, role: "DRIVER", text: "페달은 끝까지 밟았는데 가속이 안 나와. 이 상태로는 못 따돌려.", tone: "driver" },
-    { who: `엔지니어 ${ENGINEER}`, role: "ENGINEER", text: "주행 기록은 남아 있어. 증상부터 정리하고 원인 범위를 좁혀 볼게.", tone: "engineer" },
+    { who: `드라이버 ${DRIVER}`, role: "DRIVER", text: DRIVER_LINE[state.caseId], tone: "driver" },
+    { who: `엔지니어 ${ENGINEER}`, role: "ENGINEER", text: "내가 만든 차가 이럴리 없는데! 내가 바로 고쳐볼게!", tone: "engineer" },
   ];
   const advance = () => step === 0 ? setStep(1) : send({ type: "CONTINUE_FAULT" });
   useEffect(() => {
@@ -1823,10 +1825,8 @@ export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) 
     <div className="warningWash"><i /><i /></div>
     {/* one repair-order sheet: symptom, warning lamp, then the conversation and a single action */}
     <main className="faultSheet">
-      <header className="fsHead"><span className="fsBang">!</span><div><small>주행 이상 감지</small><h1>{scenario.symptom}</h1></div></header>
-      <div className="fsLamp"><span className={`lampIcon lamp-${faultLamp[state.caseId].icon}`} aria-hidden="true">{faultLamp[state.caseId].glyph}</span><div><small>계기판 경고등</small><b>{faultLamp[state.caseId].label}</b><em>{faultLamp[state.caseId].note}</em></div></div>
-      <div className="fsTalk"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><div><b>{dialogue[step].who}</b><p>{dialogue[step].text}</p></div></div>
-      <footer className="fsFoot"><small>Enter로 넘기기 · 대화 중에는 추격 격차가 줄지 않아요</small><button className="primary" onClick={advance}>{step === 0 ? "다음" : "원인 추적 시작"} →</button></footer>
+      <div className="fsTalk" key={step}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><div><b>{dialogue[step].who}</b><p>{dialogue[step].text}</p></div></div>
+      <footer className="fsFoot"><button className="primary" onClick={advance}>{step === 0 ? "다음" : "원인 추적 시작"} →</button></footer>
     </main>
   </div>;
 }
@@ -2064,7 +2064,7 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
   };
   return <div className="boardV2 boardV3">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
-    <GameHeader chapter="INCIDENT INVESTIGATION" title="증거 메모판" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="사건 조사" title="증거 메모판" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main className="investigationBoard detectiveLayout">
       <header><div><small>OBSERVE · MEASURE · HYPOTHESIZE</small><h1>{scenario.title}</h1><div className="reasoningMicroRail"><span>현상 확인</span><i>→</i><span>계측 단서</span><i>→</i><span>가능 원인 가설</span><i>→</i><span>후속 검증</span></div></div><div className="boardToolbox"><button className={boardTool === "move" ? "active" : ""} onClick={() => setBoardTool("move")}><img src={`${A}cursor-hand-open-v1.png`} alt="" /><span>손</span></button><button className={boardTool === "thread" ? "active" : ""} onClick={() => setBoardTool("thread")}><img src={`${A}detective-pencil-v1.png`} alt="" /><span>연필</span></button><button className={boardTool === "erase" ? "active" : ""} onClick={() => setBoardTool("erase")}><img src={`${A}detective-eraser-v1.png`} alt="" /><span>지우개</span></button></div><button onClick={() => setRulesOpen(value => !value)}>규칙</button><button onClick={() => setReplay(true)}>▶ QUICK REPLAY</button><button className="hintButton" disabled={seconds < 60 || hintUsed} onClick={() => { send({ type: "HINT", key: hintKey }); setFeedback(`힌트: ${scenario.hypotheses.find(item => item.id === scenario.root)?.label} 가설을 명령값과 실제 반응으로 검토해 보세요. (-5m)`); }}>{hintUsed ? "힌트 사용됨" : seconds < 60 ? `힌트 ${60 - seconds}초` : "힌트 보기 · -5m"}</button></header>
@@ -2446,7 +2446,7 @@ function EmbeddedBenchScene({ caseId, running, works }: { caseId: CaseId; runnin
     <directionalLight castShadow position={[3, 6, 4]} intensity={2.8} />
     {ids.map((id, slot) => <group key={id} position={BENCH_SLOTS[slot].position} scale={BENCH_SLOTS[slot].scale}>
       <HardwarePart kind={kinds[slot]} active={slot === 2 ? works : true} running={slot === 2 ? running && works : running} partId={id} />
-      <PartLabel position={[0, slot === 1 ? 1.05 : 1.0, 0]}>{bench.labels[slot]}{slot === 1 ? " · SW 내장" : slot === 2 ? ` · ${works ? "정상 응답" : "응답 없음"}` : ""}</PartLabel>
+      <PartLabel position={[0, slot === 1 ? 1.05 : 1.0, 0]}>{bench.labels[slot]}{slot === 1 ? " · SW 내장" : ""}</PartLabel>
     </group>)}
     {bench.wires.map((wire, k) => { const a = point(wire.from[0], wire.from[1]), b = point(wire.to[0], wire.to[1]); const mid: [number, number, number] = [(a[0] + b[0]) / 2, Math.max(a[1], b[1]) + .35 + k * .12, (a[2] + b[2]) / 2 + .25]; return <SignalCable key={k} from={a} to={b} via={[mid]} color={wire.color === "#ef8a4f" && !works ? "#be514f" : wire.color} />; })}
     <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -.02, 0]}><circleGeometry args={[3.6, 48]} /><meshStandardMaterial color="#e4ebe6" roughness={.9} /></mesh>
@@ -2487,7 +2487,7 @@ function EmbeddedBenchSceneV1({ caseId, running, works }: { caseId: CaseId; runn
 
 export function EmbeddedBench3D({ caseId, running, works, wide = false, compact = false }: { caseId: CaseId; running: boolean; works: boolean; wide?: boolean; compact?: boolean }) {
   const camera = compact ? { position: [0, 2.25, 4.35] as [number, number, number], fov: 36 } : { position: [0, wide ? 3.8 : 3.15, wide ? 9.1 : 7.2] as [number, number, number], fov: wide ? 43 : 40 };
-  return <div className={`benchEmbedded3D ${running ? "running" : ""} ${works ? "works" : "broken"} ${wide ? "wideView" : ""} ${compact ? "compactView" : ""}`}><Canvas shadows camera={camera} dpr={[1, 1.15]}><EmbeddedBenchScene caseId={caseId} running={running} works={works} /><OrbitControls enablePan minDistance={compact ? 3.6 : wide ? 7.1 : 5.8} maxDistance={compact ? 8 : 12} maxPolarAngle={Math.PI * .48} target={[0, .5, -.25]} /></Canvas><div className="embeddedBoundaryLabels"><span>INPUT SENSOR / DRIVER DEVICE</span><b>REAL ECU + I/O HARNESS</b><em>OUTPUT ACTUATOR + FEEDBACK</em></div></div>;
+  return <div className={`benchEmbedded3D ${running ? "running" : ""} ${works ? "works" : "broken"} ${wide ? "wideView" : ""} ${compact ? "compactView" : ""}`}><Canvas shadows camera={camera} dpr={[1, 1.15]}><EmbeddedBenchScene caseId={caseId} running={running} works={works} /><OrbitControls enablePan minDistance={compact ? 3.6 : wide ? 7.1 : 5.8} maxDistance={compact ? 8 : 12} maxPolarAngle={Math.PI * .48} target={[0, .5, -.25]} /></Canvas><div className="embeddedBoundaryLabels"><span>입력 센서·운전자 조작</span><b>실제 제어기·배선</b><em>출력 부품·피드백</em></div></div>;
 }
 
 export function BenchVisual({ tab, caseId, running, works }: { tab: BenchTab; caseId: CaseId; running: boolean; works: boolean }) {
@@ -2552,7 +2552,7 @@ export function FailureAnalysis({ state, send }: { state: Campaign; send: Send }
   const actual = state.caseId === "propulsion" ? "APS 60% → Torque 92Nm" : state.caseId === "thermal" ? "Fan CMD 100% → 0RPM" : "Brake 55% → 8bar";
   return <div className="failureAnalysis">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="deep" />
-    <GameHeader chapter="GUIDED DIAGNOSIS" title="실패 원인 해설" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="해설" title="실패 원인 해설" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main><section className="analysisHeader"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><div><small>ENGINEER {ENGINEER} · STEP BY STEP</small><h1>틀린 지점부터 정상 경로까지 차례로 다시 봅니다</h1><p>다시 메모판으로 돌려보내지 않고, 이번 한 판 안에서 풀이를 완성한 뒤 수리와 주행 복귀까지 이어집니다.</p></div></section><section className="analysisCompare"><div><small>EXPECTED</small><b>{expected}</b></div><i>≠</i><div><small>ACTUAL</small><b>{actual}</b></div></section><section className="guidedSteps">{[
       ["1 · 최초 차이", `기준과 실제가 처음 갈라진 경계는 ${state.caseId === "thermal" ? "ECU 명령 이후 실제 팬 피드백" : state.caseId === "brake" ? "제동력 배분 이후 마찰 압력" : "토크 맵 출력"}입니다.`],
@@ -2576,7 +2576,7 @@ export function RepairSequence({ state, send }: { state: Campaign; send: Send })
   const isOta = state.caseId === "propulsion";
   return <div className="repairV2">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
-    <GameHeader chapter="RECOVERY SEQUENCE" title="검증된 수리 적용" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="수리" title="검증된 수리 적용" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <main><section className={`repairMechanism repairMechanism3D ${ready ? "fixed" : "working"}`}><EmbeddedBench3D caseId={state.caseId} running works={ready} wide /><span>{ready ? "입력 센서 → ECU의 검증된 SW → 출력 액추에이터 정상 응답" : isOta ? "검증된 제어 로직을 ECU에 OTA 전송 중…" : "ECU 명령과 실제 출력 액추에이터 응답 복원 중…"}</span></section><section className="repairDialogue"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><div><small>ENGINEER {ENGINEER}</small><h1>{ready ? "수리 완료" : "복구 적용 중"}</h1><p>{ready ? (isOta ? "검증을 통과한 SW를 OTA로 배포했어요. 보정 계수 블록을 뺀 정상 페달 처리가 적용됐어요. 달리던 지점으로 돌아갑니다." : "고장 부품을 수리·교체하고 같은 시험으로 정상 응답을 확인했어요. 달리던 지점으로 돌아갑니다.") : "검증을 통과한 수정만 차량에 적용하고 있어요."}</p><b>현재 주행 지점 {Math.round(state.raceDistance)}m · 추격차 격차 {Math.round(state.policeGapMeters)}m</b></div>{ready && <div className="autoResumeCountdown"><strong>{Math.max(0, countdown)}</strong><span>초 후 달리던 지점에서 자동 주행 복귀</span></div>}</section></main>
   </div>;
 }

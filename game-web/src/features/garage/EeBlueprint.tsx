@@ -13,8 +13,9 @@ const ECU_BOXES = [
   { id: "bms", label: "BMS", row: 1, col: 0, match: /BMS/ },
   { id: "tms", label: "Thermal ECU", row: 1, col: 1, match: /Thermal ECU/ },
   { id: "brk", label: "Brake ECU", row: 1, col: 2, match: /Brake ECU|ABS ECU|ESC ECU|Hydraulic ECU|압력 제어기/ },
-  { id: "chs", label: "Chassis·Park ECU", row: 1, col: 3, match: /Chassis ECU|Park ECU/ },
-  { id: "dcu", label: "변속·클러스터", row: 0, col: 3, match: /Cluster|PRND/ },
+  // Park ECU (shift-by-wire parking lock) belongs to the drivetrain side, the chassis ECU to the chassis side.
+  { id: "chs", label: "Chassis ECU", row: 1, col: 3, match: /Chassis ECU/ },
+  { id: "dcu", label: "변속·Park ECU", row: 0, col: 3, match: /Park ECU|Cluster|PRND/ },
 ];
 
 export function EeBlueprint({ chain, roles, active, removed, onPick, signals, marks }: {

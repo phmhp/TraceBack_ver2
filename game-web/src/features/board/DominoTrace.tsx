@@ -69,9 +69,9 @@ export const CASES: Record<CaseId, CaseData> = {
       OK("motor_temp", "모터 온도", B("motor_temp"), "부품", 62, "°C"),
       OK("gateway", "게이트웨이 전달", ATLAS(1), "CAN", 100, "%"),
     ],
-    section: { name: "VCU 안 페달 처리·토크 계산 (SW)", choices: [
+    section: { name: "VCU 내부 (입력 회로·페달 처리·토크 계산)", choices: [
       { label: "가속 페달 센서·배선", ok: false, why: "페달 센서 값은 60%로 기준과 같아요. 센서 쪽이 원인이면 들어오는 값부터 달랐어야 해요." },
-      { label: "VCU 안 페달 처리·토크 계산 (SW)", ok: true, why: "들어오는 값은 모두 정상인데 VCU가 내놓은 값만 달라요. 원인은 VCU 안쪽 계산 구간이에요." },
+      { label: "VCU 내부 (입력 회로·페달 처리·토크 계산)", ok: true, why: "들어오는 값은 모두 정상인데 VCU가 내놓은 값만 달라요. 의심 구간은 VCU 내부예요. 입력 회로인지 계산 SW인지는 검증에서 가려요." },
       { label: "인버터·구동 모터", ok: false, why: "인버터·모터는 VCU 다음이에요. VCU 출력부터 이미 달랐으니 이쪽은 결과예요." },
     ] },
     zoom: {
@@ -107,7 +107,7 @@ export const CASES: Record<CaseId, CaseData> = {
     ],
     section: { name: "팬 명령 이후 구동 경로 (ECU 출력단·배선·전원·팬 모터)", choices: [
       { label: "Thermal ECU 안 팬 제어 로직 (SW)", ok: false, why: "팬 명령은 기준대로 100%였어요. 제어 로직이 원인이면 명령부터 달랐어야 해요." },
-      { label: "팬 명령 이후 구동 경로 (ECU 출력단·배선·전원·팬 모터)", ok: true, why: "명령은 100%로 정상인데 팬은 0 rpm이에요. 원인은 명령이 나간 뒤의 구동 경로 안쪽이에요." },
+      { label: "팬 명령 이후 구동 경로 (ECU 출력단·배선·전원·팬 모터)", ok: true, why: "명령은 100%로 정상인데 팬은 0 rpm이에요. 의심 구간은 명령이 나간 뒤의 구동 경로예요. 어느 부품인지는 검증에서 가려요." },
       { label: "출력 제한(보호) 로직", ok: false, why: "출력 제한은 온도가 오른 뒤에 달라졌어요. 시간상 결과 쪽이에요." },
     ] },
     zoom: {
@@ -138,7 +138,7 @@ export const CASES: Record<CaseId, CaseData> = {
     section: { name: "압력 명령 이후 유압 경로 (유압 모듈·라인·캘리퍼)", choices: [
       { label: "Brake ECU 안 회생·마찰 배분 로직 (SW)", ok: false, why: "압력 명령은 기준대로 42 bar였어요. 배분 로직이 원인이면 명령부터 달랐어야 해요." },
       { label: "브레이크 페달 센서", ok: false, why: "페달 값 55%는 기준과 같아요. 들어오는 값은 정상이에요." },
-      { label: "압력 명령 이후 유압 경로 (유압 모듈·라인·캘리퍼)", ok: true, why: "명령은 42 bar인데 실제 압력은 8 bar예요. 원인은 명령 이후 유압 경로 안쪽이에요." },
+      { label: "압력 명령 이후 유압 경로 (유압 모듈·라인·캘리퍼)", ok: true, why: "명령은 42 bar인데 실제 압력은 8 bar예요. 의심 구간은 명령 이후 유압 경로예요. 어느 부품인지는 검증에서 가려요." },
     ] },
     zoom: {
       where: "캘리퍼", kind: "hw",
@@ -309,7 +309,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
 
   return <div className="dtBoard">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="ROOT CAUSE TRACE" title="원인 역추적" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="원인 추적" title="도미노 역추적" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main className={`dtLayout phase-${phase}`}>
       <header className="dtHead">

@@ -64,7 +64,7 @@ test("v7 architecture, hints, guided recovery, and wide wiring are present", () 
 test("v8 curved driving, tangible wiring, hidden QA solves, and 3D validation are present", () => {
   assert.match(experience, /const trackFrame/);
   assert.match(experience, /가드레일 접촉/);
-  assert.match(experience, /DRIVE · 회생 Q\/E/);
+  assert.match(experience, /cluster1109/); // gear · READY · regen live in the cluster (2026-11-09)
   assert.match(experience, /EmbeddedBench3D/);
   assert.match(experience, /right-drag|우클릭 드래그/i);
   assert.match(experience, /className="secretSolve"/);

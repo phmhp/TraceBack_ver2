@@ -327,7 +327,7 @@ function VerificationReport({ caseId, config, works, actual, onDone, onClose }: 
           <li><em>기대 결과</em><span>{config.expected}</span></li>
           <li><em>실제 결과</em><span>{actual}</span></li>
         </ol>
-        <span className={`vrStamp ${works ? "pass" : "fail"}`}>{works ? "PASS" : "FAIL"}</span>
+        <span className={`vrStamp ${works ? "pass" : "fail"}`}>{works ? "통과" : "실패"}</span>
       </section>
       <section className="vrLevels">
         <h3>🔍 이 고장은 어느 검증 단계에서 <u>처음</u> 잡을 수 있을까?</h3>
@@ -726,7 +726,7 @@ export function TwinBenchV6({ state, send }: { state: Campaign; send: Send }) {
 
   return <div className="vbBench">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="SIMULATION VERIFICATION" title="시뮬레이션 검증" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증" title="시뮬레이션 검증" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main className="vbLayout">
       <header className="vbHead">
@@ -758,7 +758,7 @@ export function TwinBenchV6({ state, send }: { state: Campaign; send: Send }) {
       {(step === 2 || step === 4) && <section className="vbLab">
         <div className="vbSim">
           <nav>{LV.map(tab => <button key={tab.id} className={`${simTab === tab.id ? "on" : ""} ${level === tab.id ? "chosen" : ""}`} onClick={() => { if (running) return; setSimTab(tab.id); setU(ran === tab.id ? 1 : 0); play("pop"); }}><b>{tab.name}</b><small>{tab.env.map(env => <i key={env} className="vbEnv">{env}</i>)}{level === tab.id ? " ✓" : ""}</small></button>)}</nav>
-          <div className={`vbSimView ${running ? "running" : ""}`}>{simVisual}{ranHere && <span className={`vbStamp ${firstMismatch(list) === null ? "pass" : "fail"}`}>{firstMismatch(list) === null ? "PASS" : "FAIL"}</span>}</div>
+          <div className={`vbSimView ${running ? "running" : ""}`}>{simVisual}{ranHere && <span className={`vbStamp ${firstMismatch(list) === null ? "pass" : "fail"}`}>{firstMismatch(list) === null ? "통과" : "실패"}</span>}</div>
           <p className="vbScope"><b>{LV[order(simTab)].std}</b> {LV[order(simTab)].scope}</p>
         </div>
         <div className="vbMonitor">
@@ -777,7 +777,7 @@ export function TwinBenchV6({ state, send }: { state: Campaign; send: Send }) {
           </div>
         </div>
         {step === 4 && ran && <div className="vbAfter">
-          <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험 (영향 범위)</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>
+          <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험 (영향 범위)</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "통과" : "…"}</em></li>)}</ul></div>
           {regDone >= regression.length && <div className="vbDone"><span><small>방금 사용한 검증 사고법</small><b>{LV[order(level ?? lvAnswer.answer)].name} · {METHODS.find(item => item.id === method)?.name} · {DERIVS.find(item => item.id === deriv)?.name} → FIRST MISMATCH → 근본 수정 → 회귀</b></span><b className="vbStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b><button className="vbGo" onClick={finish}>검증 완료 · 수리 적용 →</button></div>}
         </div>}
       </section>}
@@ -809,7 +809,7 @@ const PROBE_LIMIT = 3;
 const REQ_DERIV: Deriv[] = ["reqa", "equiv", "bound"];
 type Verdict = "PASS" | "FAIL" | "INCONCLUSIVE";
 type RunLog = { mission: "A" | "B" | "C"; level: Lv; deriv: Deriv; pass: boolean; verdict: Verdict; first?: string; obs: Record<string, Obs>; vals?: Record<string, string> };
-const VERDICT_KO: Record<Verdict, string> = { PASS: "PASS", FAIL: "FAIL", INCONCLUSIVE: "판단 불가" };
+const VERDICT_KO: Record<Verdict, string> = { PASS: "통과", FAIL: "실패", INCONCLUSIVE: "판정 불가" };
 /** Only what was probed counts: same / higher / lower than the reference at the first split. */
 function observe(list: Series[], probedIds: string[]) {
   const obs: Record<string, Obs> = {};
@@ -1012,7 +1012,7 @@ export function TwinBenchV7({ state, send }: { state: Campaign; send: Send }) {
 
   return <div className="vbBench v7">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="SIMULATION VERIFICATION" title="시뮬레이션 검증" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증" title="시뮬레이션 검증" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageIntro id="bench" title="시뮬레이션 검증" goal="의심 구간을 실제로 시험해서 원인을 증명하는 단계예요." steps={[
       { icon: "monitor", text: "레벨·입력·관측점을 골라 시험해요. 왼쪽 탭으로 같은 결과를 SW·제어기·부품 관점에서 볼 수 있어요." },
@@ -1064,7 +1064,7 @@ export function TwinBenchV7({ state, send }: { state: Campaign; send: Send }) {
             <em className="vbVal">{on ? `${value.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}` : "—"}</em>
             {mission === "B" && ran && on && <button className="vbFlag" onClick={() => plantFlag(index)}><Icon name="flag" /></button>}
           </li>; })}</ul>
-          {(mission === "C" || mission === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>}
+          {(mission === "C" || mission === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "통과" : "…"}</em></li>)}</ul></div>}
           <div className="vbMonitorFoot">
             {mission === "A" && failLevel && <button className="vbGo" onClick={goB}>미션 B로 →</button>}
             {mission !== "done" && <button className="vbGo" disabled={running || !probeCount} onClick={run}>{running ? "시험 중…" : !probeCount ? "관측점을 먼저 꽂아요" : ran ? "▶ 다시 실행" : "▶ 시험 실행"}</button>}
@@ -1108,7 +1108,7 @@ const TEST_CARD: Record<Lv, { name: string; pic: "chip" | "grid" | "monitor" | "
 const QA_LEVELS: Lv[] = ["unit", "embedded", "vehicle"];
 const qaDeriv = (caseId: CaseId, lv: Lv): Deriv => lv === "unit" || lv === "swint" ? "reqa" : CASE_DERIVS[caseId].some(d => d.id === "usecase") ? "usecase" : "bound";
 type Answer = "supported" | "refuted" | "open";
-const ANSWER_KO: Record<Answer, string> = { supported: "문제 있음", refuted: "문제 없음", open: "이 시험으로는 모름" };
+const ANSWER_KO: Record<Answer, string> = { supported: "가능성 높음", refuted: "가능성 낮음", open: "아직 모름" };
 
 /** Q&A v1 (probe picking + small answer overlay). Kept unused; v2 below is live. */
 export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) {
@@ -1171,7 +1171,7 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
       const vals = Object.fromEntries(lst.filter(sig => obs[sig.id]).map(sig => { const at = divergeIndex(sig) !== null ? sig.ref.reduce((best, v, i) => (Math.abs(v - sig.run[i]) > Math.abs(sig.ref[best] - sig.run[best]) ? i : best), 0) : sig.ref.reduce((best, v, i) => (v > sig.ref[best] ? i : best), 0), f = (v: number) => v.toFixed(sig.max < 10 ? 1 : 0); return [sig.id, `${sig.name} ${f(sig.run[at])} ${sig.unit} (기준 ${f(sig.ref[at])})`]; }));
       setLastRun({ obs, verdict, vals, fixed: isFixed });
       if (isFixed) {
-        if (verdict === "PASS") { play("stamp"); showVerdict(true, "PASS"); setBubble("수리한 차량이 같은 시험에서 기대값과 같아요. 영향을 받았던 곳도 회귀 시험해요."); regression.forEach((_, i) => window.setTimeout(() => { setRegDone(i + 1); play("pop", 1 + i * .1); }, 600 + i * 420)); window.setTimeout(() => setPhase("done"), 700 + regression.length * 420); }
+        if (verdict === "PASS") { play("stamp"); showVerdict(true, "통과"); setBubble("수리한 차량이 같은 시험에서 기대값과 같아요. 영향을 받았던 곳도 회귀 시험해요."); regression.forEach((_, i) => window.setTimeout(() => { setRegDone(i + 1); play("pop", 1 + i * .1); }, 600 + i * 420)); window.setTimeout(() => setPhase("done"), 700 + regression.length * 420); }
         else setBubble("아직 기대값과 달라요. 잴 곳을 확인하세요.");
         return;
       }
@@ -1226,7 +1226,7 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
 
   return <div className="vbBench v7 qa">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="SIMULATION VERIFICATION" title="시뮬레이션 검증" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증" title="시뮬레이션 검증" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageIntro id="bench-qa" title="시뮬레이션 검증" goal={`${DRIVER_NAME}의 질문에 시험 결과로 답해요. 무엇이 고장이고 무엇은 멀쩡한지 근거로 설명하는 단계예요.`} steps={[
       { icon: "clipboard", text: `${DRIVER_NAME}의 질문 카드를 읽고, 확인할 시험 카드를 골라요.` },
@@ -1252,7 +1252,7 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
           <article className="v7Report">
             <header><small>검증 결과 보고 · {DRIVER_NAME}에게</small><b>원인: {meta.hypotheses.find(h => h.truth)!.label}</b></header>
             <ul>{questions.map(item => { const a = answers[item.hyp]; return <li key={item.hyp} className={a?.answer === "supported" ? "hyp-supported" : "hyp-refuted"}><em>{a ? ANSWER_KO[a.answer] : "-"}</em><span><strong>"{item.ask}"</strong>{a?.why}<small>근거: {a?.evidence}</small></span></li>; })}
-              {meta.hypotheses.filter(h => h.stage1 && !questions.some(item => item.hyp === h.id)).map(h => <li key={h.id} className="hyp-refuted"><em>문제 없음</em><span><strong>{h.label}</strong>{h.stage1}<small>근거: 1단계 원인 역추적 측정</small></span></li>)}</ul>
+              {meta.hypotheses.filter(h => h.stage1 && !questions.some(item => item.hyp === h.id)).map(h => <li key={h.id} className="hyp-refuted"><em>가능성 낮음</em><span><strong>{h.label}</strong>{h.stage1}<small>근거: 1단계 원인 역추적 측정</small></span></li>)}</ul>
           </article>
           <h2><Icon name="wrench" /> 수정 담당에 요청할 조치를 고르세요</h2>
           <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}><img src={item.img} alt="" /><b>{item.label}</b></button>)}</div>
@@ -1277,7 +1277,7 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
                 <SeriesTrace sig={sig} upto={u} probed={on} />
                 <em className="vbVal">{on ? done ? <><b className={`w-${word(sig)}`}>{word(sig)}</b> {sample(sig.run).toFixed(sig.max < 10 ? 1 : 0)}{sig.unit}</> : `${sample(sig.run).toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}` : "—"}</em>
               </li>; })}</ul>
-              {(phase === "retest" || phase === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>}
+              {(phase === "retest" || phase === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "통과" : "…"}</em></li>)}</ul></div>}
               <div className="vbMonitorFoot">
                 {phase === "lab" && <button className="vbGo ghost" disabled={running} onClick={() => { setPhase("pick"); setLastRun(null); }}>다른 시험 고르기</button>}
                 {phase !== "done" && !(phase === "lab" && lastRun) && <button className="vbGo" disabled={running || !probeCount} onClick={run}>{running ? "시험 중…" : !probeCount ? "잴 곳을 먼저 골라요" : phase === "retest" ? "▶ 같은 시험 다시" : "▶ 시험 실행"}</button>}
@@ -1296,16 +1296,16 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
 // The card states the prediction ("if this suspect is the cause, this test must show …") and which parts are real
 // in the chosen test, so the answer is reasoned from expectation vs. observation, not guessed.
 const PREDICT: Record<string, string> = {
-  vcu_sw: "VCU SW가 범인이라면: SW만 PC에서 돌려도 '페달 처리값'이 기준보다 낮게 나와야 해요. 실제 제어기·차량 시험은 SW와 입력 회로가 함께 있어서 둘을 가를 수 없어요.",
-  vcu_hw: "입력 회로가 범인이라면: 회로가 없는 'SW만 PC' 시험에서는 '페달 처리값'이 정상으로 나와야 해요. 실제 제어기·차량 시험은 SW와 회로가 함께 있어서 가를 수 없어요.",
-  fan_sw: "팬 제어 SW가 범인이라면: SW만 PC에서 돌려도 'PWM 비율'이 기준과 달라야 해요.",
-  fan_path: "출력단·배선·전원이 범인이라면: 실제 부품을 붙인 시험에서 '팬 커넥터 PWM'이나 '팬 커넥터 전원 전압'이 기준보다 낮게(안 오게) 나와야 해요. 기준 이상으로 도착했다면 전달은 정상이에요. 팬이 모델인 시험에선 알 수 없어요.",
-  fan_motor: "팬 모터가 범인이라면: 실제 부품을 붙인 시험에서 커넥터에 PWM·전원은 오는데 '팬 실제 회전'만 0이어야 해요. 팬이 모델인 시험에선 알 수 없어요.",
-  blend_sw: "배분 SW가 범인이라면: SW만 PC에서 돌려도 '압력 명령'이 기준과 달라야 해요.",
-  hyd_path: "유압 경로가 범인이라면: 실제 부품 시험에서 '압력 명령'은 같은데 '캘리퍼 입구 압력'이 낮아야 해요.",
-  caliper: "캘리퍼가 범인이라면: 실제 부품 시험에서 '캘리퍼 입구 압력'은 정상인데 감속만 부족해야 해요.",
+  vcu_sw: "VCU SW가 원인이라면: SW만 PC에서 돌려도 '페달 처리값'이 기준보다 낮게 나와야 해요. 제어기·차량 시험에서 재는 신호(입력 핀 전압·CAN 토크 명령)만으로는 SW와 입력 회로를 가를 수 없어요.",
+  vcu_hw: "입력 회로가 원인이라면: 회로가 없는 'SW만 PC' 시험에서는 '페달 처리값'이 정상으로 나와야 해요. 제어기·차량 시험에서 재는 신호(입력 핀 전압·CAN 토크 명령)만으로는 SW와 회로를 가를 수 없어요.",
+  fan_sw: "팬 제어 SW가 원인이라면: SW만 PC에서 돌려도 'PWM 비율'이 기준과 달라야 해요.",
+  fan_path: "출력단·배선·전원이 원인이라면: 실제 부품을 붙인 시험에서 '팬 커넥터 PWM'이나 '팬 커넥터 전원 전압'이 기준보다 낮게(안 오게) 나와야 해요. 기준 이상으로 도착했다면 전달은 정상이에요. 팬이 모델인 시험에선 알 수 없어요.",
+  fan_motor: "팬 모터가 원인이라면: 실제 부품을 붙인 시험에서 커넥터에 PWM·전원은 오는데 '팬 실제 회전'만 0이어야 해요. 팬이 모델인 시험에선 알 수 없어요.",
+  blend_sw: "배분 SW가 원인이라면: SW만 PC에서 돌려도 '압력 명령'이 기준과 달라야 해요.",
+  hyd_path: "유압 경로가 원인이라면: 실제 부품 시험에서 '압력 명령'은 같은데 '캘리퍼 입구 압력'이 낮아야 해요.",
+  caliper: "캘리퍼가 원인이라면: 실제 부품 시험에서 '캘리퍼 입구 압력'은 정상인데 감속만 부족해야 해요.",
 };
-const ANSWER_BTN: Record<Answer, [string, string]> = { supported: ["범인 맞아요", "예측대로 나왔어요"], refuted: ["범인 아니에요", "예측과 달라요"], open: ["이 시험으론 몰라요", "가를 수 없는 시험이에요"] };
+const ANSWER_BTN: Record<Answer, [string, string]> = { supported: ["가능성 높음", "예측대로 나왔어요"], refuted: ["가능성 낮음", "예측과 달라요"], open: ["아직 모름", "이 시험으론 가를 수 없어요"] };
 
 export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
   const caseId = state.caseId;
@@ -1326,6 +1326,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [regDone, setRegDone] = useState(0);
   const [viewTab, setViewTab] = useState<"sw" | "ecu" | "plant">("sw");
   const [bubble, setBubble] = useState(`${DRIVER_NAME}의 질문에 시험 결과로 답하세요. '판단 기준'을 먼저 읽고 시험을 고르세요.`);
+  const [help, setHelp] = useState(false);
   const q = questions[qi];
   const fixed = phase === "retest" || phase === "done";
   const deriv = qaDeriv(caseId, level);
@@ -1361,7 +1362,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       const vals = Object.fromEntries(lst.map(sig => { const i = at(sig); return [sig.id, `${sig.name} ${fmtV(sig, sig.run[i])} (기준 ${fmtV(sig, sig.ref[i])})`]; }));
       setLastRun({ obs, verdict, vals, fixed: isFixed, level: lv });
       if (isFixed) {
-        if (verdict === "PASS") { play("stamp"); showVerdict(true, "PASS"); setBubble("수리한 차량이 같은 시험에서 기대값과 같아요. 영향을 받았던 곳도 회귀 시험해요."); regression.forEach((_, i) => window.setTimeout(() => { setRegDone(i + 1); play("pop", 1 + i * .1); }, 600 + i * 420)); window.setTimeout(() => setPhase("done"), 700 + regression.length * 420); }
+        if (verdict === "PASS") { play("stamp"); showVerdict(true, "통과"); setBubble("수리한 차량이 같은 시험에서 기대값과 같아요. 영향을 받았던 곳도 회귀 시험해요."); regression.forEach((_, i) => window.setTimeout(() => { setRegDone(i + 1); play("pop", 1 + i * .1); }, 600 + i * 420)); window.setTimeout(() => setPhase("done"), 700 + regression.length * 420); }
         else setBubble("아직 기대값과 달라요.");
         return;
       }
@@ -1411,12 +1412,12 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
 
   return <div className="vbBench v7 qa qa2">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="SIMULATION VERIFICATION" title="시뮬레이션 검증" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증" title="시뮬레이션 검증" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
-    <StageIntro id="bench-qa2" title="시뮬레이션 검증" goal={`${DRIVER_NAME}의 질문에 시험 결과로 답해요. 무엇이 고장이고 무엇은 멀쩡한지 근거로 설명하는 단계예요.`} steps={[
-      { icon: "clipboard", text: "질문마다 '판단 기준'을 읽어요. 그 부품이 범인이라면 어떤 시험에서 무엇이 보여야 하는지 적혀 있어요." },
-      { icon: "monitor", text: "시험 카드를 골라 실행하면 모든 신호가 측정돼요. 표에서 '볼 곳' 줄을 확인해요." },
-      { icon: "flag", text: "예측대로면 '범인 맞아요', 예측과 다르면 '범인 아니에요', 그 시험으로 가를 수 없으면 '몰라요'." },
+    <StageIntro id="bench-qa2" title="시뮬레이션 검증" goal="정상 시나리오와 고장 재현 시나리오를 비교해보아요." steps={[
+      { icon: "clipboard", text: "질문마다 '판단 기준'을 읽어요. 그 가설이 맞다면 시험에서 무엇이 보여야 하는지 적혀 있어요." },
+      { icon: "monitor", text: "시험을 골라 실행하면 같은 입력으로 정상 기대값과 시험 결과가 나란히 나와요." },
+      { icon: "flag", text: "결과로 가설을 골라요: 가능성 높음 · 가능성 낮음 · 아직 모름." },
     ]} />
     <main className="vbLayout">
       <div className="qaTop">
@@ -1426,7 +1427,16 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         <ol className="qaDots">{questions.map((item, k) => { const a = answers[item.hyp]; return <li key={item.hyp} className={a ? `a-${a.answer}` : k === qi && phase !== "report" ? "now" : ""} title={item.ask}>{a ? ANSWER_KO[a.answer] : k + 1}</li>; })}</ol>
         {expect && <span className="qaExpect"><Icon name="clipboard" /> 기대값 · {expect}</span>}
         <span className="v7CostChip">비용 {cost} · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span>
+        <button className="qaHelpBtn" aria-label="도움말" onClick={() => { setHelp(v => !v); play("pop"); }}>?</button>
       </div>
+      {help && <aside className="qaHelpCard" role="dialog" aria-label="검증 도움말">
+        <b>시험 수준과 결론</b>
+        <p>모든 단계에서 실패가 발생할 수 있고, 그 단계에서도 원인을 일부 찾아낼 수 있어요. 다만 무엇을 관찰할 수 있는지와 시험 범위에 따라 결론의 구체성이 달라져요.</p>
+        <p>제어 로직 시험은 내부 판단 오류를 확인하는 데 유용하지만 실제 부품 고장을 직접 보여주지는 못할 수 있어요. 시스템 시험은 차량 동작 이상을 보여주지만 내부 측정이 부족하면 원인을 특정하기 어려워요.</p>
+        <p>같은 시험 수준이라도 어떤 신호를 측정하는지가 중요해요.</p>
+        <ul><li><em>시험 결과</em> 통과 · 실패 · 판정 불가 (요구사항 대비)</li><li><em>가설 판단</em> 가능성 높음 · 가능성 낮음 · 아직 모름</li></ul>
+        <button onClick={() => setHelp(false)}>닫기</button>
+      </aside>}
 
       {phase === "pick" ? <section className="vbStage qaPick">
         <div className="qaCriteria big"><small><Icon name="target" /> 판단 기준</small><p>{PREDICT[q.hyp]}</p></div>
@@ -1437,7 +1447,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
           <article className="v7Report">
             <header><small>검증 결과 보고 · {DRIVER_NAME}에게</small><b>원인: {meta.hypotheses.find(h => h.truth)!.label}</b></header>
             <ul>{questions.map(item => { const a = answers[item.hyp]; return <li key={item.hyp} className={a?.answer === "supported" ? "hyp-supported" : "hyp-refuted"}><em>{a ? ANSWER_KO[a.answer] : "-"}</em><span><strong>"{item.ask}"</strong>{a?.why}<small>근거: {a?.evidence}</small></span></li>; })}
-              {meta.hypotheses.filter(h => h.stage1 && !questions.some(item => item.hyp === h.id)).map(h => <li key={h.id} className="hyp-refuted"><em>문제 없음</em><span><strong>{h.label}</strong>{h.stage1}<small>근거: 1단계 원인 역추적 측정</small></span></li>)}</ul>
+              {meta.hypotheses.filter(h => h.stage1 && !questions.some(item => item.hyp === h.id)).map(h => <li key={h.id} className="hyp-refuted"><em>가능성 낮음</em><span><strong>{h.label}</strong>{h.stage1}<small>근거: 1단계 원인 역추적 측정</small></span></li>)}</ul>
           </article>
           <h2><Icon name="wrench" /> 수정 담당에 요청할 조치를 고르세요</h2>
           <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}><img src={item.img} alt="" /><b>{item.label}</b></button>)}</div>
@@ -1452,7 +1462,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               {phase === "lab" && <div className="qaCriteria"><small><Icon name="target" /> 판단 기준 · "{q.ask}"</small><p>{PREDICT[q.hyp]}</p>{realChips}</div>}
               {phase !== "lab" && <div className="qaCriteria"><small><Icon name="repeat" /> 재시험</small><p>수리한 차량으로 같은 시험을 다시 해서 기대값과 같은지 확인해요.</p></div>}
               <table className="qaTable">
-                <thead><tr><th>신호</th><th>기대값</th><th>시험 결과</th><th>판정</th></tr></thead>
+                <thead><tr><th>신호</th><th>기대값</th><th>시험 결과</th><th>비교</th></tr></thead>
                 <tbody>{list.map(sig => { const i = at(sig), w = word(sig), look = phase === "lab" && lookAt.has(sig.id); return <tr key={sig.id} className={`${look ? "look" : ""}`}>
                   <td>{look && <em className="qaLook">볼 곳</em>}{sig.name}</td>
                   <td>{fmtV(sig, sig.ref[i])}</td>
@@ -1460,7 +1470,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
                   <td>{shown ? <b className={`qaW w-${w}`}>{w}</b> : "—"}</td>
                 </tr>; })}</tbody>
               </table>
-              {(phase === "retest" || phase === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "PASS" : "…"}</em></li>)}</ul></div>}
+              {(phase === "retest" || phase === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "통과" : "…"}</em></li>)}</ul></div>}
               <div className="qaFoot">
                 {phase === "lab" && shown ? <div className="qaAnswers">{(["supported", "refuted", "open"] as Answer[]).map(a => <button key={a} className={`ans-${a}`} onClick={() => answer(a)}><b>{ANSWER_BTN[a][0]}</b><small>{ANSWER_BTN[a][1]}</small></button>)}</div>
                   : phase === "done" ? <button className="vbGo" onClick={finish}>수리 적용 · 다시 달리기 →</button>

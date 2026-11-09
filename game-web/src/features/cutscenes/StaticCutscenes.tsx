@@ -44,7 +44,7 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
   }, [ready]);
   return <div className="staticCutscene heistStillScene">
     <SceneBackdrop image={current.image} position="center" shade="none" />
-    <GameHeader chapter="HEIST COMPLETE · GETAWAY" title="부잣집 탈출 작전" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="도주 준비" title="부잣집 탈출 작전" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <main className="stillCutLayout">
       <section className="stillStoryCard">
         <small>{current.eyebrow}</small>
@@ -80,7 +80,7 @@ export function RepairSequence({ state, send }: { state: Campaign; send: Send })
   const repairLabel = state.caseId === "propulsion" ? "페달 신호 변환 로직" : state.caseId === "thermal" ? "냉각 팬 출력 경로" : "마찰 제동 액추에이터";
   return <div className="staticCutscene repairStillScene">
     <SceneBackdrop image={`${A}cutscene-repair-v1.png`} position="center" shade="none" />
-    <GameHeader chapter="RECOVERY SEQUENCE" title="검증된 수리 적용" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="수리" title="검증된 수리 적용" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <main className="repairStillLayout">
       <section className="repairResultCard">
         <small>ENGINEER MING · VERIFIED FIX</small>
