@@ -213,3 +213,5 @@
 .v3dToggle { display: inline-flex; gap: 4px; margin-left: 8px; }
 .v3dToggle button { padding: 3px 9px; border-radius: 7px; border: 1px solid #d9c9b3; background: #fff; font: 600 11.5px Pretendard, system-ui; cursor: pointer; }
 .v3dToggle button.on { background: #3b4a55; border-color: #3b4a55; color: #fff; }
+/* 3D part name on hover: readable contrast, never wraps or overflows */
+.garage3dLabel.hoverPartLabel { display: block !important; white-space: nowrap !important; max-width: none !important; padding: 5px 10px !important; border-radius: 8px !important; border: 1.5px solid #c9a98f !important; background: #fffdf6 !important; color: #33291f !important; font: 700 12px Pretendard, system-ui !important; box-shadow: 0 4px 10px rgba(40, 25, 10, .2) !important; pointer-events: none; }

@@ -255,7 +255,7 @@ function GarageFlowPart({ label, position, kind, active, running, role, partId, 
     onClick={!operable && inspect ? event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-garage-step", { detail: { index: inspect.index } })); } : undefined}
   >
     <HardwarePart kind={kind} active={active} running={running} partId={partId} />
-    {hovered && <PartLabel position={[0, 1.16, 0]}>{operable ? `${label} · 꾹 누르면 입력` : `${label}${inspect ? " · 더블클릭: 자세히" : ""}`}</PartLabel>}
+    {hovered && <PartLabel className="hoverPartLabel" position={[0, 1.16, 0]}>{operable ? `${label} · 꾹 누르면 입력` : `${label}${inspect ? " · 더블클릭: 자세히" : ""}`}</PartLabel>}
   </group>;
 }
 

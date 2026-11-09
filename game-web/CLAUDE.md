@@ -166,6 +166,7 @@
 - 플레이 흐름 수정 목록·보류 이유 = `docs/PLAYFLOW_FIX_2026-11-09.md`. 레이싱 HUD(계기판 `cluster1109`에 기어·READY·회생), 고장 팝업 사건별 2줄 대사, 도미노 역추적 명칭, 검증 판정 통과/실패/판정 불가 + 가설 가능성 높음/낮음/아직 모름, 도움말 카드. 스타일은 `src/p4-fix-1109.css`(마지막 import).
 - 검증 화면 `.vbLayout`에 position을 주면 레이아웃이 깨짐(절대 배치). 팝업류는 position: fixed로.
 - 테스트는 이 PC(Node 24)에서 39개 모두 통과.
+- 3차(원문 전 항목): 점검표 = `docs/PLAYFLOW_FIX_2026-11-09.md`. 차고 조건 미션 `INPUT_MISSION`·3D 입력 부품 누르기(`tb-garage-input`)·E/E 레이어/노드 팝업(`EeBlueprint` layer·inspector)·SW 한 단계, 도미노 입력 재생·화살표 점진 공개(`showPath`)·관찰 증거·가설 정리, 오픈북 `src/ui/OpenBook.tsx`, 퍼즐 `WHY`·`ActuatorReaction`, 검증 입력 조건·3D 정상/이번 토글, 첫 사건 튜토리얼 = 루트 `data-coach` + CSS 하이라이트. 폴라로이드 물성은 사용자 지시로 제외.
 - 2차: 차고 입력 꾹 누르기(`applyInput`, Space), 도미노 `SUBSYS` 안 들여다보기, 검증 `OverlayGraph` 신호 그래프 탭, 퍼즐 `RIG_GOAL`. 고장 답지·확장안·ChatGPT 회신 형식·설명서 고장 후보 = `docs/FAULT_SCENARIOS_2026-11-09.md`(다음 작업: 새 고장 사건 3~4종, 상태 기반 발생 조건).
 
 ## 남은 일 (우선순위 순)
