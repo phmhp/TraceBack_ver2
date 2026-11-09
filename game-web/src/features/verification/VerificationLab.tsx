@@ -1328,6 +1328,13 @@ const ANSWER_BTN: Record<Answer, [string, string]> = { supported: ["가능성 �
 
 export function TwinBenchExperience({ state, send }: { state: Campaign; send: Send }) {
   const caseId = state.caseId;
+  const requestedView = (() => {
+    const tab = new URLSearchParams(location.search).get("tab");
+    if (tab === "embedded") return "ecu";
+    if (tab === "system" || tab === "vehicle") return "plant";
+    return (["sw", "ecu", "plant", "graph"] as const).includes(tab as any) ? tab as "sw" | "ecu" | "plant" | "graph" : "sw";
+  })();
+  const requestedLevel: Lv = requestedView === "ecu" ? "embedded" : requestedView === "plant" ? "vehicle" : "unit";
   const contract: VerificationContract = (() => {
     try {
       const saved = JSON.parse(sessionStorage.getItem(contractStorageKey(caseId)) ?? "null");
@@ -1340,7 +1347,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const regression: string[] = (() => { try { const fromBoard = JSON.parse(sessionStorage.getItem(`tb-impact-${caseId}`) ?? "null"); return Array.isArray(fromBoard) && fromBoard.length ? fromBoard : regressionTests[caseId]; } catch { return regressionTests[caseId]; } })();
   const [qi, setQi] = useState(0);
   const [phase, setPhase] = useState<"pick" | "lab" | "report" | "retest" | "done">("lab");
-  const [level, setLevel] = useState<Lv>("unit");
+  const [level, setLevel] = useState<Lv>(requestedLevel);
   const [u, setU] = useState(0);
   const [running, setRunning] = useState(false);
   const [lastRun, setLastRun] = useState<{ obs: Record<string, Obs>; vals: Record<string, string>; verdict: Verdict; fixed: boolean; level: Lv } | null>(null);
@@ -1349,7 +1356,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [mistakes, setMistakes] = useState(0);
   const [fix, setFix] = useState<number | null>(null);
   const [regDone, setRegDone] = useState(0);
-  const [viewTab, setViewTab] = useState<"sw" | "ecu" | "plant" | "graph">("sw");
+  const [viewTab, setViewTab] = useState<"sw" | "ecu" | "plant" | "graph">(requestedView);
   const [bubble, setBubble] = useState(`${DRIVER_NAME}의 질문에 시험 결과로 답하세요. 시험 수준과 입력 조건을 고르고 '시험 실행'을 누르세요.`);
   const [help, setHelp] = useState(false);
   const q = questions[qi];
@@ -1488,7 +1495,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
             <div className="v7View">
               <nav className="v7Tabs">{([["sw", "SW 로직"], ["ecu", "제어기·I/O"], ["plant", "부품·차량"]] as const).map(([id, name]) => <button key={id} className={viewTab === id ? "on" : ""} onClick={() => { setViewTab(id); play("pop"); }}>{name}{(id === "sw" ? true : id === "ecu" ? ecuReal : plantReal) ? <i>실물</i> : <i className="model">모델</i>}</button>)}<button className={`graphTab ${viewTab === "graph" ? "on" : ""}`} onClick={() => { setViewTab("graph"); play("pop"); }}>신호 그래프</button></nav>
               <div className={`vbSimView ${running ? "running" : ""}`}>{tabVisual}{tabNote && <span className="v7TabNote">{tabNote}</span>}{shown && lastRun && <span className={`vbStamp ${lastRun.verdict === "PASS" ? "pass" : lastRun.verdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastRun.verdict]}</span>}</div>
-              <p className="vbScope"><b>{TEST_CARD[level].name}</b> · 입력: {tech.input}</p>
+              <p className="vbScope"><b>{TEST_CARD[level].name}</b> · 같은 입력: {contract.stimulus.sequence} · 비교: {contract.comparison.timeAxis}</p>
               {(viewTab === "ecu" || viewTab === "plant") && <span className="v3dToggle">{([["normal", "정상 시나리오"], ["run", "이번 시험"]] as const).map(([id, label]) => <button key={id} className={show3d === id ? "on" : ""} onClick={() => { setShow3d(id); play("pop"); }}>{label}</button>)}</span>}
             </div>
             <div className="qaPanel">

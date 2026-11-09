@@ -23,6 +23,7 @@ const zoomBoardEvidence = process.env.TRACEBACK_CAPTURE_BOARD_ZOOM === "1";
 const forceIntros = process.env.TRACEBACK_CAPTURE_FORCE_INTROS === "1";
 const solvePuzzle = process.env.TRACEBACK_CAPTURE_PUZZLE_SOLVED === "1";
 const openPuzzleContract = process.env.TRACEBACK_CAPTURE_PUZZLE_CONTRACT === "1";
+const seedBenchContract = process.env.TRACEBACK_CAPTURE_BENCH_CONTRACT === "1";
 
 const screens = [
   { name: "00_title.png", url: "/?new=1", wait: 1200 },
@@ -52,10 +53,10 @@ screens.push(
   { name: `${number++}_fault_dialogue.png`, url: "/?qa=FAULT_CUE", wait: 1500 },
   { name: `${number++}_evidence_board.png`, url: "/?qa=BOARD", wait: 1600 },
   { name: `${number++}_wiring_puzzle.png`, url: "/?qa=WIRING", wait: 1600 },
-  { name: `${number++}_lab_sw.png`, url: "/?qa=TWIN_BENCH&tab=sw", wait: 1800 },
-  { name: `${number++}_lab_ecu_integration.png`, url: "/?qa=TWIN_BENCH&tab=embedded", wait: 1800 },
-  { name: `${number++}_lab_system.png`, url: "/?qa=TWIN_BENCH&tab=system", wait: 1800 },
-  { name: `${number++}_lab_vehicle.png`, url: "/?qa=TWIN_BENCH&tab=vehicle", wait: 1800 },
+  { name: `${number++}_lab_sw_logic.png`, url: "/?qa=TWIN_BENCH&tab=sw", wait: 1800 },
+  { name: `${number++}_lab_ecu_io.png`, url: "/?qa=TWIN_BENCH&tab=ecu", wait: 1800 },
+  { name: `${number++}_lab_parts_vehicle.png`, url: "/?qa=TWIN_BENCH&tab=plant", wait: 1800 },
+  { name: `${number++}_lab_signal_graph.png`, url: "/?qa=TWIN_BENCH&tab=graph", wait: 1800 },
   { name: `${number++}_failure_analysis.png`, url: "/?qa=VERIFY_FAIL", wait: 3900 },
   { name: `${number++}_repair.png`, url: "/?qa=REPAIR", wait: 1500 },
   { name: `${number++}_race_resume.png`, url: "/?qa=CHASE_RESUME", wait: 1600 },
@@ -215,6 +216,11 @@ async function main() {
         source: `["garage","puzzle","puzzle-v2","trace-v2","trace-v3","bench","bench-qa","bench-qa2"].forEach(id => localStorage.${forceIntros ? "removeItem" : "setItem"}("tb-intro-" + id${forceIntros ? "" : ", \"1\""}));`,
       });
     }
+    if (seedBenchContract) {
+      await page.send("Page.addScriptToEvaluateOnNewDocument", {
+        source: `sessionStorage.setItem("tb-expect-propulsion", "페달 60% → 토크 요청 204 Nm → 모터 204 Nm"); sessionStorage.setItem("tb-verification-contract-propulsion", JSON.stringify({version:1,caseId:"propulsion",hypothesisId:"gateway",hypothesisLabel:"페달 신호를 잘못 줄여서 전달했다",suspectSection:"VCU",objective:"가속 출력 저하가 VCU 계산 SW인지 입력 회로인지 같은 조건에서 구분한다.",preconditions:["READY","D단","차속 60 km/h","브레이크 해제"],stimulus:{label:"사건 재현 가속",sequence:"APS 0→60% / 0.3 s · 3 s 유지"},expected:{signal:"요청 토크와 모터 토크",value:"페달 60% → 토크 요청 204 Nm → 모터 204 Nm"},observations:[{id:"input",label:"APS 원신호"},{id:"control",label:"VCU 토크 맵 출력"},{id:"output",label:"모터 실제 토크"}],comparison:{baseline:"STEP03 정상 기준 장치",sameInput:true,timeAxis:"0~3.3 s 동일 시간축",units:"%, Nm"},limitation:"결과 하나로 근본 원인을 자동 확정하지 않는다.",createdBy:"STEP03"}));`,
+      });
+    }
 
     for (const [index, screen] of selectedScreens.entries()) {
       const loaded = page.waitFor("Page.loadEventFired");
@@ -242,6 +248,10 @@ async function main() {
           expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); document.querySelector('.secretSolve')?.click(); await wait(100); document.querySelector('.rpRun')?.click(); await wait(4000); document.querySelector('.rpRun')?.click(); await wait(250); ${openPuzzleContract ? "document.querySelector('.rpExpect')?.click();" : ""} })()`,
           awaitPromise: true,
         });
+      }
+      if (screen.name.includes("lab_signal_graph")) {
+        await page.send("Runtime.evaluate", { expression: "document.querySelector('.vbGo')?.click()" });
+        await delay(2300);
       }
       if (autoDriveFinale && screen.name.includes("final_dock_race")) {
         await page.send("Page.bringToFront");

@@ -79,3 +79,18 @@ test("K-6 hands an explicit STEP03 experiment contract to STEP04", () => {
   assert.match(verificationLab, /fallbackVerificationContract/);
   assert.match(verificationLab, /STEP03 계약/);
 });
+
+test("K-7 exposes every simulation view to Chrome QA without a technique-name quiz", () => {
+  for (const tab of ["sw", "ecu", "plant", "graph"]) {
+    assert.match(capture, new RegExp(`qa=TWIN_BENCH&tab=${tab}`));
+  }
+  assert.match(verificationLab, /requestedView/);
+  assert.match(verificationLab, /같은 입력:/);
+  assert.match(verificationLab, /가능성 높음/);
+  assert.match(verificationLab, /가능성 낮음/);
+  assert.match(verificationLab, /아직 모름/);
+  assert.match(verificationLab, /PASS/);
+  assert.match(verificationLab, /FAIL/);
+  assert.match(verificationLab, /INCONCLUSIVE|판정 불가/);
+  assert.doesNotMatch(verificationLab.slice(verificationLab.indexOf("export function TwinBenchExperience")), /기법명 객관식/);
+});
