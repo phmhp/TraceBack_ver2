@@ -186,5 +186,19 @@
 [data-coach="run"] .vbGo,
 [data-coach="answer"] .qaAnswers,
 [data-coach="gaps"] .rpGap,
-[data-coach="check"] .rpCheckBtn { outline: 2.5px solid #e9784a; outline-offset: 3px; border-radius: 10px; animation: coachPulse 1.6s ease-out infinite; }
+[data-coach="check"] .rpRun,
+[data-coach="confirm"] .rpRun,
+.refPuzzle[data-coach="next"] .rpNext { outline: 2.5px solid #e9784a; outline-offset: 3px; border-radius: 10px; animation: coachPulse 1.6s ease-out infinite; }
 .coachTag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: #e9784a; color: #fff; font: 700 11px Pretendard, system-ui; vertical-align: 1px; }
+
+/* ── Puzzle: why line + final actuator reaction ── */
+.rpHead .rpWhy { margin-top: 2px !important; font-size: 13px !important; color: #5b4636 !important; }
+.rpHead .rpWhy b { margin-right: 4px; color: #9b6b64; }
+.rpActuator { position: fixed; z-index: 40; right: 326px; bottom: 100px; width: 200px; padding: 6px 8px 8px; border-radius: 14px; background: #fffdf6; border: 2px solid #86b897; box-shadow: 0 8px 22px rgba(40, 25, 10, .2); display: grid; gap: 4px; animation: vrPop .35s cubic-bezier(.2, 1.4, .4, 1); pointer-events: none; }
+.rpActuator.weak { border-color: #d9a093; }
+.rpActuator canvas { height: 120px !important; }
+.rpActuator b { font: 700 12.5px Pretendard, system-ui; text-align: center; color: #2f5a3d; }
+.rpActuator.weak b { color: #8a3324; }
+
+/* stage screens never scroll (focus or a late layout must not shift them) */
+.refPuzzle, .dtBoard, .vbBench, .garageV2, .raceV2 { overflow: clip !important; }

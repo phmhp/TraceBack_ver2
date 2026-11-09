@@ -14,6 +14,8 @@ import { PursuitRouteBar, getFeatureLayer, piecePath, type DomainId, type Nub } 
 import { ENGINEER } from "../../game/cast";
 import { Icon } from "../../ui/Icon";
 import { StageIntro, showVerdict } from "../../ui/Verdict";
+import { Canvas } from "@react-three/fiber";
+import { PartModel } from "../parts/PartModel";
 
 type Send = React.Dispatch<any>;
 type Blk = { id: string; label: string; kind: Kind | "hw"; ee?: boolean; spec?: string; img?: string; tag?: string; out?: string; bad?: string; why?: string; from: string; does?: string };
@@ -377,6 +379,30 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
 // 2) after a good connection, an example-input slider shows the value leaving every block (explore, nothing graded)
 // 3) the player decides "요구사항과 같아요 → 기준 확정"; only then is the requirement checked (wrong table → explained)
 // 4) the confirmed reference becomes the expected-value card that the bench uses as its dashed baseline.
+// Why this path exists, in one plain sentence (4-3).
+const WHY: Record<CaseId, string> = {
+  propulsion: "페달을 얼마나 밟았는지에 맞춰 차가 낼 힘을 정하기 위해서예요.",
+  thermal: "냉각수가 뜨거워지면 팬을 돌려 구동계 온도를 지키기 위해서예요.",
+  brake: "브레이크를 밟은 만큼 회생과 마찰 제동을 나눠 차를 세우기 위해서예요.",
+};
+// The final actuator reacts in 3D: normal output when the rig matches the requirement, a weaker one when it does not.
+const ACTUATOR: Record<CaseId, { id: string; ok: string; weak: string }> = {
+  propulsion: { id: "traction_motor", ok: "모터 204 Nm · 정상 가속", weak: "모터 힘 부족 · 가속이 약해요" },
+  thermal: { id: "cooling_fan", ok: "팬 1850 rpm · 정상 냉각", weak: "팬이 켜지지 않아요 · 온도 상승" },
+  brake: { id: "brake_caliper", ok: "캘리퍼 42 bar · 정상 감속", weak: "압력 부족 · 감속이 약해요" },
+};
+function ActuatorReaction({ caseId, ok }: { caseId: CaseId; ok: boolean }) {
+  const a = ACTUATOR[caseId];
+  return <div className={`rpActuator ${ok ? "ok" : "weak"}`}>
+    <Canvas camera={{ position: [.35, .25, .45], fov: 35 }} dpr={[1, 1.5]}>
+      <hemisphereLight intensity={1.6} color="#fff5dc" groundColor="#6d8c7b" />
+      <directionalLight position={[2, 3, 2]} intensity={2.4} />
+      <group scale={caseId === "brake" ? 1.1 : caseId === "thermal" ? .55 : 1.2}><PartModel id={a.id} input={ok ? 18 : 2} castShadow={false} /></group>
+    </Canvas>
+    <b>{ok ? a.ok : a.weak}</b>
+  </div>;
+}
+
 // What the finished rig is for: the hypotheses the bench will tell apart with it.
 const RIG_GOAL: Record<CaseId, string> = {
   propulsion: "VCU 계산 SW 문제인지, 입력 회로 문제인지",
@@ -427,6 +453,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const setZoom = (b: Blk | null, el?: HTMLElement) => { if (!b || !el || !stage.current) { setZoomState(null); return; } const r = el.getBoundingClientRect(), base = stage.current.getBoundingClientRect(); const up = r.bottom - base.top > base.height - 190; setZoomState({ b, x: Math.min(Math.max(r.left - base.left + r.width / 2, 135), base.width - 135), y: up ? r.top - base.top - 8 : r.bottom - base.top + 8, up }); };
   useEffect(() => { const key = (e: KeyboardEvent) => { if (["Delete", "Backspace", "Escape"].includes(e.key)) setZoomState(null); }; addEventListener("keydown", key); return () => removeEventListener("keydown", key); }, []);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [reaction, setReaction] = useState<"ok" | "weak" | null>(null);
   const [scale, setScale] = useState(.8);
   const noteKey = `${caseId}:garageNote`;
   const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ref.ecu; } catch { return ref.ecu; } })();
@@ -502,8 +529,8 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   // 3) the player confirms the reference against the requirement
   const confirm = () => {
     const wrong = ref.gaps.find(g => place[g] !== ref.board[g]);
-    if (wrong !== undefined) { const b = ref.blocks[place[wrong]!]; setFails(f => f + 1); showVerdict(false); setMsg(`${spec.input ? `예시 입력을 요구사항 값(${spec.input.at}${spec.input.unit})에 두고 출력을 보세요. ` : ""}${(b.why ?? "요구사항과 다른 칸이 있어요.").replace("실행 결과", "결과가")}`); return; }
-    setConfirmed(true); showVerdict(true, "기준 확정"); play("success");
+    if (wrong !== undefined) { const b = ref.blocks[place[wrong]!]; setFails(f => f + 1); showVerdict(false); setReaction("weak"); setMsg(`${spec.input ? `예시 입력을 요구사항 값(${spec.input.at}${spec.input.unit})에 두고 출력을 보세요. ` : ""}${(b.why ?? "요구사항과 다른 칸이 있어요.").replace("실행 결과", "결과가")}`); return; }
+    setConfirmed(true); setReaction("ok"); showVerdict(true, "기준 확정"); play("success");
     try { sessionStorage.setItem(`tb-expect-${caseId}`, spec.expect); } catch { /* ignore */ }
     setMsg("정상 기준이 정해졌어요. 이 기대값이 검증 단계의 판정 기준(점선)이 돼요.");
   };
@@ -511,6 +538,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const reset = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, null]))); setCheck(null); setConfirmed(false); setPicked(null); setMsg("초기화했어요."); play("squish"); };
   const noteReady = fails > 0 || noteUsed;
   const openNote = () => { if (!noteReady) return; if (!noteUsed) send({ type: "HINT", key: noteKey }); setNoteOpen(true); play("pop"); };
+  const coach = state.completedCases.length ? "" : !filled ? "gaps" : !connected ? "check" : !confirmed ? "confirm" : "next";
   const stars = fails === 0 ? 3 : fails <= 2 ? 2 : 1;
   const sideLit = connected;
   const jointsIo = (slot: number) => ({ in: slot > 0 ? ref.joints[slot - 1] : undefined, out: slot < n - 1 ? ref.joints[slot] : undefined });
@@ -524,7 +552,8 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       <button className="rpHelp" aria-label="블록 설명" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); setZoom(zoom?.b.id === b.id ? null : b, event.currentTarget.parentElement as HTMLElement); }}>?</button>
     </div>;
 
-  return <div className="refPuzzle v2">
+  return <div className="refPuzzle v2" data-coach={coach}>
+    {reaction && <ActuatorReaction key={reaction} caseId={caseId} ok={reaction === "ok"} />}
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="검증 준비" title="요구사항 기반 로직 퍼즐" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
@@ -534,7 +563,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       { icon: "clipboard", text: "요구사항과 같으면 '기준 확정'. 이 값이 검증 단계의 기대값이 돼요." },
     ]} />
     <header className="rpHead">
-      <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p><b>목표</b> 검증에 쓸 정상 기준 장치를 완성해요 · <b>가려낼 가설</b> {RIG_GOAL[caseId]}</p></div>
+      <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p><b>목표</b> 검증에 쓸 정상 기준 장치를 완성해요 · <b>가려낼 가설</b> {RIG_GOAL[caseId]}</p><p className="rpWhy"><b>왜 필요한가</b> {WHY[caseId]}</p></div>
       <div className="rpTools">
         <button onClick={openNote} disabled={!noteReady} title={noteReady ? "" : "한 번 확인해 본 뒤 열 수 있어요"}><Icon name="book" /> 차고 노트{noteUsed ? "" : noteReady ? " · -5m" : " · 확인 후"}</button>
         <button onClick={reset}>↺ 초기화</button>
