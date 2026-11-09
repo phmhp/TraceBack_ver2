@@ -1,9 +1,9 @@
 // Small numeric models for the bench. Every run is actually computed step by step (dt = 5 ms of model time):
 // the reference run uses the healthy design, the field run injects the case's fault, the fixed run removes it.
 // Levels follow ISO 26262: Part 6 단위 검증(9절) → SW 통합 검증(10절) → 임베디드 SW 시험(11절),
-// then Part 4 HW·SW 통합 → 시스템 통합 → 차량 통합 (one tab "시스템·차량 통합").
+// then system integration → vehicle verification (one tab "시스템·차량 통합").
 // The test environment is a separate axis (MIL/SIL/PIL/HIL/차량). Up to the embedded SW test the plant
-// (sensors, loads, vehicle) is SIMULATED — a broken physical part only shows once real parts are integrated.
+// (sensors, loads, vehicle) is SIMULATED. Fault injection is limited to SW logic, data and interfaces.
 import type { CaseId } from "../../game/runtime";
 
 export type Lv = "unit" | "swint" | "embedded" | "vehicle";
@@ -57,11 +57,12 @@ function thermal(tech: Tech, fault: boolean) {
     const e = s.on ? 1850 - s.rpm : 0;
     s.int = s.on ? clamp(s.int + e * dt * .004, -40, 40) : 0;
     s.duty = s.on ? clamp(60 + .002 * e + s.int, 0, 100) : 0;   // PI on the measured fan speed
-    const target = fault ? 0 : s.duty / 68 * 1850;              // the fault: the fan motor does not turn
+    const pwmOut = s.duty * (fault ? 0 : 1);                    // fault: output-adapter SW skips the PWM write
+    const target = pwmOut / 68 * 1850;
     s.rpm += (target - s.rpm) * dt / .3;
     s.tm += ((70 + 2.6 * (s.tc - 70)) - s.tm) * dt / 1.5;
     s.der += ((s.tm > 90 ? 60 : 100) - s.der) * dt / .4;
-  }, s => ({ tc: s.tc, tf: s.tf, fanReq: s.on * 100, duty: s.duty, pinV: 4.5 - s.tc * .03, supply: 12, rpm: s.rpm, diag: 0, tm: s.tm, der: s.der, acc: 2.8 * s.der / 100 }));
+  }, s => ({ tc: s.tc, tf: s.tf, fanReq: s.on * 100, duty: s.duty, pwmOut: s.duty * (fault ? 0 : 1), pinV: 4.5 - s.tc * .03, supply: 12, rpm: s.rpm, diag: 0, tm: s.tm, der: s.der, acc: 2.8 * s.der / 100 }));
 }
 
 // ── 제동: 페달 → (요구 → 회생 MIN → 잔여력 → 마찰 압력) → 밸브 → 유압 라인 → 캘리퍼 → 차량 감속 ──
@@ -73,11 +74,12 @@ function brake(tech: Tech, fault: boolean) {
     s.regen += (Math.min(s.req, regenMax) - s.regen) * dt / .05;
     s.fric = Math.max(0, s.req - s.regen);
     s.cmd = s.fric * 20;                                          // 2.1 m/s² → 42 bar
-    s.line += (s.cmd * (fault ? .19 : 1) - s.line) * dt / .08;    // the fault: pressure leaks in the hydraulic path
+    const cmdOut = s.cmd * (fault ? .19 : 1);                     // fault: output-interface SW applies a second scale
+    s.line += (cmdOut - s.line) * dt / .08;
     s.cal += (s.line - s.cal) * dt / .02;
     s.dec = s.regen + s.cal / 20;
     s.v = Math.max(0, s.v - s.dec * dt);
-  }, s => ({ p: s.p, req: s.req, avail: regenMax, fric: s.fric, cmd: s.cmd, valve: s.cmd * 1.4, cur: s.cmd * .02, line: s.line, cal: s.cal, regen: s.regen, dec: s.dec, spd: s.v * 3.6 }));
+  }, s => ({ p: s.p, req: s.req, avail: regenMax, fric: s.fric, cmd: s.cmd, cmdOut: s.cmd * (fault ? .19 : 1), valve: s.cmd * (fault ? .19 : 1) * 1.4, cur: s.cmd * (fault ? .19 : 1) * .02, line: s.line, cal: s.cal, regen: s.regen, dec: s.dec, spd: s.v * 3.6 }));
 }
 
 type Def = { id: string; name: string; unit: string; max: number; src: string; model?: boolean };
@@ -124,12 +126,12 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
     ],
     embedded: [
       { id: "pinV", name: "온도 센서 핀 전압", unit: "V", max: 5, src: "pinV", model: true },
-      { id: "pwm", name: "PWM 출력 핀 비율", unit: "%", max: 110, src: "duty", model: true },
+      { id: "pwm", name: "PWM 출력 어댑터 값", unit: "%", max: 110, src: "pwmOut" },
       { id: "supply", name: "팬 전원 전압", unit: "V", max: 14, src: "supply", model: true },
-      { id: "rpm", name: "팬 부하 모델 회전", unit: "rpm", max: 2100, src: "rpm", model: true },
+      { id: "rpm", name: "팬 부하 모델 회전", unit: "rpm", max: 2100, src: "rpm" },
     ],
     vehicle: [
-      { id: "fpwm", name: "팬 커넥터 PWM (실부품)", unit: "%", max: 110, src: "duty" },
+      { id: "fpwm", name: "팬 커넥터 PWM", unit: "%", max: 110, src: "pwmOut" },
       { id: "fv", name: "팬 커넥터 전원 전압", unit: "V", max: 14, src: "supply" },
       { id: "rpm", name: "팬 실제 회전 (실부품 연결)", unit: "rpm", max: 2100, src: "rpm" },
       { id: "tc", name: "냉각수 온도", unit: "°C", max: 100, src: "tc" },
@@ -151,12 +153,14 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
       { id: "valve", name: "밸브 PWM 명령", unit: "%", max: 110, src: "valve", model: true },
     ],
     embedded: [
-      { id: "cmd", name: "압력 명령 (ECU 출력)", unit: "bar", max: 70, src: "cmd", model: true },
+      { id: "cmd", name: "압력 계산값", unit: "bar", max: 70, src: "cmd", model: true },
+      { id: "cmdOut", name: "I/O 어댑터 출력값", unit: "bar", max: 70, src: "cmdOut" },
       { id: "cur", name: "밸브 구동 전류", unit: "A", max: 1.5, src: "cur", model: true },
-      { id: "line", name: "유압 모델 라인 압력", unit: "bar", max: 70, src: "line", model: true },
+      { id: "line", name: "유압 모델 라인 압력", unit: "bar", max: 70, src: "line" },
     ],
     vehicle: [
-      { id: "cmd", name: "압력 명령 (ECU 출력)", unit: "bar", max: 70, src: "cmd" },
+      { id: "cmd", name: "압력 계산값", unit: "bar", max: 70, src: "cmd" },
+      { id: "cmdOut", name: "전송된 압력 명령", unit: "bar", max: 70, src: "cmdOut" },
       { id: "line", name: "캘리퍼 입구 압력 (실부품 연결)", unit: "bar", max: 70, src: "line" },
       { id: "dec", name: "차량 감속", unit: "m/s²", max: 4, src: "dec" },
     ],

@@ -269,10 +269,10 @@ const TRACE: Record<string, { chain: TNode[]; signals: string[]; first: number }
     { label: "APS 이중 센서", role: "input", dom: "aps" }, { label: "VCU", role: "control", dom: "vcu_in" }, { label: "CAN 토크 명령", role: "network", dom: "can_cmd" },
     { label: "인버터·모터", role: "actuator", dom: "motor_tq" }, { label: "차량 가속", role: "result", dom: "accel" }] },
   thermal: { first: 1, signals: ["팬 PWM 명령", "냉각 바람", "냉각수 °C", "출력 허용"], chain: [
-    { label: "Thermal ECU", role: "control", dom: "fan_cmd" }, { label: "냉각 팬", role: "actuator", dom: "fan_rpm" }, { label: "냉각수 온도 센서", role: "input", dom: "coolant" },
+    { label: "팬 요청 계산", role: "control", dom: "fan_cmd" }, { label: "PWM 출력 어댑터 SW", role: "control", dom: "fan_rpm" }, { label: "냉각수 온도 센서", role: "input", dom: "coolant" },
     { label: "VCU", role: "control", dom: "derate" }, { label: "차량 가속", role: "result", dom: "accel" }] },
   brake: { first: 2, signals: ["페달 %", "압력 명령", "제동력"], chain: [
-    { label: "페달 센서", role: "input", dom: "bpp" }, { label: "Brake ECU", role: "control", dom: "p_cmd" }, { label: "유압 모듈레이터·캘리퍼", role: "actuator", dom: "caliper" },
+    { label: "페달 입력 처리", role: "input", dom: "bpp" }, { label: "압력 계산 SW", role: "control", dom: "p_cmd" }, { label: "I/O 어댑터 SW", role: "control", dom: "caliper" },
     { label: "차량 감속", role: "result", dom: "decel" }] },
 };
 
@@ -288,8 +288,8 @@ const REPLAY: Record<string, string> = { propulsion: "페달 60% 기록", therma
 
 const SUBSYS: Record<string, { where: string; inLabel: string; outLabel: string; stages: string[] }> = {
   propulsion: { where: "VCU", inLabel: "페달 신호 60%", outLabel: "토크 명령 92 Nm (기준 204)", stages: ["입력 회로", "페달 처리", "토크 계산"] },
-  thermal: { where: "냉각 팬 구동 경로", inLabel: "팬 명령 100%", outLabel: "팬 회전 0 rpm (기준 1850)", stages: ["ECU 출력단", "배선·전원", "팬 모터"] },
-  brake: { where: "유압 경로", inLabel: "압력 명령 42 bar", outLabel: "캘리퍼 압력 8 bar (기준 42)", stages: ["유압 모듈", "브레이크 라인", "캘리퍼"] },
+  thermal: { where: "팬 출력 SW 경계", inLabel: "팬 요청 100%", outLabel: "PWM 출력 0% (기준 100)", stages: ["팬 요청 계산", "실행 순서", "PWM 쓰기"] },
+  brake: { where: "압력 출력 SW 경계", inLabel: "압력 계산 42 bar", outLabel: "전송 명령 8 bar (기준 42)", stages: ["배분 계산", "단위 변환", "I/O 전송"] },
 };
 
 export function EeTrace({ state, send }: { state: Campaign; send: Send }) {

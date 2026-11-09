@@ -409,8 +409,8 @@ function ActuatorReaction({ caseId, ok }: { caseId: CaseId; ok: boolean }) {
 // What the finished rig is for: the hypotheses the bench will tell apart with it.
 const RIG_GOAL: Record<CaseId, string> = {
   propulsion: "VCU 계산 SW 문제인지, 입력 회로 문제인지",
-  thermal: "팬 제어 SW, 출력단·배선·전원, 팬 모터 중 어디인지",
-  brake: "배분 SW, 유압 경로, 캘리퍼 중 어디인지",
+  thermal: "팬 요청 계산 SW인지, PWM 출력 어댑터 SW인지",
+  brake: "배분 계산 SW인지, 압력 명령 I/O 어댑터 SW인지",
 };
 const SPEC: Record<CaseId, { text: string; input?: { label: string; unit: string; min: number; max: number; at: number }; expect: string }> = {
   propulsion: { text: "페달 0~100% → 토크 요청 0~340 Nm 선형 · 가용 토크 한계 260 Nm(BMS·온도) · D단·READY일 때만 통과",

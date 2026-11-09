@@ -32,10 +32,10 @@ export const DEFAULT_VEHICLE: VehicleParams = {
 export type FaultSet = {
   /** Multiplier applied to the APP signal inside the VCU input stage (case "propulsion": 0.45). */
   pedalScale?: number;
-  /** Fan receives PWM but does not turn (case "thermal"). */
-  fanStuck?: boolean;
-  /** Fraction of commanded hydraulic pressure actually delivered (case "brake"). */
-  brakePressureGain?: number;
+  /** Scale applied by the Thermal ECU output-adapter SW (case "thermal": 0). */
+  fanPwmOutputScale?: number;
+  /** Scale applied while Brake ECU SW encodes the pressure command (case "brake": 0.19). */
+  brakeCommandScale?: number;
 };
 
 export type PowerMode = "OFF" | "READY";
@@ -97,10 +97,12 @@ export function stepVehicle(
 
   // Thermal ECU (feedback from previous tick's temperature)
   const fanOn = state.motorTempC >= params.fanOnC ? true : state.motorTempC <= params.fanOffC ? false : state.fanOn;
-  const fanPwm = fanOn ? 100 : 0;
-  const fanRpm = faults.fanStuck ? 0 : fanPwm / 100 * params.fanMaxRpm;
+  const fanPwmRequest = fanOn ? 100 : 0;
+  const fanPwm = fanPwmRequest * (faults.fanPwmOutputScale ?? 1);
+  const fanRpm = fanPwm / 100 * params.fanMaxRpm;
   const deratePct = Math.min(50, Math.max(0, (state.motorTempC - params.derateStartC) / (params.derateFullC - params.derateStartC) * 50));
   log("sensor", "motor_temp_sensor", "temp_out", "Motor_Temperature", state.motorTempC, "°C");
+  log("control", "thermal_ecu", "fan_request_out", "Fan_PWM_Request", fanPwmRequest, "%");
   log("control", "thermal_ecu", "fan_pwm_out", "Fan_PWM", fanPwm, "%");
   log("plant", "cooling_fan", "speed_out", "Fan_Speed", fanRpm, "rpm");
   log("communication", "thermal_ecu", "derate_out", "Thermal_Derate", deratePct, "%");
@@ -130,9 +132,11 @@ export function stepVehicle(
 
   // Brake path: Brake ECU → modulator → caliper
   const pressureCmd = input.BPP_Position * params.brakeBarPerPercent;
-  const brakePressureBar = pressureCmd * (faults.brakePressureGain ?? 1);
+  const encodedPressureCmd = pressureCmd * (faults.brakeCommandScale ?? 1);
+  const brakePressureBar = encodedPressureCmd;
   const brakeTorqueNm = brakePressureBar * params.brakeTorquePerBarNm;
   log("control", "brake_ecu", "pressure_cmd_out", "Pressure_Command", pressureCmd, "bar");
+  log("control", "brake_ecu", "pressure_io_out", "Pressure_Command_Encoded", encodedPressureCmd, "bar");
   log("plant", "hydraulic_modulator", "pressure_out", "Brake_Pressure", brakePressureBar, "bar");
   log("plant", "brake_caliper", "brake_torque_out", "Brake_Torque", brakeTorqueNm, "Nm");
 

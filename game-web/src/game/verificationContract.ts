@@ -40,7 +40,7 @@ const BASE: Record<CaseId, ContractBase> = {
   thermal: {
     version: 1,
     caseId: "thermal",
-    objective: "팬 제어 SW, 출력단·배선·전원, 팬 모터 가설을 같은 열부하에서 구분한다.",
+    objective: "팬 요청 계산 SW와 PWM 출력 어댑터 SW의 실행 순서를 같은 열부하에서 구분한다.",
     preconditions: ["READY", "냉각팬 OFF", "냉각수 62°C", "차량 정차"],
     stimulus: { label: "사건 열부하", sequence: "냉각수 65.1→78.4°C / 8 s" },
     expectedSignal: "팬 명령과 실제 회전",
@@ -50,13 +50,13 @@ const BASE: Record<CaseId, ContractBase> = {
       { id: "output", label: "팬 실제 RPM" },
     ],
     comparison: { baseline: "STEP03 정상 기준 장치", sameInput: true, timeAxis: "0~8 s 동일 시간축", units: "°C, %, rpm" },
-    limitation: "명령과 실제 회전의 경계를 구분하며, 관찰하지 않은 배선 내부 고장을 만들어내지 않는다.",
+    limitation: "SW 계산값과 I/O 출력값의 경계를 구분하며, 관찰하지 않은 HW 고장을 원인으로 만들지 않는다.",
     createdBy: "STEP03",
   },
   brake: {
     version: 1,
     caseId: "brake",
-    objective: "제동 배분 SW, 유압 경로, 캘리퍼 가설을 같은 제동 입력에서 구분한다.",
+    objective: "제동 배분 계산 SW와 압력 명령 I/O 어댑터 SW를 같은 제동 입력에서 구분한다.",
     preconditions: ["차속 72 km/h", "D단", "SOC 82%", "ABS 비활성"],
     stimulus: { label: "정지선 제동", sequence: "제동 0→55% / 0.6 s · 정지까지 유지" },
     expectedSignal: "제동 명령과 캘리퍼 압력",
@@ -66,7 +66,7 @@ const BASE: Record<CaseId, ContractBase> = {
       { id: "output", label: "캘리퍼 압력" },
     ],
     comparison: { baseline: "STEP03 정상 기준 장치", sameInput: true, timeAxis: "정지까지 동일 시간축", units: "%, m/s², bar" },
-    limitation: "협조 제동의 최초 편차를 찾되 시험 결과와 부품 근본 원인 판정을 분리한다.",
+    limitation: "협조 제동의 최초 편차를 찾되 시험 결과와 SW 근본 원인 판정을 분리한다.",
     createdBy: "STEP03",
   },
 };

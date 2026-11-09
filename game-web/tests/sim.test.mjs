@@ -125,18 +125,18 @@ test("vehicle: brakes stop the car, brake demand 55 % ≈ 42 bar, brake override
   assert.equal(first.outputs.torqueRequestNm, 0);
   const stopped = run(moving, both, 8);
   assert.equal(stopped.state.vehicleSpeedMps, 0);
-  const weak = run(moving, both, 2, { brakePressureGain: 0.2 });
+  const weak = run(moving, both, 2, { brakeCommandScale: 0.2 });
   const strong = run(moving, both, 2);
   assert.ok(weak.state.vehicleSpeedMps > strong.state.vehicleSpeedMps, "brake fault lengthens stopping");
 });
 
-test("vehicle: fan turns on above 65 °C; a stuck fan reads 0 rpm and overheating derates torque", () => {
+test("vehicle: fan turns on above 65 °C; a skipped PWM write reads 0 rpm and overheating derates torque", () => {
   const input = { StartRequest: false, APP_Position: 0, BPP_Position: 0, Steering_Angle: 0, Gear_Request: "D" };
   const hot = initialVehicleState({ powerMode: "READY", motorTempC: 78.4 });
   const healthy = stepVehicle(hot, input, 0.02);
   assert.equal(healthy.outputs.fanRpm, 1850);
-  const stuck = stepVehicle(hot, input, 0.02, { fanStuck: true });
-  assert.equal(stuck.outputs.fanRpm, 0);
+  const skippedWrite = stepVehicle(hot, input, 0.02, { fanPwmOutputScale: 0 });
+  assert.equal(skippedWrite.outputs.fanRpm, 0);
   const derated = stepVehicle(initialVehicleState({ powerMode: "READY", motorTempC: 85 }), { ...input, APP_Position: 100 }, 0.02);
   assert.ok(derated.outputs.deratePct > 0 && derated.outputs.torqueRequestNm < 340);
 });

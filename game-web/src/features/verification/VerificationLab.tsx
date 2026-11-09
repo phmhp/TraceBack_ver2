@@ -73,9 +73,9 @@ const experimentConfig: Record<CaseId, ExperimentConfig> = {
     expected: "1850 RPM",
     healthyActual: "1846 RPM",
     faultyActual: "0 RPM",
-    mismatch: "Fan PWM 이후 실제 회전 피드백",
-    technique: "고장 재현 + 출력 피드백 관측",
-    lesson: "명령만 확인하지 않고 실제 액추에이터 피드백까지 관측해, 명령 이후의 물리 경계가 끊겼음을 확인했습니다.",
+    mismatch: "팬 요청 이후 PWM 출력 어댑터",
+    technique: "고장 재현 + SW I/O 경계 관측",
+    lesson: "팬 요청 계산값과 I/O 어댑터 출력값을 함께 관측해, SW 실행 순서에서 처음 갈라졌음을 확인했습니다.",
     probeCopy: { input: "NTC 온도", control: "Fan PWM 명령", output: "팬 실제 RPM" },
   },
   brake: {
@@ -94,9 +94,9 @@ const experimentConfig: Record<CaseId, ExperimentConfig> = {
     expected: "42 bar",
     healthyActual: "42 bar",
     faultyActual: "8 bar",
-    mismatch: "Regen/Friction Blend 이후 유압 응답",
-    technique: "조건 조합 + 실제 응답 비교",
-    lesson: "회생제동 명령만 보고 통과시키지 않고 마찰제동의 실제 압력까지 비교해 협조 제동 누락을 찾았습니다.",
+    mismatch: "Regen/Friction Blend 이후 I/O 전송값",
+    technique: "조건 조합 + SW 인터페이스 비교",
+    lesson: "내부 압력 계산값과 I/O 전송값을 비교해 중복 스케일링이 처음 발생한 SW 경계를 찾았습니다.",
     probeCopy: { input: "제동 요구", control: "회생·마찰 배분", output: "캘리퍼 압력" },
   },
 };
@@ -298,13 +298,13 @@ const levelCheck: Record<CaseId, { answer: BenchTab; why: string; wrong: string 
   },
   thermal: {
     answer: "embedded",
-    why: "의심 구간이 ECU 출력단·배선·팬 모터예요. SW만 돌리면 명령 100%로 정상이라 안 보여요. 실제 ECU와 부품 신호를 붙인 HIL에서 관찰할 수 있어요.",
-    wrong: "그 레벨로는 의심 구간(출력단·배선·팬 모터)을 관찰할 수 없거나, 더 이른 레벨에서 볼 수 있어요.",
+    why: "의심 구간이 ECU의 PWM 출력 어댑터 SW예요. 통합 SW를 제어기 I/O까지 연결하면 팬 요청 100%와 출력 0%를 함께 관찰할 수 있어요.",
+    wrong: "그 레벨로는 SW I/O 어댑터 경계를 관찰할 수 없거나, 더 이른 레벨에서 볼 수 있어요.",
   },
   brake: {
     answer: "embedded",
-    why: "의심 구간이 유압 모듈·라인·캘리퍼예요. 실제 ECU와 유압 부하를 붙인 HIL에서 '명령 42 bar, 실제 8 bar'를 관찰할 수 있어요.",
-    wrong: "그 레벨로는 의심 구간(유압 경로)을 관찰할 수 없거나, 더 이른 레벨에서 볼 수 있어요.",
+    why: "의심 구간이 압력 명령 I/O 어댑터 SW예요. 통합 SW를 제어기 I/O까지 연결하면 계산값 42 bar와 전송값 8 bar를 함께 관찰할 수 있어요.",
+    wrong: "그 레벨로는 계산값과 I/O 전송값 사이 경계를 관찰할 수 없거나, 더 이른 레벨에서 볼 수 있어요.",
   },
 };
 const regressionTests: Record<CaseId, string[]> = {
@@ -489,14 +489,14 @@ const FIXES: Record<CaseId, Fix[]> = {
     { label: "모터 최대 출력 한계 올리기", img: "/assets/ending-thumbs/traction_motor.png", ok: false, why: "모터 한계는 원인이 아니에요. 안전 여유만 줄어들어요." },
   ],
   thermal: [
-    { label: "팬 명령을 항상 100%로 고정", img: "/assets/ending-thumbs/thermal_ecu.png", ok: false, why: "명령은 이미 100%였어요. 팬이 돌지 않는 건 명령 문제가 아니에요." },
+    { label: "팬 요청을 항상 100%로 고정", img: "/assets/ending-thumbs/thermal_ecu.png", ok: false, why: "팬 요청 계산은 이미 100%였어요. I/O 출력 누락은 고쳐지지 않아요." },
     { label: "출력 제한(보호) 기능 끄기", img: "/assets/board-photos/thermal_protection.png", ok: false, why: "보호 기능은 고장이 아니라 과열을 막아 준 거야. 끄면 모터가 손상돼." },
-    { label: "냉각 팬 모터 교체", img: "/assets/ending-thumbs/cooling_fan.png", ok: true, why: "명령·전원·신호가 모두 정상인데 돌지 않은 팬 모터 자체를 교체했어요." },
+    { label: "PWM 출력 어댑터 주기 작업 복원", img: "/assets/ending-thumbs/thermal_ecu.png", ok: true, why: "팬 요청 뒤 빠져 있던 SW 실행 순서를 복원해 PWM 쓰기가 다시 수행돼요." },
   ],
   brake: [
-    { label: "캘리퍼·유압 라인 수리", img: "/assets/ending-thumbs/brake_caliper.png", ok: true, why: "명령은 42 bar로 정상이었으니 압력이 새는 유압·캘리퍼를 고쳐야 해요." },
+    { label: "I/O 어댑터 중복 스케일링 제거", img: "/assets/ending-thumbs/brake_ecu.png", ok: true, why: "내부 계산 뒤 0.19가 다시 적용되던 SW 인터페이스 오류를 제거했어요." },
     { label: "회생 제동을 더 세게 설정", img: "/assets/board-photos/regen_request.png", ok: false, why: "회생 제동은 배터리가 가득 차면 줄어들어요. 마찰 제동 고장을 가릴 뿐이에요." },
-    { label: "압력 명령을 5배로 키우기", img: "/assets/ending-thumbs/brake_ecu.png", ok: false, why: "명령은 정상이었어요. 키우면 수리 후 과한 압력으로 바퀴가 잠길 수 있어요." },
+    { label: "압력 계산값을 5배로 키우기", img: "/assets/ending-thumbs/brake_ecu.png", ok: false, why: "증상만 보상하는 값이에요. 경계 조건에서 과한 압력을 만들 수 있어요." },
   ],
 };
 const STEP_NAMES = ["재현 입력", "관측 경계", "고치기 전 실행", "고치기", "다시 실행 · 회귀"];
@@ -514,10 +514,10 @@ const SIGNALS: Record<CaseId, { seconds: number; first: number; list: Sig[] }> =
     { name: "모터 실제 토크", unit: "Nm", zone: "부품", ref: u => 204 * lag(u, .07, .16), fault: u => 91 * lag(u, .07, .16), max: 260 },
     { name: "차량 속도", unit: "km/h", zone: "차량", ref: u => 60 + 34 * lag(u, .1, .9), fault: u => 60 + 14 * lag(u, .1, .9), max: 110 },
   ] },
-  thermal: { seconds: 8, first: 3, list: [
+  thermal: { seconds: 8, first: 2, list: [
     { name: "냉각수 온도", unit: "°C", zone: "센서", ref: u => 64 + 6 * ramp(u, .4) - 2 * lag(u, .5, .5), fault: u => 64 + 14 * ramp(u, .9), max: 90 },
     { name: "팬 명령", unit: "%", zone: "제어기 SW", ref: u => u > .08 ? 100 : 0, fault: u => u > .08 ? 100 : 0, max: 110 },
-    { name: "팬 커넥터 PWM", unit: "%", zone: "E/E 배선", ref: u => u > .09 ? 100 : 0, fault: u => u > .09 ? 100 : 0, max: 110 },
+    { name: "PWM 출력 어댑터", unit: "%", zone: "제어기 SW I/O", ref: u => u > .09 ? 100 : 0, fault: () => 0, max: 110 },
     { name: "팬 실제 회전", unit: "rpm", zone: "부품", ref: u => 1850 * lag(u, .1, .12), fault: () => 0, max: 2100 },
     { name: "모터 온도", unit: "°C", zone: "부품", ref: u => 70 + 4 * ramp(u, .5), fault: u => 70 + 26 * lag(u, .3, .7), max: 110 },
   ] },
@@ -525,6 +525,7 @@ const SIGNALS: Record<CaseId, { seconds: number; first: number; list: Sig[] }> =
     { name: "브레이크 페달", unit: "%", zone: "센서", ref: u => 55 * ramp(u, .2), fault: u => 55 * ramp(u, .2), max: 100 },
     { name: "제동 요청", unit: "m/s²", zone: "제어기 SW", ref: u => 3.2 * lag(u, .02, .2), fault: u => 3.2 * lag(u, .02, .2), max: 4 },
     { name: "압력 명령", unit: "bar", zone: "제어기 SW", ref: u => 42 * lag(u, .04, .2), fault: u => 42 * lag(u, .04, .2), max: 50 },
+    { name: "I/O 전송 압력 명령", unit: "bar", zone: "제어기 SW I/O", ref: u => 42 * lag(u, .06, .2), fault: u => 8 * lag(u, .06, .2), max: 50 },
     { name: "캘리퍼 압력", unit: "bar", zone: "부품", ref: u => 42 * lag(u, .07, .2), fault: u => 8 * lag(u, .07, .2), max: 50 },
     { name: "차량 감속", unit: "m/s²", zone: "차량", ref: u => 3.2 * lag(u, .1, .2), fault: u => 1.4 * lag(u, .1, .2), max: 4 },
   ] },
@@ -569,11 +570,11 @@ const TEST_ANSWER: Record<CaseId, { method: Method[]; deriv: Deriv[]; input: str
     whyM: { req: "요구사항 '60% → 204 Nm'를 그대로 확인하는 방법이에요. 이번 구간에 맞아요.", iface: "신호 형식·범위 문제가 아니에요. 들어오는 값은 모두 정상이었어요.", inject: "고장 주입은 고장 감지·대응 기능을 확인할 때 써요. 지금은 정상 계산과 같은지부터 봐야 해요." },
     whyD: { reqa: "요구사항 '페달 60% → 204 Nm'에서 입력과 기대값을 바로 뽑을 수 있어요.", equiv: "페달 0·30·60·100%처럼 구간별 대표값을 넣는 방법이에요. 이번 결함도 잡혀요.", bound: "임계 근처 문제가 아니에요. 60%처럼 평범한 값에서도 달라졌어요.", guess: "경험에 기대기보다 요구사항이 분명하니 거기서 뽑는 게 근거가 있어요.", usecase: "실제 주행 조건에는 다른 요인이 섞여요. 계산 구간만 볼 때는 요구사항 값이 깔끔해요." } },
   thermal: { method: ["req"], deriv: ["usecase"], input: "장시간 고속 주행 · 냉각수 64 → 78°C",
-    whyM: { req: "'65°C를 넘으면 팬이 1850 rpm으로 돈다'는 요구가 실제 부품에서 지켜지는지 확인해요.", iface: "ECU 출력 신호(PWM·전원)는 정상이었어요. 형식 문제가 아니에요.", inject: "고장 주입은 '팬이 멈추면 SW가 감지·경고하는지' 볼 때 써요. 원인 확정에는 요구 동작 확인이 먼저예요." },
+    whyM: { req: "'65°C를 넘으면 팬이 1850 rpm으로 돈다'는 요구를 같은 열부하에서 확인해요.", iface: "팬 요청 계산값과 PWM I/O 출력값을 비교하면 SW 인터페이스 오류를 구분할 수 있어요.", inject: "비정상 열부하는 SW 검증 입력으로 쓸 수 있지만, 근본 원인은 출력 어댑터 SW 실행 순서예요." },
     whyD: { usecase: "오래 고속으로 달린 조건을 그대로 만들어야 열이 쌓이고 팬이 켜져야 하는 상황이 생겨요.", reqa: "요구 값을 순간만 넣으면 온도가 오르기 전이라 팬이 켜질 조건이 안 만들어져요.", equiv: "온도 구간별 대표값은 판단 로직 확인용이에요. 열이 쌓이는 시간이 필요해요.", bound: "65°C 경계는 이미 넘었고 팬 명령도 100%였어요. 경계 판단 문제가 아니에요.", guess: "근거 없이 고르기보다 사건이 난 사용 조건을 재현하는 게 확실해요." } },
   brake: { method: ["req"], deriv: ["bound"], input: "페달 55% · 배터리 가득(회생 0) 경계",
-    whyM: { req: "'페달 55% → 3.2 m/s²' 요구가 실제 유압 경로에서 지켜지는지 확인해요.", iface: "압력 명령 신호는 42 bar로 정상이었어요. 형식 문제가 아니에요.", inject: "고장 주입은 누설을 감지·경고하는지 볼 때 써요. 원인 확정에는 요구 동작 확인이 먼저예요." },
-    whyD: { bound: "배터리가 가득 차 회생이 0이 되는 경계에서는 마찰 제동이 전부를 맡아요. 유압 경로 문제가 가장 크게 드러나요.", reqa: "가능하지만 회생 제동이 일부를 메워 차이가 작게 보여요.", equiv: "대표값만으로는 회생이 섞여 마찰 쪽 차이가 흐려져요.", guess: "근거 없이 고르기보다 회생이 0이 되는 경계를 쓰는 게 확실해요.", usecase: "실제 주행 기록엔 회생이 섞여 마찰 쪽 차이가 흐려져요." } },
+    whyM: { req: "'페달 55% → 3.2 m/s²' 요구를 같은 제동 입력에서 확인해요.", iface: "내부 압력 계산값과 I/O 전송값을 비교하면 중복 스케일링을 구분할 수 있어요.", inject: "회생 0 조건은 SW 경계를 드러내는 입력 조건이며, 근본 원인은 I/O 어댑터의 데이터 처리 오류예요." },
+    whyD: { bound: "배터리가 가득 차 회생이 0이 되는 경계에서는 마찰 압력 명령이 커져 I/O 스케일링 오류가 가장 뚜렷해요.", reqa: "가능하지만 회생 제동이 일부를 메워 차이가 작게 보여요.", equiv: "대표값만으로는 회생이 섞여 마찰 쪽 차이가 흐려져요.", guess: "근거 없이 고르기보다 회생이 0이 되는 경계를 쓰는 게 확실해요.", usecase: "실제 주행 기록엔 회생이 섞여 마찰 쪽 차이가 흐려져요." } },
 };
 const SIM_INPUT: Record<Deriv, Tech> = { reqa: "req", equiv: "req", guess: "req", bound: "boundary", usecase: "soak" };
 // v7: only test-case derivations whose input really differs in the numeric model are offered, per case,
@@ -604,8 +605,8 @@ const LV: { id: Lv; name: string; group: "SW 레벨" | "시스템 레벨"; std: 
 ];
 const LV_ANSWER: Record<CaseId, { answer: Lv; why: string }> = {
   propulsion: { answer: "unit", why: "의심 구간이 VCU 안 SW 계산이에요. 그 SW 단위에 입력값을 인가하는 SW 단위 시험에서 바로 관찰할 수 있어요. 가장 싸고 빠른 레벨이에요." },
-  thermal: { answer: "vehicle", why: "의심 구간이 출력단 뒤 배선·팬 모터 같은 실제 부품이에요. 임베디드 SW 시험까지는 HIL이 팬을 시뮬레이션해서 고장이 안 보여요. 실제 부품을 연결하는 시스템 통합 시험(HW·SW 통합)부터 관찰돼요." },
-  brake: { answer: "vehicle", why: "의심 구간이 유압 모듈·라인·캘리퍼 같은 실제 부품이에요. 임베디드 SW 시험까지는 유압을 시뮬레이션해서 안 보여요. 실제 유압 부품을 연결하는 시스템 통합 시험(HW·SW 통합)부터 관찰돼요." },
+  thermal: { answer: "embedded", why: "의심 구간이 PWM 출력 어댑터 SW예요. 통합 SW·제어기 I/O 시험에서 요청값과 실제 출력값을 함께 보면 가장 먼저 잡을 수 있어요." },
+  brake: { answer: "embedded", why: "의심 구간이 압력 명령 I/O 어댑터 SW예요. 통합 SW·제어기 I/O 시험에서 계산값과 전송값을 비교하면 가장 먼저 잡을 수 있어요." },
 };
 
 // v6 (level → technique quiz → compare) kept unused; v7 below follows docs/REDESIGN_2026-11-08.md
@@ -1108,14 +1109,14 @@ const QUESTIONS: Record<CaseId, { hyp: string; ask: string }[]> = {
     { hyp: "vcu_hw", ask: "아니면 VCU 입력 회로(신호 변환)가 문제야?" },
   ],
   thermal: [
-    { hyp: "fan_sw", ask: "팬을 켜고 끄는 SW가 잘못된 거 아니야?" },
-    { hyp: "fan_path", ask: "그럼 제어기 출력단이나 배선·전원 문제야?" },
-    { hyp: "fan_motor", ask: "팬 자체가 고장 난 거야?" },
+    { hyp: "fan_sw", ask: "PWM 출력 어댑터 SW의 실행 순서가 빠진 거야?" },
+    { hyp: "fan_path", ask: "팬 켜기 상태 전이 SW가 잘못된 거야?" },
+    { hyp: "fan_motor", ask: "팬 회전 피드백 처리 SW가 잘못된 거야?" },
   ],
   brake: [
     { hyp: "blend_sw", ask: "회생·마찰 나누는 SW가 잘못된 거야?" },
-    { hyp: "hyd_path", ask: "유압 모듈이나 라인에서 압력이 빠지는 거야?" },
-    { hyp: "caliper", ask: "캘리퍼가 고착된 거야?" },
+    { hyp: "hyd_path", ask: "I/O 어댑터가 압력 명령을 다시 줄인 거야?" },
+    { hyp: "caliper", ask: "압력 피드백 처리 SW가 잘못된 거야?" },
   ],
 };
 const TEST_CARD: Record<Lv, { name: string; pic: "chip" | "grid" | "monitor" | "car" }> = {
@@ -1317,12 +1318,12 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
 const PREDICT: Record<string, string> = {
   vcu_sw: "VCU SW가 원인이라면: SW만 PC에서 돌려도 '페달 처리값'이 낮게 나와요. 제어기·차량 시험에서는 이 값이 안 보여서 SW인지 입력 회로인지 구별이 안 돼요.",
   vcu_hw: "입력 회로가 원인이라면: 입력 회로가 없는 'SW만 PC' 시험에서는 '페달 처리값'이 정상으로 나와요. 제어기·차량 시험에서는 이 값이 안 보여서 구별이 안 돼요.",
-  fan_sw: "팬 제어 SW가 원인이라면: SW만 PC에서 돌려도 'PWM 비율'이 기준과 달라야 해요.",
-  fan_path: "출력단·배선·전원이 원인이라면: 실제 부품을 붙인 시험에서 '팬 커넥터 PWM'이나 '팬 커넥터 전원 전압'이 기준보다 낮게(안 오게) 나와야 해요. 기준 이상으로 도착했다면 전달은 정상이에요. 팬이 모델인 시험에선 알 수 없어요.",
-  fan_motor: "팬 모터가 원인이라면: 실제 부품을 붙인 시험에서 커넥터에 PWM·전원은 오는데 '팬 실제 회전'만 0이어야 해요. 팬이 모델인 시험에선 알 수 없어요.",
+  fan_sw: "출력 어댑터 실행 순서가 원인이라면: 팬 요청 계산은 정상이지만 임베디드 I/O 시험의 'PWM 출력값'부터 0이어야 해요.",
+  fan_path: "상태 전이 SW가 원인이라면: SW 시험의 팬 요청 또는 PWM 계산값부터 기준과 달라야 해요.",
+  fan_motor: "피드백 처리 SW가 원인이라면: PWM 출력은 정상이고 읽어 온 회전값만 기준과 달라야 해요.",
   blend_sw: "배분 SW가 원인이라면: SW만 PC에서 돌려도 '압력 명령'이 기준과 달라야 해요.",
-  hyd_path: "유압 경로가 원인이라면: 실제 부품 시험에서 '압력 명령'은 같은데 '캘리퍼 입구 압력'이 낮아야 해요.",
-  caliper: "캘리퍼가 원인이라면: 실제 부품 시험에서 '캘리퍼 입구 압력'은 정상인데 감속만 부족해야 해요.",
+  hyd_path: "I/O 스케일링 SW가 원인이라면: 내부 압력 계산은 42 bar지만 전송값부터 약 8 bar여야 해요.",
+  caliper: "피드백 처리 SW가 원인이라면: 전송 명령은 정상이고 읽어 온 압력값만 낮아야 해요.",
 };
 const ANSWER_BTN: Record<Answer, [string, string]> = { supported: ["가능성 높음", "예측대로 나왔어요"], refuted: ["가능성 낮음", "예측과 달라요"], open: ["아직 모름", "이 시험으론 가를 수 없어요"] };
 

@@ -2699,11 +2699,10 @@ export function RepairSequence({ state, send }: { state: Campaign; send: Send })
     const timer = window.setTimeout(() => setCountdown(value => value - 1), 1000);
     return () => clearTimeout(timer);
   }, [countdown, ready, send]);
-  const isOta = state.caseId === "propulsion";
   return <div className="repairV2">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
     <GameHeader chapter="수리" title="검증된 수리 적용" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
-    <main><section className={`repairMechanism repairMechanism3D ${ready ? "fixed" : "working"}`}><EmbeddedBench3D caseId={state.caseId} running works={ready} wide /><span>{ready ? "입력 센서 → ECU의 검증된 SW → 출력 액추에이터 정상 응답" : isOta ? "검증된 제어 로직을 ECU에 OTA 전송 중…" : "ECU 명령과 실제 출력 액추에이터 응답 복원 중…"}</span></section><section className="repairDialogue"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><div><small>ENGINEER {ENGINEER}</small><h1>{ready ? "수리 완료" : "복구 적용 중"}</h1><p>{ready ? (isOta ? "검증을 통과한 SW를 OTA로 배포했어요. 보정 계수 블록을 뺀 정상 페달 처리가 적용됐어요. 달리던 지점으로 돌아갑니다." : "고장 부품을 수리·교체하고 같은 시험으로 정상 응답을 확인했어요. 달리던 지점으로 돌아갑니다.") : "검증을 통과한 수정만 차량에 적용하고 있어요."}</p><b>현재 주행 지점 {Math.round(state.raceDistance)}m · 추격차 격차 {Math.round(state.policeGapMeters)}m</b></div>{ready && <div className="autoResumeCountdown"><strong>{Math.max(0, countdown)}</strong><span>초 후 달리던 지점에서 자동 주행 복귀</span></div>}</section></main>
+    <main><section className={`repairMechanism repairMechanism3D ${ready ? "fixed" : "working"}`}><EmbeddedBench3D caseId={state.caseId} running works={ready} wide /><span>{ready ? "입력 센서 → ECU의 검증된 SW → 출력 액추에이터 정상 응답" : "검증된 제어 로직을 ECU에 OTA 전송 중…"}</span></section><section className="repairDialogue"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><div><small>ENGINEER {ENGINEER}</small><h1>{ready ? "수리 완료" : "복구 적용 중"}</h1><p>{ready ? "검증을 통과한 SW를 OTA로 배포했어요. 같은 입력에서 정상 응답도 확인했어요. 달리던 지점으로 돌아갑니다." : "검증을 통과한 수정만 차량에 적용하고 있어요."}</p><b>현재 주행 지점 {Math.round(state.raceDistance)}m · 추격차 격차 {Math.round(state.policeGapMeters)}m</b></div>{ready && <div className="autoResumeCountdown"><strong>{Math.max(0, countdown)}</strong><span>초 후 달리던 지점에서 자동 주행 복귀</span></div>}</section></main>
   </div>;
 }
 

@@ -1328,9 +1328,7 @@ function Repair({
             </small>
             <h2>{s.repair}</h2>
             <p>
-              {state.caseId === "propulsion"
-                ? "검증된 nominal 프리셋을 적용합니다."
-                : "SW 보호는 유지하고 실제 HW를 정비합니다."}
+              검증에서 확인한 SW 수정본을 적용합니다.
             </p>
           </div>
         </div>

@@ -11,6 +11,9 @@ const eeTrace = readFileSync(new URL("../src/features/board/EeTrace.tsx", import
 const refPuzzle = readFileSync(new URL("../src/features/wiring/RefPuzzle.tsx", import.meta.url), "utf8");
 const verificationLab = readFileSync(new URL("../src/features/verification/VerificationLab.tsx", import.meta.url), "utf8");
 const verificationContract = readFileSync(new URL("../src/game/verificationContract.ts", import.meta.url), "utf8");
+const scenarios = readFileSync(new URL("../src/game/scenarios.ts", import.meta.url), "utf8");
+const simModel = readFileSync(new URL("../src/features/verification/simModel.ts", import.meta.url), "utf8");
+const vehicleSim = readFileSync(new URL("../src/sim/vehicleSim.ts", import.meta.url), "utf8");
 
 test("V4 STEP 01 keeps one stable frame across all three learning views", () => {
   assert.match(experience, /className="garageViewTools"/);
@@ -93,4 +96,14 @@ test("K-7 exposes every simulation view to Chrome QA without a technique-name qu
   assert.match(verificationLab, /FAIL/);
   assert.match(verificationLab, /INCONCLUSIVE|판정 불가/);
   assert.doesNotMatch(verificationLab.slice(verificationLab.indexOf("export function TwinBenchExperience")), /기법명 객관식/);
+});
+
+test("latest scenario scope keeps every root cause in software", () => {
+  assert.match(scenarios, /출력 어댑터 SW의 실행 순서/);
+  assert.match(scenarios, /I\/O 어댑터 SW가 압력 계산값/);
+  assert.doesNotMatch(scenarios, /fanStuck|brakePressureGain|truth:\s*true[^\n]*(팬 모터|유압 모듈|캘리퍼)/);
+  assert.match(simModel, /output-adapter SW skips the PWM write/);
+  assert.match(simModel, /output-interface SW applies a second scale/);
+  assert.match(vehicleSim, /fanPwmOutputScale/);
+  assert.match(vehicleSim, /brakeCommandScale/);
 });
