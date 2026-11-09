@@ -1493,16 +1493,28 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
           <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}><img src={item.img} alt="" /><b>{item.label}</b></button>)}</div>
         </section>
           : <section className="v7Lab2 qaLab">
+            <aside className="qaSetupPanel" aria-label="실험 조건">
+              <header><small>01 · 실험 조건</small><b>{contract.stimulus.label}</b><span>{phase === "lab" ? "고장 재현" : "수리 후 동일 조건"}</span></header>
+              <dl className="qaContractSummary">
+                <div><dt>목적</dt><dd>{contract.objective}</dd></div>
+                <div><dt>초기 상태</dt><dd>{contract.preconditions.join(" · ")}</dd></div>
+                <div><dt>입력</dt><dd>{contract.stimulus.sequence}</dd></div>
+                <div><dt>관찰</dt><dd>{contract.observations.map(item => item.label).join(" · ")}</dd></div>
+              </dl>
+              {phase === "lab" && <div className="qaLevels" role="group" aria-label="시험 수준"><small>시험 환경</small>{QA_LEVELS.map(lv => <button key={lv} className={level === lv ? "on" : ""} disabled={running} onClick={() => pickTest(lv)}><Icon name={TEST_CARD[lv].pic} /><span>{TEST_CARD[lv].name}<em>{LV[order(lv)].name} · 비용 <code>{LV_COST[lv]}</code></em></span></button>)}</div>}
+              {phase === "lab" && CASE_DERIVS[caseId].length > 1 && <div className="qaInputs"><small>입력 조건</small>{CASE_DERIVS[caseId].map(d => <button key={d.id} className={deriv === d.id ? "on" : ""} disabled={running} onClick={() => { setPickedDeriv(d.id); setLastRun(null); setU(0); play("pop"); setBubble(`입력을 '${d.input}'(으)로 바꿨어요. 정상 모델과 고장 모델에 같은 입력이 들어가요.`); }}>{d.input}</button>)}</div>}
+              <div className="qaRunState"><i className={running ? "running" : shown ? "done" : "ready"} /><span>{running ? "실행 중 · 같은 입력 유지" : shown ? "비교 데이터 준비 완료" : "조건 확인 완료 · 실행 대기"}</span></div>
+              {phase !== "done" && !(phase === "lab" && shown) && <button className="vbGo qaRunButton" disabled={running} onClick={run}>{running ? "시험 중…" : phase === "retest" ? "▶ 같은 조건으로 재시험" : "▶ 정상·사건 동시 실행"}</button>}
+            </aside>
             <div className="v7View">
               <nav className="v7Tabs">{([["sw", "SW 로직"], ["ecu", "제어기·I/O"], ["plant", "부품·차량"]] as const).map(([id, name]) => <button key={id} className={viewTab === id ? "on" : ""} onClick={() => { setViewTab(id); play("pop"); }}>{name}{(id === "sw" ? true : id === "ecu" ? ecuReal : plantReal) ? <i>실물</i> : <i className="model">모델</i>}</button>)}<button className={`graphTab ${viewTab === "graph" ? "on" : ""}`} onClick={() => { setViewTab("graph"); play("pop"); }}>신호 그래프</button></nav>
               <div className={`vbSimView ${running ? "running" : ""}`}>{tabVisual}{tabNote && <span className="v7TabNote">{tabNote}</span>}{shown && lastRun && <span className={`vbStamp ${lastRun.verdict === "PASS" ? "pass" : lastRun.verdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastRun.verdict]}</span>}</div>
               <p className="vbScope"><b>{TEST_CARD[level].name}</b> · 같은 입력: {contract.stimulus.sequence} · 비교: {contract.comparison.timeAxis}</p>
               {(viewTab === "ecu" || viewTab === "plant") && <span className="v3dToggle">{([["normal", "정상 시나리오"], ["run", "이번 시험"]] as const).map(([id, label]) => <button key={id} className={show3d === id ? "on" : ""} onClick={() => { setShow3d(id); play("pop"); }}>{label}</button>)}</span>}
             </div>
-            <div className="qaPanel">
-              {phase === "lab" && <div className="qaLevels" role="group" aria-label="시험 수준"><small>시험 수준</small>{QA_LEVELS.map(lv => <button key={lv} className={level === lv ? "on" : ""} disabled={running} onClick={() => pickTest(lv)}><Icon name={TEST_CARD[lv].pic} /><span>{TEST_CARD[lv].name}<em>{LV[order(lv)].name} · 비용 <code>{LV_COST[lv]}</code></em></span></button>)}</div>}
+            <aside className="qaPanel qaObservePanel" aria-label="관찰 및 판정">
+              <header className="qaObserveHead"><small>03 · 관찰·판정</small><b>{shown && lastRun ? `시험 결과 · ${VERDICT_KO[lastRun.verdict]}` : "기대값과 실제값 비교"}</b><span>가설 판단은 시험 결과와 별도로 선택</span></header>
               {phase === "lab" && <div className="qaCriteria"><small><Icon name="target" /> 판단 기준 · "{q.ask}"</small><p>{numify(PREDICT[q.hyp])}</p></div>}
-              {phase === "lab" && CASE_DERIVS[caseId].length > 1 && <div className="qaInputs"><small>입력 조건</small>{CASE_DERIVS[caseId].map(d => <button key={d.id} className={deriv === d.id ? "on" : ""} disabled={running} onClick={() => { setPickedDeriv(d.id); setLastRun(null); setU(0); play("pop"); setBubble(`입력을 '${d.input}'(으)로 바꿨어요. 정상 모델과 고장 모델에 같은 입력이 들어가요.`); }}>{d.input}</button>)}</div>}
               {phase !== "lab" && <div className="qaCriteria"><small><Icon name="repeat" /> 재시험</small><p>수리한 차량으로 같은 시험을 다시 해서 기대값과 같은지 확인해요.</p></div>}
               <table className="qaTable">
                 <thead><tr><th>신호</th><th>기대값</th><th>시험 결과</th><th>비교</th></tr></thead>
@@ -1516,11 +1528,14 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               {(phase === "retest" || phase === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "통과" : "…"}</em></li>)}</ul></div>}
               <div className="qaFoot">
                 {phase === "lab" && shown ? <div className="qaAnswers">{(["supported", "refuted", "open"] as Answer[]).map(a => <button key={a} className={`ans-${a}`} onClick={() => answer(a)}><b>{ANSWER_BTN[a][0]}</b><small>{ANSWER_BTN[a][1]}</small></button>)}</div>
-                  : phase === "done" ? <button className="vbGo" onClick={finish}>수리 적용 · 다시 달리기 →</button>
-                    : <button className="vbGo" disabled={running} onClick={run}>{running ? "시험 중…" : phase === "retest" ? "▶ 같은 시험 다시" : "▶ 시험 실행"}</button>}
+                  : phase === "done" ? <button className="vbGo" onClick={finish}>수리 적용 · 다시 달리기 →</button> : null}
 
               </div>
-            </div>
+            </aside>
+            <section className="qaTimeline" aria-label="동일 시간축 신호 비교">
+              <header><span><small>04 · 동일 시간축 비교</small><b>정상 기준 <i className="ref" /> 사건 재현 <i className="run" /></b></span><em>{contract.comparison.timeAxis} · {contract.comparison.units}</em><strong>{shown ? "최초 편차 표시됨" : running ? "신호 기록 중" : "실행 후 최초 편차 확인"}</strong></header>
+              <div><OverlayGraph list={list} upto={shown ? 1 : running ? u : 0} look={lookAt} /></div>
+            </section>
           </section>}
       <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(bubble)}</p></div>
     </main>
