@@ -905,6 +905,29 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     setActiveStep(step);
     setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-${routeLevel}-${index}`));
   };
+  // Hold-to-apply input: the signal travels one step at a time only while the player keeps pressing
+  // (button or Space). Releasing removes the input and the signal falls back to the start.
+  const [applyState, setApplyState] = useState<"idle" | "on" | "release">("idle");
+  const applying = applyState === "on";
+  const setApplying = (on: boolean) => setApplyState(previous => on ? "on" : previous === "on" ? "release" : previous);
+  useEffect(() => {
+    if (applyState === "idle") return;
+    const length = getFeatureLayer(domain, feature, 1).length;
+    if (applyState === "on") play("zip", 1.1);
+    const timer = window.setInterval(() => setActiveStep(value => {
+      if (applyState === "on") return Math.min(length - 1, value + 1);
+      if (value <= 0) { setApplyState("idle"); return 0; }
+      return value - 1;
+    }), applyState === "on" ? 520 : 240);
+    return () => window.clearInterval(timer);
+  }, [applyState, domain, feature]);
+  useEffect(() => {
+    if (!chosen || routeLevel === 2) return;
+    const down = (event: KeyboardEvent) => { if (event.code === "Space" && !event.repeat && !(event.target instanceof HTMLInputElement)) { event.preventDefault(); setApplying(true); } };
+    const up = (event: KeyboardEvent) => { if (event.code === "Space") setApplying(false); };
+    addEventListener("keydown", down); addEventListener("keyup", up);
+    return () => { removeEventListener("keydown", down); removeEventListener("keyup", up); };
+  }, [chosen, routeLevel]);
   useEffect(() => { setFeature(0); setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); }, [domain]);
   useEffect(() => { setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("flow"); }, [feature, routeLevel]);
   useEffect(() => {
@@ -935,6 +958,9 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
           : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위 탭에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레이어로 같은 기능을 다른 관점에서 봅니다."}</p></header>}
         <MechanismViewer key={chosen ? "domain" : "all"} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
+        {chosen && routeLevel < 2 && <button className={`applyInput lv-${routeLevel} ${applying ? "on" : ""}`} onPointerDown={event => { event.preventDefault(); setApplying(true); }} onPointerUp={() => setApplying(false)} onPointerLeave={() => setApplying(false)} onPointerCancel={() => setApplying(false)}>
+          <b>{INPUT_ACTION[domain]}</b><small>{applying ? "입력 중 · 손을 떼면 멈춰요" : "꾹 누르고 있기 (Space)"}</small>
+        </button>}
         {chosen && routeLevel === 1 && (() => {
           const parts = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
           const pullOut = (index: number) => { setRemoved(index); setActiveStep(index); setEcuCard(null); setTriedRemovals(previous => new Set(previous).add(`${domain}-${feature}-${index}`)); play("squish"); };
@@ -956,7 +982,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
                 {SHOW_PULL_TABS && <button className={labMode === "pull" ? "on" : ""} onClick={() => { setLabMode("pull"); setCulprit(null); setEcuCard(null); }}>② 빼 보기</button>}
                 {SHOW_PULL_TABS && <button className={labMode === "hunt" ? "on" : ""} onClick={startHunt}>③ 범인 찾기{caught ? ` · ${caught}` : ""}</button>}
               </nav>
-              <em>{labMode === "flow" ? "입력 값이 부품을 하나씩 지나 출력이 되는 과정을 따라가요" : labMode === "intro" ? "부품을 눌러 무슨 일을 하는지 보세요" : labMode === "pull" ? "부품을 하나 빼면 차가 어떻게 될까?" : `${ENGINEER}의 문제: 빠진 부품을 찾아보세요`}</em>
+              <em>{labMode === "flow" ? "부품을 누르면 아래에 받는 값 · 하는 일 · 보내는 값이 나와요" : labMode === "intro" ? "부품을 눌러 무슨 일을 하는지 보세요" : labMode === "pull" ? "부품을 하나 빼면 차가 어떻게 될까?" : `${ENGINEER}의 문제: 빠진 부품을 찾아보세요`}</em>
             </header>
             {labMode !== "flow" && <div className="pullOutChain">{chain.map((label, index) => { const role = partRole(label, index, chain.length); return <React.Fragment key={`${label}-${index}`}>
               {index > 0 && <i className={removed !== null && (removed === index || removed === index - 1) ? "broken" : ""}>→</i>}
@@ -995,6 +1021,8 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     </main>
   </div>;
 }
+
+const INPUT_ACTION: Record<DomainId, string> = { drive: "가속 페달 밟기", brake: "브레이크 밟기", steer: "핸들 돌리기", power: "시동 버튼 누르기", gear: "D단 고르기", thermal: "고속 주행 열 부하", suspension: "요철 지나가기" };
 
 function HeistCat3D({ groupRef, coat, role }: { groupRef: React.RefObject<THREE.Group | null>; coat: string; role: "driver" | "engineer" }) {
   const leftArm = useRef<THREE.Group>(null!);

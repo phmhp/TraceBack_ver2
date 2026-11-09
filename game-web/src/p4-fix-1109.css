@@ -22,7 +22,8 @@
 .faultSheet .fsFoot { justify-content: flex-end; }
 
 /* ── Sound toggle sits bottom-right: keep primary buttons clear of it ── */
-.garageV2 .garageFlowPanel > .garageProceed { margin-right: 92px !important; min-width: 120px !important; align-self: center; }
+.garageV2 .garageFlowPanel { grid-template-columns: minmax(0, 1fr) 240px !important; }
+.garageV2 .garageFlowPanel > .garageProceed { margin-right: 92px !important; min-width: 0 !important; width: 140px !important; justify-self: start; align-self: center; }
 
 /* ── Garage E/E: the tab strip is now one row, so it covers less of the blueprint ── */
 .pullOutLab.mode-flow { padding-bottom: 6px !important; }
@@ -70,3 +71,12 @@
 .etZoomRow .io.bad { background: #fbe4df; border: 1px solid #d9a093; color: #8a3324; }
 .etZoomRow .stage { background: #fff; border: 1.5px dashed #c9b48f; color: #4a3b2e; text-align: center; }
 .etZoomRow .stage em { color: #b08a4f; font-size: 15px; }
+
+/* ── Garage: hold-to-apply input ── */
+.garageMechanismCard { position: relative; }
+.applyInput { position: absolute; z-index: 7; left: 50%; bottom: 14px; transform: translateX(-50%); display: grid; justify-items: center; gap: 1px; padding: 8px 22px; border-radius: 999px; border: 2px solid #c98f7f; background: linear-gradient(#fff6ef, #f6dfd3); box-shadow: 0 4px 0 #c98f7f, 0 8px 16px rgba(80, 40, 20, .18); color: #6b3b2e; cursor: pointer; user-select: none; touch-action: none; }
+.applyInput b { font: 700 14px Pretendard, system-ui; }
+.applyInput small { font: 500 11px Pretendard, system-ui; color: #8a5a4a; }
+.applyInput.on { transform: translateX(-50%) translateY(3px); box-shadow: 0 1px 0 #c98f7f, 0 4px 10px rgba(80, 40, 20, .16); background: linear-gradient(#ffe3d6, #f1c4b2); }
+.applyInput.lv-1 { left: auto; right: 16px; top: 14px; bottom: auto; transform: none; padding: 6px 16px; }
+.applyInput.lv-1.on { transform: translateY(3px); }
