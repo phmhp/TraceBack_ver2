@@ -331,3 +331,28 @@
 /* chase-gap bar: inner padding so labels and markers never touch the edge */
 .routeTracker { padding-left: 18px !important; padding-right: 18px !important; box-sizing: border-box; }
 .routeTracker .routeLabels { padding: 0 2px; }
+
+/* ── Verification: test level picked inline (no quiz screen) ── */
+.qaLevels { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); gap: 5px; align-items: stretch; margin-bottom: 6px; }
+.qaLevels > small { align-self: center; font: 700 12px Pretendard, system-ui; color: #8a6a43; }
+.qaLevels button { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 8px; border: 1.5px solid #d9c9b3; background: #fff; text-align: left; cursor: pointer; font: 600 12px/1.25 Pretendard, system-ui; color: #4a3b2e; }
+.qaLevels button svg { flex: none; width: 18px; height: 18px; color: #9b6b64; }
+.qaLevels button em { display: block; font-style: normal; font-weight: 500; font-size: 10.5px; color: #8a7a6a; }
+.qaLevels button.on { border-color: #9b6b64; background: #f7ece8; box-shadow: inset 0 0 0 1px #9b6b64; }
+.qaLevels button:disabled { opacity: .6; cursor: default; }
+.qa2 .qaPanel { display: flex !important; flex-direction: column; gap: 6px; overflow-y: auto; min-height: 0; }
+.qa2 .qaPanel > * { flex: none; }
+.qa2 .qaPanel .qaCriteria { padding: 8px 12px !important; }
+.qa2 .qaPanel .qaCriteria p { font-size: 13px !important; line-height: 1.45 !important; }
+.qa2 .qaInputs { margin: 0; }
+.qa2 .qaInputs button { font-size: 11px; padding: 3px 8px; }
+.qa2 .qaTable td, .qa2 .qaTable th { padding-top: 4px !important; padding-bottom: 4px !important; }
+.qa2 .qaFoot { margin-top: auto; }
+
+/* ── Numbers look like inline code (Notion style) on every page ── */
+code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
+  font-family: "JetBrains Mono", "D2Coding", Consolas, "SFMono-Regular", monospace; font-size: .9em; font-weight: 600;
+  padding: 1px 5px; border-radius: 4px; background: rgba(135, 131, 120, .15); color: #c4554d; white-space: nowrap;
+}
+.qaTable td:nth-child(2), .qaTable td:nth-child(3) { font-family: "JetBrains Mono", "D2Coding", Consolas, monospace; font-size: 12.5px; color: #c4554d; }
+.flowStepBody span, .eeInspector p { font-variant-numeric: tabular-nums; }

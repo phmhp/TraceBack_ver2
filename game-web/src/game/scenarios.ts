@@ -95,7 +95,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
     regression: "같은 SW 단위 시험(페달 60% 계단 입력) PASS + 영향 범위 신호",
     status: "implemented", review: "수치 일치 확인(60×0.45=27, 204×0.45≈92)",
     hypotheses: [
-      { id: "aps", label: "가속 페달 센서·배선", truth: false, stage1: "1단계: 페달 센서 값 60%가 기준과 같았어요.", rules: [
+      { id: "aps", label: "가속 페달 센서·배선", truth: false, stage1: "도미노 역추적: 페달 센서 값 60%가 기준과 같았어요.", rules: [
         { levels: ["vehicle"], need: { aps: ["same"], can: ["lower"] }, verdict: "refuted", why: "페달 값은 같고 CAN 토크만 낮아요." },
       ] },
       { id: "vcu_sw", label: "VCU 페달 처리 SW(계산·보정값)", truth: true, rules: [
@@ -105,7 +105,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
       { id: "vcu_hw", label: "VCU 입력 회로·신호 변환(HW)", truth: false, rules: [
         { levels: SW, need: { proc: ["lower"] }, verdict: "refuted", why: "입력 회로가 없는 SW 시험에서도 같은 차이가 나요. 입력 회로 탓이 아니에요." },
       ] },
-      { id: "drive", label: "인버터·구동 모터", truth: false, stage1: "1단계: VCU가 보낸 CAN 토크 명령부터 이미 낮았어요.", rules: [] },
+      { id: "drive", label: "인버터·구동 모터", truth: false, stage1: "도미노 역추적: VCU가 보낸 CAN 토크 명령부터 이미 낮았어요.", rules: [] },
     ],
   },
   thermal: {
@@ -119,7 +119,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
     regression: "같은 시스템 통합 시험 PASS + 영향 범위 신호(온도·출력 허용)",
     status: "implemented", review: "SW 레벨 PASS·시스템 레벨 FAIL 일치 확인",
     hypotheses: [
-      { id: "fan_sw", label: "Thermal ECU 팬 제어 SW", truth: false, stage1: "1단계: 팬 명령이 100%로 기준과 같았어요.", rules: [
+      { id: "fan_sw", label: "Thermal ECU 팬 제어 SW", truth: false, stage1: "도미노 역추적: 팬 명령이 100%로 기준과 같았어요.", rules: [
         { levels: SW, need: { duty: ["same"] }, verdict: "refuted", why: "SW 시험에서 PWM 비율이 요구사항과 같아요." },
       ] },
       { id: "fan_path", label: "ECU 출력단·배선·전원", truth: false, rules: [
@@ -144,7 +144,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
     regression: "같은 시스템 통합 시험 PASS + 영향 범위 신호",
     status: "optional", review: "선택 사건 · 레이스 고장 트리거 미구현(퍼즐·검증만 진행)",
     hypotheses: [
-      { id: "blend_sw", label: "Brake ECU 회생·마찰 배분 SW", truth: false, stage1: "1단계: 압력 명령이 42 bar로 기준과 같았어요.", rules: [
+      { id: "blend_sw", label: "Brake ECU 회생·마찰 배분 SW", truth: false, stage1: "도미노 역추적: 압력 명령이 42 bar로 기준과 같았어요.", rules: [
         { levels: SW, need: { cmd: ["same"] }, verdict: "refuted", why: "SW 시험에서 압력 명령이 요구사항과 같아요." },
       ] },
       { id: "hyd_path", label: "유압 모듈·라인 압력 전달", truth: true, rules: [

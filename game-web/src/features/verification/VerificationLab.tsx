@@ -1,4 +1,5 @@
 import React, { useMemo, useState, type CSSProperties } from "react";
+import { numify } from "../../ui/numify";
 import type { Campaign, CaseId } from "../../game/runtime";
 import { HYP_LABEL, SCENARIOS, SCENARIO_META, judgeRun, type HypStatus, type Obs } from "../../game/scenarios";
 import { BenchVisual, EmbeddedBench3D, PursuitRouteBar, RestoredPuzzleVisual, type BenchTab } from "../../experiences";
@@ -783,7 +784,7 @@ export function TwinBenchV6({ state, send }: { state: Campaign; send: Send }) {
         </div>}
       </section>}
 
-      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>
+      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(bubble)}</p></div>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={revealAnswer}>정답 보기</button>
   </div>;
@@ -1089,7 +1090,7 @@ export function TwinBenchV7({ state, send }: { state: Campaign; send: Send }) {
           </div>
         </div>
       </section>}
-      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>
+      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(bubble)}</p></div>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={revealAnswer}>정답 보기</button>
   </div>;
@@ -1269,7 +1270,7 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
           <article className="v7Report">
             <header><small>검증 결과 보고 · {DRIVER_NAME}에게</small><b>원인: {meta.hypotheses.find(h => h.truth)!.label}</b></header>
             <ul>{questions.map(item => { const a = answers[item.hyp]; return <li key={item.hyp} className={a?.answer === "supported" ? "hyp-supported" : "hyp-refuted"}><em>{a ? ANSWER_KO[a.answer] : "-"}</em><span><strong>"{item.ask}"</strong>{a?.why}<small>근거: {a?.evidence}</small></span></li>; })}
-              {meta.hypotheses.filter(h => h.stage1 && !questions.some(item => item.hyp === h.id)).map(h => <li key={h.id} className="hyp-refuted"><em>가능성 낮음</em><span><strong>{h.label}</strong>{h.stage1}<small>근거: 1단계 원인 역추적 측정</small></span></li>)}</ul>
+              {meta.hypotheses.filter(h => h.stage1 && !questions.some(item => item.hyp === h.id)).map(h => <li key={h.id} className="hyp-refuted"><em>가능성 낮음</em><span><strong>{h.label}</strong>{h.stage1}<small>근거: 도미노 역추적 측정</small></span></li>)}</ul>
           </article>
           <h2><Icon name="wrench" /> 수정 담당에 요청할 조치를 고르세요</h2>
           <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}><img src={item.img} alt="" /><b>{item.label}</b></button>)}</div>
@@ -1302,7 +1303,7 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
               </div>
             </div>
           </section>}
-      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>
+      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(bubble)}</p></div>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
   </div>;
@@ -1331,7 +1332,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const expect = (() => { try { return sessionStorage.getItem(`tb-expect-${caseId}`) ?? ""; } catch { return ""; } })();
   const regression: string[] = (() => { try { const fromBoard = JSON.parse(sessionStorage.getItem(`tb-impact-${caseId}`) ?? "null"); return Array.isArray(fromBoard) && fromBoard.length ? fromBoard : regressionTests[caseId]; } catch { return regressionTests[caseId]; } })();
   const [qi, setQi] = useState(0);
-  const [phase, setPhase] = useState<"pick" | "lab" | "report" | "retest" | "done">("pick");
+  const [phase, setPhase] = useState<"pick" | "lab" | "report" | "retest" | "done">("lab");
   const [level, setLevel] = useState<Lv>("unit");
   const [u, setU] = useState(0);
   const [running, setRunning] = useState(false);
@@ -1342,7 +1343,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [fix, setFix] = useState<number | null>(null);
   const [regDone, setRegDone] = useState(0);
   const [viewTab, setViewTab] = useState<"sw" | "ecu" | "plant" | "graph">("sw");
-  const [bubble, setBubble] = useState(`${DRIVER_NAME}의 질문에 시험 결과로 답하세요. '판단 기준'을 먼저 읽고 시험을 고르세요.`);
+  const [bubble, setBubble] = useState(`${DRIVER_NAME}의 질문에 시험 결과로 답하세요. 시험 수준과 입력 조건을 고르고 '시험 실행'을 누르세요.`);
   const [help, setHelp] = useState(false);
   const q = questions[qi];
   const fixed = phase === "retest" || phase === "done";
@@ -1400,7 +1401,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       setBubble(keyAns.verdict === "open" ? `이 시험으로는 가를 수 없어요. ${PREDICT[q.hyp] ?? ""}` : `다시 보세요. ${keyAns.why}`);
       return;
     }
-    if (pick === "open") { play("pop"); setBubble("맞아요. 이 시험으로는 가를 수 없어요. 다른 시험 카드를 고르세요."); setPhase("pick"); return; }
+    if (pick === "open") { play("pop"); setBubble("맞아요. 이 시험으로는 가를 수 없어요. 위에서 다른 시험 수준을 골라 다시 실행하세요."); setLastRun(null); return; }
     const evidence = `${TEST_CARD[lastRun.level].name} · ${keyAns.need.map(id => lastRun.vals[id]).filter(Boolean).join(", ")}`;
     setAnswers(prev => ({ ...prev, [q.hyp]: { answer: pick, why: keyAns.why, evidence } }));
     showVerdict(true, ANSWER_KO[pick]); play("stamp");
@@ -1432,7 +1433,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     : viewTab === "plant" && !plantReal ? "이 시험에는 실제 부품·차량이 연결되지 않아요. 부품은 모델이 대신해요." : "";
   const realChips = <span className="qaReal"><i className="on">SW 실물</i><i className={ecuReal ? "on" : ""}>제어기 {ecuReal ? "실물" : "없음"}</i><i className={plantReal ? "on" : ""}>부품·차량 {plantReal ? "실물" : "모델"}</i></span>;
 
-  const coach = state.completedCases.length ? "" : phase === "pick" ? "pick-test" : phase === "lab" && !shown ? "run" : phase === "lab" ? "answer" : "";
+  const coach = state.completedCases.length ? "" : phase === "lab" && !shown ? "run" : phase === "lab" ? "answer" : "";
   return <div className="vbBench v7 qa qa2" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="검증" title="시뮬레이션 검증" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
@@ -1463,7 +1464,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       </aside>}
 
       {phase === "pick" ? <section className="vbStage qaPick">
-        <div className="qaCriteria big"><small><Icon name="target" /> 판단 기준</small><p>{PREDICT[q.hyp]}</p></div>
+        <div className="qaCriteria big"><small><Icon name="target" /> 판단 기준</small><p>{numify(PREDICT[q.hyp])}</p></div>
         <h2>어떤 시험으로 확인할까요?</h2>
         <div className="vbChoices qaTests">{QA_LEVELS.map(lv => <button key={lv} onClick={() => pickTest(lv)}><i><Icon name={TEST_CARD[lv].pic} /></i><b>{TEST_CARD[lv].name}</b><small className="vbGroup">{LV[order(lv)].name} · 비용 {LV_COST[lv]}</small><em>{lv === "vehicle" ? "SW·제어기·실제 부품이 모두 실물" : lv === "embedded" ? "SW·제어기는 실물, 부품은 모델" : "SW만 실물, 제어기·부품은 없음/모델"}</em></button>)}</div>
       </section>
@@ -1471,7 +1472,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
           <article className="v7Report">
             <header><small>검증 결과 보고 · {DRIVER_NAME}에게</small><b>원인: {meta.hypotheses.find(h => h.truth)!.label}</b></header>
             <ul>{questions.map(item => { const a = answers[item.hyp]; return <li key={item.hyp} className={a?.answer === "supported" ? "hyp-supported" : "hyp-refuted"}><em>{a ? ANSWER_KO[a.answer] : "-"}</em><span><strong>"{item.ask}"</strong>{a?.why}<small>근거: {a?.evidence}</small></span></li>; })}
-              {meta.hypotheses.filter(h => h.stage1 && !questions.some(item => item.hyp === h.id)).map(h => <li key={h.id} className="hyp-refuted"><em>가능성 낮음</em><span><strong>{h.label}</strong>{h.stage1}<small>근거: 1단계 원인 역추적 측정</small></span></li>)}</ul>
+              {meta.hypotheses.filter(h => h.stage1 && !questions.some(item => item.hyp === h.id)).map(h => <li key={h.id} className="hyp-refuted"><em>가능성 낮음</em><span><strong>{h.label}</strong>{h.stage1}<small>근거: 도미노 역추적 측정</small></span></li>)}</ul>
           </article>
           <h2><Icon name="wrench" /> 수정 담당에 요청할 조치를 고르세요</h2>
           <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}><img src={item.img} alt="" /><b>{item.label}</b></button>)}</div>
@@ -1484,7 +1485,8 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               {(viewTab === "ecu" || viewTab === "plant") && <span className="v3dToggle">{([["normal", "정상 시나리오"], ["run", "이번 시험"]] as const).map(([id, label]) => <button key={id} className={show3d === id ? "on" : ""} onClick={() => { setShow3d(id); play("pop"); }}>{label}</button>)}</span>}
             </div>
             <div className="qaPanel">
-              {phase === "lab" && <div className="qaCriteria"><small><Icon name="target" /> 판단 기준 · "{q.ask}"</small><p>{PREDICT[q.hyp]}</p>{realChips}</div>}
+              {phase === "lab" && <div className="qaLevels" role="group" aria-label="시험 수준"><small>시험 수준</small>{QA_LEVELS.map(lv => <button key={lv} className={level === lv ? "on" : ""} disabled={running} onClick={() => pickTest(lv)}><Icon name={TEST_CARD[lv].pic} /><span>{TEST_CARD[lv].name}<em>{LV[order(lv)].name} · 비용 <code>{LV_COST[lv]}</code></em></span></button>)}</div>}
+              {phase === "lab" && <div className="qaCriteria"><small><Icon name="target" /> 판단 기준 · "{q.ask}"</small><p>{numify(PREDICT[q.hyp])}</p></div>}
               {phase === "lab" && CASE_DERIVS[caseId].length > 1 && <div className="qaInputs"><small>입력 조건</small>{CASE_DERIVS[caseId].map(d => <button key={d.id} className={deriv === d.id ? "on" : ""} disabled={running} onClick={() => { setPickedDeriv(d.id); setLastRun(null); setU(0); play("pop"); setBubble(`입력을 '${d.input}'(으)로 바꿨어요. 정상 모델과 고장 모델에 같은 입력이 들어가요.`); }}>{d.input}</button>)}</div>}
               {phase !== "lab" && <div className="qaCriteria"><small><Icon name="repeat" /> 재시험</small><p>수리한 차량으로 같은 시험을 다시 해서 기대값과 같은지 확인해요.</p></div>}
               <table className="qaTable">
@@ -1501,11 +1503,11 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
                 {phase === "lab" && shown ? <div className="qaAnswers">{(["supported", "refuted", "open"] as Answer[]).map(a => <button key={a} className={`ans-${a}`} onClick={() => answer(a)}><b>{ANSWER_BTN[a][0]}</b><small>{ANSWER_BTN[a][1]}</small></button>)}</div>
                   : phase === "done" ? <button className="vbGo" onClick={finish}>수리 적용 · 다시 달리기 →</button>
                     : <button className="vbGo" disabled={running} onClick={run}>{running ? "시험 중…" : phase === "retest" ? "▶ 같은 시험 다시" : "▶ 시험 실행"}</button>}
-                {phase === "lab" && <button className="qaOther" disabled={running} onClick={() => { setPhase("pick"); setLastRun(null); }}>다른 시험 고르기</button>}
+
               </div>
             </div>
           </section>}
-      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>
+      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(bubble)}</p></div>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
   </div>;

@@ -6,6 +6,7 @@
 // 5) when every suspect of the current output is cleared, that output is where things first went wrong
 // 6) pick the section inside it; hypotheses that this stage cannot split are carried as 판단 보류.
 // Measured values come from the same case data as before (DominoTrace CASES). The old DominoTrace stays unused.
+import { numify } from "../../ui/numify";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Campaign } from "../../game/runtime";
 import { SCENARIOS, SCENARIO_META } from "../../game/scenarios";
@@ -235,7 +236,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
             </div>}
       </section>
 
-      <div className="etBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>
+      <div className="etBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(bubble)}</p></div>
     </main>
     {zoomed && <div className="polZoom" onClick={() => setZoomPol(null)}><article className="polBig" onClick={event => event.stopPropagation()}>
       <button className="polClose" aria-label="닫기" onClick={() => setZoomPol(null)}>×</button>
@@ -390,7 +391,7 @@ export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
                 <button className="dtNext" disabled={!allSorted} onClick={finish}>다음: 요구사항 기반 로직 퍼즐 → <span>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</span></button></div>}
         </div>
       </aside>
-      <div className="etBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{bubble}</p></div>
+      <div className="etBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(bubble)}</p></div>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
   </div>;

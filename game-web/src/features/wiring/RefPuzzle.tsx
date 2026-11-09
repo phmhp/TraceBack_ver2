@@ -5,6 +5,7 @@
 //   values flow left → right and stop at the first slot that breaks the requirement (first mismatch).
 // - Parallel logic: a side input (limit / other sensors) climbs into the merge block.
 // - 차고 노트 = open book: re-open the garage Control SW drawing (costs a hint).
+import { numify } from "../../ui/numify";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
@@ -307,7 +308,7 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
       <aside className="rpReq">
         <small>요구사항 · 정상이면 이렇게</small>
         {ref.req.map((r, k) => { const bad = run?.failAt === r.slot; const done = !bad && requirementDone(r.slot); return <div key={r.text} className={`${done ? "done" : ""} ${bad ? "bad" : ""} ${ref.gaps.includes(r.slot) ? "gap" : ""}`}>
-          <i>{done ? "✓" : bad ? "✗" : k + 1}</i><span>{r.text}</span>
+          <i>{done ? "✓" : bad ? "✗" : k + 1}</i><span>{numify(r.text)}</span>
         </div>; })}
       </aside>
       <section className="rpStage" ref={stage} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setDrag(null)}>
@@ -354,7 +355,7 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
       </section>
     </main>
     <footer className="rpFoot">
-      <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{msg}</p></div>
+      <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(msg)}</p></div>
       <span className="rpStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}<small>실행 실패 {fails}번</small></span>
       {/* one primary action at a time: run until it passes, then move on */}
       {run?.status === "pass"
@@ -572,7 +573,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     <main className="rpMain">
       <aside className="rpReq">
         <small>요구사항 · 정상이면 이렇게</small>
-        {ref.req.map((r, k) => <div key={r.text} className={`${ref.gaps.includes(r.slot) ? "gap" : ""} ${confirmed ? "done" : ""}`}><i>{confirmed ? "✓" : k + 1}</i><span>{r.text}</span></div>)}
+        {ref.req.map((r, k) => <div key={r.text} className={`${ref.gaps.includes(r.slot) ? "gap" : ""} ${confirmed ? "done" : ""}`}><i>{confirmed ? "✓" : k + 1}</i><span>{numify(r.text)}</span></div>)}
       </aside>
       <section className="rpStage" ref={stage} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setDrag(null)}>
         <div className="rpSizer" style={{ width: W * scale, height: H * scale }}><div className={`rpWorld ${connected ? "flowing" : ""}`} style={{ width: W, height: H, transform: `scale(${scale})` }}>
@@ -610,7 +611,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       </section>
     </main>
     <footer className="rpFoot">
-      <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{msg}</p></div>
+      <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(msg)}</p></div>
       {connected && spec.input && !confirmed && <label className="rpSlider"><small>예시 입력 · {spec.input.label}</small><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label>}
       {confirmed && <div className="rpExpect"><small><Icon name="clipboard" /> 기대값 카드</small><b>{spec.expect}</b></div>}
       <span className="rpStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}<small>다시 시도 {fails}번</small></span>

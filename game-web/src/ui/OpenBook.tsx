@@ -1,5 +1,6 @@
 // 오픈북: the garage's NORMAL material for the case's domain/function (E/E path + Control SW blocks + requirement).
 // Never shows case evidence, the cause or the answer test. Free to open in the trace and verification stages.
+import { numify } from "./numify";
 import React, { useState } from "react";
 import type { CaseId } from "../game/runtime";
 import { getFeatureLayer, type DomainId } from "../experiences";
@@ -26,7 +27,7 @@ export function OpenBookButton({ caseId }: { caseId: CaseId }) {
       <p className="pzTip">사건 기록이 아니라 정상 자료예요. 원인은 직접 재고 시험해서 찾아요.</p>
       {BOOK[caseId].map(note => <section key={note.name}>
         <b>{note.name}</b>
-        <p className="obReq"><Icon name="clipboard" /> {note.req}</p>
+        <p className="obReq"><Icon name="clipboard" /> {numify(note.req)}</p>
         <div className="obPath">{getFeatureLayer(note.domain, note.feature, 1).map((label, index, all) => <React.Fragment key={`${label}-${index}`}><span>{label}</span>{index < all.length - 1 && <i>→</i>}</React.Fragment>)}</div>
         <div className="rpNoteCards">
           {getFeatureLayer(note.domain, note.feature, 3).map(label => { const kind = blockKind(label); return <div key={label} className={`rpNoteCard kind-${kind}`}><div className="flowBlock"><Picto kind={kind} /><small>{KIND_TAG[kind]}</small></div><b>{label}</b><span>{plainText(label, kind)}</span></div>; })}
