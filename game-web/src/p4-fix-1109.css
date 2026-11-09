@@ -28,14 +28,16 @@
 .pullOutLab.mode-flow { padding-bottom: 6px !important; }
 
 /* ── E/E bus: the gateway tag must not be clipped ── */
-.eeBus i { flex: none; white-space: nowrap; }
+.eeBus i { flex: none; white-space: nowrap; position: relative; z-index: 3; }
 
 /* ── Verification: help button + card ── */
 .qaHelpBtn { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid #c9b48f; background: #fffaf0; color: #7a5a3a; font: 800 15px Pretendard, system-ui; cursor: pointer; box-shadow: 0 2px 0 #d9c79c; }
-.qaHelpCard { position: absolute; z-index: 30; right: 16px; top: 62px; width: min(420px, 90%); padding: 14px 16px; border-radius: 12px; background: #fffdf6; border: 1.5px solid #e3d3c3; box-shadow: 0 10px 28px rgba(40, 25, 10, .22); font: 500 13px/1.55 Pretendard, system-ui; color: #3b2f25; display: grid; gap: 6px; }
+.qaHelpCard { position: fixed; z-index: 95; right: 28px; top: 190px; width: min(420px, 90%); padding: 14px 16px; border-radius: 12px; background: #fffdf6; border: 1.5px solid #e3d3c3; box-shadow: 0 10px 28px rgba(40, 25, 10, .22); font: 500 13px/1.55 Pretendard, system-ui; color: #3b2f25; display: grid; gap: 6px; }
 .qaHelpCard b { font: 700 14px Pretendard, system-ui; }
 .qaHelpCard p { margin: 0; }
 .qaHelpCard ul { margin: 2px 0 0; padding: 0; list-style: none; display: grid; gap: 3px; }
 .qaHelpCard li em { font-style: normal; display: inline-block; min-width: 64px; margin-right: 6px; padding: 0 6px; border-radius: 4px; background: #f3e6cf; font-weight: 700; font-size: 12px; }
 .qaHelpCard > button { justify-self: end; padding: 5px 12px; border-radius: 6px; border: 1px solid #d9c9b3; background: #fff; font: 600 12.5px Pretendard, system-ui; cursor: pointer; }
-.vbLayout { position: relative; }
+
+/* ── E/E arrows: only the steps the signal has reached move; later steps wait until the player sends it ── */
+.eeFlow g.later .eeFlowRun { animation: none !important; opacity: 0 !important; }

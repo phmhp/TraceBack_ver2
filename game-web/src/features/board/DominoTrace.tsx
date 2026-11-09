@@ -53,7 +53,7 @@ export const CASES: Record<CaseId, CaseData> = {
     req: "요구사항: 가속 페달을 60% 밟으면 모터가 204 Nm를 내야 한다.",
     doms: [
       { id: "accel", label: "차량 가속", img: CAR, zone: "차량", ref: 2.8, run: 1.2, unit: "m/s²", status: "bad", t: 60, causes: ["motor_tq", "cluster", "regen"], ev: "pedal_raw" },
-      { id: "motor_tq", label: "모터 힘", img: B("motor_actual"), zone: "부품", ref: 204, run: 91, unit: "Nm", status: "bad", t: 30, causes: ["batt_i", "can_cmd", "motor_temp"], ev: "motor_actual" },
+      { id: "motor_tq", label: "모터 토크", img: B("motor_actual"), zone: "부품", ref: 204, run: 91, unit: "Nm", status: "bad", t: 30, causes: ["batt_i", "can_cmd", "motor_temp"], ev: "motor_actual" },
       { id: "can_cmd", label: "CAN 토크 명령", img: B("torque_cmd"), zone: "CAN", ref: 204, run: 92, unit: "Nm", status: "bad", t: 20, causes: ["inv_i", "gateway", "vcu_in"], ev: "torque_cmd" },
       { id: "vcu_in", label: "VCU 페달 처리값", img: B("pedal_processed"), zone: "제어기", ref: 60, run: 27, unit: "%", status: "bad", t: 10, causes: ["aps", "brake_sw", "gear", "bms_lim", "temp_lim"], ev: "pedal_processed" },
       // traps: abnormal, but they changed LATER than the domino they are offered for

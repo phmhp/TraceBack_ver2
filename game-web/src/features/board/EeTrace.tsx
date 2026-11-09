@@ -219,7 +219,7 @@ type Role = "input" | "control" | "network" | "actuator" | "result";
 type TNode = { label: string; role: Role; dom: string };
 const TRACE: Record<string, { chain: TNode[]; signals: string[]; first: number }> = {
   propulsion: { first: 1, signals: ["페달 %", "토크 요청", "CAN 토크 명령", "모터 토크"], chain: [
-    { label: "APS 이중 센서", role: "input", dom: "aps" }, { label: "VCU", role: "control", dom: "vcu_in" }, { label: "CAN Torque", role: "network", dom: "can_cmd" },
+    { label: "APS 이중 센서", role: "input", dom: "aps" }, { label: "VCU", role: "control", dom: "vcu_in" }, { label: "CAN 토크 명령", role: "network", dom: "can_cmd" },
     { label: "인버터·모터", role: "actuator", dom: "motor_tq" }, { label: "차량 가속", role: "result", dom: "accel" }] },
   thermal: { first: 1, signals: ["팬 PWM 명령", "냉각 바람", "냉각수 °C", "출력 허용"], chain: [
     { label: "Thermal ECU", role: "control", dom: "fan_cmd" }, { label: "냉각 팬", role: "actuator", dom: "fan_rpm" }, { label: "냉각수 온도 센서", role: "input", dom: "coolant" },
