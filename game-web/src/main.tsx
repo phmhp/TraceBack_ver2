@@ -62,7 +62,7 @@ import { installGlobalSfx, setMusic, setMusicScene, setSfx, soundPrefs } from ".
 import { SuspectBoard } from "./features/board/SuspectBoard";
 import { DominoBoard } from "./features/board/DominoBoard";
 import { DominoTrace } from "./features/board/DominoTrace";
-import { EeTrace } from "./features/board/EeTrace";
+import { EeTraceV2 as EeTrace } from "./features/board/EeTrace";
 import { Icon } from "./ui/Icon";
 import { VerdictLayer } from "./ui/Verdict";
 const A = "/assets/";
