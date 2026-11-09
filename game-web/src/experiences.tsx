@@ -1556,7 +1556,7 @@ function RearMirror3D({ gap, visible }: { gap: number; visible: boolean }) {
       {Array.from({length:8},(_,i) => <group key={i} position={[i%2?-5.6:5.6,.4,-i*4]}><mesh position={[0,.55,0]}><cylinderGeometry args={[.08,.12,1.1,10]} /><meshStandardMaterial color="#70533e" /></mesh><mesh position={[0,1.35,0]}><sphereGeometry args={[.72,18,12]} /><meshStandardMaterial color="#5e9470" roughness={.9} /></mesh></group>)}
       <group visible={visible} position={[0,.02,-depth]} rotation={[0,Math.PI,0]} scale={.78}><PoliceInterceptor spin={gap*.08} /></group>
     </Canvas>
-    <small>REAR MIRROR</small>
+    <small>후방 거울</small>
   </div>;
 }
 

@@ -9,15 +9,15 @@ const A = "/assets/";
 const heistFrames = [
   {
     image: `${A}cutscene-heist-escape-v1.png`,
-    eyebrow: "STORY CUT · 1/2",
+    eyebrow: "장면 1/2",
     title: "폭스의 금고에서 상금을 되찾아 저택을 빠져나왔다",
     body: `${DUO}는 해안 도로에 세워 둔 붉은 EV로 달려간다.`,
   },
   {
     image: `${A}cutscene-heist-board-v1.png`,
-    eyebrow: "STORY CUT · 2/2",
-    title: "탑승 완료 · 이제 직접 운전한다",
-    body: "출발 3초 뒤 경찰차가 후방에 합류한다. 고장 사건은 코스 지점에서 발생한다.",
+    eyebrow: "장면 2/2",
+    title: "탑승 완료 · 이제 직접 운전할 차례",
+    body: "출발 3초 뒤 경찰차가 뒤에 따라붙는다. 해적선까지 붙잡히지 않고 달려야 한다.",
   },
 ] as const;
 
@@ -53,11 +53,11 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
         <div className="stillFrameDots">{heistFrames.map((_, index) => <i key={index} className={index <= frame ? "active" : ""} />)}</div>
       </section>
       <aside className="getawayBriefingCard">
-        <small>GETAWAY MISSION</small>
+        <small>도주 미션</small>
         <h2>{ready ? "붉은 EV 탑승 완료" : "도주 장면 재생 중"}</h2>
         <dl>
           <div><dt>경찰</dt><dd>출발 3초 뒤 후방 합류</dd></div>
-          <div><dt>고장</dt><dd>코스의 특정 지점에서 발생</dd></div>
+          <div><dt>고장</dt><dd>주행 중 이상이 생기면 원인을 찾아 수리</dd></div>
           <div><dt>목표</dt><dd>해적선 갑판까지 도주</dd></div>
         </dl>
         <button className="primary" disabled={!ready} onClick={beginRace}>{ready ? "도주 시작" : "잠시 후 탑승 장면"}<i>→</i></button>
