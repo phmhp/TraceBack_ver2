@@ -215,6 +215,10 @@
 .v3dToggle button.on { background: #3b4a55; border-color: #3b4a55; color: #fff; }
 /* 3D part name on hover: readable contrast, never wraps or overflows */
 .garage3dLabel.hoverPartLabel { display: block !important; white-space: nowrap !important; max-width: none !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; color: #6b422d !important; font: 400 12px Pretendard, system-ui !important; box-shadow: none !important; text-shadow: 0 1px 2px #fffdf6; pointer-events: none; }
+.garageVehiclePartLabel { display: block; max-width: 180px; color: #6b422d; font: 400 11px Pretendard, system-ui; line-height: 1.2; text-align: center; text-shadow: 0 1px 2px #fffdf6, 0 0 6px #fffdf6; white-space: nowrap; pointer-events: none; }
+.garageVehiclePartLabel.selected { color: #9a551e; font-weight: 700; }
+.vehiclePartInfo { position: absolute; z-index: 8; right: 13px; bottom: 12px; width: min(260px, 35%); display: grid; gap: 3px; padding: 8px 10px; border: 1px solid #dcb16a; border-radius: 10px; background: #fffaf0ee; box-shadow: 0 5px 14px #3b281d28; color: #593c2c; pointer-events: none; }
+.vehiclePartInfo small { color: #a45b31; font: 800 9px Pretendard, system-ui; }.vehiclePartInfo > b { font: 700 13px Pretendard, system-ui; }.vehiclePartInfo > span { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 5px; font: 500 10px/1.25 Pretendard, system-ui; }.vehiclePartInfo em { color: #8a684d; font-style: normal; }.vehiclePartInfo p { margin: 2px 0 0; color: #8a684d; font: 500 9px/1.25 Pretendard, system-ui; }
 
 /* ── Garage 3D (real layout): legend of what each cable carries, cable tag, step badges ── */
 .flowLegend { position: absolute; z-index: 5; left: 14px; bottom: 12px; display: grid; gap: 3px; padding: 7px 10px; border-radius: 10px; background: #fffdf6ee; border: 1px solid #e3d3c3; font: 600 11.5px Pretendard, system-ui; color: #4a3b2e; }

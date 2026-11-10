@@ -594,9 +594,9 @@ function VehiclePlatformShell({ active }: { active: boolean }) {
   </group>;
 }
 
-function FullVehicleSystem({ domain, feature, activeStep, shell = false, inputOn = false }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean }) {
+function FullVehicleSystem({ domain, feature, activeStep, shell = false, inputOn = false, selectedIndex = null, onSelect }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean; selectedIndex?: number | null; onSelect?: (index: number) => void }) {
   // real positions, real sizes, port-to-port cables (src/features/garage/VehicleLayout.tsx)
-  return <VehicleLayoutRig domain={domain} feature={feature} activeStep={activeStep} inputOn={inputOn} shell={shell} />;
+  return <VehicleLayoutRig domain={domain} feature={feature} activeStep={activeStep} inputOn={inputOn} shell={shell} selectedIndex={selectedIndex} onSelect={onSelect} />;
 }
 
 // Whole vehicle: every domain's chain side by side (selected domain runs, others idle)
@@ -643,8 +643,8 @@ function EcuSoftwareRig({ domain, feature, detailed }: { domain: DomainId; featu
   </group>;
 }
 
-function MechanismModel({ domain, level, feature, activeStep, removed = null, shell = false, inputOn = false }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean }) {
-  if (level === 0) return <FullVehicleSystem domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} />;
+function MechanismModel({ domain, level, feature, activeStep, removed = null, shell = false, inputOn = false, selectedIndex = null, onSelect }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean; selectedIndex?: number | null; onSelect?: (index: number) => void }) {
+  if (level === 0) return <FullVehicleSystem domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} selectedIndex={selectedIndex} onSelect={onSelect} />;
   return <EeArchitectureRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />;
 }
 
@@ -682,13 +682,18 @@ function SimulinkFlow({ domain, feature, level, activeStep, onJump }: { domain: 
   </div>;
 }
 
-function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, noDomain = false, onJump, inputOn = false, eeLayer = "logic" }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; noDomain?: boolean; onJump?: (level: number, step: number) => void; inputOn?: boolean; eeLayer?: EeLayer }) {
+function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, noDomain = false, onJump, inputOn = false, eeLayer = "logic", selectedVehiclePart = null, onVehiclePartSelect }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; noDomain?: boolean; onJump?: (level: number, step: number) => void; inputOn?: boolean; eeLayer?: EeLayer; selectedVehiclePart?: number | null; onVehiclePartSelect?: (index: number) => void }) {
   const [shell, setShell] = useState(false);
   const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "grid" : "one");
   const [inspect, setInspect] = useState<number | null>(null);
   useEffect(() => setInspect(null), [domain, feature, level]);
   const allDomains = view3d !== "one";
   const sourceLevel = garageLayerSource[level] ?? 3;
+  const vehicleChain = getFeatureLayer(domain, feature, 1);
+  const vehicleSignals = flowSignals(domain, feature, vehicleChain.length);
+  const vehicleSelection = level === 0 && !allDomains && selectedVehiclePart !== null && vehicleChain[selectedVehiclePart]
+    ? { index: selectedVehiclePart, label: vehicleChain[selectedVehiclePart], role: partRole(vehicleChain[selectedVehiclePart], selectedVehiclePart, vehicleChain.length), input: selectedVehiclePart === 0 ? "운전자 조작 또는 센서가 재는 물리량" : vehicleSignals[selectedVehiclePart - 1], output: vehicleSignals[selectedVehiclePart] }
+    : null;
   if (level === 1) {
     const chain = getFeatureLayer(domain, feature, 1);
     const roles = chain.map((label, index) => partRole(label, index, chain.length));
@@ -712,12 +717,13 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
       <color attach="background" args={["#eef5ef"]} />
       <hemisphereLight intensity={2.25} color="#fff8e5" groundColor="#6d8c7b" />
       <directionalLight castShadow position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
-      {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} />}
+      {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} selectedIndex={selectedVehiclePart} onSelect={onVehiclePartSelect} />}
       <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={allDomains ? 2.5 : .8} maxDistance={allDomains ? 22 : 10} maxPolarAngle={Math.PI * .49} target={allDomains ? [0, .65, 0] : [0, .55, 0]} />
     </Canvas>
-    <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동{level === 0 && !allDomains ? " · 부품 더블클릭: 자세히" : ""}</span>
+    <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동{level === 0 && !allDomains ? " · 부품 클릭: 선택 · 더블클릭: 자세히" : ""}</span>
     {level === 0 && <PartInspector />}
     {level === 0 && !allDomains && !noDomain && <div className="flowLegend" aria-label="배선이 전달하는 것"><b>전달하는 것</b>{flowLegend(domain, feature).map(item => <span key={item.flow}><i style={{ background: item.color }} />{item.label}</span>)}</div>}
+    {vehicleSelection && <aside className="vehiclePartInfo" aria-live="polite"><small>{vehicleSelection.role === "input" ? "입력·센서" : vehicleSelection.role === "control" ? "제어기(ECU)" : vehicleSelection.role === "network" ? "통신" : vehicleSelection.role === "actuator" ? "액추에이터·부품" : "차량 반응"}</small><b>{vehicleSelection.label}</b><span><em>받는 신호</em>{vehicleSelection.input}</span><span><em>보내는 신호</em>{vehicleSelection.output}</span><p>드래그로 카메라를 움직일 때는 선택되지 않아요.</p></aside>}
     <div className="viewToggles">
       {level === 0 && <span className="view3dSeg">{(noDomain ? [["grid", "나란히"], ["overlay", "겹쳐 보기"]] as const : [["one", "이 도메인"], ["grid", "나란히"], ["overlay", "겹쳐 보기"]] as const).map(([id, label]: readonly [string, string]) => <button key={id} className={`shellToggle ${view3d === id ? "on" : ""}`} onClick={() => setView3d(id as "one" | "grid" | "overlay")}><Icon name={id === "one" ? "search" : id === "grid" ? "grid" : "layers"} /> {label}</button>)}</span>}
       {!allDomains && <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}><Icon name="car" /> 차체 {shell ? "숨기기" : "보기"}</button>}
@@ -925,6 +931,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const showAllDomains = () => { setChosen(false); setPickNotice(false); };
   const [feature, setFeature] = useState(Number.isInteger(requestedFeature) ? Math.max(0, requestedFeature) : 0);
   const [activeStep, setActiveStep] = useState(0);
+  const [selectedVehiclePart, setSelectedVehiclePart] = useState<number | null>(null);
   const [lessonHits, setLessonHits] = useState<Set<string>>(() => new Set());
   const [removed, setRemoved] = useState<number | null>(null);
   const [triedRemovals, setTriedRemovals] = useState<Set<string>>(() => new Set());
@@ -1010,10 +1017,10 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     addEventListener("keydown", down); addEventListener("keyup", up);
     return () => { removeEventListener("keydown", down); removeEventListener("keyup", up); };
   });
-  useEffect(() => { setFeature(0); setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); }, [domain]);
+  useEffect(() => { setFeature(0); setActiveStep(0); setSelectedVehiclePart(null); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); }, [domain]);
   // A view change must not restart the lesson: Vehicle/System, E/E, and SW
   // are alternate views of this same feature and its current signal stage.
-  useEffect(() => { setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("flow"); }, [feature]);
+  useEffect(() => { setActiveStep(0); setSelectedVehiclePart(null); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("flow"); }, [feature]);
   useEffect(() => { setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("flow"); }, [routeLevel]);
   useEffect(() => {
     const flowLength = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
@@ -1046,7 +1053,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       <section className="garageMechanismCard">
         {chosen ? <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
           : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위 탭에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레이어로 같은 기능을 다른 관점에서 봅니다."}</p></header>}
-        <MechanismViewer key={chosen ? "domain" : "all"} inputOn={signalVisible} eeLayer={eeLayer} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
+        <MechanismViewer key={chosen ? "domain" : "all"} inputOn={signalVisible} eeLayer={eeLayer} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} selectedVehiclePart={selectedVehiclePart} onVehiclePartSelect={index => { setSelectedVehiclePart(index); setActiveStep(index); play("pop"); }} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {chosen && <div className="inputBar" aria-label="입력 넣기">
           <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (inputSelected ? "입력이 선택됨 · 다음 스텝으로 신호를 관찰하세요" : cleared ? NORMAL_RESPONSE[domain] : missing.length ? `${conds.size ? "준비 중" : "차량 OFF"} · ${missing[0].label}부터 켜세요` : READY_RESPONSE[domain])}</p>

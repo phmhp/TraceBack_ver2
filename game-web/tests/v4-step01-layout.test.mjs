@@ -123,6 +123,18 @@ test("FB-P1-01 keeps hover part labels as plain chocolate text", () => {
   assert.match(latestCss, /\.garage3dLabel\.hoverPartLabel \{[\s\S]*border: 0 !important[\s\S]*color: #6b422d !important[\s\S]*font: 400 12px/);
 });
 
+test("FB-P1-01 selects real Vehicle/System parts without treating camera drags as clicks", () => {
+  assert.match(vehicleLayout, /selectedIndex = null, onSelect/);
+  assert.match(vehicleLayout, /if \(\(event as any\)\.delta > 6\) return/);
+  assert.match(vehicleLayout, /onSelect\?\.\(node\.index\)/);
+  assert.match(vehicleLayout, /garageVehiclePartLabel/);
+  assert.match(experience, /const \[selectedVehiclePart, setSelectedVehiclePart\] = useState<number \| null>\(null\)/);
+  assert.match(experience, /selectedVehiclePart=\{selectedVehiclePart\}/);
+  assert.match(experience, /onVehiclePartSelect=\{index => \{ setSelectedVehiclePart\(index\); setActiveStep\(index\); play\("pop"\); \}\}/);
+  assert.match(experience, /vehiclePartInfo/);
+  assert.match(latestCss, /\.vehiclePartInfo \{/);
+});
+
 test("replay confirmation uses the shared stamp action treatment without changing dialog controls", () => {
   assert.match(replayConfirm, /className="replayCancel"/);
   assert.match(replayConfirm, /className="primary replayConfirmAction"/);

@@ -2,7 +2,7 @@
 // at real size (one scale for everything), wired port to port, like the car opened up.
 // - Nothing moves and nothing flows until the player applies the input (activeStep / inputOn).
 // - Each cable is coloured and named by what it carries (sim CONNECTIONS flow type, else inferred).
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import * as THREE from "three";
@@ -190,19 +190,23 @@ function FlowCable({ a, b, flow, on, tag }: { a: THREE.Vector3; b: THREE.Vector3
   </group>;
 }
 
-function PlacedPart({ node, arrived, isInput, domain, feature }: { node: Node; arrived: boolean; isInput: boolean; domain: DomainId; feature: number }) {
+function PlacedPart({ node, arrived, isInput, domain, feature, selected, onSelect }: { node: Node; arrived: boolean; isInput: boolean; domain: DomainId; feature: number; selected: boolean; onSelect?: (index: number) => void }) {
   const model = useMemo(() => getPartModel(node.id), [node.id]);
   const mode = model.moving[0]?.mode;
   const input = arrived ? (mode === "spin" ? 9 : mode === "rotate" ? .45 : 1) : 0;
+  const [hovered, setHovered] = useState(false);
+  const label = getFeatureLayer(domain, feature, 1)[node.index] ?? node.id;
   const press = (action: "start" | "end") => dispatchEvent(new CustomEvent("tb-garage-input", { detail: { action } }));
   return <group position={offsetOf(node)} rotation={node.place.r ?? [0, 0, 0]}
     onPointerDown={isInput ? event => { event.stopPropagation(); press("start"); } : undefined}
     onPointerUp={isInput ? () => press("end") : undefined}
-    onPointerOut={isInput ? () => { press("end"); document.body.style.cursor = ""; } : undefined}
-    onPointerOver={isInput ? event => { event.stopPropagation(); document.body.style.cursor = "pointer"; } : undefined}
-    onClick={!isInput ? event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-garage-step", { detail: { index: node.index } })); } : undefined}
+    onPointerOut={() => { setHovered(false); if (isInput) press("end"); document.body.style.cursor = ""; }}
+    onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = isInput ? "pointer" : "help"; }}
+    onClick={!isInput ? event => { if ((event as any).delta > 6) return; event.stopPropagation(); onSelect?.(node.index); dispatchEvent(new CustomEvent("tb-garage-step", { detail: { index: node.index } })); } : undefined}
     onDoubleClick={event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: { domain, feature, index: node.index } })); }}>
     <PartModel id={node.id} scale={U * (node.place.s ?? 1)} input={input} castShadow={false} />
+    {selected && <mesh scale={.34 * U}><sphereGeometry args={[1, 18, 14]} /><meshBasicMaterial color="#e09b35" transparent opacity={.18} depthWrite={false} /></mesh>}
+    {(hovered || selected) && <Html center position={[0, .32 * U, 0]} distanceFactor={3.35} zIndexRange={[21, 0]}><span className={`garageVehiclePartLabel ${selected ? "selected" : ""}`}>{label}</span></Html>}
   </group>;
 }
 
@@ -244,7 +248,7 @@ function CarContext({ strong, wheelActive = false }: { strong: boolean; wheelAct
   </group>;
 }
 
-export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell }: { domain: DomainId; feature: number; activeStep: number; inputOn: boolean; shell: boolean }) {
+export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell, selectedIndex = null, onSelect }: { domain: DomainId; feature: number; activeStep: number; inputOn: boolean; shell: boolean; selectedIndex?: number | null; onSelect?: (index: number) => void }) {
   const { nodes, segments } = useMemo(() => layoutOf(domain, feature), [domain, feature]);
   const drivePower = useMemo(() => {
     if (domain !== "drive" || feature !== 0) return null;
@@ -274,7 +278,7 @@ export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell }
       <FlowCable a={anchorWorld(drivePower.battery, "out", "dc_out")} b={anchorWorld(drivePower.contactor, "in", "hv_in")} flow="electrical_power" on={inputOn} />
       <FlowCable a={anchorWorld(drivePower.contactor, "out", "hv_out")} b={anchorWorld(drivePower.inverter, "in", "dc_in")} flow="electrical_power" on={inputOn} tag={inputOn ? "고전압 전력 · 구동 에너지" : undefined} />
     </>}
-    {nodes.map(node => <PlacedPart key={`${node.id}-${node.copy}`} node={node} arrived={arrived(node.index)} isInput={node.index === 0} domain={domain} feature={feature} />)}
+    {nodes.map(node => <PlacedPart key={`${node.id}-${node.copy}`} node={node} arrived={arrived(node.index)} isInput={node.index === 0} domain={domain} feature={feature} selected={selectedIndex === node.index} onSelect={onSelect} />)}
     {segments.map((seg, k) => {
       const on = inputOn && energizedStep > seg.from.index;
       const newest = on && energizedStep <= seg.to.index && energizedStep > seg.from.index;
