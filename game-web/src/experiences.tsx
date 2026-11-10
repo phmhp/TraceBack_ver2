@@ -1904,9 +1904,11 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   return <div className={`raceV2 raceMode-${mode} ${impact ? "raceImpact" : ""} ${waterFall ? "waterFall" : ""}`} data-race-mode={mode} data-race-distance={sim.distance.toFixed(2)} data-race-speed={sim.speed.toFixed(2)} data-race-gap={sim.gap.toFixed(2)}>
     <RaceWorld sim={sim} ship={mode === "ship"} policeVisible={policeInWorld} waterFall={waterFall} />
     <JourneyProgress scene={mode === "ship" ? "SHIP_ESCAPE" : "CHASE_NORMAL"} />
-    <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button></div>
+    <div className="raceTopHud">
+      <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button></div>
+      <div className="raceTripHud"><span><small>주행시간</small><b>{formatRaceTime(sim.elapsed)}</b></span></div>
+    </div>
     <PursuitRouteBar distance={sim.distance} gap={sim.gap} />
-    <div className="raceTripHud"><span><small>주행시간</small><b>{formatRaceTime(sim.elapsed)}</b></span></div>
     <div className="cockpitGauge cluster1109" aria-label="계기판"><small>속도</small><b>{Math.round(sim.speed)}</b><span>km/h</span><div><i style={{ width: `${Math.min(100, sim.speed)}%` }} /></div>
       <p className="clusterRow"><span className="prnd">{(["P", "R", "N", "D"] as const).map(g => <i key={g} className={gear === g ? "on" : ""}>{g}</i>)}</span><em className={driveMission === "restart" ? "readyOff" : "readyOn"}>{driveMission === "restart" ? "READY 꺼짐" : "READY"}</em></p>
       <p className="clusterRow sub"><span>회생 {regen}단계</span>{state.caseId === "thermal" && <span>냉각수 {Math.round(sim.heat)}°C</span>}{symptom && <span className="warn">{mode === "normal" ? "출력 저하" : "출력 제한"}</span>}</p></div>

@@ -157,6 +157,14 @@ test("FB-P1-03 layers compact Control SW arrows under ports and uses one shared 
   assert.match(latestCss, /\.garageMechanismCard > \.garageStepControls \.ctlBtn \{ width: 96px; min-width: 96px; height: 36px; \}/);
 });
 
+test("FB-P1-04 keeps the race HUD in reserved symmetric lanes", () => {
+  assert.match(experience, /className="raceTopHud"[\s\S]*className="raceIdentity"[\s\S]*className="raceTripHud"/);
+  assert.match(latestCss, /\.raceV2 \.raceTopHud \{ position: absolute; z-index: 5; left: 14px; top: 13px;/);
+  assert.match(latestCss, /\.raceV2 \.raceTopHud \.raceIdentity > button img \{ width: 30px; height: 30px;/);
+  assert.match(latestCss, /\.raceV2 \.cockpitGauge\.cluster1109, \.raceV2 \.raceMiniMap \{ box-sizing: border-box; width: 164px !important; min-height: 132px; bottom: 18px !important;/);
+  assert.match(latestCss, /body:has\(\.raceV2\) \.soundToggle \{ right: 14px; top: 72px; bottom: auto; \}/);
+});
+
 test("replay confirmation uses the shared stamp action treatment without changing dialog controls", () => {
   assert.match(replayConfirm, /className="replayCancel"/);
   assert.match(replayConfirm, /className="primary replayConfirmAction"/);

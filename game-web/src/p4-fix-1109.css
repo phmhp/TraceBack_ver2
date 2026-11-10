@@ -537,6 +537,19 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
 .eeBodyTools button { height: 28px; padding: 0 7px; border-radius: 7px; border: 1px solid #d9c9b3; background: #fff; font: 600 11.5px Pretendard, system-ui; color: #5b4636; cursor: pointer; white-space: nowrap; }
 .eeBodyTools button.on { background: #9b6b64; border-color: #9b6b64; color: #fff; }
 .eeBodyTools button:focus-visible { outline: 3px solid #e5b55a; outline-offset: 2px; }
+/* FB-P1-04: race HUD uses paired, reserved lanes at 1054px and above. */
+.raceV2 .raceTopHud { position: absolute; z-index: 5; left: 14px; top: 13px; display: flex; align-items: stretch; gap: 8px; max-width: calc(100% - 278px); }
+.raceV2 .raceTopHud .raceIdentity, .raceV2 .raceTopHud .raceTripHud { position: static !important; display: flex; }
+.raceV2 .raceTopHud .raceIdentity > button, .raceV2 .raceTopHud .raceTripHud > span { min-width: 0 !important; height: 50px; box-sizing: border-box; }
+.raceV2 .raceTopHud .raceIdentity > button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; }
+.raceV2 .raceTopHud .raceIdentity > button img { width: 30px; height: 30px; margin: 0; border-width: 2px; }
+.raceV2 .raceTopHud .raceTripHud > span { display: grid; align-content: center; gap: 2px; min-width: 92px !important; padding: 7px 12px !important; }
+.raceV2 .raceTopHud .raceTripHud small, .raceV2 .raceTopHud .raceTripHud b { margin: 0; line-height: 1; }
+.raceV2 .cockpitGauge.cluster1109, .raceV2 .raceMiniMap { box-sizing: border-box; width: 164px !important; min-height: 132px; bottom: 18px !important; }
+.raceV2 .cockpitGauge.cluster1109 { left: 14px !important; padding: 11px 14px !important; }
+.raceV2 .raceMiniMap { right: 14px !important; padding: 9px !important; }
+.raceV2 .raceMiniMap > svg { height: 82px !important; margin: 3px 0 !important; }
+body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
 .garageMechanismCard > .swStepControls { position: absolute; z-index: 9; right: 14px; top: 14px; display: flex; gap: 6px; }
 .garageMechanismCard > .swStepControls .ctlBtn { width: 82px; min-width: 82px; height: 32px; justify-content: center; padding: 0 8px; border-radius: 9px; border: 1.5px solid #cdb79a; background: #fffdf6; color: #5b4636; font: 700 12px Pretendard, system-ui; box-shadow: 0 2px 0 #cdb79a; cursor: pointer; }
 /* FB-P1-03: one shared bottom-right control rail for all three STEP01 views. */
@@ -559,6 +572,11 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
   .inputBar .mainCtl { width: 176px; min-width: 176px; }
   .garageMechanismCard > .garageStepControls { right: 10px; bottom: 10px; }
   .garageMechanismCard > .garageStepControls .ctlBtn { width: 92px; min-width: 92px; }
+  .raceV2 .raceTopHud { left: 12px; top: 12px; max-width: calc(100% - 272px); }
+  .raceV2 .cockpitGauge.cluster1109, .raceV2 .raceMiniMap { width: 156px !important; min-height: 126px; bottom: 14px !important; }
+  .raceV2 .cockpitGauge.cluster1109 { left: 12px !important; }
+  .raceV2 .raceMiniMap { right: 12px !important; }
+  body:has(.raceV2) .soundToggle { right: 12px; top: 68px; }
 }
 /* arrest record: the stamp sits over the photos, never over the note text */
 .is-caught .cfStamp { bottom: auto !important; top: 26% !important; right: 34% !important; font-size: 40px !important; padding: 2px 18px !important; opacity: .9; }

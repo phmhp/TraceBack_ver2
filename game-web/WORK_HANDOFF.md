@@ -10,8 +10,9 @@
 - 완료: FB-P1-01의 구동 최종 바퀴 회전 연동, Vehicle/System 비입력 부품 클릭·hover 선택/신호 정보, 3D hover 부품명 일반 글씨화(부분 구현, 브라우저 UI 검증 대기).
 - 완료: FB-P1-02 E/E 신호선을 부품/3D 부품 아래 레이어로 고정하고 화살촉을 축소했으며, `연결·겹쳐·실제 부품`을 본문 우측 상단 `E/E 보기`로 이동(브라우저 UI 검증 대기).
 - 완료: FB-P1-03 Control SW 정상·피드백 화살촉 축소와 wire → port → node 레이어 정리, 세 관점 공통 우하단 단계 제어 rail 정렬(브라우저 UI 검증 대기).
+- 완료: FB-P1-04 주행 로고·고양이/시간 한 행, 계기판·미니맵 대칭 lane, 추격 거리 아래 BGM·효과음 토글 정렬(브라우저 UI 검증 대기).
 - 분석 완료 · 구현 대기: FB-P1-07 (STEP04 개발용 정답 경로와 정상 경로를 구분했고, 동일 조건 기준선 비교 검증으로 후속 재설계 필요).
-- 남은 요구사항: FB-P1-01 잔여 도메인 직접 조작·라벨/배치 → FB-P1-04~07 UI 후속 → FB-P0-01 STEP02 보드 재배치 → K-5/L-4.2 → K-6/K-7/L-5.2/L-6.3/L-7~L-9 → FB-P2-01~06/P2 L-2.x. N/P0/P1/K-4/FB-P0/UI-RULE-01/FB-P1-01~03 연결 브라우저 UI 검증 대기.
-- 마지막 수정: `src/features/garage/SimulinkDiagram.tsx`, `src/p4-fix-1109.css`, `tests/v4-step01-layout.test.mjs`
-- 검증: `npm test` 62/62, `npm run build` 통과. `npm run check:independence`는 package script 부재로 실행 불가. 브라우저 UI 검증 대기.
-- 다음 작업: 기존 P1 순서상 FB-P1-04(주행 HUD UI) 한 묶음. FB-P1-01은 입력 부품/직접 조작 범위 확장과 1054×723 UI 검증이 남는다.
+- 남은 요구사항: FB-P1-01 잔여 도메인 직접 조작·라벨/배치 → FB-P1-05~07 UI 후속 → FB-P0-01 STEP02 보드 재배치 → K-5/L-4.2 → K-6/K-7/L-5.2/L-6.3/L-7~L-9 → FB-P2-01~06/P2 L-2.x. N/P0/P1/K-4/FB-P0/UI-RULE-01/FB-P1-01~04 연결 브라우저 UI 검증 대기.
+- 마지막 수정: `src/experiences.tsx`, `src/p4-fix-1109.css`, `tests/v4-step01-layout.test.mjs`
+- 검증: `npm test` 63/63, `npm run build` 통과. `npm run check:independence`는 package script 부재로 실행 불가. 브라우저 UI 검증 대기.
+- 다음 작업: 기존 P1 순서상 FB-P1-05(STEP03 테스트 설계서 UI) 한 묶음. FB-P1-01은 입력 부품/직접 조작 범위 확장과 1054×723 UI 검증이 남는다.
