@@ -463,10 +463,10 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const noteKey = `${caseId}:garageNote`;
   const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ref.ecu; } catch { return ref.ecu; } })();
   const noteUsed = Boolean(state.hintClaims[noteKey]);
+  const fitStage = () => { const r = stage.current?.getBoundingClientRect(); if (r && r.width) setScale(Math.min(r.width / W, r.height / H, 1.1)); };
   useLayoutEffect(() => {
-    const fit = () => { const r = stage.current?.getBoundingClientRect(); if (r && r.width) setScale(Math.min(r.width / W, r.height / H, 1.1)); };
-    fit(); const ob = new ResizeObserver(fit); if (stage.current) ob.observe(stage.current); return () => ob.disconnect();
-  }, [W, H]);
+    fitStage(); const ob = new ResizeObserver(fitStage); if (stage.current) ob.observe(stage.current); return () => ob.disconnect();
+  }, [W, H]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const inSlot = (id: string) => { const g = ref.gaps.find(k => place[k] === id); return g === undefined ? null : g; };
   const pieceAt = (slot: number) => ref.gaps.includes(slot) ? place[slot] : ref.board[slot];
@@ -542,6 +542,8 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       ?? "선택한 원인 후보";
     const nextContract = buildVerificationContract(caseId, { hypothesisId, hypothesisLabel, suspectSection: section, expectedValue: spec.expect });
     setContract(nextContract);
+    setContractOpen(true);
+    play("zip"); window.setTimeout(() => play("stamp"), 240);
     try {
       sessionStorage.setItem(`tb-expect-${caseId}`, spec.expect);
       sessionStorage.setItem(contractStorageKey(caseId), JSON.stringify(nextContract));
@@ -579,6 +581,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     <header className="rpHead">
       <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p><b>목표</b> 검증에 쓸 정상 기준 장치를 완성해요 · <b>가려낼 가설</b> {RIG_GOAL[caseId]}</p><p className="rpWhy"><b>왜 필요한가</b> {WHY[caseId]}</p></div>
       <div className="rpTools">
+        <div className="rpZoomTools" role="group" aria-label="퍼즐 확대 축소"><button onClick={() => setScale(value => Math.max(.45, value - .1))}>−</button><button onClick={fitStage}>맞춤</button><button onClick={() => setScale(value => Math.min(1.25, value + .1))}>+</button></div>
         <button onClick={openNote} disabled={!noteReady} title={noteReady ? "" : "한 번 확인해 본 뒤 열 수 있어요"}><Icon name="book" /> 차고 노트{noteUsed ? "" : noteReady ? " · -5m" : " · 확인 후"}</button>
         <button onClick={reset}>↺ 초기화</button>
       </div>
@@ -633,7 +636,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
           : <button className="rpRun" disabled={!filled || check?.status === "running"} onClick={startCheck}>{!filled ? `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음` : check?.status === "running" ? "확인 중…" : "연결 확인"}</button>}
     </footer>
     <button className="secretSolve" title="개발용 정답 적용" onClick={solve}>정답 보기</button>
-    {contractOpen && contract && <div className="verificationContractModal" onClick={() => setContractOpen(false)}><article onClick={event => event.stopPropagation()}>
+    {contractOpen && contract && <div className="verificationContractModal" onClick={() => setContractOpen(false)}><article className="receiptPrinting" onClick={event => event.stopPropagation()}>
       <button className="contractClose" aria-label="실험 계약 닫기" onClick={() => setContractOpen(false)}>×</button>
       <small>STEP03 → STEP04 · 실행 계약</small><h2>{contract.hypothesisLabel} — 어떻게 시험할까?</h2>
       <dl><div><dt>목적</dt><dd>{contract.objective}</dd></div><div><dt>초기 조건</dt><dd>{contract.preconditions.join(" · ")}</dd></div><div><dt>입력</dt><dd>{contract.stimulus.sequence}</dd></div><div><dt>기대</dt><dd>{contract.expected.value}</dd></div><div><dt>관찰</dt><dd>{contract.observations.map(item => item.label).join(" → ")}</dd></div><div><dt>비교</dt><dd>{contract.comparison.baseline} · 같은 입력 · {contract.comparison.timeAxis} · {contract.comparison.units}</dd></div></dl>

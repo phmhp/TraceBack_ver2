@@ -24,6 +24,7 @@ const forceIntros = process.env.TRACEBACK_CAPTURE_FORCE_INTROS === "1";
 const solvePuzzle = process.env.TRACEBACK_CAPTURE_PUZZLE_SOLVED === "1";
 const openPuzzleContract = process.env.TRACEBACK_CAPTURE_PUZZLE_CONTRACT === "1";
 const seedBenchContract = process.env.TRACEBACK_CAPTURE_BENCH_CONTRACT === "1";
+const driveBench = process.env.TRACEBACK_CAPTURE_BENCH_DRIVE === "1";
 
 const screens = [
   { name: "00_title.png", url: "/?new=1", wait: 1200 },
@@ -252,6 +253,12 @@ async function main() {
       if (screen.name.includes("lab_signal_graph")) {
         await page.send("Runtime.evaluate", { expression: "document.querySelector('.vbGo')?.click()" });
         await delay(2300);
+      }
+      if (driveBench && screen.url.includes("qa=TWIN_BENCH")) {
+        await page.send("Runtime.evaluate", {
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); document.querySelector('.qaTests button')?.click(); await wait(120); const input = document.querySelector('.qaInputs button'); input?.click(); await wait(120); ${screen.url.includes("tab=ecu") ? "[...document.querySelectorAll('.v7Tabs button')].find(b => b.textContent?.includes('제어기'))?.click();" : screen.url.includes("tab=plant") ? "[...document.querySelectorAll('.v7Tabs button')].find(b => b.textContent?.includes('부품'))?.click();" : screen.url.includes("tab=graph") ? "[...document.querySelectorAll('.v7Tabs button')].find(b => b.textContent?.includes('모니터링'))?.click();" : ""} })()`,
+          awaitPromise: true,
+        });
       }
       if (autoDriveFinale && screen.name.includes("final_dock_race")) {
         await page.send("Page.bringToFront");

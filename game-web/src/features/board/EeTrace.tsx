@@ -17,7 +17,7 @@ import { DRIVER, ENGINEER } from "../../game/cast";
 import { Icon } from "../../ui/Icon";
 import { StageIntro, showVerdict } from "../../ui/Verdict";
 import { OpenBookButton } from "../../ui/OpenBook";
-import { CASES, DominoFall, Gauge, Photo, ZONES, ZONE_ICON, fmt, josa, refText, type Dom } from "./DominoTrace";
+import { CASES, Gauge, Photo, ZONES, ZONE_ICON, fmt, josa, refText, type Dom } from "./DominoTrace";
 import { EeBlueprint } from "../garage/EeBlueprint";
 
 type Send = React.Dispatch<any>;
@@ -56,6 +56,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const [shake, setShake] = useState("");
   const [replayed, setReplayed] = useState(false);
   const [zoomPol, setZoomPol] = useState<string | null>(null);
+  const [evidencePage, setEvidencePage] = useState(0);
   const [sorted, setSorted] = useState<Record<string, "out" | "hold">>({});
   const [bubble, setBubble] = useState(`왼쪽 폴라로이드를 눌러 크게 보세요. 기준과 비교할 수 있는 기록에서 다른 곳을 찾으세요.`);
   const focus = chain[chain.length - 1];
@@ -180,6 +181,8 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     ...measured.map(id => dom(id)).map(d => ({ id: d.id, kind: `m s-${d.status}`, title: d.label, sub: d.status === "bad" ? "기준과 다름" : "기준과 같음", photo: <Photo src={d.img} />, dom: d })),
   ];
   const zoomed = pols.find(item => item.id === zoomPol);
+  const evidencePages = Math.max(1, Math.ceil(pols.length / 6));
+  const visiblePols = pols.slice(evidencePage * 6, evidencePage * 6 + 6);
   const coach = state.completedCases.length ? "" : phase === "evidence" ? "evidence" : phase === "output" ? "output" : phase === "trace" ? (replayed ? "measure" : "replay") : phase === "section" ? "section" : !allSorted ? "sort" : "next";
   const mugStatus = (id: string): keyof typeof STAMP_KO => stamps[id] ?? (measured.includes(id) ? "measured" : "untested");
   const evidenceCards = [start, ...measured.map(dom)].filter((d, i, all) => all.findIndex(x => x.id === d.id) === i);
@@ -197,9 +200,9 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       {/* right: independent evidence rail */}
       <section className="etEvidence">
         <header><b><Icon name="camera" /> 관찰·계측 증거</b><small>독립 증거 레일 · {scenario.title}</small><OpenBookButton caseId={caseId} /></header>
-        <div className="polBoard">{pols.map(item => <button key={item.id} className={`pol ${item.kind} ${item.id === "record" && phase === "evidence" ? "find" : ""}`} onClick={() => { setZoomPol(item.id); play("pop"); }}>
+        <div className="polBoard">{visiblePols.map(item => <button key={item.id} className={`pol ${item.kind} ${item.id === "record" && phase === "evidence" ? "find" : ""}`} onClick={() => { setZoomPol(item.id); play("pop"); }}>
           <i className="pin" /><span className="polPhoto">{item.photo}</span><b>{item.title}</b><small>{item.sub}</small>
-        </button>)}</div>
+        </button>)}</div>{evidencePages > 1 && <div className="polPager"><button disabled={evidencePage === 0} onClick={() => setEvidencePage(page => Math.max(0, page - 1))}>이전 묶음</button><span>{evidencePage + 1}/{evidencePages}</span><button disabled={evidencePage >= evidencePages - 1} onClick={() => setEvidencePage(page => Math.min(evidencePages - 1, page + 1))}>다음 증거 묶음</button></div>}
       </section>
 
       {/* center: whole-vehicle reverse trace */}
@@ -211,7 +214,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
           {zone === "제어기" && <div className="etEcus">{OTHER_ECUS.map(name => <i key={name}>{name}</i>)}</div>}
           {data.doms.filter(d => d.zone === zone).map(d => { const st = nodeState(d.id); return <button key={d.id} data-node={d.id} className={`etNode n-${st} ${shake === d.id ? "shake" : ""}`} onClick={() => pickNode(d.id)} disabled={st === "idle" || st === "refuted"}>{d.label}{st === "likely" && <em>유력</em>}{st === "refuted" && <em>반박</em>}</button>; })}
         </div>)}</div>
-        {phase === "done" && <div className="etFall"><DominoFall chain={[...chain].reverse()} traps={traps} parentOf={id => chain.find(c => causesOf(c).includes(id)) ?? data.start} labelOf={id => dom(id).label} /></div>}
+        {phase === "done" && <div className="etTraceSummary"><small>출력에서 상류로 거슬러 올라간 경로</small><div>{[...chain].map(id => <React.Fragment key={id}><span>{dom(id).label}</span><i>←</i></React.Fragment>)}</div><em>최초 편차는 의심 구간입니다. 최종 원인은 다음 시험으로 구분합니다.</em></div>}
       </section>
 
       {/* bottom: tactile memo board */}

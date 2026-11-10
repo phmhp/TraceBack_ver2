@@ -430,6 +430,8 @@ body:has(.vbBench + .stageHistoryNav .stageBackButton + .stageForwardButton) .vb
 
 /* ===== stage 3 Q&A v2: criteria card, result table, clear answer buttons ===== */
 .qa2 .qaPick { gap: 12px !important; }
+.qaPickQuestion { display: grid; gap: 3px; margin: 0; color: #3f342a; font: 900 18px/1.25 Pretendard, system-ui; text-align: center; }
+.qaPickQuestion small { color: #b45443; font: 900 10px Pretendard, system-ui; letter-spacing: .05em; }
 .qaCriteria { padding: 10px 12px; border-radius: 6px; background: #fff8d6; border: 1px solid #e6cf7a; display: grid; gap: 6px; }
 .qaCriteria small { display: inline-flex; gap: 5px; align-items: center; font: 700 12px Pretendard, system-ui; color: #7a5a12; } .qaCriteria small svg { width: 14px; height: 14px; }
 .qaCriteria p { margin: 0; font: 500 13.5px/1.55 Pretendard, system-ui; color: #33291f; }

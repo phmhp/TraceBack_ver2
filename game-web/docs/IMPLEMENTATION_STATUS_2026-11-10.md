@@ -1,0 +1,38 @@
+# 2026-11-10 구현·검증 결과
+
+기준 원문은 `REQUIREMENT_TRACEABILITY_FINAL_2026-11-10.md`이며 원문은 수정하지 않았다. 이 기록은 현재 실행 코드와 Chrome 1054×723 검증 결과이다.
+
+| 범위 | 상태 | 구현/검증 근거 |
+|---|---|---|
+| A~L | 유지·회귀 확인 | 기존 구현과 `npm test` 49개 통과로 회귀 확인. SW-only 원인은 `scenarios`와 시뮬레이터 테스트가 유지한다. 기존 단계별 커밋 `ac10bdf`~`83568b4`에 반영됨. |
+| M-01 | 완료 | `GarageExperience` 최초 상태와 `[전체보기]` 버튼. 선택 뒤에도 다시 전체보기로 돌아갈 수 있음. |
+| M-02 | 완료 | `EeTraceV2` 증거는 6장씩 3열×2행, 내부 스크롤 없이 다음 묶음으로 이동. Chrome 캡처에서 확인. |
+| M-03 | 완료 | 저품질 `DominoFall` 완료 팝업을 제거하고 출력→상류의 정적 역추적 요약으로 대체. 측정·메모 보드는 유지. |
+| M-04 | 완료 | `RefPuzzle`에 축소·맞춤·확대와 자동 맞춤을 제공. |
+| M-05 | 완료 | STEP 03/04 SW 뷰는 동일 `REF` 데이터와 `RefPuzzleTrack`을 사용. |
+| M-06 | 완료 | 실제 `VerificationContract`를 영수증 형식으로 출력하고, 감소된 모션 설정에서는 즉시 표시. 저장 후 재열기 가능. |
+| M-07 | 완료 | STEP04의 루트·조건·관찰 패널을 `overflow: hidden`으로 고정하고 단계 전환으로 내용을 교체. 1054×723 Chrome에서 전체/내부 스크롤바 없음. |
+| M-08 | 완료 | 운전자 질문→시험 환경 선택→입력 선택→실행 순서. 입력 선택 전 실행 버튼은 비활성화. |
+| M-09 | 완료 | SW/제어기 I/O/부품·차량/모니터링 탭에 각각 의문형 관찰 목표를 표시. |
+| M-10 | 완료 | 탭을 `모니터링`으로 개명. 실제 시뮬레이션 연속값, 실행 상태 전이, 기록된 통신 이벤트 부재를 구분해 표시하며 데이터를 만들지 않음. |
+| M-11 | 완료 | PASS/FAIL/INCONCLUSIVE와 가설 HIGH/LOW/OPEN은 분리되어 있으며, 질문→판정→수정→동일조건 재시험→회귀 흐름을 유지. |
+| M-12 | 완료 | STEP04의 핵심 `v7View` 상호작용 캔버스는 1054px 이하에서 `aspect-ratio: 3 / 4`로 고정. |
+| M-13 | 완료 | 원문 A~M은 보존하고 이 구현 상태 파일과 QA 캡처를 추가. |
+
+## 검증
+
+- 자동: `npm test` — 49/49 통과.
+- 빌드: `npm run build` 통과.
+- Chrome 1054×723: 실제 클릭으로 STEP04 시험 선택·입력 선택·탭 전환을 확인.
+- 캡처:
+  - `qa-implementation/m-final-initial/29_lab_sw_logic.png`
+  - `qa-implementation/m-final-tabs/29_lab_sw_logic.png`
+  - `qa-implementation/m-final-tabs/30_lab_ecu_io.png`
+  - `qa-implementation/m-final-tabs/31_lab_parts_vehicle.png`
+  - `qa-implementation/m-final-tabs/32_lab_signal_graph.png`
+  - `qa-implementation/m-final-step23/27_evidence_board.png`
+  - `qa-implementation/m-final-step23/28_wiring_puzzle.png`
+
+## 알려진 제한
+
+- 1054px 폭에서 3:4 STEP04 캔버스는 긴 SW 블록을 작게 보이게 한다. STEP03에는 별도 확대/축소가 있고, STEP04는 동일 도식을 읽기 전용으로 보여 준다. 더 큰 캔버스가 필요하면 최신 M-12 비율을 완화하는 제품 결정이 필요하다.

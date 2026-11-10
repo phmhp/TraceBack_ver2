@@ -339,6 +339,25 @@
 .etEvidence > header > .openBookButton { grid-column: 2; grid-row: 1 / 3; align-self: center; }
 .etEvidence .pol b { min-height: 25px; display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; }
 .etEvidence .pol small { min-height: 24px; display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; }
+.etEvidence .polBoard { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 5px; overflow: hidden; padding: 5px; }
+.etEvidence .pol { min-height: 0; padding: 4px; }
+.etEvidence .polPhoto { aspect-ratio: 4 / 3; }
+.etEvidence .pol b { min-height: 20px; font-size: 8.5px; }
+.etEvidence .pol small { min-height: 18px; font-size: 8px; }
+.polPager { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 4px 0 0; }
+.polPager button { min-height: 22px; padding: 2px 6px; border: 1px solid #d9c9b3; border-radius: 5px; background: #fff; color: #5b4636; font: 700 9px Pretendard, system-ui; cursor: pointer; }
+.polPager button:disabled { opacity: .45; cursor: default; }
+.polPager span { font: 800 9px Pretendard, system-ui; color: #8a6a43; }
+.etTraceSummary { position: absolute; z-index: 4; inset: 39px 10px 10px; display: grid; align-content: center; justify-items: center; gap: 8px; padding: 14px; background: #fffdf6f2; box-shadow: inset 0 0 0 1px #e3d3c3; }
+.etTraceSummary small { color: #8a6a43; font: 800 11px Pretendard, system-ui; }
+.etTraceSummary > div { display: flex; align-items: center; justify-content: center; gap: 7px; flex-wrap: wrap; }
+.etTraceSummary > div span { padding: 7px 9px; border: 2px solid #c58d4b; border-radius: 8px; background: #fff1bf; color: #493a2c; font: 800 11px Pretendard, system-ui; }
+.etTraceSummary > div i { color: #c0574a; font-size: 20px; font-style: normal; font-weight: 900; }
+.etTraceSummary > div i:last-child { display: none; }
+.etTraceSummary em { max-width: 500px; color: #6b5643; font: 700 10px/1.35 Pretendard, system-ui; font-style: normal; text-align: center; }
+.rpZoomTools { display: inline-flex; gap: 3px; }
+.rpZoomTools button { min-width: 30px; height: 30px; padding: 0 7px; border: 1px solid #d9c9b3; border-radius: 7px; background: #fff; color: #5b4636; font: 800 12px Pretendard, system-ui; cursor: pointer; }
+.rpZoomTools button:nth-child(2) { min-width: 42px; font-size: 10px; }
 .etMugs { align-content: start !important; padding-top: 7px !important; }
 .etMemoHead { flex: 0 0 100%; min-height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 4px 4px; border-bottom: 1px dashed #cdbb9e; color: #4a382b; }
 .etMemoHead > b { display: inline-flex; align-items: center; gap: 5px; font: 800 12px Pretendard, system-ui; }
@@ -372,6 +391,10 @@
 .rpExpect { appearance: none; border: 0; text-align: left; cursor: pointer; }
 .verificationContractModal { position: fixed; z-index: 420; inset: 0; display: grid; place-items: center; padding: 24px; background: #1d2825a8; backdrop-filter: blur(5px); }
 .verificationContractModal > article { position: relative; width: min(720px, 92vw); max-height: 86vh; overflow: auto; padding: 20px; border: 5px solid #e8d39d; border-radius: 18px; color: #34443f; background: #fffdf3; box-shadow: 0 24px 60px #101a1766; }
+.verificationContractModal > article.receiptPrinting { transform-origin: top center; animation: receiptPrint .72s steps(8, end) both; background: repeating-linear-gradient(0deg, #fffdf3 0 18px, #f1e5c7 19px 20px); }
+.verificationContractModal > article.receiptPrinting::before { content: "TRACEBACK · 시험 계획서"; display: block; margin: -6px 0 10px; padding-bottom: 7px; border-bottom: 2px dashed #a88458; color: #a14e3d; font: 900 11px Pretendard, system-ui; letter-spacing: .08em; }
+@keyframes receiptPrint { from { clip-path: inset(0 0 100% 0); transform: translateY(-28px); } to { clip-path: inset(0); transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .verificationContractModal > article.receiptPrinting { animation: none; } }
 .verificationContractModal article > small { color: #bd5a47; font: 900 11px Pretendard, system-ui; }
 .verificationContractModal h2 { margin: 5px 34px 12px 0; font: 900 21px/1.25 Pretendard, system-ui; }
 .verificationContractModal dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin: 0; }
@@ -471,7 +494,7 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
 
 /* ── K-7 STEP 04: conditions / dynamic model / observation / shared timeline ── */
 .qa2 .qaLab { display: grid !important; grid-template-columns: minmax(210px, 250px) minmax(340px, 1fr) minmax(270px, 310px) !important; grid-template-rows: minmax(0, 1fr) 154px; grid-template-areas: "setup model observe" "timeline timeline timeline"; gap: 8px !important; min-height: 0; }
-.qa2 .qaSetupPanel { position: relative; grid-area: setup; min-height: 0; display: flex; flex-direction: column; gap: 7px; padding: 10px 10px 82px; overflow-y: auto; border: 1px solid #e1d3c0; border-radius: 8px; background: #fffdf6; box-shadow: 0 2px 7px #3b2b1c16; }
+.qa2 .qaSetupPanel { position: relative; grid-area: setup; min-height: 0; display: flex; flex-direction: column; gap: 7px; padding: 10px 10px 82px; overflow: hidden; border: 1px solid #e1d3c0; border-radius: 8px; background: #fffdf6; box-shadow: 0 2px 7px #3b2b1c16; }
 .qa2 .qaSetupPanel > header, .qa2 .qaObserveHead { display: grid; gap: 2px; padding-bottom: 7px; border-bottom: 1px solid #e9ddce; }
 .qa2 .qaSetupPanel > header small, .qa2 .qaObserveHead small, .qa2 .qaTimeline header small { color: #b45443; font: 900 9px Pretendard, system-ui; letter-spacing: .05em; }
 .qa2 .qaSetupPanel > header b, .qa2 .qaObserveHead b { color: #3f342a; font: 900 14px/1.25 Pretendard, system-ui; }
@@ -496,7 +519,10 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
 .qa2 .qaRunButton { position: absolute; z-index: 3; left: 9px; right: 9px; bottom: 9px; width: auto; min-height: 34px; }
 .qa2 .qaLab > .v7View { grid-area: model; min-width: 0; min-height: 0; padding: 7px; border: 1px solid #e1d3c0; border-radius: 8px; background: #f8f4ea; }
 .qa2 .qaObservePanel { grid-area: observe; min-width: 0; min-height: 0; }
-.qa2 .qaPanel.qaObservePanel { display: flex !important; padding: 9px; overflow-y: auto; }
+.qa2 .qaPanel.qaObservePanel { display: flex !important; padding: 9px; overflow: hidden; }
+.qa2 .qaTabQuestion { min-height: 22px; margin: 4px 4px 5px; color: #76533b; font: 800 10px/1.25 Pretendard, system-ui; }
+.qa2 .qaMonitorKinds { margin: 3px 4px; color: #6d6256; font: 600 9px/1.3 Pretendard, system-ui; }
+.qa2 .qaMonitorKinds b { color: #9d4d3f; font-weight: 900; }
 .qa2 .qaObservePanel .qaTable { flex: none; }
 .qa2 .qaObservePanel .qaTable th, .qa2 .qaObservePanel .qaTable td { padding-left: 5px !important; padding-right: 5px !important; font-size: 10.5px; }
 .qa2 .qaObservePanel .qaCriteria { flex: none; }
@@ -518,7 +544,11 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
 .qa2 .qaTimeline .ovRow > span { font-size: 9.5px; }
 .qa2 .qaTimeline .ovRow .vbTrace { height: 31px; }
 @media (max-width: 1100px) {
-  .qa2 .qaLab { grid-template-columns: 218px minmax(300px, 1fr) 270px !important; }
+  .qa2 .qaLab { grid-template-columns: 218px 212px minmax(0, 1fr) !important; }
+  .qa2 .qaLab > .v7View { width: 212px; height: min(100%, 282px); justify-self: center; align-self: center; aspect-ratio: 3 / 4; }
+  .qa2 .v7View .v7Tabs { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; width: 100%; }
+  .qa2 .v7View .v7Tabs button { min-width: 0; padding: 4px 3px; font-size: 9px; white-space: normal; }
+  .qa2 .v7View .v7Tabs button i { display: none; }
   .qa2 .qaContractSummary div { padding: 4px 6px; }
   .qa2 .qaContractSummary dd { font-size: 9.5px; }
   .qa2 .qaTimeline { grid-template-columns: 190px minmax(0, 1fr); }

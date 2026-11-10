@@ -922,6 +922,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const [chosen, setChosen] = useState(Boolean(requestedDomain && requestedDomain in domainContent));
   const [pickNotice, setPickNotice] = useState(false);
   const setDomain = (id: DomainId) => { setDomainRaw(id); setChosen(true); setPickNotice(false); };
+  const showAllDomains = () => { setChosen(false); setPickNotice(false); };
   const [feature, setFeature] = useState(Number.isInteger(requestedFeature) ? Math.max(0, requestedFeature) : 0);
   const [activeStep, setActiveStep] = useState(0);
   const [lessonHits, setLessonHits] = useState<Set<string>>(() => new Set());
@@ -1024,7 +1025,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       </button>)}
     </nav>
     <main className="garageStudio">
-      <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map(id => { const learned = Array.from(completedLessons).some(key => key.startsWith(`${id}-`)); return <button key={id} className={`${chosen && domain === id ? "active" : ""} ${learned ? "learned" : ""}`} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span><Icon name={DOMAIN_ICON[id]} /></span><b>{domainContent[id].label}</b><small>{learned ? "✓ 정상 동작 확인" : DOMAIN_GROUP[id]}</small></button>; })}</nav>
+      <nav className="domainTabs"><button className={`allDomains ${!chosen ? "active" : ""}`} onClick={showAllDomains}><span><Icon name="car" /></span><b>전체보기</b><small>차량 전체</small></button>{(Object.keys(domainContent) as DomainId[]).map(id => { const learned = Array.from(completedLessons).some(key => key.startsWith(`${id}-`)); return <button key={id} className={`${chosen && domain === id ? "active" : ""} ${learned ? "learned" : ""}`} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span><Icon name={DOMAIN_ICON[id]} /></span><b>{domainContent[id].label}</b><small>{learned ? "✓ 정상 동작 확인" : DOMAIN_GROUP[id]}</small></button>; })}</nav>
       <section className="garageMechanismCard">
         {chosen ? <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
           : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위 탭에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레이어로 같은 기능을 다른 관점에서 봅니다."}</p></header>}

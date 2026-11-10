@@ -98,6 +98,22 @@ test("K-7 exposes every simulation view to Chrome QA without a technique-name qu
   assert.doesNotMatch(verificationLab.slice(verificationLab.indexOf("export function TwinBenchExperience")), /기법명 객관식/);
 });
 
+test("M-01 through M-06 keep the whole view, fixed evidence slots, reverse trace, and receipt contract", () => {
+  assert.match(experience, /전체보기/);
+  assert.match(experience, /showAllDomains/);
+  assert.match(eeTrace, /visiblePols/);
+  assert.match(eeTrace, /next evidence|다음 증거 묶음/);
+  assert.match(eeTrace, /출력에서 상류로 거슬러 올라간 경로/);
+  assert.doesNotMatch(eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3")), /<DominoFall/);
+  assert.match(refPuzzle, /rpZoomTools/);
+  assert.match(refPuzzle, /receiptPrinting/);
+  assert.match(latestCss, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\) !important/);
+  assert.match(latestCss, /receiptPrint/);
+  assert.match(verificationLab, /모니터링/);
+  assert.match(verificationLab, /qaTabQuestion/);
+  assert.match(latestCss, /aspect-ratio: 3 \/ 4/);
+});
+
 test("latest scenario scope keeps every root cause in software", () => {
   assert.match(scenarios, /출력 어댑터 SW의 실행 순서/);
   assert.match(scenarios, /I\/O 어댑터 SW가 압력 계산값/);
