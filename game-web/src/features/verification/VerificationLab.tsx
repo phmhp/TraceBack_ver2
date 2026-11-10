@@ -7,7 +7,7 @@ import { RefPuzzleTrack } from "../wiring/RefPuzzle";
 import { OpenBookButton } from "../../ui/OpenBook";
 import { StageIntro, showVerdict } from "../../ui/Verdict";
 import { SAMPLES, divergeIndex, firstMismatch, simulate, type Lv, type Series, type Tech } from "./simModel";
-import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
+import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
 import { DRIVER as DRIVER_NAME, ENGINEER } from "../../game/cast";
 import { Icon } from "../../ui/Icon";
@@ -1247,8 +1247,9 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
 
   return <div className="vbBench v7 qa">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="검증" title="시뮬레이션 검증" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증" title="시뮬레이션 검증" distanceMeters={state.policeGapMeters} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
+    <StageFolderSubtitle className="benchStageFolder" action="의심한 SW를 시험·수정하고 정상 차량과 결과를 비교하세요." detail={<>이전 결과: 테스트 설계서 <i>|</i> 비교: 정상 기준선 ↔ 수정 후 차량</>} />
     <StageIntro id="bench-qa" title="시뮬레이션 검증" goal={`${DRIVER_NAME}의 질문에 시험 결과로 답해요. 무엇이 고장이고 무엇은 멀쩡한지 근거로 설명하는 단계예요.`} steps={[
       { icon: "clipboard", text: `${DRIVER_NAME}의 질문 카드를 읽고, 확인할 시험 카드를 골라요.` },
       { icon: "probe", text: "잴 곳을 최대 3개 고르고 실행해요. 결과는 기준과 같음·낮음·높음으로 나와요." },
@@ -1463,8 +1464,9 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const coach = state.completedCases.length ? "" : phase === "lab" && !shown ? "run" : phase === "lab" ? "answer" : "";
   return <div className="vbBench v7 qa qa2" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="검증" title="시뮬레이션 검증" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증" title="시뮬레이션 검증" distanceMeters={state.policeGapMeters} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
+    <StageFolderSubtitle className="benchStageFolder" action="의심한 SW를 시험·수정하고 정상 차량과 결과를 비교하세요." detail={<>이전 결과: 테스트 설계서 <i>|</i> 비교: 정상 기준선 ↔ 수정 후 차량</>} />
     <StageIntro id="bench-qa2" title="시뮬레이션 검증" goal="정상 시나리오와 고장 재현 시나리오를 비교해보아요." steps={[
       { icon: "clipboard", text: "질문마다 '판단 기준'을 읽어요. 그 가설이 맞다면 시험에서 무엇이 보여야 하는지 적혀 있어요." },
       { icon: "monitor", text: "시험을 골라 실행하면 같은 입력으로 정상 기대값과 시험 결과가 나란히 나와요." },

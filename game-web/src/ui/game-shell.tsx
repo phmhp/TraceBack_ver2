@@ -66,11 +66,14 @@ export function GameHeader({
         <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />
         <span>TraceBack</span>
       </button>
-      <div className="chapterChip">
-        <small>{chapter}</small>
-        <b>{title}</b>
+      <div className="stageHeaderInfo">
+        <div className="chapterChip">
+          <small>{chapter}</small>
+          <b>{title}</b>
+        </div>
+        {progressScene && <JourneyProgress scene={progressScene} />}
       </div>
-      {progressScene && <JourneyProgress scene={progressScene} />}
+      <span className="gameHeaderSpacer" aria-hidden="true" />
       {distanceMeters !== undefined && (
         <div className="pressureMeter gapOnly" aria-label={`추격 차량과 거리 ${Math.round(distanceMeters)}미터`}>
           <span>추격차 격차</span>
@@ -79,6 +82,13 @@ export function GameHeader({
       )}
     </header>
   );
+}
+
+/** Shared two-line stage context.  Callers supply only live campaign/scenario data. */
+export function StageFolderSubtitle({ action, detail, className = "" }: { action: string; detail: ReactNode; className?: string }) {
+  return <section className={`stageFolderSubtitle ${className}`.trim()} aria-label="현재 단계 안내">
+    <p>{action}</p><small>{detail}</small>
+  </section>;
 }
 
 const journeyStages = [

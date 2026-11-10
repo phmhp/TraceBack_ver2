@@ -8,7 +8,7 @@
 import { numify } from "../../ui/numify";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
-import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
+import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
 import { KIND_TAG, Picto, blockKind, plainText, type Kind } from "../garage/SimulinkDiagram";
 import { PursuitRouteBar, getFeatureLayer, piecePath, type DomainId, type Nub } from "../../experiences";
@@ -576,8 +576,9 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   return <div className="refPuzzle v2" data-coach={coach}>
     {reaction && <ActuatorReaction key={reaction} caseId={caseId} ok={reaction === "ok"} />}
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="검증 준비" title="요구사항 기반 로직 퍼즐" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증 준비" title="요구사항 기반 로직 퍼즐" distanceMeters={state.policeGapMeters} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
+    <StageFolderSubtitle className="puzzleStageFolder" action="고장 원인을 구별할 시험 조건과 정상 기준을 완성하세요." detail={<>이전 결과: {section} <i>|</i> 의심 구간: {RIG_GOAL[caseId]}</>} />
     <StageIntro id="puzzle-v2" title="요구사항 기반 로직 퍼즐" goal="주어진 요구사항대로 퍼즐을 구성해요." steps={[
       { icon: "puzzle", text: "빈칸에 조각을 끌어 넣고 '연결 확인'을 눌러요. 연결만 확인하고 값은 아직 판정하지 않아요." },
       { icon: "monitor", text: "예시 입력을 움직여 칸마다 값이 어떻게 나오는지 봐요." },

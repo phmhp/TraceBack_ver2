@@ -17,6 +17,7 @@ const scenarios = readFileSync(new URL("../src/game/scenarios.ts", import.meta.u
 const simModel = readFileSync(new URL("../src/features/verification/simModel.ts", import.meta.url), "utf8");
 const vehicleSim = readFileSync(new URL("../src/sim/vehicleSim.ts", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.tsx", import.meta.url), "utf8");
+const gameShell = readFileSync(new URL("../src/ui/game-shell.tsx", import.meta.url), "utf8");
 
 test("V4 STEP 01 keeps one stable frame across all three learning views", () => {
   assert.match(experience, /className="garageViewTools"/);
@@ -33,6 +34,18 @@ test("V4 STEP 01 controls keep fixed geometry and visible sequence numbers", () 
   assert.match(latestCss, /\.inputBar \.ctlBtn[^}]*width:\s*124px/);
   assert.match(latestCss, /\.inputBar \.mainCtl[^}]*width:\s*190px/);
   assert.match(latestCss, /\.garageMechanismCard > \.swStepControls/);
+});
+
+test("UI-RULE-01 shares live header gap, folder subtitle, and stage navigation rails", () => {
+  assert.match(gameShell, /className="stageHeaderInfo"/);
+  assert.match(gameShell, /className="gameHeaderSpacer"/);
+  assert.match(gameShell, /export function StageFolderSubtitle/);
+  assert.match(experience, /학습 대상: \{chosen \? content\.label : "전체 도메인"\}/);
+  assert.match(eeTrace, /출발 증거: \{scenario\.symptom\}/);
+  assert.match(refPuzzle, /이전 결과: \{section\}/);
+  assert.match(verificationLab, /이전 결과: 테스트 설계서/);
+  assert.match(latestCss, /grid-template-columns: minmax\(92px, 10fr\) minmax\(220px, 30fr\) minmax\(0, 40fr\) minmax\(132px, 20fr\)/);
+  assert.match(latestCss, /\.stageFolderSubtitle \{/);
 });
 
 test("Chrome capture tooling can bypass intros and print layout metrics", () => {
