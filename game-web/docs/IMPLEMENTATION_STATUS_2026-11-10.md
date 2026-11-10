@@ -22,6 +22,7 @@
 | N-02 | 구현 완료 · UI 미검증 | 첨부 명세서 에셋을 `public/assets/ui/verification-spec-sheet.png`로 보존하고, STEP03의 실제 `VerificationContract`를 오른쪽 흰 작성 영역에 텍스트로 렌더링한다. 짧은 CSS 발급 애니메이션과 reduced-motion 대응을 유지한다. |
 | P0-A | 구현 완료 · UI 미검증 | `새 게임 시작`은 STEP02~04 풀이·계약·저장 게임을 새 세션으로 초기화한다. `처음으로 돌아가기`는 기존 상태를 보존한다. |
 | P0-B | 구현 완료 · UI 미검증 | STEP04 재시험·회귀 완료 후, 가려질 수 있는 우측 패널 대신 상단 고정 위치에서 `수리 적용 · 주행 복귀`를 제공하며 기존 `BENCH_RESULT → REPAIR → APPLY_REPAIR → CHASE_RESUME` 상태 전이를 사용한다. |
+| P1-A | 구현 완료 · UI 미검증 | 고장·추리·검증 장면에서 플레이어 `raceDistance`는 고정하고 경찰만 0.08m/s 접근한다. 수리 성공 뒤에는 기존 `lastRepairDistance`에서 `CHASE_RESUME`으로 주행을 재개한다. |
 
 ## 검증
 
@@ -39,4 +40,4 @@
 
 ## 남은 항목
 
-- P0-A/P0-B 및 N-01/N-02의 연결 브라우저 UI 검증. 이번 작업에서는 연결된 ChatGPT 브라우저가 없어 사용자 지시에 따라 Chrome/CDP 검수를 실행하지 않았다.
+- P0-A/P0-B/P1-A 및 N-01/N-02의 연결 브라우저 UI 검증. P1-B WANTED 분석 보고서, K/L 부분 완료 수락 기준, 마지막 P2 3D·배선 정밀화가 구현 대기다.

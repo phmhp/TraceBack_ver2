@@ -237,13 +237,9 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       s.policeGapMeters = clampGap(s, Number(event.gap));
       return s;
     case "TICK_PURSUIT":
-      // During investigation the damaged car keeps coasting under limp-home
-      // control.  Both vehicles move; the police only closes the gap slowly.
-      // Investigation keeps both cars moving, but a narrative route gate keeps
-      // background simulation from crossing the next fault or pirate-ship
-      // finish while the player is solving a learning task.
-      const routeGate = s.caseId === "propulsion" ? 540 : s.caseId === "thermal" ? 1020 : 1160;
-      s.raceDistance = Math.min(routeGate, s.raceDistance + Math.max(0, Number(event.travel) || 0));
+      // Fault, diagnosis and verification are a stopped-car state: only the
+      // interceptor advances.  The stored race position is reused unchanged
+      // by CHASE_RESUME after the repair/retest path succeeds.
       s.raceElapsedSeconds += Math.max(0, Number(event.seconds) || 0);
       s.policeGapMeters = clampGap(
         s,

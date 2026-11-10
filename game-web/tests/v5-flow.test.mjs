@@ -14,14 +14,16 @@ const learningPolish = readFileSync(new URL("../src/v12.css", import.meta.url), 
 const finalPolish = readFileSync(new URL("../src/v14.css", import.meta.url), "utf8");
 const labAndFinalePolish = readFileSync(new URL("../src/v15.css", import.meta.url), "utf8");
 
-test("pursuit state persists across investigation and guarantees two required faults", () => {
+test("pursuit state freezes the player during investigation and guarantees two required faults", () => {
   assert.match(runtime, /raceDistance: number/);
   assert.match(runtime, /policeGapMeters: number/);
   assert.match(runtime, /s\.completedCases\.length < 2 \? 10 : 0/);
   // Faults appear under driving conditions, with a distance fallback so both always happen.
   assert.match(experience, /zoneThrottle\.current >= 1\.8 \|\| sim\.distance >= OVERTAKE_ZONE\[1\]/);
   assert.match(experience, /sim\.heat >= 84 \|\| sim\.distance >= CLIMB_ZONE\[1\]/);
-  assert.match(runtime, /const routeGate = s\.caseId === "propulsion" \? 540/);
+  assert.match(runtime, /Fault, diagnosis and verification are a stopped-car state/);
+  assert.doesNotMatch(runtime.slice(runtime.indexOf('case "TICK_PURSUIT"'), runtime.indexOf('case "FAULT_CUE"')), /raceDistance\s*=/);
+  assert.match(experience, /lastRepairDistance/);
   assert.match(runtime, /policeGapMeters <= 0 \? enter\(s, "CAUGHT"\)/);
   assert.match(runtime, /nextScore = correct \? 20 : -20/);
   assert.match(runtime, /policeGapMeters: Math\.max\(s\.completedCases\.length < 2 \? 35 : 18/);

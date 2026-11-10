@@ -135,9 +135,10 @@ function useCampaign() {
   useEffect(() => {
     // Freeze pursuit during the warning/dialogue so the player can read it.
     // Investigation and engineering work still consume chase distance.
-    const pursuitScenes = ["BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR"];
+    const pursuitScenes = ["FAULT_CUE", "BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR"];
     if (!pursuitScenes.includes(state.scene)) return;
-    const timer = window.setInterval(() => send({ type: "TICK_PURSUIT", meters: .16, travel: 5.4, seconds: 1 }), 1000);
+    // The disabled vehicle remains exactly at the fault position while the interceptor closes in.
+    const timer = window.setInterval(() => send({ type: "TICK_PURSUIT", meters: .08, seconds: 1 }), 1000);
     return () => clearInterval(timer);
   }, [state.scene]);
   // one driving track from the start of the chase until the pirate ship (fault, investigation and bench included)
