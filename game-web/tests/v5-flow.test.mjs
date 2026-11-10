@@ -13,6 +13,7 @@ const latestPolish = readFileSync(new URL("../src/v11.css", import.meta.url), "u
 const learningPolish = readFileSync(new URL("../src/v12.css", import.meta.url), "utf8");
 const finalPolish = readFileSync(new URL("../src/v14.css", import.meta.url), "utf8");
 const labAndFinalePolish = readFileSync(new URL("../src/v15.css", import.meta.url), "utf8");
+const ending = readFileSync(new URL("../src/ui/CaseFileEnding.tsx", import.meta.url), "utf8");
 
 test("pursuit state freezes the player during investigation and guarantees two required faults", () => {
   assert.match(runtime, /raceDistance: number/);
@@ -27,6 +28,18 @@ test("pursuit state freezes the player during investigation and guarantees two r
   assert.match(runtime, /policeGapMeters <= 0 \? enter\(s, "CAUGHT"\)/);
   assert.match(runtime, /nextScore = correct \? 20 : -20/);
   assert.match(runtime, /policeGapMeters: Math\.max\(s\.completedCases\.length < 2 \? 35 : 18/);
+});
+
+test("P1-B keeps WANTED analysis grounded in scenario and saved-step records", () => {
+  assert.match(ending, /AnalysisReport/);
+  assert.match(ending, /SCENARIO_META/);
+  assert.match(ending, /tb-step02-progress-/);
+  assert.match(ending, /tb-step04-progress-/);
+  assert.match(ending, /contractStorageKey/);
+  assert.match(ending, /SW 계산·보정\/스케일링/);
+  assert.match(ending, /PWM 출력 SW 0%/);
+  assert.match(ending, /I\/O 명령 42→8 bar/);
+  assert.match(ending, /실행 기록이 남아 있지 않음/);
 });
 
 test("interaction rebuild keeps the requested core surfaces", () => {

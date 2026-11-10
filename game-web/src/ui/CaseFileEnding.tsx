@@ -5,7 +5,8 @@
 import { DRIVER, ENGINEER } from "../game/cast";
 import React from "react";
 import type { Campaign, CaseId } from "../game/runtime";
-import { SCENARIOS } from "../game/scenarios";
+import { SCENARIOS, SCENARIO_META } from "../game/scenarios";
+import { contractStorageKey, type VerificationContract } from "../game/verificationContract";
 import { SceneBackdrop } from "./game-shell";
 import { Icon, type IconName } from "./Icon";
 
@@ -66,9 +67,9 @@ const CASE_VISUAL: Record<CaseId, {
       { img: "thermal_ecu", label: "Thermal ECU", role: "제어" },
       { img: "cooling_fan", label: "냉각 팬", role: "출력" },
     ],
-    fault: { at: "node", index: 2, label: "팬 고착" },
+    fault: { at: "node", index: 1, label: "PWM 출력 SW 0%" },
     meter: { label: "팬 응답 (명령 대비)", unit: "%", normal: 100, actual: 0, max: 100 },
-    lesson: "명령은 100%인데 응답이 0 → 제어가 아니라 출력 장치 문제",
+    lesson: "팬 요청은 정상인데 PWM 출력 SW부터 0% → 출력 어댑터 실행 순서를 확인",
   },
   brake: {
     chain: [
@@ -76,9 +77,9 @@ const CASE_VISUAL: Record<CaseId, {
       { img: "brake_ecu", label: "Brake ECU", role: "제어" },
       { img: "brake_caliper", label: "캘리퍼", role: "출력" },
     ],
-    fault: { at: "node", index: 2, label: "응답 8%" },
+    fault: { at: "link", index: 1, label: "I/O 명령 42→8 bar" },
     meter: { label: "마찰 제동 응답", unit: "%", normal: 55, actual: 8, max: 60 },
-    lesson: "제동 명령은 정상, 캘리퍼가 따라오지 못함 → 출력 장치 고장",
+    lesson: "내부 압력 명령은 정상, I/O 어댑터 SW가 전송값을 다시 축소",
   },
 };
 
@@ -188,6 +189,43 @@ function CaseRow({ state, id, safety }: { state: Campaign; id: CaseId; safety: b
   </article>;
 }
 
+type Step04Record = { lastRun?: { verdict?: string; vals?: Record<string, string> }; answers?: Record<string, { answer?: string; why?: string }> };
+const fromSession = <T,>(key: string): T | null => { try { const raw = sessionStorage.getItem(key); return raw ? JSON.parse(raw) as T : null; } catch { return null; } };
+const SIGNAL_PATH: Record<CaseId, string> = {
+  propulsion: "APS 원신호 → VCU 페달 처리 → CAN 토크 명령 → 모터 토크",
+  thermal: "냉각수 온도 → Thermal ECU 팬 요청 → PWM 출력 어댑터 → 팬 회전 → 온도·출력 제한",
+  brake: "브레이크 입력 → Brake ECU 압력 계산 → I/O 전송 압력 명령 → 캘리퍼 압력 → 감속",
+};
+const CATEGORY: Record<CaseId, string> = {
+  propulsion: "SW 계산·보정/스케일링",
+  thermal: "SW 주기·타이밍 / 제어기 I/O 처리",
+  brake: "제어기 I/O 처리 / SW 통신·인터페이스",
+};
+
+function AnalysisReport({ state, id }: { state: Campaign; id: CaseId }) {
+  const scenario = SCENARIOS[id], meta = SCENARIO_META[id];
+  const contract = fromSession<VerificationContract>(contractStorageKey(id));
+  const trace = fromSession<{ chain?: string[] }>(`tb-step02-progress-${id}`);
+  const bench = fromSession<Step04Record>(`tb-step04-progress-${id}`);
+  const root = meta.hypotheses.find(item => item.truth);
+  const testResult = bench?.lastRun?.verdict ? `${bench.lastRun.verdict} · ${Object.values(bench.lastRun.vals ?? {}).join(" · ")}` : "이 세션에 STEP04 실행 기록이 남아 있지 않음";
+  const judgement = root && bench?.answers?.[root.id] ? `${bench.answers[root.id].answer ?? "판단"} · ${bench.answers[root.id].why ?? ""}` : "이 세션에 가설 판단 기록이 남아 있지 않음";
+  return <details className="cfAnalysis">
+    <summary><Icon name="clipboard" /> 고장 분석 보고서 · 실제 기록 보기</summary>
+    <dl>
+      <div><dt>사건·증상</dt><dd>{scenario.chapter} · {scenario.symptom}</dd></div>
+      <div><dt>고장 유형·근본 원인</dt><dd>{CATEGORY[id]} · {root?.label ?? "시나리오 원인 미확인"}</dd></div>
+      <div><dt>차량 도메인·E/E 경로</dt><dd>{meta.domain} · {SIGNAL_PATH[id]}</dd></div>
+      <div><dt>정상 제어 로직</dt><dd>{meta.normalSpec}</dd></div>
+      <div><dt>STEP02 역추적</dt><dd>{trace?.chain?.length ? trace.chain.join(" ← ") : "이 세션에 역추적 경로 기록이 남아 있지 않음"}</dd></div>
+      <div><dt>STEP03 시험 계약</dt><dd>{contract ? `${contract.objective} · ${contract.stimulus.sequence} · 기대 ${contract.expected.value}` : "이 세션에 시험 계약 기록이 남아 있지 않음"}</dd></div>
+      <div><dt>STEP04 비교·가설 판단</dt><dd>{testResult}<br />{judgement}</dd></div>
+      <div><dt>수리·재시험·주행 복귀</dt><dd>{scenario.repair} · 완료 상태에서 동일 조건 재시험·회귀 후 주행 복귀</dd></div>
+      <div><dt>유사 고장 접근</dt><dd>증상에서 출력 방향으로 측정값을 거슬러 최초 편차를 찾고, 같은 입력의 정상/사건 SW 시험으로 경쟁 가설을 구분한 뒤 수리 후 같은 조건으로 다시 확인</dd></div>
+    </dl>
+  </details>;
+}
+
 function CaseBrief({ state, escaped }: { state: Campaign; escaped: boolean }) {
   const value = score(state);
   const [safety, setSafety] = React.useState(false);
@@ -207,7 +245,7 @@ function CaseBrief({ state, escaped }: { state: Campaign; escaped: boolean }) {
       <div><dt>추격차 격차</dt><dd>{escaped ? `${Math.round(state.policeGapMeters)} m` : "0 m"}</dd></div>
       <div><dt>검증 실행</dt><dd>{state.benchRuns}회</dd></div>
     </dl>
-    <div className="cfCases">{(["propulsion", "thermal", "brake"] as CaseId[]).map(id => <CaseRow key={id} state={state} id={id} safety={safety} />)}</div>
+    <div className="cfCases">{(["propulsion", "thermal", "brake"] as CaseId[]).map(id => <React.Fragment key={id}><CaseRow state={state} id={id} safety={safety} />{state.completedCases.includes(id) && !safety && <AnalysisReport state={state} id={id} />}</React.Fragment>)}</div>
     <footer className="cfFoot">
       <span>충돌 <b>{state.collisions}</b></span>
       <span>힌트 <b>{state.hints}</b></span>
