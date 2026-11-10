@@ -742,3 +742,133 @@ body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
 .vbBench .benchStageFolder, .refPuzzle .puzzleStageFolder { left: 16px; right: 16px; }
 .eeTrace .compactRouteTracker { display: none !important; }.eeTrace .etStageFolder { top: 78px; }.eeTrace + .stageHistoryNav { top: 81px !important; }.eeTrace .etLayout { top: 142px !important; }
 @media (max-width: 1100px) { .garageV2 .gameHeader, .dtBoard .gameHeader, .refPuzzle .gameHeader, .vbBench .gameHeader { grid-template-columns: minmax(82px, 10fr) minmax(190px, 30fr) minmax(0, 40fr) minmax(112px, 20fr) !important; gap: 5px; }.stageFolderSubtitle { left: 10px; right: 10px; padding-left: 228px; }.stageFolderSubtitle::before { width: 212px; }.garageV2 .garageStageFolder { left: 195px; right: 12px; padding-left: 12px; }.garageV2 .garageLayerNav, .garageV2 .garageStudio { top: 130px !important; }.garageV2 + .stageHistoryNav, .refPuzzle + .stageHistoryNav, .vbBench + .stageHistoryNav { left: 16px !important; }.stageFolderSubtitle p { font-size: 11px; }.stageFolderSubtitle small { font-size: 9px; } }
+
+/* UI-RULE-01 frame contract.  The four stages keep their own workspaces, but
+   header, folder navigation, context strip, and workspace start line are one
+   component-level contract.  Keep this block last: older stage CSS is legacy. */
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) {
+  --stage-frame-inset: 16px;
+  --stage-frame-folder-top: 78px;
+  --stage-frame-workspace-top: 142px;
+  --stage-frame-tab-left: 22px;
+  --stage-frame-tab-height: 32px;
+  --stage-frame-tab-width: 236px;
+  --stage-frame-folder-height: 52px;
+  --stage-frame-folder-border: 1px solid #dfcfb6;
+  --stage-frame-folder-radius: 0 10px 10px 10px;
+  --stage-frame-folder-bg: #fffdf6;
+  --stage-frame-tab-bg: #f4eee1;
+  --stage-frame-folder-shadow: 0 2px 7px #3b2b1c14;
+}
+
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .gameHeader {
+  display: grid !important;
+  grid-template-columns: minmax(92px, 10fr) minmax(220px, 30fr) minmax(0, 40fr) minmax(132px, 20fr) !important;
+  align-items: center;
+  gap: 8px;
+  height: 64px !important;
+  min-height: 64px !important;
+  box-sizing: border-box;
+}
+
+/* One StageFolderSubtitle instance/style across STEP01–04. */
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageFolderSubtitle {
+  top: var(--stage-frame-folder-top) !important;
+  left: var(--stage-frame-inset) !important;
+  right: var(--stage-frame-inset) !important;
+  min-height: var(--stage-frame-folder-height) !important;
+  padding: 8px 16px 7px calc(var(--stage-frame-tab-width) + 16px) !important;
+  border: var(--stage-frame-folder-border) !important;
+  border-radius: var(--stage-frame-folder-radius) !important;
+  background: var(--stage-frame-folder-bg) !important;
+  box-shadow: var(--stage-frame-folder-shadow) !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageFolderSubtitle::before {
+  display: block !important;
+  top: -11px !important;
+  left: 0 !important;
+  width: var(--stage-frame-tab-width) !important;
+  height: 17px !important;
+  border: var(--stage-frame-folder-border) !important;
+  border-bottom: 0 !important;
+  border-radius: 10px 10px 0 0 !important;
+  background: var(--stage-frame-tab-bg) !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageFolderSubtitle p {
+  font: 800 13px/1.2 Pretendard, system-ui !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageFolderSubtitle small {
+  font: 650 10px/1.15 Pretendard, system-ui !important;
+}
+
+/* History navigation is a sibling of each stage, so share the same folder tab
+   geometry here rather than letting a stage-specific selector change it. */
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) + .stageHistoryNav {
+  /* This is a sibling, so it cannot inherit the stage root custom properties. */
+  top: 81px !important;
+  left: 22px !important;
+  display: flex !important;
+  gap: 2px !important;
+  max-width: 226px !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) + .stageHistoryNav .stageBackButton,
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) + .stageHistoryNav .stageForwardButton {
+  min-width: 0 !important;
+  height: var(--stage-frame-tab-height) !important;
+  padding: 4px 8px !important;
+  border: var(--stage-frame-folder-border) !important;
+  border-radius: 8px 8px 0 0 !important;
+  background: #ede4d5 !important;
+  box-shadow: none !important;
+  color: #665747 !important;
+  font-size: 10px !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) + .stageHistoryNav .stageForwardButton {
+  margin-left: 2px;
+  background: var(--stage-frame-folder-bg) !important;
+  color: #9d4d3f !important;
+}
+
+/* Only the outer workspace start line is common.  The inner board/puzzle/lab
+   grids deliberately remain stage-specific. */
+.garageV2 .garageLayerNav,
+.garageV2 .garageStudio,
+.eeTrace .etLayout,
+.vbBench .vbLayout { top: var(--stage-frame-workspace-top) !important; }
+.dtBoard .etLayout,
+.vbBench .vbLayout { left: var(--stage-frame-inset) !important; right: var(--stage-frame-inset) !important; }
+.refPuzzle .rpHead,
+.refPuzzle .rpMain,
+.refPuzzle .rpFoot { width: calc(100% - (var(--stage-frame-inset) * 2)) !important; }
+.refPuzzle .rpHead { margin-top: 72px !important; }
+
+/* A shared footer action token; each stage keeps its own completion condition. */
+:is(.dtBoard, .refPuzzle, .vbBench) .stageProgressAction {
+  min-height: 40px !important;
+  padding: 6px 10px !important;
+  border: 2px solid #a0281e !important;
+  border-radius: 10px !important;
+  background: #fff6f3 !important;
+  box-shadow: 0 3px 0 rgba(160,40,30,.3), 0 6px 10px rgba(60,20,10,.16) !important;
+  font-weight: 800 !important;
+}
+.eeTrace .stageProgressAction { min-height: 40px !important; }
+
+@media (max-width: 1100px) {
+  :is(.garageV2, .dtBoard, .refPuzzle, .vbBench) {
+    --stage-frame-inset: 10px;
+    --stage-frame-tab-left: 16px;
+    --stage-frame-tab-width: 212px;
+  }
+  :is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .gameHeader {
+    grid-template-columns: minmax(82px, 10fr) minmax(190px, 30fr) minmax(0, 40fr) minmax(112px, 20fr) !important;
+    gap: 5px;
+  }
+  :is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageFolderSubtitle {
+    padding-left: calc(var(--stage-frame-tab-width) + 16px) !important;
+  }
+  :is(.garageV2, .dtBoard, .refPuzzle, .vbBench) + .stageHistoryNav {
+    left: 16px !important;
+    max-width: 202px !important;
+  }
+}

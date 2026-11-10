@@ -10,7 +10,7 @@ import { numify } from "../../ui/numify";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Campaign } from "../../game/runtime";
 import { SCENARIOS, SCENARIO_META } from "../../game/scenarios";
-import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
+import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
 import { play } from "../../ui/sfx";
 import { PursuitRouteBar } from "../../experiences";
 import { DRIVER, ENGINEER } from "../../game/cast";
@@ -201,7 +201,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="원인 추적" title="도미노 역추적" distanceMeters={state.policeGapMeters} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
-    <section className="etStageFolder" aria-label="도미노 역추적 단계 안내"><p>관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요.</p><small>출발 증거: {scenario.symptom} <i>|</i> 추적 대상: 신호·제어 경로</small></section>
+    <StageFolderSubtitle className="etStageFolder" action="관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요." detail={<>출발 증거: {scenario.symptom} <i>|</i> 추적 대상: 신호·제어 경로</>} />
     <StageIntro id="trace-v2" title="도미노 역추적" goal="증상에서 거꾸로 따라가 처음 쓰러진 도미노를 찾아요. 원인은 검증 단계에서 시험으로 확인해요." steps={[
       { icon: "camera", text: "폴라로이드를 눌러 크게 보고, 기준과 다른 기록을 찾아요." },
       { icon: "layers", text: "E/E 판에서 그 증상을 만든 출력을 고르면 용의자가 아래에 올라와요." },
