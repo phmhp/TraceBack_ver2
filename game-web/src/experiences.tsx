@@ -945,8 +945,12 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   // Hold-to-apply input: the signal travels one step at a time only while the player keeps pressing
   // (button or Space). Releasing removes the input and the signal falls back to the start.
   const [eeLayer, setEeLayer] = useState<EeLayer>("logic");
-  const [applyState, setApplyState] = useState<"idle" | "on" | "release">("idle");
+  // `manual` is the learner-controlled, paused version of the same live signal.
+  // It deliberately keeps the current signal stage while the learner switches
+  // between Vehicle/System, E/E, and Control SW views.
+  const [applyState, setApplyState] = useState<"idle" | "on" | "release" | "manual">("idle");
   const applying = applyState === "on";
+  const signalVisible = applyState === "on" || applyState === "manual";
   // Short Overcooked-style mission: switch on the preconditions, then hold the input.
   const [conds, setConds] = useState<Set<string>>(() => new Set());
   const [gateMsg, setGateMsg] = useState("");
@@ -955,7 +959,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const mission = INPUT_MISSION[domain];
   const missing = mission.needs.filter(item => !conds.has(item.id));
   const toggleCondition = (id: string, index: number) => {
-    setApplyState(previous => previous === "on" ? "release" : previous);
+    setApplyState(previous => previous === "on" ? "release" : previous === "manual" ? "idle" : previous);
     setConds(previous => {
       const next = new Set(previous);
       if (next.has(id)) mission.needs.slice(index).forEach(item => next.delete(item.id));
@@ -979,7 +983,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     return () => { removeEventListener("tb-garage-input", onInput); removeEventListener("tb-garage-step", onStep); };
   });
   useEffect(() => {
-    if (applyState === "idle") return;
+    if (applyState === "idle" || applyState === "manual") return;
     const length = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
     if (applyState === "on") play("zip", 1.1);
     const timer = window.setInterval(() => setActiveStep(value => {
@@ -997,7 +1001,10 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     return () => { removeEventListener("keydown", down); removeEventListener("keyup", up); };
   });
   useEffect(() => { setFeature(0); setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); }, [domain]);
-  useEffect(() => { setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("flow"); }, [feature, routeLevel]);
+  // A view change must not restart the lesson: Vehicle/System, E/E, and SW
+  // are alternate views of this same feature and its current signal stage.
+  useEffect(() => { setActiveStep(0); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("flow"); }, [feature]);
+  useEffect(() => { setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("flow"); }, [routeLevel]);
   useEffect(() => {
     const flowLength = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
     // steps advance only when the player moves them (no background auto-advance; the flow card has its own play/pause)
@@ -1029,14 +1036,14 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       <section className="garageMechanismCard">
         {chosen ? <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
           : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위 탭에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레이어로 같은 기능을 다른 관점에서 봅니다."}</p></header>}
-        <MechanismViewer key={chosen ? "domain" : "all"} inputOn={applying} eeLayer={eeLayer} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
+        <MechanismViewer key={chosen ? "domain" : "all"} inputOn={signalVisible} eeLayer={eeLayer} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {chosen && <div className="inputBar" aria-label="입력 넣기">
-          <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (applying ? `${INPUT_ACTION[domain]} 입력이 전달되는 중` : cleared ? NORMAL_RESPONSE[domain] : missing.length ? `${conds.size ? "준비 중" : "차량 OFF"} · ${missing[0].label}부터 켜세요` : READY_RESPONSE[domain])}</p>
+          <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (applying ? `${INPUT_ACTION[domain]} 입력이 전달되는 중` : applyState === "manual" ? "선택한 신호 단계를 세 관점에서 확인 중" : cleared ? NORMAL_RESPONSE[domain] : missing.length ? `${conds.size ? "준비 중" : "차량 OFF"} · ${missing[0].label}부터 켜세요` : READY_RESPONSE[domain])}</p>
           {mission.needs.map((item, index) => { const locked = mission.needs.slice(0, index).some(previous => !conds.has(previous.id)); return <button key={item.id} disabled={locked} className={`ctlBtn conditionCtl ${conds.has(item.id) ? "on" : ""} ${locked ? "locked" : ""}`} onClick={() => toggleCondition(item.id, index)}><i>{conds.has(item.id) ? "✓" : index + 1}</i><span>{item.label}</span></button>; })}
           <button disabled={missing.length > 0} className={`ctlBtn mainCtl ${applying ? "pressing" : ""}`} onPointerDown={event => { event.preventDefault(); setApplying(true); }} onPointerUp={() => setApplying(false)} onPointerLeave={() => setApplying(false)} onPointerCancel={() => setApplying(false)}><i>{mission.needs.length + 1}</i><span>{INPUT_ACTION[domain]}</span><small>꾹 · Space</small></button>
         </div>}
-        {chosen && routeLevel === 2 && <div className="swStepControls" aria-label="제어 소프트웨어 단계 조작"><button className="ctlBtn" onClick={() => { setApplyState("idle"); setActiveStep(0); play("pop"); }}>처음</button><button className="ctlBtn" onClick={() => { if (missing.length) { setGateMsg(missing[0].why); play("error"); return; } setActiveStep(value => Math.min(getFeatureLayer(domain, feature, 3).length - 1, value + 1)); play("pop", 1.1); }}>한 단계</button></div>}
+        {chosen && routeLevel === 2 && <div className="swStepControls" aria-label="제어 소프트웨어 단계 조작"><button className="ctlBtn" onClick={() => { setApplyState("idle"); setActiveStep(0); play("pop"); }}>처음</button><button className="ctlBtn" onClick={() => { if (missing.length) { setGateMsg(missing[0].why); play("error"); return; } setApplyState("manual"); setActiveStep(value => Math.min(getFeatureLayer(domain, feature, 3).length - 1, value + 1)); play("pop", 1.1); }}>한 단계</button></div>}
         {SHOW_EE_TABS && chosen && routeLevel === 1 && (() => {
           const parts = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
           const pullOut = (index: number) => { setRemoved(index); setActiveStep(index); setEcuCard(null); setTriedRemovals(previous => new Set(previous).add(`${domain}-${feature}-${index}`)); play("squish"); };

@@ -51,6 +51,16 @@ test("V4 STEP 01 is electrically quiet until conditions and live input are appli
   assert.match(experience, /disabled=\{missing\.length > 0\}/);
 });
 
+test("K-4 keeps a manually inspected signal stage shared across the three views", () => {
+  assert.match(experience, /"idle" \| "on" \| "release" \| "manual"/);
+  assert.match(experience, /const signalVisible = applyState === "on" \|\| applyState === "manual"/);
+  assert.match(experience, /inputOn=\{signalVisible\}/);
+  assert.match(experience, /applyState === "idle" \|\| applyState === "manual"/);
+  assert.match(experience, /setApplyState\("manual"\); setActiveStep/);
+  assert.match(experience, /선택한 신호 단계를 세 관점에서 확인 중/);
+  assert.doesNotMatch(experience, /setActiveStep\(0\); setRemoved\(null\); setEcuCard\(null\); setCulprit\(null\); setGuess\(null\); setLabMode\("flow"\); \}, \[feature, routeLevel\]\);/);
+});
+
 test("the representative propulsion lesson separates control, HV energy and mechanical torque to the wheel", () => {
   assert.match(experience, /MCU·인버터 ECU/);
   assert.match(experience, /전륜 PMSM 모터/);
