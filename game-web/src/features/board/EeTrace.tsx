@@ -194,6 +194,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const coach = state.completedCases.length ? "" : phase === "evidence" ? "evidence" : phase === "output" ? "output" : phase === "trace" ? (replayed ? "measure" : "replay") : phase === "section" ? "section" : !allSorted ? "sort" : "next";
   const mugStatus = (id: string): keyof typeof STAMP_KO => stamps[id] ?? (measured.includes(id) ? "measured" : "untested");
   const evidenceCards = [...(chain.length ? [start] : []), ...measured.map(dom)].filter((d, i, all) => all.findIndex(x => x.id === d.id) === i);
+  const stackCandidates = [...new Set([...chain, ...measured, ...Object.keys(stamps)])].map(dom);
   const attachEvidence = (id: string) => { setAttached(previous => previous.includes(id) ? previous : [...previous, id]); play("stamp"); setBubble(`${dom(id).label} 폴라로이드를 증거판에 붙였어요.`); };
 
   return <div className="dtBoard eeTrace" data-coach={coach}>
@@ -208,10 +209,10 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     <main className="dtLayout etLayout">
       {/* right: independent evidence rail */}
       <section className="etEvidence">
-        <header><b><Icon name="camera" /> 관찰·계측 증거</b><small>독립 증거 레일 · {scenario.title}</small><OpenBookButton caseId={caseId} /></header>
-        <div className="polBoard">{visiblePols.map(item => <button key={item.id} className={`pol ${item.kind} ${item.id === "quote" && phase === "evidence" ? "find" : ""}`} onClick={() => { if (item.id === "quote" && phase === "evidence") findEvidence("quote"); else { setZoomPol(item.id); play("pop"); } }}>
+        <header><b><Icon name="camera" /> {memoTab === "evidence" ? "관찰·계측 증거" : "추리 STACK"}</b><small>{memoTab === "evidence" ? `독립 증거 레일 · ${scenario.title}` : "선택한 후보와 역추적 기록"}</small><nav className="etEvidenceTabs" role="tablist" aria-label="증거와 추리 기록 보기"><button role="tab" aria-selected={memoTab === "evidence"} className={memoTab === "evidence" ? "on" : ""} onClick={() => setMemoTab("evidence")}>관찰·계측 증거</button><button role="tab" aria-selected={memoTab === "stack"} className={memoTab === "stack" ? "on" : ""} onClick={() => setMemoTab("stack")}>추리 STACK</button></nav><OpenBookButton caseId={caseId} /></header>
+        <div className="etEvidenceContent">{memoTab === "evidence" ? <><div className="polBoard" role="tabpanel" aria-label="관찰·계측 증거">{visiblePols.map(item => <button key={item.id} className={`pol ${item.kind} ${item.id === "quote" && phase === "evidence" ? "find" : ""}`} onClick={() => { if (item.id === "quote" && phase === "evidence") findEvidence("quote"); else { setZoomPol(item.id); play("pop"); } }}>
           <i className="pin" /><span className="polPhoto">{item.photo}</span><b>{item.title}</b><small>{item.sub}</small>
-        </button>)}</div>{evidencePages > 1 && <div className="polPager"><button disabled={evidencePage === 0} onClick={() => setEvidencePage(page => Math.max(0, page - 1))}>이전 묶음</button><span>{evidencePage + 1}/{evidencePages}</span><button disabled={evidencePage >= evidencePages - 1} onClick={() => setEvidencePage(page => Math.min(evidencePages - 1, page + 1))}>다음 증거 묶음</button></div>}
+        </button>)}</div>{evidenceCards.length > 0 && <div className="etEvidenceAttach" aria-label="획득한 폴라로이드 부착">{evidenceCards.map(d => <button key={d.id} className={attached.includes(d.id) ? "attached" : ""} onClick={() => attachEvidence(d.id)} disabled={attached.includes(d.id)}><Photo src={d.img} /><span><b>{d.label}</b><small>{attached.includes(d.id) ? "부착됨" : "증거판에 붙이기"}</small></span></button>)}</div>}{evidencePages > 1 && <div className="polPager"><button disabled={evidencePage === 0} onClick={() => setEvidencePage(page => Math.max(0, page - 1))}>이전 묶음</button><span>{evidencePage + 1}/{evidencePages}</span><button disabled={evidencePage >= evidencePages - 1} onClick={() => setEvidencePage(page => Math.min(evidencePages - 1, page + 1))}>다음 증거 묶음</button></div>}</> : <div className="etEvidenceStack" role="tabpanel" aria-label="추리 STACK"><section><small>역추적 순서</small><p>{chain.length ? [...chain].map(id => dom(id).label).join(" ← ") : "출력 조사 전"}</p></section><section><small>선택한 후보</small><p>{stackCandidates.length ? stackCandidates.map(d => `${d.label} · ${STAMP_KO[mugStatus(d.id)]}`).join(" / ") : "아직 선택한 후보 없음"}</p></section><section><small>가설</small><p>{meta.hypotheses.map(h => `${h.label} · ${sorted[h.id] === "out" ? "반박" : sorted[h.id] === "hold" ? "보류" : "검토 전"}`).join(" / ")}</p></section></div>}</div>
       </section>
 
       {/* center: whole-vehicle reverse trace */}
@@ -228,13 +229,6 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
 
       {/* bottom: tactile memo board */}
       <section className="etMugs">
-        <header className="etMemoHead"><b><Icon name="pin" /> 역추적 메모판</b><small>관찰 사실과 최초 편차를 원인 후보와 분리해 기록합니다.</small><nav className="etMemoTabs" role="tablist" aria-label="역추적 메모 보기"><button role="tab" aria-selected={memoTab === "evidence"} className={memoTab === "evidence" ? "on" : ""} onClick={() => setMemoTab("evidence")}>증거</button><button role="tab" aria-selected={memoTab === "stack"} className={memoTab === "stack" ? "on" : ""} onClick={() => setMemoTab("stack")}>추리 STACK</button></nav></header>
-        <div className="etMemoBody">
-          {memoTab === "evidence" ? <div className="etMemoEvidence" role="tabpanel" aria-label="증거">
-            {evidenceCards.length ? <div className="etPolaroidTray" aria-label="획득한 폴라로이드">{evidenceCards.map(d => <button key={d.id} className={attached.includes(d.id) ? "attached" : ""} onClick={() => attachEvidence(d.id)} disabled={attached.includes(d.id)}><Photo src={d.img} /><span><b>{d.label}</b><small>{attached.includes(d.id) ? "증거판에 붙임" : "증거판에 붙이기"}</small></span></button>)}</div> : <p className="etEmpty"><Icon name="camera" /> E/E 출력과 계측을 조사하면 폴라로이드가 여기에 쌓여요.</p>}
-            <small className="etEvidenceStatus">증거판 부착 {attached.length}장 · 부착한 폴라로이드는 오른쪽 증거판에서도 확인할 수 있어요.</small>
-          </div> : <div className="etStackPanel" role="tabpanel" aria-label="추리 STACK">
-            <div className="etStackMeta"><span><b>역추적</b>{chain.length ? [...chain].map(id => dom(id).label).join(" ← ") : "출력 조사 전"}</span><span><b>가설</b>{meta.hypotheses.length ? meta.hypotheses.map(h => `${h.label} ${sorted[h.id] === "out" ? "반박" : sorted[h.id] === "hold" ? "보류" : "검토 전"}`).join(" · ") : "검토 전"}</span></div>
         {phase === "evidence" || phase === "output" ? <div className="etMemoSeed"><p className="etEmpty"><Icon name="detective" /> 출력을 고르면, 그 출력에 영향을 준 부품이 압정 카드로 올라와요.</p><div><span><small>관찰 사실</small><b>{start.label} 기준 이탈</b></span><span><small>최초 편차</small><b>아직 추적 전</b></span><span><small>원인 후보</small><b>검증 전에는 확정하지 않음</b></span></div></div>
           : phase === "trace" ? <><div className="etMugHead"><button className={`etReplay ${replayed ? "on" : ""}`} onClick={replay}>{replayed ? "✓ 입력 재생 중" : "▶ 고장 당시 입력 재생"}</button><small>지금 출력: {dom(focus).label} · 영향을 준 부품 {suspects.length}개</small></div><div className="etCandidateRow">{suspects.map((id, k) => { const d = dom(id), st = mugStatus(id); return <article key={id} className={`etMug m-${st} ${shake === id ? "shake" : ""}`}>
             <header><span>용의자 {String(k + 1).padStart(2, "0")}</span><em className={`stamp st-${st}`}>{STAMP_KO[st]}</em></header>
@@ -253,8 +247,6 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
                   <div className="etCarryRow tbSort">{meta.hypotheses.map(h => <span key={h.id} className={sorted[h.id] ?? "todo"}><b>{h.label}</b>{sorted[h.id] ? <em>{sorted[h.id] === "out" ? STAMP_KO.refuted : STAMP_KO.hold}</em> : <><button onClick={() => sortHyp(h.id, "out")}>반박</button><button onClick={() => sortHyp(h.id, "hold")}>보류</button></>}</span>)}</div>
                   <div className="etNext"><span>회귀 시험 {effects.length}곳 · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span><button className="dtNext stageProgressAction" disabled={!allSorted} onClick={finish}>다음: 요구사항 기반 로직 퍼즐 →</button></div></>}
             </div>}
-          </div>}
-        </div>
       </section>
 
       <div className="etBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(bubble)}</p></div>

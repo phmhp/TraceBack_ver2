@@ -84,10 +84,10 @@ test("FB-P1-01 links the final drive signal to visible vehicle-wheel rotation", 
   assert.match(vehicleLayout, /<CarContext strong=\{shell\} wheelActive=\{wheelActive\}/);
 });
 
-test("K-5 keeps the reverse trace central, evidence on the right, and a tactile memo board below", () => {
+test("K-5 keeps the reverse trace central, evidence/stack on the right, and candidates below", () => {
   assert.match(eeTrace, /중앙 도미노 역추적/);
   assert.match(eeTrace, /관찰·계측 증거/);
-  assert.match(eeTrace, /역추적 메모판/);
+  assert.match(eeTrace, /etEvidenceTabs/);
   assert.match(eeTrace, /검증 전에는 확정하지 않음/);
   assert.match(latestCss, /\.etLayout > \.etBoard \{ grid-column: 1; grid-row: 1; \}/);
   assert.match(latestCss, /\.etLayout > \.etEvidence \{ grid-column: 2; grid-row: 1; \}/);
@@ -105,17 +105,22 @@ test("P0 STEP02 keeps initial observations compact and attaches earned output po
   assert.match(latestCss, /grid-template-rows: minmax\(0, 1fr\) 176px 62px/);
 });
 
-test("STEP02 keeps evidence and reasoning stack in one persisted memo board without displacing candidates", () => {
+test("STEP02 keeps evidence and reasoning stack in the persisted right rail without displacing candidates", () => {
   const liveTrace = eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3"));
   assert.match(liveTrace, /const \[memoTab, setMemoTab\] = useState<"evidence" \| "stack">\(saved\.memoTab/);
   assert.match(liveTrace, /attached, sorted, memoTab, bubble/);
-  assert.match(liveTrace, /etMemoTabs/);
+  assert.match(liveTrace, /etEvidenceTabs/);
   assert.match(liveTrace, /추리 STACK/);
-  assert.match(liveTrace, /etMemoEvidence/);
-  assert.match(liveTrace, /etStackPanel/);
+  assert.match(liveTrace, /etEvidenceAttach/);
+  assert.match(liveTrace, /etEvidenceStack/);
   assert.match(liveTrace, /etCandidateRow/);
-  assert.match(latestCss, /\.etMugs \{ display: grid !important; grid-template-rows: auto minmax\(0, 1fr\)/);
+  assert.match(latestCss, /\.etEvidence > header > \.etEvidenceTabs/);
+  assert.match(latestCss, /\.etMugs \{ display: flex !important/);
   assert.match(latestCss, /\.etCandidateRow \{[\s\S]*overflow: hidden/);
+});
+
+test("FB-P1-01 keeps hover part labels as plain chocolate text", () => {
+  assert.match(latestCss, /\.garage3dLabel\.hoverPartLabel \{[\s\S]*border: 0 !important[\s\S]*color: #6b422d !important[\s\S]*font: 400 12px/);
 });
 
 test("replay confirmation uses the shared stamp action treatment without changing dialog controls", () => {
