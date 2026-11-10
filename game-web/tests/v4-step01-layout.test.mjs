@@ -106,6 +106,7 @@ test("M-01 through M-06 keep the whole view, fixed evidence slots, reverse trace
   assert.match(eeTrace, /출력에서 상류로 거슬러 올라간 경로/);
   assert.doesNotMatch(eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3")), /<DominoFall/);
   assert.match(refPuzzle, /rpZoomTools/);
+  assert.match(refPuzzle, /rpTrackZoom/);
   assert.match(refPuzzle, /receiptPrinting/);
   assert.match(latestCss, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\) !important/);
   assert.match(latestCss, /receiptPrint/);

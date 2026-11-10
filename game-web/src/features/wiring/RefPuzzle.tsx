@@ -675,6 +675,13 @@ export function RefPuzzleTrack({ caseId, progress, fixed, running, mode = "swint
     const r = box.current!.getBoundingClientRect(), px = event.clientX - r.left, py = event.clientY - r.top;
     setView(v => { const s = Math.min(2, Math.max(.3, v.s * (event.deltaY > 0 ? .9 : 1.1))); return { s, x: px - (px - v.x) * s / v.s, y: py - (py - v.y) * s / v.s }; });
   };
+  const stepZoom = (factor: number) => setView(v => {
+    const r = box.current?.getBoundingClientRect();
+    if (!r) return v;
+    const s = Math.min(2, Math.max(.3, v.s * factor));
+    const px = r.width / 2, py = r.height / 2;
+    return { s, x: px - (px - v.x) * s / v.s, y: py - (py - v.y) * s / v.s };
+  });
   const shown = Math.ceil(progress * ids.length - 1e-6);
   const io = (k: number) => ({ in: k > 0 ? "round" as Nub : undefined, out: k < n - 1 ? "round" as Nub : undefined });
   return <div className={`rpTrack ${running ? "running" : ""}`} ref={box} onWheel={zoom}
@@ -694,7 +701,9 @@ export function RefPuzzleTrack({ caseId, progress, fixed, running, mode = "swint
         <span className={`rpDisplay ${on ? got === want ? "ok" : "bad" : ""}`} style={{ left: cx, top: Y + PIECE + 18 }}>{on ? got : "—"}</span>
       </React.Fragment>; })}
     </div>
-    <button className="rpFit" onPointerDown={event => event.stopPropagation()} onClick={fit}>⤢ 맞춤</button>
-    <span className="rpTrackHint">휠: 확대·축소 · 끌기: 이동</span>
+    <div className="rpTrackZoom" role="group" aria-label="SW 로직 확대 축소" onPointerDown={event => event.stopPropagation()}>
+      <button aria-label="축소" onClick={() => stepZoom(.82)}>−</button><button onClick={fit}>맞춤</button><button aria-label="확대" onClick={() => stepZoom(1.22)}>+</button>
+    </div>
+    <span className="rpTrackHint">휠/버튼: 확대·축소 · 끌기: 이동</span>
   </div>;
 }
