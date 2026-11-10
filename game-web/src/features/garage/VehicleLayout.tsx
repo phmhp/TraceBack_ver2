@@ -196,7 +196,7 @@ function PlacedPart({ node, arrived, isInput, domain, feature, selected, onSelec
   const input = arrived ? (mode === "spin" ? 9 : mode === "rotate" ? .45 : 1) : 0;
   const [hovered, setHovered] = useState(false);
   const label = getFeatureLayer(domain, feature, 1)[node.index] ?? node.id;
-  const press = (action: "start" | "end") => dispatchEvent(new CustomEvent("tb-garage-input", { detail: { action } }));
+  const press = (action: "start" | "end") => dispatchEvent(new CustomEvent("tb-garage-input", { detail: { action, index: node.index } }));
   return <group position={offsetOf(node)} rotation={node.place.r ?? [0, 0, 0]}
     onPointerDown={isInput ? event => { event.stopPropagation(); press("start"); } : undefined}
     onPointerUp={isInput ? () => press("end") : undefined}

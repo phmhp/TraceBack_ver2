@@ -219,6 +219,7 @@
 .garageVehiclePartLabel.selected { color: #9a551e; font-weight: 700; }
 .vehiclePartInfo { position: absolute; z-index: 8; right: 13px; bottom: 12px; width: min(260px, 35%); display: grid; gap: 3px; padding: 8px 10px; border: 1px solid #dcb16a; border-radius: 10px; background: #fffaf0ee; box-shadow: 0 5px 14px #3b281d28; color: #593c2c; pointer-events: none; }
 .vehiclePartInfo small { color: #a45b31; font: 800 9px Pretendard, system-ui; }.vehiclePartInfo > b { font: 700 13px Pretendard, system-ui; }.vehiclePartInfo > span { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 5px; font: 500 10px/1.25 Pretendard, system-ui; }.vehiclePartInfo em { color: #8a684d; font-style: normal; }.vehiclePartInfo p { margin: 2px 0 0; color: #8a684d; font: 500 9px/1.25 Pretendard, system-ui; }
+.vehiclePartInfo > strong { padding: 3px 5px; border-radius: 5px; font: 800 9px/1.25 Pretendard, system-ui; }.vehiclePartInfo > strong.inputActive { color: #236f54; background: #e8f6eb; }.vehiclePartInfo > strong.inputIdle { color: #8a684d; background: #f4eee1; }
 
 /* ── Garage 3D (real layout): legend of what each cable carries, cable tag, step badges ── */
 .flowLegend { position: absolute; z-index: 5; left: 14px; bottom: 12px; display: grid; gap: 3px; padding: 7px 10px; border-radius: 10px; background: #fffdf6ee; border: 1px solid #e3d3c3; font: 600 11.5px Pretendard, system-ui; color: #4a3b2e; }

@@ -724,7 +724,7 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
     <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동{level === 0 && !allDomains ? " · 부품 클릭: 선택 · 더블클릭: 자세히" : ""}</span>
     {level === 0 && <PartInspector />}
     {level === 0 && !allDomains && !noDomain && <div className="flowLegend" aria-label="배선이 전달하는 것"><b>전달하는 것</b>{flowLegend(domain, feature).map(item => <span key={item.flow}><i style={{ background: item.color }} />{item.label}</span>)}</div>}
-    {vehicleSelection && <aside className="vehiclePartInfo" aria-live="polite"><small>{vehicleSelection.role === "input" ? "입력·센서" : vehicleSelection.role === "control" ? "제어기(ECU)" : vehicleSelection.role === "network" ? "통신" : vehicleSelection.role === "actuator" ? "액추에이터·부품" : "차량 반응"}</small><b>{vehicleSelection.label}</b><span><em>받는 신호</em>{vehicleSelection.input}</span><span><em>보내는 신호</em>{vehicleSelection.output}</span><p>드래그로 카메라를 움직일 때는 선택되지 않아요.</p></aside>}
+    {vehicleSelection && <aside className="vehiclePartInfo" aria-live="polite"><small>{vehicleSelection.role === "input" ? "입력·센서" : vehicleSelection.role === "control" ? "제어기(ECU)" : vehicleSelection.role === "network" ? "통신" : vehicleSelection.role === "actuator" ? "액추에이터·부품" : "차량 반응"}</small><b>{vehicleSelection.label}</b>{vehicleSelection.role === "input" && <strong className={inputOn ? "inputActive" : "inputIdle"}>{inputOn ? "입력이 선택됨 · 다음 스텝으로 신호를 관찰하세요" : "길게 눌러 입력을 선택하세요"}</strong>}<span><em>받는 신호</em>{vehicleSelection.input}</span><span><em>보내는 신호</em>{vehicleSelection.output}</span><p>드래그로 카메라를 움직일 때는 선택되지 않아요.</p></aside>}
     <div className="viewToggles">
       {level === 0 && <span className="view3dSeg">{(noDomain ? [["grid", "나란히"], ["overlay", "겹쳐 보기"]] as const : [["one", "이 도메인"], ["grid", "나란히"], ["overlay", "겹쳐 보기"]] as const).map(([id, label]: readonly [string, string]) => <button key={id} className={`shellToggle ${view3d === id ? "on" : ""}`} onClick={() => setView3d(id as "one" | "grid" | "overlay")}><Icon name={id === "one" ? "search" : id === "grid" ? "grid" : "layers"} /> {label}</button>)}</span>}
       {!allDomains && <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}><Icon name="car" /> 차체 {shell ? "숨기기" : "보기"}</button>}
@@ -966,16 +966,20 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const missing = mission.needs.filter(item => !conds.has(item.id));
   const flowLength = Math.max(getFeatureLayer(domain, feature, 1).length, getFeatureLayer(domain, feature, 3).length);
   const stopAuto = () => setAutoPlaying(false);
-  const toggleInput = () => {
+  const toggleInput = (inputIndex?: number) => {
     stopAuto();
+    if (inputIndex !== undefined) {
+      setSelectedVehiclePart(inputIndex);
+      setActiveStep(inputIndex);
+    }
     if (!inputSelected && missing.length) { setGateMsg(missing[0].why); play("error"); return; }
     setGateMsg("");
     setInputSelected(previous => !previous);
     play("pop", inputSelected ? .85 : 1.1);
   };
-  const beginInputHold = () => {
+  const beginInputHold = (inputIndex?: number) => {
     if (inputHold.current !== null) return;
-    inputHold.current = window.setTimeout(() => { inputHold.current = null; toggleInput(); }, 380);
+    inputHold.current = window.setTimeout(() => { inputHold.current = null; toggleInput(inputIndex); }, 380);
   };
   const endInputHold = () => { if (inputHold.current !== null) { window.clearTimeout(inputHold.current); inputHold.current = null; } };
   const toggleCondition = (id: string, index: number) => {
@@ -994,7 +998,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   useEffect(() => {
     const onInput = (event: Event) => {
       const action = (event as CustomEvent).detail?.action;
-      if (action === "start") beginInputHold();
+      if (action === "start") beginInputHold(Number.isInteger((event as CustomEvent).detail?.index) ? (event as CustomEvent).detail.index : undefined);
       else if (action === "end") endInputHold();
     };
     const onStep = (event: Event) => { stopAuto(); setActiveStep(Number((event as CustomEvent).detail?.index) || 0); play("pop"); };

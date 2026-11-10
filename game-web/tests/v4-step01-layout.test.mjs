@@ -58,7 +58,7 @@ test("K-4 keeps a manually inspected signal stage shared across the three views"
   assert.match(experience, /const \[autoPlaying, setAutoPlaying\] = useState\(false\)/);
   assert.match(experience, /const signalVisible = inputSelected/);
   assert.match(experience, /inputOn=\{signalVisible\}/);
-  assert.match(experience, /window\.setTimeout\(\(\) => \{ inputHold\.current = null; toggleInput\(\); \}, 380\)/);
+  assert.match(experience, /window\.setTimeout\(\(\) => \{ inputHold\.current = null; toggleInput\(inputIndex\); \}, 380\)/);
   assert.match(experience, /다음 스텝/);
   assert.match(experience, /자동재생/);
   assert.match(experience, /setAutoPlaying\(false\)/);
@@ -147,6 +147,15 @@ test("FB-P1-01 selects real Vehicle/System parts without treating camera drags a
   assert.match(experience, /onVehiclePartSelect=\{index => \{ setSelectedVehiclePart\(index\); setActiveStep\(index\); play\("pop"\); \}\}/);
   assert.match(experience, /vehiclePartInfo/);
   assert.match(latestCss, /\.vehiclePartInfo \{/);
+});
+
+test("FB-P1-01 long-presses a real input part before preserving its Vehicle/System selection", () => {
+  assert.match(vehicleLayout, /detail: \{ action, index: node\.index \}/);
+  assert.match(experience, /const toggleInput = \(inputIndex\?: number\)/);
+  assert.match(experience, /setSelectedVehiclePart\(inputIndex\)/);
+  assert.match(experience, /beginInputHold\(Number\.isInteger/);
+  assert.match(experience, /입력이 선택됨 · 다음 스텝으로 신호를 관찰하세요/);
+  assert.match(latestCss, /\.vehiclePartInfo > strong\.inputActive/);
 });
 
 test("FB-P1-02 keeps E/E signal lines behind components and view controls in the body", () => {
