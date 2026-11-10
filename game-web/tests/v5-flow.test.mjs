@@ -42,6 +42,20 @@ test("P1-B keeps WANTED analysis grounded in scenario and saved-step records", (
   assert.match(ending, /실행 기록이 남아 있지 않음/);
 });
 
+test("FB-P1-06 keeps WANTED on two required case pages with skippable report typing", () => {
+  assert.match(ending, /const REQUIRED_CASES = \["propulsion", "thermal"\]/);
+  assert.match(ending, /function WantedReport/);
+  assert.match(ending, /setTyped\(lead\.length\)/);
+  assert.match(ending, /CASE \$\{page \+ 1\}/);
+  assert.match(ending, /다음 →/);
+  assert.match(ending, /tb-step02-progress-/);
+  assert.match(ending, /contractStorageKey\(id\)/);
+  assert.match(ending, /tb-step04-progress-/);
+  assert.match(ending, /이 세션에 테스트 설계서 기록이 남아 있지 않음/);
+  assert.match(ending, /if \(escaped\) return <WantedReport/);
+  assert.doesNotMatch(ending.slice(ending.indexOf("function WantedReport"), ending.indexOf("function CaseBrief")), /brake/);
+});
+
 test("interaction rebuild keeps the requested core surfaces", () => {
   assert.match(experience, /OrbitControls/);
   assert.match(experience, /QUICK REPLAY/);

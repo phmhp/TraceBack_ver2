@@ -226,7 +226,82 @@ function AnalysisReport({ state, id }: { state: Campaign; id: CaseId }) {
   </details>;
 }
 
+const REQUIRED_CASES = ["propulsion", "thermal"] as const;
+
+type ReportItem = { label: string; value: string };
+
+function reportItems(state: Campaign, id: CaseId): { title: string; lead: string; items: ReportItem[] } {
+  const scenario = SCENARIOS[id], meta = SCENARIO_META[id];
+  const contract = fromSession<VerificationContract>(contractStorageKey(id));
+  const trace = fromSession<{ chain?: string[] }>(`tb-step02-progress-${id}`);
+  const bench = fromSession<Step04Record>(`tb-step04-progress-${id}`);
+  const root = meta.hypotheses.find(item => item.truth);
+  const verdict = bench?.lastRun?.verdict
+    ? `${bench.lastRun.verdict} · ${Object.values(bench.lastRun.vals ?? {}).join(" · ")}`
+    : "이 세션에 STEP04 실행 기록이 남아 있지 않음";
+  const judgement = root && bench?.answers?.[root.id]
+    ? `${bench.answers[root.id].answer ?? "판단"} · ${bench.answers[root.id].why ?? ""}`
+    : "이 세션에 가설 판단 기록이 남아 있지 않음";
+  const solved = state.completedCases.includes(id);
+  return {
+    title: scenario.chapter.replace("사건", "CASE"),
+    lead: `${scenario.symptom} ${CATEGORY[id]} 관점에서 실제 기록을 복습합니다.`,
+    items: [
+      { label: "원인·관찰 현상", value: `${root?.label ?? "시나리오 원인 미확인"} · ${scenario.symptom}` },
+      { label: "도메인·신호 경로", value: `${meta.domain} · ${SIGNAL_PATH[id]}` },
+      { label: "정상 제어 로직", value: meta.normalSpec },
+      { label: "STEP02 역추적", value: trace?.chain?.length ? trace.chain.join(" ← ") : "이 세션에 역추적 경로 기록이 남아 있지 않음" },
+      { label: "STEP03 테스트 설계서", value: contract ? `${contract.objective} · ${contract.stimulus.sequence} · 기대 ${contract.expected.value}` : "이 세션에 테스트 설계서 기록이 남아 있지 않음" },
+      { label: "STEP04 검증·가설", value: `${verdict} / ${judgement}` },
+      { label: "SW 수정·재시험", value: solved ? `${scenario.repair} · 완료 상태 기록됨` : "수리·동일 조건 재시험 완료 기록이 남아 있지 않음" },
+    ],
+  };
+}
+
+function WantedReport({ state, escaped }: { state: Campaign; escaped: boolean }) {
+  const [page, setPage] = React.useState(0);
+  const id = REQUIRED_CASES[page] as CaseId | undefined;
+  const report = id ? reportItems(state, id) : null;
+  const finalLead = escaped ? "필수 두 사건의 실제 기록을 연결해 주행 복귀와 항만 탈출 결과를 정리합니다." : "필수 두 사건의 실제 기록을 연결해 현재 추격 결과를 정리합니다.";
+  const lead = report?.lead ?? finalLead;
+  const [typed, setTyped] = React.useState(0);
+  React.useEffect(() => {
+    setTyped(0);
+    const timer = window.setInterval(() => setTyped(value => {
+      if (value >= lead.length) { window.clearInterval(timer); return lead.length; }
+      return value + 2;
+    }), 18);
+    return () => window.clearInterval(timer);
+  }, [lead]);
+  const complete = typed >= lead.length;
+  const pageLabel = page < 2 ? `CASE ${page + 1}` : "최종 결과";
+  const finalItems: ReportItem[] = [
+    { label: "필수 사건", value: `${REQUIRED_CASES.filter(caseId => state.completedCases.includes(caseId)).length} / 2 완료` },
+    { label: "주행 복귀", value: escaped ? "수리·검증 완료 뒤 기존 주행 위치에서 항만 탈출" : "탈출 실패 기록 · 다시 시도 시 저장된 사건 상태를 사용" },
+    { label: "검증 실행", value: `${state.benchRuns}회` },
+    { label: "진단 접근", value: "증상에서 출력 방향으로 거슬러 최초 편차를 찾고, 같은 입력의 SW 시험으로 가설을 구분한 뒤 수리 후 동일 조건으로 확인" },
+  ];
+  const items = report?.items ?? finalItems;
+  return <section className="cfBrief cfWantedReport" aria-label="최종 고장 분석 보고서">
+    <header className="cfBriefHead">
+      <small>{escaped ? "사건 파일 TB-16 · 종결" : "사건 파일 TB-16 · 체포 보고"}</small>
+      <h2>{pageLabel}</h2>
+      <span className="cfPageCount">{page + 1} / 3</span>
+    </header>
+    <p className="cfTypedLead" aria-live="polite">{lead.slice(0, typed)}{!complete && <i aria-hidden="true">▌</i>}</p>
+    <dl className={`cfReportGrid ${complete ? "is-complete" : ""}`}>
+      {items.map(item => <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}
+    </dl>
+    <footer className="cfPageNav">
+      <button className="cfBtn" onClick={() => setPage(value => Math.max(0, value - 1))} disabled={page === 0}>← 이전</button>
+      {!complete && <button className="cfBtn" onClick={() => setTyped(lead.length)}>전체 표시</button>}
+      <button className="cfBtn cfPrimary" onClick={() => setPage(value => Math.min(2, value + 1))} disabled={page === 2}>다음 →</button>
+    </footer>
+  </section>;
+}
+
 function CaseBrief({ state, escaped }: { state: Campaign; escaped: boolean }) {
+  if (escaped) return <WantedReport state={state} escaped={escaped} />;
   const value = score(state);
   const [safety, setSafety] = React.useState(false);
   return <section className="cfBrief">
