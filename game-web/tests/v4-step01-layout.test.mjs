@@ -92,7 +92,7 @@ test("the representative propulsion lesson separates control, HV energy and mech
 
 test("FB-P1-01 links the final drive signal to visible vehicle-wheel rotation", () => {
   assert.match(vehicleLayout, /function ContextWheel/);
-  assert.match(vehicleLayout, /wheel\.current\.rotation\.x -= delta \* 7/);
+  assert.match(vehicleLayout, /wheel\.current\.rotation\.z -= delta \* 7/);
   assert.match(vehicleLayout, /<PartModel id="wheel"/);
   assert.match(vehicleLayout, /domain === "drive" && \[0, 2, 3\]\.includes\(feature\) && inputOn/);
   assert.match(vehicleLayout, /<CarContext strong=\{shell\} wheelActive=\{wheelActive\}/);

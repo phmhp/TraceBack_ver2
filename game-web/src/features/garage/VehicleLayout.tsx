@@ -223,11 +223,14 @@ function SupportPart({ node, active }: { node: Node; active: boolean }) {
  * the shared signal has reached the vehicle-output stage. */
 function ContextWheel({ position, active }: { position: V3; active: boolean }) {
   const wheel = useRef<THREE.Group>(null);
-  useFrame((_, delta) => { if (wheel.current && active) wheel.current.rotation.x -= delta * 7; });
+  // The garage vehicle uses -X as its front, so the left/right axle is Z.
+  // Keep the tyre face in the X/Y plane and rotate every moving wheel part
+  // around Z; rotating around X makes the rim face the vehicle's front.
+  useFrame((_, delta) => { if (wheel.current && active) wheel.current.rotation.z -= delta * 7; });
   return <group position={position} ref={wheel}>
-    <mesh rotation={[0, Math.PI / 2, 0]}><torusGeometry args={[.27 * U, .07 * U, 12, 40]} /><meshStandardMaterial color="#2a302f" transparent opacity={.72} roughness={.8} /></mesh>
-    <PartModel id="wheel" scale={U * 2.8} input={0} castShadow={false} />
-    {[0, 1, 2, 3].map(index => <mesh key={index} rotation={[index * Math.PI / 2, 0, 0]}><boxGeometry args={[.035 * U, .34 * U, .025 * U]} /><meshStandardMaterial color="#aeb7b2" metalness={.55} roughness={.35} /></mesh>)}
+    <mesh><torusGeometry args={[.27 * U, .07 * U, 12, 40]} /><meshStandardMaterial color="#2a302f" transparent opacity={.72} roughness={.8} /></mesh>
+    <group rotation={[0, Math.PI / 2, 0]}><PartModel id="wheel" scale={U * 2.8} input={0} castShadow={false} /></group>
+    {[0, 1, 2, 3].map(index => <mesh key={index} rotation={[0, 0, index * Math.PI / 2]}><boxGeometry args={[.035 * U, .34 * U, .025 * U]} /><meshStandardMaterial color="#aeb7b2" metalness={.55} roughness={.35} /></mesh>)}
   </group>;
 }
 

@@ -2,6 +2,7 @@
 
 - HEAD: 이 문서가 포함된 최신 커밋
 - 공식 추적표(SSOT): `docs/REQUIREMENT_TRACEABILITY_FINAL_2026-11-10.md`
+- 2026-11-11 P0 차량 바퀴 축 수정: 현재 HEAD(`467951b`)에는 GLB/GLTF 원본이 없으며 차량은 절차형 Three.js 모델이다. 공용 `HeroConvertible`과 레이싱·후방 거울·경찰·교통차의 `RaceWheel`은 각각 차축 X축 기준으로 이미 정상이다. 다만 첨부 캡처가 가리킨 STEP01 `VehicleLayout` 컨텍스트 차량은 전방이 -X, 좌우 차축이 Z인데 `ContextWheel`이 X축 회전을 사용해 타이어/허브/스포크 면이 전후를 향했다. `VehicleLayout.tsx`에서 타이어는 기본 X/Y 평면, 허브는 Y축 +π/2, 스포크·애니메이션은 Z축으로 통일했다. `CarContext`가 같은 컴포넌트를 네 위치에 반복하므로 전·후·좌·우에 전역 반영된다. macOS Chrome 1536×960 및 1054×723 STEP01 Vehicle/System 실제 렌더에서 좌우 방향과 레이아웃을 확인했다. E/E·Control SW는 차량 컨텍스트 메시를 렌더하지 않으며 기존 전환만 회귀 확인했다.
 - 완료: N-01/N-02, P0-A/P0-B, P1-A/P1-B (UI 검증 대기 별도)
 - 완료: K-4.1/K-4.3/K-4.4/K-4.5의 공통 수동 신호 단계 보존(부분 구현, UI 검증 대기).
 - 완료: FB-P0-02~04 (STEP01 길게 누르기 토글·공통 단계/자동재생·라벨 넘침). 브라우저 UI 검증 대기.
@@ -15,6 +16,6 @@
 - 완료: FB-P1-06 WANTED 기본 2사건 CASE 1→CASE 2→최종 결과 페이지, 실제 STEP02~04 기록·건너뛸 수 있는 우측 타이핑(브라우저 UI 검증 대기).
 - 완료: FB-P1-07 STEP04 최초 가설 검증→SW 수정→동일 조건 기준선 비교→주행 복귀, 자동 회귀 목록 제거(브라우저 UI 검증 대기).
 - 남은 요구사항: FB-P1-01 잔여 도메인 직접 조작·라벨/배치 → K-5/L-4.2 → K-6/K-7/L-5.2/L-6.3/L-7~L-9 → FB-P2-01~06/P2 L-2.x. N/P0/P1/K-4/FB-P0/UI-RULE-01/FB-P1-01~07 연결 브라우저 UI 검증 대기.
-- 마지막 수정: `src/ui/game-shell.tsx`, `src/experiences.tsx`, `src/features/board/EeTrace.tsx`, `src/features/wiring/RefPuzzle.tsx`, `src/features/verification/VerificationLab.tsx`, `src/features/cutscenes/StaticCutscenes.tsx`, `src/p4-fix-1109.css`, `docs/REQUIREMENT_TRACEABILITY_FINAL_2026-11-10.md`, `WORK_HANDOFF.md`
-- 검증: 이번 증분에서 `npm test`와 `npm run build`를 각각 1회 실행했으나 Node/npm 부재로 모두 `command not found`(exit 127)였다. 기존 Chrome 탭(`localhost:5180`)은 새로고침 시 로컬 서버 종료로 `ERR_CONNECTION_REFUSED`여서 1536×960·1054×723 실제 QA를 수행하지 못했다. 이전 macOS Chrome 1536×960 STEP01→04 및 1054×723 STEP01의 **이전 헤더 구조** 프레임 확인 기록과, 과거 69/69·빌드 통과 기록은 보존하되 이번 HEAD의 실행 검증이 아니다.
+- 마지막 수정: `src/ui/game-shell.tsx`, `src/experiences.tsx`, `src/features/board/EeTrace.tsx`, `src/features/wiring/RefPuzzle.tsx`, `src/features/verification/VerificationLab.tsx`, `src/features/cutscenes/StaticCutscenes.tsx`, `src/p4-fix-1109.css`, `docs/REQUIREMENT_TRACEABILITY_FINAL_2026-11-10.md`, `WORK_HANDOFF.md` (이번 P0 감사는 문서만 갱신, 3D 코드·에셋 변경 없음)
+- 검증: 2026-11-11 P0 바퀴 축 감사에서 nvm Node `v20.20.2`/npm `10.8.2`로 `npm test`와 `npm run build`를 각각 1회 실행했다. 테스트는 49개 중 45개 통과·4개 실패이며, 실패 원인은 `tests/image-prompts.test.mjs`·`part-models.test.mjs`·`sim.test.mjs`가 `src/sim/components.ts`를, `vehicle.test.mjs`가 `src/features/vehicle/bake.ts`를 Node 기본 ESM loader로 직접 import해 `ERR_UNKNOWN_FILE_EXTENSION`이 난 기존 러너 설정이다. 빌드는 `node_modules/.bin/tsc: Permission denied`로 타입 검사 시작 전에 중단됐다. 브라우저는 로컬 `127.0.0.1:5180`에서 macOS Chrome 1536×960 공용 차량 쇼룸 및 CHASE_NORMAL, 1054×723 STEP01 Vehicle/System·E/E·Control SW를 실제 확인했다. 기존 Chrome 탭(`localhost:5180`) 오류 및 과거 UI 프레임 QA 기록은 보존한다.
 - 다음 작업: 기능 P0는 T-25(플레이어 가설 자동 덮어쓰기) → T-24(STEP03 계약의 실제 모델 입력 연결) → T-22(수리 선택의 모델 효과) → T-01/T-08(thermal 정답 기준/PWM 정합) 순서로 수정·실행 검증한다. UI 작업을 재개할 때는 개별 N-S02/N-S03/N-S04보다 먼저 UI-RULE-01/N-UI-01의 공통 헤더·폴더 연결부·본문 시작선·하단 80/20을 하나의 토큰 계약으로 정규화하고, STEP02 보드는 재배치하지 않는다. 이후 두 macOS 해상도와 Windows Chrome(L-9.3)에서 비교 QA한다.
