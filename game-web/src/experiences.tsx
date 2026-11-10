@@ -242,21 +242,21 @@ function SignalCable({ from, to, color = "#ef8c58", via = [] }: { from: [number,
 
 function GarageFlowPart({ label, position, kind, active, running, role, partId, inspect }: { label: string; position: [number, number, number]; kind: HardwareKind; active: boolean; running: boolean; role: string; partId?: string; inspect?: PartInspectTarget }) {
   const [hovered, setHovered] = useState(false);
-  // the input part (pedal, wheel, start button, selector) is operated directly: press and hold it
+  // the input part uses the same long-press toggle as the shared control bar
   const operable = role === "INPUT" && Boolean(inspect);
-  const press = (on: boolean) => dispatchEvent(new CustomEvent("tb-garage-input", { detail: { on } }));
+  const press = (action: "start" | "end") => dispatchEvent(new CustomEvent("tb-garage-input", { detail: { action } }));
   return <group
-    onPointerDown={operable ? event => { event.stopPropagation(); press(true); } : undefined}
-    onPointerUp={operable ? () => press(false) : undefined}
+    onPointerDown={operable ? event => { event.stopPropagation(); press("start"); } : undefined}
+    onPointerUp={operable ? () => press("end") : undefined}
     position={position}
     scale={active ? 1.08 : .82}
     onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = operable ? "pointer" : inspect ? "zoom-in" : "help"; }}
-    onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; if (operable) press(false); }}
+    onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; if (operable) press("end"); }}
     onDoubleClick={event => { if (!inspect) return; event.stopPropagation(); play("pop"); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: inspect })); }}
     onClick={!operable && inspect ? event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-garage-step", { detail: { index: inspect.index } })); } : undefined}
   >
     <HardwarePart kind={kind} active={active} running={running} partId={partId} />
-    {hovered && <PartLabel className="hoverPartLabel" position={[0, 1.16, 0]}>{operable ? `${label} · 꾹 누르면 입력` : `${label}${inspect ? " · 더블클릭: 자세히" : ""}`}</PartLabel>}
+    {hovered && <PartLabel className="hoverPartLabel" position={[0, 1.16, 0]}>{operable ? `${label} · 길게 눌러 입력 선택` : `${label}${inspect ? " · 더블클릭: 자세히" : ""}`}</PartLabel>}
   </group>;
 }
 
@@ -942,15 +942,13 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     setActiveStep(step);
     setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-${routeLevel}-${index}`));
   };
-  // Hold-to-apply input: the signal travels one step at a time only while the player keeps pressing
-  // (button or Space). Releasing removes the input and the signal falls back to the start.
+  // A long press chooses the live input.  It stays selected until the next long
+  // press so learners can inspect one shared signal stage in every view.
   const [eeLayer, setEeLayer] = useState<EeLayer>("logic");
-  // `manual` is the learner-controlled, paused version of the same live signal.
-  // It deliberately keeps the current signal stage while the learner switches
-  // between Vehicle/System, E/E, and Control SW views.
-  const [applyState, setApplyState] = useState<"idle" | "on" | "release" | "manual">("idle");
-  const applying = applyState === "on";
-  const signalVisible = applyState === "on" || applyState === "manual";
+  const [inputSelected, setInputSelected] = useState(false);
+  const [autoPlaying, setAutoPlaying] = useState(false);
+  const inputHold = useRef<number | null>(null);
+  const signalVisible = inputSelected;
   // Short Overcooked-style mission: switch on the preconditions, then hold the input.
   const [conds, setConds] = useState<Set<string>>(() => new Set());
   const [gateMsg, setGateMsg] = useState("");
@@ -958,8 +956,22 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(() => new Set());
   const mission = INPUT_MISSION[domain];
   const missing = mission.needs.filter(item => !conds.has(item.id));
+  const flowLength = Math.max(getFeatureLayer(domain, feature, 1).length, getFeatureLayer(domain, feature, 3).length);
+  const stopAuto = () => setAutoPlaying(false);
+  const toggleInput = () => {
+    stopAuto();
+    if (!inputSelected && missing.length) { setGateMsg(missing[0].why); play("error"); return; }
+    setGateMsg("");
+    setInputSelected(previous => !previous);
+    play("pop", inputSelected ? .85 : 1.1);
+  };
+  const beginInputHold = () => {
+    if (inputHold.current !== null) return;
+    inputHold.current = window.setTimeout(() => { inputHold.current = null; toggleInput(); }, 380);
+  };
+  const endInputHold = () => { if (inputHold.current !== null) { window.clearTimeout(inputHold.current); inputHold.current = null; } };
   const toggleCondition = (id: string, index: number) => {
-    setApplyState(previous => previous === "on" ? "release" : previous === "manual" ? "idle" : previous);
+    stopAuto(); setInputSelected(false); endInputHold();
     setConds(previous => {
       const next = new Set(previous);
       if (next.has(id)) mission.needs.slice(index).forEach(item => next.delete(item.id));
@@ -970,33 +982,31 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     setCleared(false);
     play("pop", conds.has(id) ? .8 : 1.15);
   };
-  const setApplying = (on: boolean) => {
-    if (on && missing.length) { setGateMsg(missing[0].why); play("error"); return; }
-    if (on) setGateMsg("");
-    setApplyState(previous => on ? "on" : previous === "on" ? "release" : previous);
-  };
-  useEffect(() => { setConds(new Set()); setGateMsg(""); setCleared(false); setApplyState("idle"); }, [domain, feature]);
+  useEffect(() => { setConds(new Set()); setGateMsg(""); setCleared(false); setInputSelected(false); setAutoPlaying(false); }, [domain, feature]);
   useEffect(() => {
-    const onInput = (event: Event) => setApplying(Boolean((event as CustomEvent).detail?.on));
-    const onStep = (event: Event) => { setActiveStep(Number((event as CustomEvent).detail?.index) || 0); play("pop"); };
+    const onInput = (event: Event) => {
+      const action = (event as CustomEvent).detail?.action;
+      if (action === "start") beginInputHold();
+      else if (action === "end") endInputHold();
+    };
+    const onStep = (event: Event) => { stopAuto(); setActiveStep(Number((event as CustomEvent).detail?.index) || 0); play("pop"); };
     addEventListener("tb-garage-input", onInput); addEventListener("tb-garage-step", onStep);
     return () => { removeEventListener("tb-garage-input", onInput); removeEventListener("tb-garage-step", onStep); };
   });
   useEffect(() => {
-    if (applyState === "idle" || applyState === "manual") return;
-    const length = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
-    if (applyState === "on") play("zip", 1.1);
+    if (!autoPlaying || !inputSelected) return;
     const timer = window.setInterval(() => setActiveStep(value => {
-      if (applyState === "on") { if (value + 1 >= length - 1 && !cleared) { setCleared(true); setCompletedLessons(previous => new Set(previous).add(`${domain}-${feature}`)); window.setTimeout(() => play("success"), 0); } return Math.min(length - 1, value + 1); }
-      if (value <= 0) { setApplyState("idle"); return 0; }
-      return value - 1;
-    }), applyState === "on" ? 520 : 240);
+      if (value >= flowLength - 1) { setAutoPlaying(false); return value; }
+      const next = value + 1;
+      if (next === flowLength - 1 && !cleared) { setCleared(true); setCompletedLessons(previous => new Set(previous).add(`${domain}-${feature}`)); window.setTimeout(() => play("success"), 0); }
+      return next;
+    }), 1200);
     return () => window.clearInterval(timer);
-  }, [applyState, domain, feature, routeLevel, cleared]);
+  }, [autoPlaying, inputSelected, flowLength, domain, feature, cleared]);
   useEffect(() => {
     if (!chosen) return;
-    const down = (event: KeyboardEvent) => { if (event.code === "Space" && !event.repeat && !(event.target instanceof HTMLInputElement)) { event.preventDefault(); setApplying(true); } };
-    const up = (event: KeyboardEvent) => { if (event.code === "Space") setApplying(false); };
+    const down = (event: KeyboardEvent) => { if (event.code === "Space" && !event.repeat && !(event.target instanceof HTMLInputElement)) { event.preventDefault(); beginInputHold(); } };
+    const up = (event: KeyboardEvent) => { if (event.code === "Space") endInputHold(); };
     addEventListener("keydown", down); addEventListener("keyup", up);
     return () => { removeEventListener("keydown", down); removeEventListener("keyup", up); };
   });
@@ -1039,11 +1049,11 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         <MechanismViewer key={chosen ? "domain" : "all"} inputOn={signalVisible} eeLayer={eeLayer} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {chosen && <div className="inputBar" aria-label="입력 넣기">
-          <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (applying ? `${INPUT_ACTION[domain]} 입력이 전달되는 중` : applyState === "manual" ? "선택한 신호 단계를 세 관점에서 확인 중" : cleared ? NORMAL_RESPONSE[domain] : missing.length ? `${conds.size ? "준비 중" : "차량 OFF"} · ${missing[0].label}부터 켜세요` : READY_RESPONSE[domain])}</p>
+          <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (inputSelected ? "입력이 선택됨 · 다음 스텝으로 신호를 관찰하세요" : cleared ? NORMAL_RESPONSE[domain] : missing.length ? `${conds.size ? "준비 중" : "차량 OFF"} · ${missing[0].label}부터 켜세요` : READY_RESPONSE[domain])}</p>
           {mission.needs.map((item, index) => { const locked = mission.needs.slice(0, index).some(previous => !conds.has(previous.id)); return <button key={item.id} disabled={locked} className={`ctlBtn conditionCtl ${conds.has(item.id) ? "on" : ""} ${locked ? "locked" : ""}`} onClick={() => toggleCondition(item.id, index)}><i>{conds.has(item.id) ? "✓" : index + 1}</i><span>{item.label}</span></button>; })}
-          <button disabled={missing.length > 0} className={`ctlBtn mainCtl ${applying ? "pressing" : ""}`} onPointerDown={event => { event.preventDefault(); setApplying(true); }} onPointerUp={() => setApplying(false)} onPointerLeave={() => setApplying(false)} onPointerCancel={() => setApplying(false)}><i>{mission.needs.length + 1}</i><span>{INPUT_ACTION[domain]}</span><small>꾹 · Space</small></button>
+          <button disabled={missing.length > 0} className={`ctlBtn mainCtl ${inputSelected ? "pressing" : ""}`} onPointerDown={event => { event.preventDefault(); beginInputHold(); }} onPointerUp={endInputHold} onPointerLeave={endInputHold} onPointerCancel={endInputHold}><i>{mission.needs.length + 1}</i><span>{INPUT_ACTION[domain]}</span><small>{inputSelected ? "선택됨 · 꾹 해제" : "꾹 · Space"}</small></button>
         </div>}
-        {chosen && routeLevel === 2 && <div className="swStepControls" aria-label="제어 소프트웨어 단계 조작"><button className="ctlBtn" onClick={() => { setApplyState("idle"); setActiveStep(0); play("pop"); }}>처음</button><button className="ctlBtn" onClick={() => { if (missing.length) { setGateMsg(missing[0].why); play("error"); return; } setApplyState("manual"); setActiveStep(value => Math.min(getFeatureLayer(domain, feature, 3).length - 1, value + 1)); play("pop", 1.1); }}>한 단계</button></div>}
+        {chosen && <div className="swStepControls garageStepControls" aria-label="공통 신호 단계 조작"><button className="ctlBtn" onClick={() => { stopAuto(); if (!inputSelected) { setGateMsg("먼저 입력을 길게 눌러 선택하세요."); play("error"); return; } if (activeStep >= flowLength - 1) { setActiveStep(0); setCleared(false); } else setActiveStep(value => { const next = value + 1; if (next === flowLength - 1) { setCleared(true); setCompletedLessons(previous => new Set(previous).add(`${domain}-${feature}`)); } return next; }); play("pop", 1.1); }}>{activeStep >= flowLength - 1 ? "처음으로" : "다음 스텝"}</button><button className="ctlBtn" onClick={() => { if (!inputSelected) { setGateMsg("먼저 입력을 길게 눌러 선택하세요."); play("error"); return; } setAutoPlaying(value => !value); }}>{autoPlaying ? "일시정지" : "자동재생"}</button></div>}
         {SHOW_EE_TABS && chosen && routeLevel === 1 && (() => {
           const parts = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
           const pullOut = (index: number) => { setRemoved(index); setActiveStep(index); setEcuCard(null); setTriedRemovals(previous => new Set(previous).add(`${domain}-${feature}-${index}`)); play("squish"); };

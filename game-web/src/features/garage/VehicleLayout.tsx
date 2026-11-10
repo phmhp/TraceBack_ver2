@@ -194,11 +194,11 @@ function PlacedPart({ node, arrived, isInput, domain, feature }: { node: Node; a
   const model = useMemo(() => getPartModel(node.id), [node.id]);
   const mode = model.moving[0]?.mode;
   const input = arrived ? (mode === "spin" ? 9 : mode === "rotate" ? .45 : 1) : 0;
-  const press = (on: boolean) => dispatchEvent(new CustomEvent("tb-garage-input", { detail: { on } }));
+  const press = (action: "start" | "end") => dispatchEvent(new CustomEvent("tb-garage-input", { detail: { action } }));
   return <group position={offsetOf(node)} rotation={node.place.r ?? [0, 0, 0]}
-    onPointerDown={isInput ? event => { event.stopPropagation(); press(true); } : undefined}
-    onPointerUp={isInput ? () => press(false) : undefined}
-    onPointerOut={isInput ? () => { press(false); document.body.style.cursor = ""; } : undefined}
+    onPointerDown={isInput ? event => { event.stopPropagation(); press("start"); } : undefined}
+    onPointerUp={isInput ? () => press("end") : undefined}
+    onPointerOut={isInput ? () => { press("end"); document.body.style.cursor = ""; } : undefined}
     onPointerOver={isInput ? event => { event.stopPropagation(); document.body.style.cursor = "pointer"; } : undefined}
     onClick={!isInput ? event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-garage-step", { detail: { index: node.index } })); } : undefined}
     onDoubleClick={event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: { domain, feature, index: node.index } })); }}>

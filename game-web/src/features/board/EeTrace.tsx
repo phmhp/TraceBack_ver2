@@ -60,6 +60,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const [replayed, setReplayed] = useState(Boolean(saved.replayed));
   const [zoomPol, setZoomPol] = useState<string | null>(null);
   const [evidencePage, setEvidencePage] = useState<number>(saved.evidencePage ?? 0);
+  const [attached, setAttached] = useState<string[]>(saved.attached ?? []);
   const [sorted, setSorted] = useState<Record<string, "out" | "hold">>(saved.sorted ?? {});
   const [bubble, setBubble] = useState(saved.bubble ?? `왼쪽 폴라로이드를 눌러 크게 보세요. 기준과 비교할 수 있는 기록에서 다른 곳을 찾으세요.`);
   const [replayOpen, setReplayOpen] = useState(false);
@@ -67,24 +68,25 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const suspects = focus ? causesOf(focus) : [];
   const cleared = suspects.length > 0 && suspects.every(id => stamps[id] === "refuted");
   const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
-  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ phase, chain, measured, stamps, mistakes, sectionPick, replayed, evidencePage, sorted, bubble })); } catch { /* ignore */ } }, [phase, chain, measured, stamps, mistakes, sectionPick, replayed, evidencePage, sorted, bubble, progressKey]);
-  const resetStage = () => { setPhase("evidence"); setChain([]); setMeasured([]); setStamps({}); setMistakes(0); setSectionPick(null); setReplayed(false); setZoomPol(null); setEvidencePage(0); setSorted({}); setBubble("처음부터 증거를 비교해 보세요."); try { sessionStorage.removeItem(progressKey); sessionStorage.removeItem(`tb-impact-${caseId}`); sessionStorage.removeItem(`tb-section-${caseId}`); sessionStorage.removeItem(`tb-step03-progress-${caseId}`); sessionStorage.removeItem(`tb-step04-progress-${caseId}`); sessionStorage.removeItem(`tb-expect-${caseId}`); sessionStorage.removeItem(`tb-verification-contract-${caseId}`); } catch { /* ignore */ } };
+  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ phase, chain, measured, stamps, mistakes, sectionPick, replayed, evidencePage, attached, sorted, bubble })); } catch { /* ignore */ } }, [phase, chain, measured, stamps, mistakes, sectionPick, replayed, evidencePage, attached, sorted, bubble, progressKey]);
+  const resetStage = () => { setPhase("evidence"); setChain([]); setMeasured([]); setStamps({}); setMistakes(0); setSectionPick(null); setReplayed(false); setZoomPol(null); setEvidencePage(0); setAttached([]); setSorted({}); setBubble("운전자 진술과 계기판 정보를 확인해 보세요."); try { sessionStorage.removeItem(progressKey); sessionStorage.removeItem(`tb-impact-${caseId}`); sessionStorage.removeItem(`tb-section-${caseId}`); sessionStorage.removeItem(`tb-step03-progress-${caseId}`); sessionStorage.removeItem(`tb-step04-progress-${caseId}`); sessionStorage.removeItem(`tb-expect-${caseId}`); sessionStorage.removeItem(`tb-verification-contract-${caseId}`); } catch { /* ignore */ } };
   const nope = (id: string, text: string) => { setBubble(text); setShake(id); setMistakes(n => n + 1); showVerdict(false); window.setTimeout(() => setShake(""), 420); };
 
-  // 1) evidence: the drive record differs from the reference
+  // 1) initial observations orient the learner; the output polaroid is earned
+  // only after the E/E output has been investigated and is attached by choice.
   const findEvidence = (which: "quote" | "lamp" | "record") => {
     if (phase !== "evidence") return;
-    if (which !== "record") { play("pop"); setBubble(which === "quote" ? "진술은 느낌이에요. 기준과 비교할 수 있는 기록에서 다른 곳을 찾아보세요." : "경고등은 결과로 켜진 것일 수 있어요. 기준과 비교할 수 있는 기록을 보세요."); return; }
-    play("stamp"); showVerdict(true, "증거 확보"); setZoomPol(null);
+    if (which === "lamp") { play("pop"); setBubble("계기판 정보는 결과일 수 있어요. 운전자 진술로 증상을 먼저 확인하세요."); return; }
+    play("stamp"); showVerdict(true, "증상 확인"); setZoomPol(null);
     setPhase("output");
-    setBubble(`${start.label}${josa(start.label, "이", "가")} 기준보다 ${start.ref > start.run ? "낮아요" : "달라요"}. 오른쪽 E/E 판에서 이 증상이 나오는 출력을 고르세요.`);
+    setBubble(`${QUOTE[caseId]} E/E 판에서 이 증상을 만드는 출력 '${start.label}'을 고르세요.`);
   };
   // 2) pick the output on the board
   const pickNode = (id: string) => {
     if (phase === "output") {
       if (id !== data.start) { nope(id, `${dom(id).label}${josa(dom(id).label, "은", "는")} 증거에 나온 증상이 아니에요. 증거는 '${start.label}'이에요.`); return; }
       play("zip"); setChain([id]); setPhase("trace");
-      setBubble(`${start.label}${josa(start.label, "을", "를")} 만드는 데 영향을 주는 부품이 아래에 용의자로 올라왔어요. 입력을 재생한 뒤 하나씩 재 보세요.`);
+      setBubble(`${start.label}${josa(start.label, "을", "를")} 확인한 폴라로이드가 아래에 나왔어요. 증거판에 붙인 뒤, 입력을 재생하고 용의자를 하나씩 재 보세요.`);
       return;
     }
     if (phase === "trace" && suspects.includes(id)) measure(id);
@@ -176,15 +178,14 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   }, [chain.join("|"), focus, phase]); // eslint-disable-line react-hooks/exhaustive-deps
   const nodeState = (id: string) => chain.includes(id) ? (id === focus && phase === "trace" ? "focus" : "likely") : stamps[id] === "refuted" ? "refuted" : phase === "trace" && suspects.includes(id) ? "suspect" : phase === "output" && dom(id).zone === "차량" ? "pickable" : "idle";
 
-  // evidence polaroids: what the team saw (statement · cluster · drive record · road) + every measurement
+  // Initial evidence is intentionally limited to the driver statement and cluster.
+  // E/E output and measurement polaroids are earned below, then attached by the learner.
   const obs = OBSERVED[caseId];
   type Pol = { id: string; kind: string; title: string; sub: string; photo: React.ReactNode; dom?: Dom };
   const pols: Pol[] = [
     { id: "quote", kind: "quote", title: `${DRIVER} 진술`, sub: "운전자 체감", photo: <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /> },
     { id: "lamp", kind: "lamp", title: "계기판", sub: LAMP[caseId].label, photo: <span className="polIcon"><Icon name="warning" /></span> },
-    { id: "record", kind: "record", title: `주행 기록 · ${start.label}`, sub: phase === "evidence" ? "기준과 비교" : "증거 확보", photo: <Photo src={start.img} />, dom: start },
-    { id: "road", kind: "road", title: obs[3].label, sub: obs[3].value, photo: <span className="polIcon"><Icon name="road" /></span> },
-    ...measured.map(id => dom(id)).map(d => ({ id: d.id, kind: `m s-${d.status}`, title: d.label, sub: d.status === "bad" ? "기준과 다름" : "기준과 같음", photo: <Photo src={d.img} />, dom: d })),
+    ...attached.map(id => dom(id)).map(d => ({ id: d.id, kind: `m s-${d.status}`, title: d.label, sub: d.status === "bad" ? "기준과 다름" : "기준과 같음", photo: <Photo src={d.img} />, dom: d })),
   ];
   const zoomed = pols.find(item => item.id === zoomPol);
   const evidencePages = Math.max(1, Math.ceil(pols.length / 6));
@@ -192,6 +193,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const coach = state.completedCases.length ? "" : phase === "evidence" ? "evidence" : phase === "output" ? "output" : phase === "trace" ? (replayed ? "measure" : "replay") : phase === "section" ? "section" : !allSorted ? "sort" : "next";
   const mugStatus = (id: string): keyof typeof STAMP_KO => stamps[id] ?? (measured.includes(id) ? "measured" : "untested");
   const evidenceCards = [start, ...measured.map(dom)].filter((d, i, all) => all.findIndex(x => x.id === d.id) === i);
+  const attachEvidence = (id: string) => { setAttached(previous => previous.includes(id) ? previous : [...previous, id]); play("stamp"); setBubble(`${dom(id).label} 폴라로이드를 증거판에 붙였어요.`); };
 
   return <div className="dtBoard eeTrace" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
@@ -206,7 +208,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       {/* right: independent evidence rail */}
       <section className="etEvidence">
         <header><b><Icon name="camera" /> 관찰·계측 증거</b><small>독립 증거 레일 · {scenario.title}</small><OpenBookButton caseId={caseId} /></header>
-        <div className="polBoard">{visiblePols.map(item => <button key={item.id} className={`pol ${item.kind} ${item.id === "record" && phase === "evidence" ? "find" : ""}`} onClick={() => { setZoomPol(item.id); play("pop"); }}>
+        <div className="polBoard">{visiblePols.map(item => <button key={item.id} className={`pol ${item.kind} ${item.id === "quote" && phase === "evidence" ? "find" : ""}`} onClick={() => { if (item.id === "quote" && phase === "evidence") findEvidence("quote"); else { setZoomPol(item.id); play("pop"); } }}>
           <i className="pin" /><span className="polPhoto">{item.photo}</span><b>{item.title}</b><small>{item.sub}</small>
         </button>)}</div>{evidencePages > 1 && <div className="polPager"><button disabled={evidencePage === 0} onClick={() => setEvidencePage(page => Math.max(0, page - 1))}>이전 묶음</button><span>{evidencePage + 1}/{evidencePages}</span><button disabled={evidencePage >= evidencePages - 1} onClick={() => setEvidencePage(page => Math.min(evidencePages - 1, page + 1))}>다음 증거 묶음</button></div>}
       </section>
@@ -227,7 +229,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       <section className="etMugs">
         <header className="etMemoHead"><b><Icon name="pin" /> 역추적 메모판</b><small>관찰 사실과 최초 편차를 원인 후보와 분리해 기록합니다.</small><span><i>관찰</i><i>최초 편차</i><i>원인 후보</i></span></header>
         {phase === "evidence" || phase === "output" ? <div className="etMemoSeed"><p className="etEmpty"><Icon name="detective" /> 출력을 고르면, 그 출력에 영향을 준 부품이 압정 카드로 올라와요.</p><div><span><small>관찰 사실</small><b>{start.label} 기준 이탈</b></span><span><small>최초 편차</small><b>아직 추적 전</b></span><span><small>원인 후보</small><b>검증 전에는 확정하지 않음</b></span></div></div>
-          : phase === "trace" ? <><div className="etMugHead"><button className={`etReplay ${replayed ? "on" : ""}`} onClick={replay}>{replayed ? "✓ 입력 재생 중" : "▶ 고장 당시 입력 재생"}</button><small>지금 출력: {dom(focus).label} · 영향을 준 부품 {suspects.length}개</small></div>{suspects.map((id, k) => { const d = dom(id), st = mugStatus(id); return <article key={id} className={`etMug m-${st} ${shake === id ? "shake" : ""}`}>
+          : phase === "trace" ? <><div className="etMugHead"><button className={`etReplay ${replayed ? "on" : ""}`} onClick={replay}>{replayed ? "✓ 입력 재생 중" : "▶ 고장 당시 입력 재생"}</button><small>지금 출력: {dom(focus).label} · 영향을 준 부품 {suspects.length}개</small></div><div className="etPolaroidTray" aria-label="새 폴라로이드">{evidenceCards.map(d => <button key={d.id} className={attached.includes(d.id) ? "attached" : ""} onClick={() => attachEvidence(d.id)} disabled={attached.includes(d.id)}><Photo src={d.img} /><span><b>{d.label}</b><small>{attached.includes(d.id) ? "증거판에 붙임" : "증거판에 붙이기"}</small></span></button>)}</div>{suspects.map((id, k) => { const d = dom(id), st = mugStatus(id); return <article key={id} className={`etMug m-${st} ${shake === id ? "shake" : ""}`}>
             <header><span>용의자 {String(k + 1).padStart(2, "0")}</span><em className={`stamp st-${st}`}>{STAMP_KO[st]}</em></header>
             <div className="etMugPhoto"><Photo src={d.img} /><i className="etHeights" /></div>
             <b>{d.label}</b><small>{d.zone}</small>
@@ -251,16 +253,11 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     {zoomed && <div className="polZoom" onClick={() => setZoomPol(null)}><article className="polBig" onClick={event => event.stopPropagation()}>
       <button className="polClose" aria-label="닫기" onClick={() => setZoomPol(null)}>×</button>
       <i className="pin" />
-      {zoomed.id === "record" ? <div className="polDiff">
-        <button className="polDiffPic" onClick={() => { play("pop"); setBubble("기준 주행은 정상 기록이에요. 이번 주행 쪽을 보세요."); }}><Photo src={start.img} /><small>기준 주행</small><Gauge dom={{ ...start, run: start.ref, status: "ok" }} /></button>
-        <button className="polDiffPic odd" onClick={() => findEvidence("record")}><Photo src={start.img} /><small>이번 주행</small><Gauge dom={start} /></button>
-      </div> : <span className="polPhoto big">{zoomed.photo}</span>}
+      <span className="polPhoto big">{zoomed.photo}</span>
       <b>{zoomed.title}</b>
-      {zoomed.id === "quote" && <p>"{QUOTE[caseId]}"<small>진술은 체감이에요. 기준과 비교할 수 있는 기록에서 다른 곳을 찾아보세요.</small></p>}
+      {zoomed.id === "quote" && <p>"{QUOTE[caseId]}"<small>이 증상을 만드는 차량 출력을 E/E 판에서 조사하세요.</small></p>}
       {zoomed.id === "lamp" && <p>{LAMP[caseId].label} · {LAMP[caseId].note}<small>경고등은 결과로 켜진 것일 수 있어요.</small></p>}
-      {zoomed.id === "road" && <p>{obs.map(o => <span key={o.label} className="polRow"><em>{o.label}</em>{o.value}</span>)}</p>}
-      {zoomed.id === "record" && <p>{phase === "evidence" ? "두 기록 중 기준과 다른 쪽을 누르세요." : "이번 주행이 기준보다 낮았어요. 이 증상이 출발점이에요."}</p>}
-      {zoomed.dom && zoomed.id !== "record" && <p><span className="polRow"><em>원본 기록</em>기준 <code>{refText(zoomed.dom)}</code> · 이번 <code>{fmt(zoomed.dom.run)}{zoomed.dom.unit ? ` ${zoomed.dom.unit}` : ""}</code></span>{zoomed.dom.t !== undefined && <span className="polRow"><em>달라진 시각</em><code>{fmt(zoomed.dom.t)} {unit}</code></span>}<span className="polRow"><em>위치</em>{zoomed.dom.zone}</span><Gauge dom={zoomed.dom} /></p>}
+      {zoomed.dom && <p><span className="polRow"><em>원본 기록</em>기준 <code>{refText(zoomed.dom)}</code> · 이번 <code>{fmt(zoomed.dom.run)}{zoomed.dom.unit ? ` ${zoomed.dom.unit}` : ""}</code></span>{zoomed.dom.t !== undefined && <span className="polRow"><em>달라진 시각</em><code>{fmt(zoomed.dom.t)} {unit}</code></span>}<span className="polRow"><em>위치</em>{zoomed.dom.zone}</span><Gauge dom={zoomed.dom} /></p>}
     </article></div>}
     <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
     {replayOpen && <ReplayConfirm impact="STEP03 퍼즐과 STEP04 시험 계약·실행 기록도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); resetStage(); }} />}

@@ -52,12 +52,14 @@ test("V4 STEP 01 is electrically quiet until conditions and live input are appli
 });
 
 test("K-4 keeps a manually inspected signal stage shared across the three views", () => {
-  assert.match(experience, /"idle" \| "on" \| "release" \| "manual"/);
-  assert.match(experience, /const signalVisible = applyState === "on" \|\| applyState === "manual"/);
+  assert.match(experience, /const \[inputSelected, setInputSelected\] = useState\(false\)/);
+  assert.match(experience, /const \[autoPlaying, setAutoPlaying\] = useState\(false\)/);
+  assert.match(experience, /const signalVisible = inputSelected/);
   assert.match(experience, /inputOn=\{signalVisible\}/);
-  assert.match(experience, /applyState === "idle" \|\| applyState === "manual"/);
-  assert.match(experience, /setApplyState\("manual"\); setActiveStep/);
-  assert.match(experience, /선택한 신호 단계를 세 관점에서 확인 중/);
+  assert.match(experience, /window\.setTimeout\(\(\) => \{ inputHold\.current = null; toggleInput\(\); \}, 380\)/);
+  assert.match(experience, /다음 스텝/);
+  assert.match(experience, /자동재생/);
+  assert.match(experience, /setAutoPlaying\(false\)/);
   assert.doesNotMatch(experience, /setActiveStep\(0\); setRemoved\(null\); setEcuCard\(null\); setCulprit\(null\); setGuess\(null\); setLabMode\("flow"\); \}, \[feature, routeLevel\]\);/);
 });
 
@@ -82,6 +84,16 @@ test("K-5 keeps the reverse trace central, evidence on the right, and a tactile 
   assert.match(latestCss, /\.etLayout > \.etEvidence \{ grid-column: 2; grid-row: 1; \}/);
   assert.match(latestCss, /\.etLayout > \.etMugs \{ grid-column: 1 \/ -1; grid-row: 2; \}/);
   assert.match(latestCss, /-webkit-line-clamp: 2/);
+});
+
+test("P0 STEP02 keeps initial observations compact and attaches earned output polaroids by click", () => {
+  const liveTrace = eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3"));
+  assert.match(liveTrace, /const \[attached, setAttached\]/);
+  assert.match(liveTrace, /const attachEvidence/);
+  assert.match(liveTrace, /증거판에 붙이기/);
+  assert.match(liveTrace, /item\.id === "quote" && phase === "evidence"/);
+  assert.doesNotMatch(liveTrace, /id: "road"/);
+  assert.match(latestCss, /grid-template-rows: minmax\(0, 1fr\) 176px 62px/);
 });
 
 test("K-6 hands an explicit STEP03 experiment contract to STEP04", () => {
