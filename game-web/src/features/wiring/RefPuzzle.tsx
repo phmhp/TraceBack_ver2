@@ -576,7 +576,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   return <div className="refPuzzle v2" data-coach={coach}>
     {reaction && <ActuatorReaction key={reaction} caseId={caseId} ok={reaction === "ok"} />}
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="검증 준비" title="요구사항 기반 로직 퍼즐" distanceMeters={state.policeGapMeters} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증 준비" title="요구사항 기반 로직 퍼즐" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageFolderSubtitle className="puzzleStageFolder" action="고장 원인을 구별할 시험 조건과 정상 기준을 완성하세요." detail={<>이전 결과: {section} <i>|</i> 의심 구간: {RIG_GOAL[caseId]}</>} />
     <StageIntro id="puzzle-v2" title="요구사항 기반 로직 퍼즐" goal="주어진 요구사항대로 퍼즐을 구성해요." steps={[

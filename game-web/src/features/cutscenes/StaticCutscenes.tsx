@@ -80,7 +80,7 @@ export function RepairSequence({ state, send }: { state: Campaign; send: Send })
   const repairLabel = state.caseId === "propulsion" ? "페달 신호 변환 로직" : state.caseId === "thermal" ? "팬 PWM 출력 어댑터 SW" : "압력 명령 I/O 어댑터 SW";
   return <div className="staticCutscene repairStillScene">
     <SceneBackdrop image={`${A}cutscene-repair-v1.png`} position="center" shade="none" />
-    <GameHeader chapter="수리" title="검증된 수리 적용" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="수리" title="검증된 수리 적용" progressScene={state.scene} distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} onPause={() => send({ type: "PAUSE" })} />
     <main className="repairStillLayout">
       <section className="repairResultCard">
         <small>ENGINEER MING · VERIFIED FIX</small>

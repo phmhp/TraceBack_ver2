@@ -51,15 +51,22 @@ export function GameHeader({
   chapter,
   title,
   distanceMeters,
+  raceDistanceMeters,
   onPause,
   progressScene,
 }: {
   chapter: string;
   title: string;
   distanceMeters?: number;
+  raceDistanceMeters?: number;
   onPause: () => void;
   progressScene?: string;
 }) {
+  const routeProgress = raceDistanceMeters === undefined ? 88 : Math.min(100, raceDistanceMeters / 12);
+  const playerMarker = Math.max(5, routeProgress);
+  const policeMarker = distanceMeters === undefined
+    ? 1
+    : Math.max(1, Math.min(96, playerMarker - Math.max(4, distanceMeters / 12)));
   return (
     <header className="gameHeader">
       <button className="brandLockup" aria-label="일시정지 메뉴 열기" onClick={onPause}>
@@ -77,6 +84,10 @@ export function GameHeader({
       {distanceMeters !== undefined && (
         <div className="pressureMeter gapOnly" aria-label={`추격 차량과 거리 ${Math.round(distanceMeters)}미터`}>
           <span>추격차 격차</span>
+          <div className="headerPursuitGraphic" aria-hidden="true">
+            <i className="headerPoliceMarker" style={{ left: `${policeMarker}%` }}><img src="/assets/ui/icons/police-car.svg" alt="" /></i>
+            <i className="headerPlayerMarker" style={{ left: `${playerMarker}%` }}><img src="/assets/ui/icons/getaway-car.svg" alt="" /></i>
+          </div>
           <b>{Math.round(distanceMeters)}m</b>
         </div>
       )}

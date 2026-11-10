@@ -1464,7 +1464,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const coach = state.completedCases.length ? "" : phase === "lab" && !shown ? "run" : phase === "lab" ? "answer" : "";
   return <div className="vbBench v7 qa qa2" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="검증" title="시뮬레이션 검증" distanceMeters={state.policeGapMeters} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증" title="시뮬레이션 검증" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageFolderSubtitle className="benchStageFolder" action="의심한 SW를 시험·수정하고 정상 차량과 결과를 비교하세요." detail={<>이전 결과: 테스트 설계서 <i>|</i> 비교: 정상 기준선 ↔ 수정 후 차량</>} />
     <StageIntro id="bench-qa2" title="시뮬레이션 검증" goal="정상 시나리오와 고장 재현 시나리오를 비교해보아요." steps={[
