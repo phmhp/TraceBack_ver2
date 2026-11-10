@@ -75,6 +75,14 @@ test("the representative propulsion lesson separates control, HV energy and mech
   assert.match(vehicleLayout, /mechanical_torque/);
 });
 
+test("FB-P1-01 links the final drive signal to visible vehicle-wheel rotation", () => {
+  assert.match(vehicleLayout, /function ContextWheel/);
+  assert.match(vehicleLayout, /wheel\.current\.rotation\.x -= delta \* 7/);
+  assert.match(vehicleLayout, /<PartModel id="wheel"/);
+  assert.match(vehicleLayout, /domain === "drive" && \[0, 2, 3\]\.includes\(feature\) && inputOn/);
+  assert.match(vehicleLayout, /<CarContext strong=\{shell\} wheelActive=\{wheelActive\}/);
+});
+
 test("K-5 keeps the reverse trace central, evidence on the right, and a tactile memo board below", () => {
   assert.match(eeTrace, /중앙 도미노 역추적/);
   assert.match(eeTrace, /관찰·계측 증거/);

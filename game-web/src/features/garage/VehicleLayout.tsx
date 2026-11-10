@@ -215,8 +215,20 @@ function SupportPart({ node, active }: { node: Node; active: boolean }) {
   </group>;
 }
 
+/** The final drive response: hub, tyre and spokes rotate together only after
+ * the shared signal has reached the vehicle-output stage. */
+function ContextWheel({ position, active }: { position: V3; active: boolean }) {
+  const wheel = useRef<THREE.Group>(null);
+  useFrame((_, delta) => { if (wheel.current && active) wheel.current.rotation.x -= delta * 7; });
+  return <group position={position} ref={wheel}>
+    <mesh rotation={[0, Math.PI / 2, 0]}><torusGeometry args={[.27 * U, .07 * U, 12, 40]} /><meshStandardMaterial color="#2a302f" transparent opacity={.72} roughness={.8} /></mesh>
+    <PartModel id="wheel" scale={U * 2.8} input={0} castShadow={false} />
+    {[0, 1, 2, 3].map(index => <mesh key={index} rotation={[index * Math.PI / 2, 0, 0]}><boxGeometry args={[.035 * U, .34 * U, .025 * U]} /><meshStandardMaterial color="#aeb7b2" metalness={.55} roughness={.35} /></mesh>)}
+  </group>;
+}
+
 /** Faint car around the parts: body outline, floor and four tyres at the real wheel positions. */
-function CarContext({ strong }: { strong: boolean }) {
+function CarContext({ strong, wheelActive = false }: { strong: boolean; wheelActive?: boolean }) {
   const body = useMemo(() => {
     const s = new THREE.Shape();
     // side profile in metres (front = -x): bumper, hood, windshield, roof, rear glass, trunk
@@ -228,7 +240,7 @@ function CarContext({ strong }: { strong: boolean }) {
   return <group>
     <mesh position={[0, 0, -.9 * U]}><extrudeGeometry args={[body, { depth: 1.8 * U, bevelEnabled: false }]} /><meshStandardMaterial color="#d94e45" transparent opacity={strong ? .16 : .05} depthWrite={false} side={THREE.DoubleSide} /></mesh>
     <mesh position={[0, .05, 0]}><boxGeometry args={[4.4 * U, .02, 1.6 * U]} /><meshStandardMaterial color="#8d9a95" transparent opacity={.25} depthWrite={false} /></mesh>
-    {[-1.67, 1.67].flatMap(x => [-.78, .78].map(z => <mesh key={`${x}${z}`} position={[x * U, .33 * U, z * U]}><torusGeometry args={[.27 * U, .07 * U, 12, 40]} /><meshStandardMaterial color="#2a302f" transparent opacity={.55} roughness={.8} /></mesh>))}
+    {[-1.67, 1.67].flatMap(x => [-.78, .78].map(z => <ContextWheel key={`${x}${z}`} position={[x * U, .33 * U, z * U]} active={wheelActive} />))}
   </group>;
 }
 
@@ -251,10 +263,11 @@ export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell }
   const energizedStep = inputOn ? activeStep : -1;
   const arrived = (index: number) => inputOn && energizedStep >= index;
   const signalAt = (index: number) => signals[Math.min(signals.length - 1, Math.round(index * (signals.length - 1) / Math.max(1, getFeatureLayer(domain, feature, 1).length - 1)))];
+  const wheelActive = domain === "drive" && [0, 2, 3].includes(feature) && inputOn && energizedStep >= getFeatureLayer(domain, feature, 1).length - 1;
   return <group position={centre} rotation={[0, -.18, 0]}>
     {/* drei Html drops the first label after a canvas remount: a hidden one goes first */}
     <Html position={[0, -40, 0]}><span /></Html>
-    <CarContext strong={shell} />
+    <CarContext strong={shell} wheelActive={wheelActive} />
     {drivePower && <>
       <SupportPart node={drivePower.battery} active={inputOn} />
       <SupportPart node={drivePower.contactor} active={inputOn} />
