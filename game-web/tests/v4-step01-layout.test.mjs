@@ -8,6 +8,7 @@ const capture = readFileSync(new URL("../scripts/capture-ui.mjs", import.meta.ur
 const vehicleLayout = readFileSync(new URL("../src/features/garage/VehicleLayout.tsx", import.meta.url), "utf8");
 const eeBlueprint = readFileSync(new URL("../src/features/garage/EeBlueprint.tsx", import.meta.url), "utf8");
 const eeTrace = readFileSync(new URL("../src/features/board/EeTrace.tsx", import.meta.url), "utf8");
+const replayConfirm = readFileSync(new URL("../src/ui/ReplayConfirm.tsx", import.meta.url), "utf8");
 const refPuzzle = readFileSync(new URL("../src/features/wiring/RefPuzzle.tsx", import.meta.url), "utf8");
 const verificationLab = readFileSync(new URL("../src/features/verification/VerificationLab.tsx", import.meta.url), "utf8");
 const verificationContract = readFileSync(new URL("../src/game/verificationContract.ts", import.meta.url), "utf8");
@@ -102,6 +103,27 @@ test("P0 STEP02 keeps initial observations compact and attaches earned output po
   assert.match(liveTrace, /item\.id === "quote" && phase === "evidence"/);
   assert.doesNotMatch(liveTrace, /id: "road"/);
   assert.match(latestCss, /grid-template-rows: minmax\(0, 1fr\) 176px 62px/);
+});
+
+test("STEP02 keeps evidence and reasoning stack in one persisted memo board without displacing candidates", () => {
+  const liveTrace = eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3"));
+  assert.match(liveTrace, /const \[memoTab, setMemoTab\] = useState<"evidence" \| "stack">\(saved\.memoTab/);
+  assert.match(liveTrace, /attached, sorted, memoTab, bubble/);
+  assert.match(liveTrace, /etMemoTabs/);
+  assert.match(liveTrace, /추리 STACK/);
+  assert.match(liveTrace, /etMemoEvidence/);
+  assert.match(liveTrace, /etStackPanel/);
+  assert.match(liveTrace, /etCandidateRow/);
+  assert.match(latestCss, /\.etMugs \{ display: grid !important; grid-template-rows: auto minmax\(0, 1fr\)/);
+  assert.match(latestCss, /\.etCandidateRow \{[\s\S]*overflow: hidden/);
+});
+
+test("replay confirmation uses the shared stamp action treatment without changing dialog controls", () => {
+  assert.match(replayConfirm, /className="replayCancel"/);
+  assert.match(replayConfirm, /className="primary replayConfirmAction"/);
+  assert.match(latestCss, /\.replayConfirm footer \.replayConfirmAction \{ border: 2px solid #a0281e/);
+  assert.match(latestCss, /\.replayConfirm footer \.replayConfirmAction:hover:not\(:disabled\)/);
+  assert.match(latestCss, /\.replayConfirm footer button:focus-visible/);
 });
 
 test("K-6 hands an explicit STEP03 experiment contract to STEP04", () => {
