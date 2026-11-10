@@ -13,8 +13,8 @@
 - 완료: FB-P1-04 주행 로고·고양이/시간 한 행, 계기판·미니맵 대칭 lane, 추격 거리 아래 BGM·효과음 토글 정렬(브라우저 UI 검증 대기).
 - 완료: FB-P1-05 STEP03/04 `테스트 설계서` 표시 통일, 보드 내부 확대 도구, 고정 종이·텍스트 출력 및 우하단 빨간 도장형 확정(브라우저 UI 검증 대기).
 - 완료: FB-P1-06 WANTED 기본 2사건 CASE 1→CASE 2→최종 결과 페이지, 실제 STEP02~04 기록·건너뛸 수 있는 우측 타이핑(브라우저 UI 검증 대기).
-- 분석 완료 · 구현 대기: FB-P1-07 (STEP04 개발용 정답 경로와 정상 경로를 구분했고, 동일 조건 기준선 비교 검증으로 후속 재설계 필요).
-- 남은 요구사항: FB-P1-01 잔여 도메인 직접 조작·라벨/배치 → FB-P1-07 UI 후속 → FB-P0-01 STEP02 보드 재배치 → K-5/L-4.2 → K-6/K-7/L-5.2/L-6.3/L-7~L-9 → FB-P2-01~06/P2 L-2.x. N/P0/P1/K-4/FB-P0/UI-RULE-01/FB-P1-01~06 연결 브라우저 UI 검증 대기.
-- 마지막 수정: `src/ui/CaseFileEnding.tsx`, `src/ending-v19.css`, `tests/v5-flow.test.mjs`
-- 검증: `npm test` 65/65 및 `npm run build` 통과. `npm run check:independence`는 package script 부재로 실행 불가. 브라우저 UI 검증 대기.
-- 다음 작업: 기존 P1 순서상 FB-P1-07(STEP04 동일 조건 기준선 비교 검증) 한 묶음. FB-P1-01은 입력 부품/직접 조작 범위 확장과 1054×723 UI 검증이 남는다.
+- 완료: FB-P1-07 STEP04 최초 가설 검증→SW 수정→동일 조건 기준선 비교→주행 복귀, 자동 회귀 목록 제거(브라우저 UI 검증 대기).
+- 남은 요구사항: FB-P1-01 잔여 도메인 직접 조작·라벨/배치 → FB-P0-01 STEP02 보드 재배치 → K-5/L-4.2 → K-6/K-7/L-5.2/L-6.3/L-7~L-9 → FB-P2-01~06/P2 L-2.x. N/P0/P1/K-4/FB-P0/UI-RULE-01/FB-P1-01~07 연결 브라우저 UI 검증 대기.
+- 마지막 수정: `src/features/verification/VerificationLab.tsx`, `tests/v4-step01-layout.test.mjs`
+- 검증: `npm test` 66/66 및 `npm run build` 통과. `npm run check:independence`는 package script 부재로 실행 불가. 브라우저 UI 검증 대기.
+- 다음 작업: 기존 P1 순서상 FB-P0-01(STEP02 우측 추리 보드 재배치) 한 묶음. FB-P1-01은 입력 부품/직접 조작 범위 확장과 1054×723 UI 검증이 남는다.

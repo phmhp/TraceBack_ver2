@@ -1346,7 +1346,6 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const meta = SCENARIO_META[caseId];
   const questions = QUESTIONS[caseId];
   const expect = (() => { try { return sessionStorage.getItem(`tb-expect-${caseId}`) ?? ""; } catch { return ""; } })();
-  const regression: string[] = (() => { try { const fromBoard = JSON.parse(sessionStorage.getItem(`tb-impact-${caseId}`) ?? "null"); return Array.isArray(fromBoard) && fromBoard.length ? fromBoard : regressionTests[caseId]; } catch { return regressionTests[caseId]; } })();
   const progressKey = `tb-step04-progress-${caseId}`;
   const savedProgress = (() => { try { return JSON.parse(sessionStorage.getItem(progressKey) ?? "null") ?? {}; } catch { return {}; } })();
   const [qi, setQi] = useState<number>(savedProgress.qi ?? 0);
@@ -1360,7 +1359,6 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [cost, setCost] = useState<number>(savedProgress.cost ?? 0);
   const [mistakes, setMistakes] = useState<number>(savedProgress.mistakes ?? 0);
   const [fix, setFix] = useState<number | null>(savedProgress.fix ?? null);
-  const [regDone, setRegDone] = useState<number>(savedProgress.regDone ?? 0);
   const [viewTab, setViewTab] = useState<"sw" | "ecu" | "plant" | "graph">(savedProgress.viewTab ?? requestedView);
   const [bubble, setBubble] = useState(savedProgress.bubble ?? `${DRIVER_NAME}의 질문에 시험 결과로 답하세요. 시험 수준과 입력 조건을 고르고 '시험 실행'을 누르세요.`);
   const [help, setHelp] = useState(false);
@@ -1386,8 +1384,10 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const fmtV = (sig: Series, v: number) => `${v.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}`;
   const word = (sig: Series) => { const d = divergeIndex(sig); if (d === null) return "같음"; return sig.run[d] > sig.ref[d] ? "높음" : "낮음"; };
   const shown = Boolean(lastRun && lastRun.level === level && !running);
-  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ qi, phase, level, u, lastRun, answers, cost, mistakes, fix, regDone, viewTab, bubble, pickedDeriv, show3d })); } catch { /* ignore */ } }, [qi, phase, level, u, lastRun, answers, cost, mistakes, fix, regDone, viewTab, bubble, pickedDeriv, show3d, progressKey]);
-  const resetStage = () => { setQi(0); setPhase("pick"); setLevel(requestedLevel); setU(0); setRunning(false); setLastRun(null); setAnswers({}); setCost(0); setMistakes(0); setFix(null); setRegDone(0); setViewTab(requestedView); setPickedDeriv(null); setShow3d("run"); setBubble(`${DRIVER_NAME}의 질문에 시험 결과로 답하세요. 시험 수준과 입력 조건을 고르고 '시험 실행'을 누르세요.`); try { sessionStorage.removeItem(progressKey); } catch { /* ignore */ } };
+  const sameConditionCompare = phase === "retest" || phase === "done";
+  const inNormalRange = (sig: Series) => fixed && shown && word(sig) === "같음";
+  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ qi, phase, level, u, lastRun, answers, cost, mistakes, fix, viewTab, bubble, pickedDeriv, show3d })); } catch { /* ignore */ } }, [qi, phase, level, u, lastRun, answers, cost, mistakes, fix, viewTab, bubble, pickedDeriv, show3d, progressKey]);
+  const resetStage = () => { setQi(0); setPhase("pick"); setLevel(requestedLevel); setU(0); setRunning(false); setLastRun(null); setAnswers({}); setCost(0); setMistakes(0); setFix(null); setViewTab(requestedView); setPickedDeriv(null); setShow3d("run"); setBubble(`${DRIVER_NAME}의 질문에 시험 결과로 답하세요. 시험 수준과 입력 조건을 고르고 '시험 실행'을 누르세요.`); try { sessionStorage.removeItem(progressKey); } catch { /* ignore */ } };
 
   const pickTest = (lv: Lv) => { setPickedDeriv(null); setShow3d("run"); setLevel(lv); setViewTab(lv === "unit" || lv === "swint" ? "sw" : lv === "embedded" ? "ecu" : "plant"); setU(0); setLastRun(null); setPhase("lab"); play("pop");
     setBubble(`${TEST_CARD[lv].name}. 이 시험에서 무엇이 실물인지 확인하고 '시험 실행'을 누르세요.`); };
@@ -1406,7 +1406,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       setLastRun({ obs, verdict, vals, fixed: isFixed, level: lv });
       setViewTab("graph");
       if (isFixed) {
-        if (verdict === "PASS") { play("stamp"); showVerdict(true, "통과"); setBubble("수리한 차량이 같은 시험에서 기대값과 같아요. 영향을 받았던 곳도 회귀 시험해요."); regression.forEach((_, i) => window.setTimeout(() => { setRegDone(i + 1); play("pop", 1 + i * .1); }, 600 + i * 420)); window.setTimeout(() => setPhase("done"), 700 + regression.length * 420); }
+        if (verdict === "PASS") { play("stamp"); showVerdict(true, "통과"); setBubble("수정 후 결과가 같은 입력·초기 조건의 정상 기준선과 같아요. 신호·제어 출력·차량 반응이 정상 범위를 충족했는지 확인하세요."); window.setTimeout(() => setPhase("done"), 700); }
         else setBubble("아직 기대값과 달라요.");
         return;
       }
@@ -1433,7 +1433,6 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       else { setPhase("report"); setBubble(`질문에 모두 답했어요. 보고서를 ${DRIVER_NAME}에게 보여 주고, 수정 담당에 요청할 조치를 고르세요.`); }
     }, 1100);
   };
-  const proof = questions.map(item => answers[item.hyp]).find(a => a?.answer === "supported");
   const pickFix = (i: number) => {
     setFix(i);
     const item = FIXES[caseId][i];
@@ -1441,8 +1440,10 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     showVerdict(true, "조치 요청"); setBubble(`${item.why} 같은 시험으로 다시 확인하세요.`);
     const expectedProgram = caseId === "propulsion" ? "nominal" : caseId === "thermal" ? "thermal_closed_loop" : "blended_brake";
     if (state.program[caseId] !== expectedProgram) send({ type: "COMPILE", program: expectedProgram });
-    const lv = (Object.keys(TEST_CARD) as Lv[]).find(l => proof?.evidence.startsWith(TEST_CARD[l].name)) ?? "vehicle";
-    window.setTimeout(() => { setLevel(lv); setViewTab(lv === "unit" || lv === "swint" ? "sw" : lv === "embedded" ? "ecu" : "plant"); setU(0); setLastRun(null); setPhase("retest"); }, 800);
+    // The repair check keeps the selected contract input and initial state, then
+    // uses the vehicle-level record so signal, controller output, and response share one comparison table.
+    const compareLevel: Lv = "vehicle";
+    window.setTimeout(() => { setLevel(compareLevel); setViewTab("plant"); setU(0); setLastRun(null); setPhase("retest"); setBubble("같은 초기 조건과 입력으로 정상 기준선·수정 후 신호·제어 출력·차량 반응을 비교하세요."); }, 800);
   };
   const finish = () => send({ type: "BENCH_RESULT", pass: true, causeCorrect: true });
   const reveal = () => { setAnswers(Object.fromEntries(questions.map(item => { const h = meta.hypotheses.find(x => x.id === item.hyp)!; return [item.hyp, { answer: h.truth ? "supported" as Answer : "refuted" as Answer, why: h.rules[0]?.why ?? h.stage1 ?? "", evidence: "개발용 정답" }]; }))); setPhase("report"); };
@@ -1518,7 +1519,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               {phase === "lab" && <div className="qaLevels" role="group" aria-label="시험 수준"><small>시험 환경</small>{QA_LEVELS.map(lv => <button key={lv} className={level === lv ? "on" : ""} disabled={running} onClick={() => pickTest(lv)}><Icon name={TEST_CARD[lv].pic} /><span>{TEST_CARD[lv].name}<em>{LV[order(lv)].name} · 비용 <code>{LV_COST[lv]}</code></em></span></button>)}</div>}
               {phase === "lab" && CASE_DERIVS[caseId].length > 1 && <div className="qaInputs"><small>02 · 입력 조건을 하나 고르세요</small>{CASE_DERIVS[caseId].map(d => <button key={d.id} className={deriv === d.id ? "on" : ""} disabled={running} onClick={() => { setPickedDeriv(d.id); setLastRun(null); setU(0); play("pop"); setBubble(`입력을 '${d.input}'(으)로 골랐어요. 정상 모델과 고장 모델에 같은 입력이 들어가요.`); }}>{d.input}</button>)}</div>}
               <div className="qaRunState"><i className={running ? "running" : shown ? "done" : "ready"} /><span>{running ? "실행 중 · 같은 입력 유지" : shown ? "비교 데이터 준비 완료" : "조건 확인 완료 · 실행 대기"}</span></div>
-              {phase !== "done" && !(phase === "lab" && shown) && <button className="vbGo qaRunButton" disabled={running || (phase === "lab" && CASE_DERIVS[caseId].length > 1 && !pickedDeriv)} onClick={run}>{running ? "시험 중…" : phase === "lab" && CASE_DERIVS[caseId].length > 1 && !pickedDeriv ? "입력 조건을 먼저 고르세요" : phase === "retest" ? "▶ 같은 조건으로 재시험" : "▶ 정상·사건 동시 실행"}</button>}
+              {phase !== "done" && !(phase === "lab" && shown) && <button className="vbGo qaRunButton" disabled={running || (phase === "lab" && CASE_DERIVS[caseId].length > 1 && !pickedDeriv)} onClick={run}>{running ? "시험 중…" : phase === "lab" && CASE_DERIVS[caseId].length > 1 && !pickedDeriv ? "입력 조건을 먼저 고르세요" : phase === "retest" ? "▶ 동일 조건 기준선 비교 실행" : "▶ 기준선·사건 결과 비교 실행"}</button>}
             </aside>
             <div className="v7View">
               <nav className="v7Tabs">{([["sw", "SW 로직"], ["ecu", "제어기·I/O"], ["plant", "부품·차량"]] as const).map(([id, name]) => <button key={id} className={viewTab === id ? "on" : ""} onClick={() => { setViewTab(id); play("pop"); }}>{name}{(id === "sw" ? true : id === "ecu" ? ecuReal : plantReal) ? <i>실물</i> : <i className="model">모델</i>}</button>)}<button className={`graphTab ${viewTab === "graph" ? "on" : ""}`} onClick={() => { setViewTab("graph"); play("pop"); }}>모니터링</button></nav>
@@ -1531,17 +1532,16 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
             <aside className="qaPanel qaObservePanel" aria-label="관찰 및 판정">
               <header className="qaObserveHead"><small>03 · 관찰·판정</small><b>{shown && lastRun ? `시험 결과 · ${VERDICT_KO[lastRun.verdict]}` : "기대값과 실제값 비교"}</b><span>가설 판단은 시험 결과와 별도로 선택</span></header>
               {phase === "lab" && <div className="qaCriteria"><small><Icon name="target" /> 판단 기준 · "{q.ask}"</small><p>{numify(PREDICT[q.hyp])}</p></div>}
-              {phase !== "lab" && <div className="qaCriteria"><small><Icon name="repeat" /> 재시험</small><p>수리한 차량으로 같은 시험을 다시 해서 기대값과 같은지 확인해요.</p></div>}
+              {phase !== "lab" && <div className="qaCriteria"><small><Icon name="repeat" /> 동일 조건 기준선 비교 검증</small><p>수리한 SW 결과를 같은 초기 조건·입력의 정상 기준선과 나란히 비교해요.</p></div>}
               <table className="qaTable">
-                <thead><tr><th>신호</th><th>기대값</th><th>시험 결과</th><th>비교</th></tr></thead>
+                <thead><tr><th>신호</th><th>{sameConditionCompare ? "정상 기준선" : "기대값"}</th><th>{sameConditionCompare ? "수정 후 결과" : "시험 결과"}</th><th>{sameConditionCompare ? "정상 범위" : "비교"}</th></tr></thead>
                 <tbody>{list.map(sig => { const i = at(sig), w = word(sig), look = phase === "lab" && lookAt.has(sig.id); return <tr key={sig.id} className={`${look ? "look" : ""}`}>
                   <td>{look && <em className="qaLook">볼 곳</em>}{sig.name}</td>
                   <td>{fmtV(sig, sig.ref[i])}</td>
                   <td>{shown ? fmtV(sig, sig.run[i]) : running ? "측정 중…" : "—"}</td>
-                  <td>{shown ? <b className={`qaW w-${w}`}>{w}</b> : "—"}</td>
+                  <td>{shown ? <b className={`qaW w-${w}`}>{sameConditionCompare ? inNormalRange(sig) ? "충족" : "미충족" : w}</b> : "—"}</td>
                 </tr>; })}</tbody>
               </table>
-              {(phase === "retest" || phase === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "통과" : "…"}</em></li>)}</ul></div>}
               <div className="qaFoot">
                 {phase === "lab" && shown ? <div className="qaAnswers">{(["supported", "refuted", "open"] as Answer[]).map(a => <button key={a} className={`ans-${a}`} onClick={() => answer(a)}><b>{ANSWER_BTN[a][0]}</b><small>{ANSWER_BTN[a][1]}</small></button>)}</div>
                   : phase === "done" ? <small className="qaFinishHint">오른쪽 아래 ‘수리 적용 · 주행 복귀’로 다음 단계로 이동합니다.</small> : null}
@@ -1549,7 +1549,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               </div>
             </aside>
             <section className="qaTimeline" aria-label="동일 시간축 신호 비교">
-              <header><span><small>04 · 동일 시간축 비교</small><b>정상 기준 <i className="ref" /> 사건 재현 <i className="run" /></b></span><em>{contract.comparison.timeAxis} · {contract.comparison.units}</em><strong>{shown ? "최초 편차 표시됨" : running ? "신호 기록 중" : "실행 후 최초 편차 확인"}</strong></header>
+              <header><span><small>04 · {sameConditionCompare ? "동일 조건 기준선 비교 검증" : "동일 시간축 비교"}</small><b>정상 기준 <i className="ref" /> {sameConditionCompare ? "수정 후 결과" : "사건 재현"} <i className="run" /></b></span><em>{contract.comparison.timeAxis} · {contract.comparison.units}</em><strong>{shown ? sameConditionCompare ? "정상 범위 충족 여부 표시됨" : "최초 편차 표시됨" : running ? "신호 기록 중" : "실행 후 최초 편차 확인"}</strong></header>
               <div><OverlayGraph list={list} upto={shown ? 1 : running ? u : 0} look={lookAt} /></div>
             </section>
           </section>}

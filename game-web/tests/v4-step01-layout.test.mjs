@@ -209,6 +209,18 @@ test("K-7 exposes every simulation view to Chrome QA without a technique-name qu
   assert.doesNotMatch(verificationLab.slice(verificationLab.indexOf("export function TwinBenchExperience")), /기법명 객관식/);
 });
 
+test("FB-P1-07 verifies the repaired software against one same-condition baseline", () => {
+  const bench = verificationLab.slice(verificationLab.indexOf("export function TwinBenchExperience"));
+  assert.match(bench, /const compareLevel: Lv = "vehicle"/);
+  assert.match(bench, /동일 조건 기준선 비교 검증/);
+  assert.match(bench, /정상 기준선/);
+  assert.match(bench, /수정 후 결과/);
+  assert.match(bench, /정상 범위 충족 여부 표시됨/);
+  assert.match(bench, /inNormalRange\(sig\) \? "충족" : "미충족"/);
+  assert.doesNotMatch(bench, /regression\.forEach/);
+  assert.doesNotMatch(bench, /▶ 정상·사건 동시 실행/);
+});
+
 test("M-01 through M-06 keep the whole view, fixed evidence slots, reverse trace, and receipt contract", () => {
   assert.match(experience, /전체보기/);
   assert.match(experience, /showAllDomains/);
