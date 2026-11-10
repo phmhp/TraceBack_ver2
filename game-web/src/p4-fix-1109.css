@@ -539,8 +539,11 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
 .eeBodyTools button:focus-visible { outline: 3px solid #e5b55a; outline-offset: 2px; }
 .garageMechanismCard > .swStepControls { position: absolute; z-index: 9; right: 14px; top: 14px; display: flex; gap: 6px; }
 .garageMechanismCard > .swStepControls .ctlBtn { width: 82px; min-width: 82px; height: 32px; justify-content: center; padding: 0 8px; border-radius: 9px; border: 1.5px solid #cdb79a; background: #fffdf6; color: #5b4636; font: 700 12px Pretendard, system-ui; box-shadow: 0 2px 0 #cdb79a; cursor: pointer; }
-.garageMechanismCard > .garageStepControls { top: auto; right: 14px; bottom: 14px; }
-.garageMechanismCard > .garageStepControls .ctlBtn { width: auto; min-width: 76px; }
+/* FB-P1-03: one shared bottom-right control rail for all three STEP01 views. */
+.garageMechanismCard > .garageStepControls { top: auto; right: 14px; bottom: 14px; max-width: calc(100% - 28px); align-items: center; }
+.garageMechanismCard > .garageStepControls .ctlBtn { width: 96px; min-width: 96px; height: 36px; }
+.softwareView .simulinkSvg .simWireLayer { pointer-events: none; }
+.softwareView .simulinkSvg .simPortLayer, .softwareView .simulinkSvg .simNodeLayer { isolation: isolate; }
 .garageLayerNav .viewAxisLabel { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stageIntro { z-index: 500 !important; }
 .garageV2 .gameHeader { z-index: 30 !important; }
@@ -554,6 +557,8 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
   .inputBar { width: 96%; gap: 5px; }
   .inputBar .ctlBtn { width: 112px; min-width: 112px; padding: 0 8px; font-size: 12px; }
   .inputBar .mainCtl { width: 176px; min-width: 176px; }
+  .garageMechanismCard > .garageStepControls { right: 10px; bottom: 10px; }
+  .garageMechanismCard > .garageStepControls .ctlBtn { width: 92px; min-width: 92px; }
 }
 /* arrest record: the stamp sits over the photos, never over the note text */
 .is-caught .cfStamp { bottom: auto !important; top: 26% !important; right: 34% !important; font-size: 40px !important; padding: 2px 18px !important; opacity: .9; }

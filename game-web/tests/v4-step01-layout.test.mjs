@@ -7,6 +7,7 @@ const latestCss = readFileSync(new URL("../src/p4-fix-1109.css", import.meta.url
 const capture = readFileSync(new URL("../scripts/capture-ui.mjs", import.meta.url), "utf8");
 const vehicleLayout = readFileSync(new URL("../src/features/garage/VehicleLayout.tsx", import.meta.url), "utf8");
 const eeBlueprint = readFileSync(new URL("../src/features/garage/EeBlueprint.tsx", import.meta.url), "utf8");
+const simulinkDiagram = readFileSync(new URL("../src/features/garage/SimulinkDiagram.tsx", import.meta.url), "utf8");
 const eeTrace = readFileSync(new URL("../src/features/board/EeTrace.tsx", import.meta.url), "utf8");
 const replayConfirm = readFileSync(new URL("../src/ui/ReplayConfirm.tsx", import.meta.url), "utf8");
 const refPuzzle = readFileSync(new URL("../src/features/wiring/RefPuzzle.tsx", import.meta.url), "utf8");
@@ -144,6 +145,16 @@ test("FB-P1-02 keeps E/E signal lines behind components and view controls in the
   assert.match(latestCss, /\.eeBlueprint \.eeFlow \{ z-index: 1 !important; \}/);
   assert.match(latestCss, /\.eeBlueprint \.eeCol, \.eeBlueprint \.eeCore \{ position: relative; z-index: 3; \}/);
   assert.match(latestCss, /\.eeBodyTools \{ position: absolute; z-index: 12; top: 12px; right: 12px/);
+});
+
+test("FB-P1-03 layers compact Control SW arrows under ports and uses one shared control rail", () => {
+  assert.match(simulinkDiagram, /viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4" markerHeight="4"/);
+  assert.match(simulinkDiagram, /className="simWireLayer"[\s\S]*className="simPortLayer"[\s\S]*className="simNodeLayer"/);
+  assert.match(simulinkDiagram, /markerEnd=\{`url\(#\$\{wire\.cls\.includes\("feedback"\) \? "arrowFb" : "arrow"\}\)`\}/);
+  assert.match(experience, /const onStep = \(event: Event\) => \{ stopAuto\(\); setActiveStep/);
+  assert.match(experience, /return \(\) => window\.clearInterval\(timer\);/);
+  assert.match(latestCss, /\.garageMechanismCard > \.garageStepControls \{ top: auto; right: 14px; bottom: 14px; max-width: calc\(100% - 28px\);/);
+  assert.match(latestCss, /\.garageMechanismCard > \.garageStepControls \.ctlBtn \{ width: 96px; min-width: 96px; height: 36px; \}/);
 });
 
 test("replay confirmation uses the shared stamp action treatment without changing dialog controls", () => {

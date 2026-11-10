@@ -118,19 +118,23 @@ export function SimulinkDiagram({ logic, components, inputLabel, outputLabel, ac
   return <div className="simulinkSvgWrap">
     <svg viewBox={`0 0 ${W} ${H}`} className="simulinkSvg" role="img" aria-label="제어 로직 흐름도">
       <defs>
-        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" className="arrowHead" /></marker>
-        <marker id="arrowFb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" className="arrowHeadFb" /></marker>
+        <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" className="arrowHead" /></marker>
+        <marker id="arrowFb" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" className="arrowHeadFb" /></marker>
       </defs>
       {frames.map((frame, i) => <g key={`${frame.name}-${i}`}>
         <rect x={frame.x0} y={frame.y} width={frame.x1 - frame.x0} height={rowH - 16} rx={18} className="subsystem" />
         <foreignObject x={frame.x0 + 8} y={frame.y + 8} width={frame.x1 - frame.x0 - 16} height={owner ? 36 : 24}><div className={`subsystemName ${owner ? "withOwner" : ""}`}>{owner && <i>{owner} /</i>}{frame.name}</div></foreignObject>
       </g>)}
-      {parallel ? <>
+      <g className="simWireLayer">
+        {wires.map((wire, i) => <path key={i} d={wire.d} className={wire.cls} markerEnd={`url(#${wire.cls.includes("feedback") ? "arrowFb" : "arrow"})`} />)}
+      </g>
+      <g className="simPortLayer">{parallel ? <>
         <foreignObject x={4} y={first.y - 46} width={62} height={30}><div className="portChip in">센서 A</div></foreignObject>
         <foreignObject x={4} y={first.y + 16} width={62} height={30}><div className="portChip in">센서 B</div></foreignObject>
       </> : <foreignObject x={4} y={first.y - 15} width={62} height={30}><div className="portChip in">입력</div></foreignObject>}
       <foreignObject x={outX} y={last.y - 15} width={62} height={30}><div className="portChip out">출력</div></foreignObject>
-      {wires.map((wire, i) => <path key={i} d={wire.d} className={wire.cls} markerEnd={`url(#${wire.cls.includes("feedback") ? "arrowFb" : "arrow"})`} />)}
+      </g>
+      <g className="simNodeLayer">
       {logic.map((label, i) => {
         const kind = kinds[i], p = pos[i];
         return <g key={label} className={`block kind-${kind} ${activeStep === i ? "active" : ""}`}>
@@ -147,6 +151,7 @@ export function SimulinkDiagram({ logic, components, inputLabel, outputLabel, ac
           </foreignObject>
         </g>;
       })}
+      </g>
     </svg>
     <div className="flowEnds"><span>▶ {inputLabel}</span><span>{outputLabel} ▶</span></div>
   </div>;
