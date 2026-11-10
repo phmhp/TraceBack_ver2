@@ -1,4 +1,4 @@
-import React, { useMemo, useState, type CSSProperties } from "react";
+import React, { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { numify } from "../../ui/numify";
 import type { Campaign, CaseId } from "../../game/runtime";
 import { HYP_LABEL, SCENARIOS, SCENARIO_META, judgeRun, type HypStatus, type Obs } from "../../game/scenarios";
@@ -12,6 +12,7 @@ import { play } from "../../ui/sfx";
 import { DRIVER as DRIVER_NAME, ENGINEER } from "../../game/cast";
 import { Icon } from "../../ui/Icon";
 import { contractStorageKey, fallbackVerificationContract, type VerificationContract } from "../../game/verificationContract";
+import { ReplayConfirm } from "../../ui/ReplayConfirm";
 
 type Send = React.Dispatch<any>;
 type ProbeId = "input" | "control" | "output";
@@ -1346,26 +1347,29 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const questions = QUESTIONS[caseId];
   const expect = (() => { try { return sessionStorage.getItem(`tb-expect-${caseId}`) ?? ""; } catch { return ""; } })();
   const regression: string[] = (() => { try { const fromBoard = JSON.parse(sessionStorage.getItem(`tb-impact-${caseId}`) ?? "null"); return Array.isArray(fromBoard) && fromBoard.length ? fromBoard : regressionTests[caseId]; } catch { return regressionTests[caseId]; } })();
-  const [qi, setQi] = useState(0);
+  const progressKey = `tb-step04-progress-${caseId}`;
+  const savedProgress = (() => { try { return JSON.parse(sessionStorage.getItem(progressKey) ?? "null") ?? {}; } catch { return {}; } })();
+  const [qi, setQi] = useState<number>(savedProgress.qi ?? 0);
   // Start with the driver's question and one decision, rather than presenting a dense lab console.
-  const [phase, setPhase] = useState<"pick" | "lab" | "report" | "retest" | "done">("pick");
-  const [level, setLevel] = useState<Lv>(requestedLevel);
-  const [u, setU] = useState(0);
+  const [phase, setPhase] = useState<"pick" | "lab" | "report" | "retest" | "done">(savedProgress.phase ?? "pick");
+  const [level, setLevel] = useState<Lv>(savedProgress.level ?? requestedLevel);
+  const [u, setU] = useState<number>(savedProgress.u ?? 0);
   const [running, setRunning] = useState(false);
-  const [lastRun, setLastRun] = useState<{ obs: Record<string, Obs>; vals: Record<string, string>; verdict: Verdict; fixed: boolean; level: Lv } | null>(null);
-  const [answers, setAnswers] = useState<Record<string, { answer: Answer; why: string; evidence: string }>>({});
-  const [cost, setCost] = useState(0);
-  const [mistakes, setMistakes] = useState(0);
-  const [fix, setFix] = useState<number | null>(null);
-  const [regDone, setRegDone] = useState(0);
-  const [viewTab, setViewTab] = useState<"sw" | "ecu" | "plant" | "graph">(requestedView);
-  const [bubble, setBubble] = useState(`${DRIVER_NAME}의 질문에 시험 결과로 답하세요. 시험 수준과 입력 조건을 고르고 '시험 실행'을 누르세요.`);
+  const [lastRun, setLastRun] = useState<{ obs: Record<string, Obs>; vals: Record<string, string>; verdict: Verdict; fixed: boolean; level: Lv } | null>(savedProgress.lastRun ?? null);
+  const [answers, setAnswers] = useState<Record<string, { answer: Answer; why: string; evidence: string }>>(savedProgress.answers ?? {});
+  const [cost, setCost] = useState<number>(savedProgress.cost ?? 0);
+  const [mistakes, setMistakes] = useState<number>(savedProgress.mistakes ?? 0);
+  const [fix, setFix] = useState<number | null>(savedProgress.fix ?? null);
+  const [regDone, setRegDone] = useState<number>(savedProgress.regDone ?? 0);
+  const [viewTab, setViewTab] = useState<"sw" | "ecu" | "plant" | "graph">(savedProgress.viewTab ?? requestedView);
+  const [bubble, setBubble] = useState(savedProgress.bubble ?? `${DRIVER_NAME}의 질문에 시험 결과로 답하세요. 시험 수준과 입력 조건을 고르고 '시험 실행'을 누르세요.`);
   const [help, setHelp] = useState(false);
   const q = questions[qi];
   const fixed = phase === "retest" || phase === "done";
   // the player chooses the input condition of the test (same input goes to the normal and the fault model)
-  const [pickedDeriv, setPickedDeriv] = useState<Deriv | null>(null);
-  const [show3d, setShow3d] = useState<"run" | "normal">("run");
+  const [pickedDeriv, setPickedDeriv] = useState<Deriv | null>(savedProgress.pickedDeriv ?? null);
+  const [show3d, setShow3d] = useState<"run" | "normal">(savedProgress.show3d ?? "run");
+  const [replayOpen, setReplayOpen] = useState(false);
   const deriv = pickedDeriv ?? qaDeriv(caseId, level);
   const tech = CASE_DERIVS[caseId].find(d => d.id === deriv)!;
   const sim = useMemo(() => simulate(caseId, tech.tech, fixed), [caseId, tech.tech, fixed]);
@@ -1382,6 +1386,8 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const fmtV = (sig: Series, v: number) => `${v.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}`;
   const word = (sig: Series) => { const d = divergeIndex(sig); if (d === null) return "같음"; return sig.run[d] > sig.ref[d] ? "높음" : "낮음"; };
   const shown = Boolean(lastRun && lastRun.level === level && !running);
+  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ qi, phase, level, u, lastRun, answers, cost, mistakes, fix, regDone, viewTab, bubble, pickedDeriv, show3d })); } catch { /* ignore */ } }, [qi, phase, level, u, lastRun, answers, cost, mistakes, fix, regDone, viewTab, bubble, pickedDeriv, show3d, progressKey]);
+  const resetStage = () => { setQi(0); setPhase("pick"); setLevel(requestedLevel); setU(0); setRunning(false); setLastRun(null); setAnswers({}); setCost(0); setMistakes(0); setFix(null); setRegDone(0); setViewTab(requestedView); setPickedDeriv(null); setShow3d("run"); setBubble(`${DRIVER_NAME}의 질문에 시험 결과로 답하세요. 시험 수준과 입력 조건을 고르고 '시험 실행'을 누르세요.`); try { sessionStorage.removeItem(progressKey); } catch { /* ignore */ } };
 
   const pickTest = (lv: Lv) => { setPickedDeriv(null); setShow3d("run"); setLevel(lv); setViewTab(lv === "unit" || lv === "swint" ? "sw" : lv === "embedded" ? "ecu" : "plant"); setU(0); setLastRun(null); setPhase("lab"); play("pop");
     setBubble(`${TEST_CARD[lv].name}. 이 시험에서 무엇이 실물인지 확인하고 '시험 실행'을 누르세요.`); };
@@ -1473,6 +1479,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         <OpenBookButton caseId={caseId} />
         <span className="v7CostChip">비용 {cost} · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span>
         <button className="qaHelpBtn" aria-label="도움말" onClick={() => { setHelp(v => !v); play("pop"); }}>?</button>
+        {phase === "done" && <button className="stageReplayBtn" onClick={() => setReplayOpen(true)}>다시 풀기</button>}
       </div>
       {help && <aside className="qaHelpCard" role="dialog" aria-label="검증 도움말">
         <b>시험 수준과 결론</b>
@@ -1548,5 +1555,6 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(bubble)}</p></div>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
+    {replayOpen && <ReplayConfirm onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); resetStage(); }} />}
   </div>;
 }

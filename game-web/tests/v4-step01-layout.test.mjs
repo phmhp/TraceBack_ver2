@@ -115,6 +115,17 @@ test("M-01 through M-06 keep the whole view, fixed evidence slots, reverse trace
   assert.match(latestCss, /aspect-ratio: 3 \/ 4/);
 });
 
+test("N-01 and N-02 preserve each late-stage workspace, gate replay, and render the supplied specification sheet", () => {
+  assert.match(eeTrace, /tb-step02-progress-/);
+  assert.match(eeTrace, /ReplayConfirm/);
+  assert.match(eeTrace, /tb-step03-progress-/);
+  assert.match(refPuzzle, /tb-step04-progress-/);
+  assert.match(latestCss, /verification-spec-sheet\.png/);
+  assert.match(verificationLab, /tb-step04-progress-/);
+  assert.match(verificationLab, /ReplayConfirm/);
+  assert.match(latestCss, /specSheetPaper/);
+});
+
 test("latest scenario scope keeps every root cause in software", () => {
   assert.match(scenarios, /출력 어댑터 SW의 실행 순서/);
   assert.match(scenarios, /I\/O 어댑터 SW가 압력 계산값/);

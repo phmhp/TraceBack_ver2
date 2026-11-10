@@ -19,6 +19,7 @@ import { StageIntro, showVerdict } from "../../ui/Verdict";
 import { OpenBookButton } from "../../ui/OpenBook";
 import { CASES, Gauge, Photo, ZONES, ZONE_ICON, fmt, josa, refText, type Dom } from "./DominoTrace";
 import { EeBlueprint } from "../garage/EeBlueprint";
+import { ReplayConfirm } from "../../ui/ReplayConfirm";
 
 type Send = React.Dispatch<any>;
 type Stamp = "refuted" | "likely";
@@ -46,23 +47,28 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const causesOf = (id: string) => dom(id).causes ?? [];
   const unit = data.timeUnit;
   const start = dom(data.start);
+  const progressKey = `tb-step02-progress-${caseId}`;
+  const saved = (() => { try { return JSON.parse(sessionStorage.getItem(progressKey) ?? "null") ?? {}; } catch { return {}; } })();
 
-  const [phase, setPhase] = useState<"evidence" | "output" | "trace" | "section" | "done">("evidence");
-  const [chain, setChain] = useState<string[]>([]);          // outputs followed so far (symptom → … backward)
-  const [measured, setMeasured] = useState<string[]>([]);
-  const [stamps, setStamps] = useState<Record<string, Stamp>>({});
-  const [mistakes, setMistakes] = useState(0);
-  const [sectionPick, setSectionPick] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"evidence" | "output" | "trace" | "section" | "done">(saved.phase ?? "evidence");
+  const [chain, setChain] = useState<string[]>(saved.chain ?? []);          // outputs followed so far (symptom → … backward)
+  const [measured, setMeasured] = useState<string[]>(saved.measured ?? []);
+  const [stamps, setStamps] = useState<Record<string, Stamp>>(saved.stamps ?? {});
+  const [mistakes, setMistakes] = useState<number>(saved.mistakes ?? 0);
+  const [sectionPick, setSectionPick] = useState<string | null>(saved.sectionPick ?? null);
   const [shake, setShake] = useState("");
-  const [replayed, setReplayed] = useState(false);
+  const [replayed, setReplayed] = useState(Boolean(saved.replayed));
   const [zoomPol, setZoomPol] = useState<string | null>(null);
-  const [evidencePage, setEvidencePage] = useState(0);
-  const [sorted, setSorted] = useState<Record<string, "out" | "hold">>({});
-  const [bubble, setBubble] = useState(`왼쪽 폴라로이드를 눌러 크게 보세요. 기준과 비교할 수 있는 기록에서 다른 곳을 찾으세요.`);
+  const [evidencePage, setEvidencePage] = useState<number>(saved.evidencePage ?? 0);
+  const [sorted, setSorted] = useState<Record<string, "out" | "hold">>(saved.sorted ?? {});
+  const [bubble, setBubble] = useState(saved.bubble ?? `왼쪽 폴라로이드를 눌러 크게 보세요. 기준과 비교할 수 있는 기록에서 다른 곳을 찾으세요.`);
+  const [replayOpen, setReplayOpen] = useState(false);
   const focus = chain[chain.length - 1];
   const suspects = focus ? causesOf(focus) : [];
   const cleared = suspects.length > 0 && suspects.every(id => stamps[id] === "refuted");
   const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
+  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ phase, chain, measured, stamps, mistakes, sectionPick, replayed, evidencePage, sorted, bubble })); } catch { /* ignore */ } }, [phase, chain, measured, stamps, mistakes, sectionPick, replayed, evidencePage, sorted, bubble, progressKey]);
+  const resetStage = () => { setPhase("evidence"); setChain([]); setMeasured([]); setStamps({}); setMistakes(0); setSectionPick(null); setReplayed(false); setZoomPol(null); setEvidencePage(0); setSorted({}); setBubble("처음부터 증거를 비교해 보세요."); try { sessionStorage.removeItem(progressKey); sessionStorage.removeItem(`tb-impact-${caseId}`); sessionStorage.removeItem(`tb-section-${caseId}`); sessionStorage.removeItem(`tb-step03-progress-${caseId}`); sessionStorage.removeItem(`tb-step04-progress-${caseId}`); sessionStorage.removeItem(`tb-expect-${caseId}`); sessionStorage.removeItem(`tb-verification-contract-${caseId}`); } catch { /* ignore */ } };
   const nope = (id: string, text: string) => { setBubble(text); setShake(id); setMistakes(n => n + 1); showVerdict(false); window.setTimeout(() => setShake(""), 420); };
 
   // 1) evidence: the drive record differs from the reference
@@ -207,7 +213,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
 
       {/* center: whole-vehicle reverse trace */}
       <section className={`etBoard phase-${phase}`} ref={boardRef}>
-        <header><b><Icon name="layers" /> 중앙 도미노 역추적</b><small>{phase === "output" ? "증거에 나온 증상을 만드는 출력을 고르세요" : phase === "trace" ? `지금 출력: ${dom(focus).label}` : "센서 → 제어기 → CAN → 부품 → 차량"}</small></header>
+        <header><b><Icon name="layers" /> 중앙 도미노 역추적</b><small>{phase === "output" ? "증거에 나온 증상을 만드는 출력을 고르세요" : phase === "trace" ? `지금 출력: ${dom(focus).label}` : "센서 → 제어기 → CAN → 부품 → 차량"}</small>{phase === "done" && <button className="stageReplayBtn etStageReplay" onClick={() => setReplayOpen(true)}>다시 풀기</button>}</header>
         <svg className="etLines">{lines.map((l, i) => <path key={i} d={l.d} className={l.hot ? "hot" : "path"} />)}</svg>
         <div className="etZones">{ZONES.map(zone => <div key={zone} className="etZone">
           <small><Icon name={ZONE_ICON[zone]} /> {zone}</small>
@@ -257,6 +263,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       {zoomed.dom && zoomed.id !== "record" && <p><span className="polRow"><em>원본 기록</em>기준 <code>{refText(zoomed.dom)}</code> · 이번 <code>{fmt(zoomed.dom.run)}{zoomed.dom.unit ? ` ${zoomed.dom.unit}` : ""}</code></span>{zoomed.dom.t !== undefined && <span className="polRow"><em>달라진 시각</em><code>{fmt(zoomed.dom.t)} {unit}</code></span>}<span className="polRow"><em>위치</em>{zoomed.dom.zone}</span><Gauge dom={zoomed.dom} /></p>}
     </article></div>}
     <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
+    {replayOpen && <ReplayConfirm impact="STEP03 퍼즐과 STEP04 시험 계약·실행 기록도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); resetStage(); }} />}
   </div>;
 }
 
