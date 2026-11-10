@@ -244,7 +244,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
                 <div className="etSecs">{data.section.choices.map(c => <button key={c.label} className={sectionPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}>{c.label}</button>)}</div></>
                 : <><h3><Icon name="clipboard" /> 가설 정리 · 측정으로 반박되면 '반박', 아직 모르면 '보류'</h3>
                   <div className="etCarryRow tbSort">{meta.hypotheses.map(h => <span key={h.id} className={sorted[h.id] ?? "todo"}><b>{h.label}</b>{sorted[h.id] ? <em>{sorted[h.id] === "out" ? STAMP_KO.refuted : STAMP_KO.hold}</em> : <><button onClick={() => sortHyp(h.id, "out")}>반박</button><button onClick={() => sortHyp(h.id, "hold")}>보류</button></>}</span>)}</div>
-                  <div className="etNext"><span>회귀 시험 {effects.length}곳 · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span><button className="dtNext" disabled={!allSorted} onClick={finish}>다음: 요구사항 기반 로직 퍼즐 →</button></div></>}
+                  <div className="etNext"><span>회귀 시험 {effects.length}곳 · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span><button className="dtNext stageProgressAction" disabled={!allSorted} onClick={finish}>다음: 요구사항 기반 로직 퍼즐 →</button></div></>}
             </div>}
       </section>
 

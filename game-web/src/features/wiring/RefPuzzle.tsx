@@ -636,7 +636,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       {connected && spec.input && !confirmed && <label className="rpSlider"><small>예시 입력 · {spec.input.label}</small><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label>}
       {confirmed && <button className="rpExpect" onClick={() => setContractOpen(true)}><small><Icon name="clipboard" /> STEP04 실험 계약 · 보기</small><b>{spec.expect}</b></button>}
       <span className="rpStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}<small>다시 시도 {fails}번</small></span>
-      {confirmed ? <button className="rpNext" onClick={() => { send({ type: "COMPILE", program: ref.program }); send({ type: "OPEN_BENCH" }); }}>다음: 시뮬레이션 검증 →</button>
+      {confirmed ? <button className="rpNext stageProgressAction" onClick={() => { send({ type: "COMPILE", program: ref.program }); send({ type: "OPEN_BENCH" }); }}>다음: 시뮬레이션 검증 →</button>
         : connected ? <button className="rpRun" onClick={confirm}>요구사항과 같아요 · 기준 확정</button>
           : <button className="rpRun" disabled={!filled || check?.status === "running"} onClick={startCheck}>{!filled ? `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음` : check?.status === "running" ? "확인 중…" : "연결 확인"}</button>}
     </footer>
@@ -645,7 +645,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       <button className="contractClose" aria-label="실험 계약 닫기" onClick={() => setContractOpen(false)}>×</button>
       <div className="specSheetPaper"><small>STEP03 → STEP04 · 실행 계약</small><h2>{contract.hypothesisLabel} — 어떻게 시험할까?</h2>
       <dl><div><dt>목적</dt><dd>{contract.objective}</dd></div><div><dt>초기 조건</dt><dd>{contract.preconditions.join(" · ")}</dd></div><div><dt>입력</dt><dd>{contract.stimulus.sequence}</dd></div><div><dt>기대</dt><dd>{contract.expected.value}</dd></div><div><dt>관찰</dt><dd>{contract.observations.map(item => item.label).join(" → ")}</dd></div><div><dt>비교</dt><dd>{contract.comparison.baseline} · 같은 입력 · {contract.comparison.timeAxis} · {contract.comparison.units}</dd></div></dl>
-      <p>{contract.limitation}</p><button className="primary" onClick={() => setContractOpen(false)}>계약 저장 완료</button></div>
+      <p>{contract.limitation}</p><button className="primary contractCommit" onClick={() => setContractOpen(false)}>계약 저장 완료</button></div>
     </article></div>}
     {replayOpen && <ReplayConfirm impact="기존 시험 계약과 STEP04의 실행 기록·판정도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); reset(); }} />}
     {noteOpen && <div className="pieceZoom" onClick={() => setNoteOpen(false)}><article className="rpNote" onClick={event => event.stopPropagation()}>

@@ -394,6 +394,16 @@
 .etPolaroidTray b, .etPolaroidTray small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .etPolaroidTray b { font: 700 9px Pretendard, system-ui; }.etPolaroidTray small { margin-top: 2px; font: 700 8.5px Pretendard, system-ui; color: #b25242; }
 .etPolaroidTray > button.attached { opacity: .65; cursor: default; border-color: #8fbf9e; }.etPolaroidTray > button.attached small { color: #2f7a55; }
+
+/* STEP02–04 share one screen-level progression slot.  It stays clear of the
+   bottom dialogue/sound controls, and each screen reserves its right edge so
+   cards and instructions never sit beneath the action. */
+.stageProgressAction { position: fixed !important; z-index: 90 !important; right: 112px !important; bottom: 18px !important; width: 214px !important; min-height: 42px !important; padding: 7px 12px !important; display: inline-flex !important; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid #a0281e !important; border-radius: 10px !important; background: #fff6f3 !important; color: #a0281e !important; box-shadow: 0 3px 0 rgba(160,40,30,.3), 0 6px 10px rgba(60,20,10,.16) !important; font-weight: 800 !important; white-space: nowrap; }
+.dtBoard:has(.stageProgressAction) .etBubble { padding-right: 236px; }
+.dtBoard:has(.stageProgressAction) .etMugs { padding-right: 236px !important; }
+.refPuzzle:has(.stageProgressAction) .rpFoot { padding-right: 246px !important; }
+.vbBench:has(.stageProgressAction) .qaFoot { padding-right: 236px; }
+.verificationContractModal .contractCommit { position: static; width: auto; min-height: 0; }
 @media (max-width: 1100px) {
   .dtLayout.etLayout { grid-template-columns: minmax(0, 1fr) 280px !important; }
   .etMemoHead > small { display: none; }

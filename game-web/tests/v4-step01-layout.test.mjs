@@ -158,6 +158,18 @@ test("P0 fresh games clear late-stage sessions while completed verification expo
   assert.match(latestCss, /\.qaFinishBtn/);
 });
 
+test("STEP02 through STEP04 reserve one bottom-right progression slot", () => {
+  const liveTrace = eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3"));
+  assert.match(liveTrace, /className="dtNext stageProgressAction"/);
+  assert.match(refPuzzle, /className="rpNext stageProgressAction"/);
+  assert.match(verificationLab, /className="qaFinishBtn stageProgressAction"/);
+  assert.match(latestCss, /\.stageProgressAction \{ position: fixed !important;[\s\S]*right: 112px !important;[\s\S]*bottom: 18px !important;[\s\S]*width: 214px !important/);
+  assert.match(latestCss, /\.stageProgressAction \{[\s\S]*border: 2px solid #a0281e !important;[\s\S]*background: #fff6f3 !important/);
+  assert.match(latestCss, /\.etMugs \{ padding-right: 236px !important; \}/);
+  assert.match(refPuzzle, /className="primary contractCommit"/);
+  assert.doesNotMatch(refPuzzle, /contractCommit stageProgressAction/);
+});
+
 test("latest scenario scope keeps every root cause in software", () => {
   assert.match(scenarios, /출력 어댑터 SW의 실행 순서/);
   assert.match(scenarios, /I\/O 어댑터 SW가 압력 계산값/);
