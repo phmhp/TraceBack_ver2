@@ -1,7 +1,7 @@
 import { RefPuzzle } from "./features/wiring/RefPuzzle";
 import { DRIVER, ENGINEER, CAST } from "./game/cast";
 const VILLAIN = CAST.villain.name;
-import React, { useEffect, useReducer, useRef, useState } from "react";
+import React, { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
@@ -84,7 +84,7 @@ const fresh = (): Sim => ({
   damage: 0,
 });
 function useCampaign() {
-  const [state, send] = useReducer(dispatch, undefined, () => {
+  const [state, dispatchEvent] = useReducer(dispatch, undefined, () => {
     const params = new URLSearchParams(location.search);
     if (params.has("new"))
       return initialCampaign();
@@ -115,6 +115,19 @@ function useCampaign() {
       return initialCampaign();
     }
   });
+  const send = useCallback((event: { type: string; [key: string]: unknown }) => {
+    if (event.type === "NEW_GAME") {
+      // New game is a fresh investigation session; returning to title intentionally does not do this.
+      try {
+        for (let index = sessionStorage.length - 1; index >= 0; index--) {
+          const key = sessionStorage.key(index) ?? "";
+          if (key.startsWith("tb-step") || key.startsWith("tb-impact-") || key.startsWith("tb-section-") || key.startsWith("tb-expect-") || key.startsWith("tb-verification-contract-") || key.startsWith("tb-intro-")) sessionStorage.removeItem(key);
+        }
+        localStorage.removeItem("traceback-v16-save");
+      } catch { /* storage is optional */ }
+    }
+    dispatchEvent(event);
+  }, []);
   useEffect(() => {
     if (state.scene !== "TITLE")
       localStorage.setItem("traceback-v16-save", JSON.stringify(state));

@@ -1480,6 +1480,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         <span className="v7CostChip">비용 {cost} · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span>
         <button className="qaHelpBtn" aria-label="도움말" onClick={() => { setHelp(v => !v); play("pop"); }}>?</button>
         {phase === "done" && <button className="stageReplayBtn" onClick={() => setReplayOpen(true)}>다시 풀기</button>}
+        {phase === "done" && <button className="qaFinishBtn" onClick={finish}>수리 적용 · 주행 복귀 →</button>}
       </div>
       {help && <aside className="qaHelpCard" role="dialog" aria-label="검증 도움말">
         <b>시험 수준과 결론</b>
@@ -1543,7 +1544,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               {(phase === "retest" || phase === "done") && regDone > 0 && <div className="vbReg"><b><Icon name="repeat" /> 회귀 시험</b><ul>{regression.map((name, index) => <li key={name} className={index < regDone ? "ok" : ""}><span>{name}</span><em>{index < regDone ? "통과" : "…"}</em></li>)}</ul></div>}
               <div className="qaFoot">
                 {phase === "lab" && shown ? <div className="qaAnswers">{(["supported", "refuted", "open"] as Answer[]).map(a => <button key={a} className={`ans-${a}`} onClick={() => answer(a)}><b>{ANSWER_BTN[a][0]}</b><small>{ANSWER_BTN[a][1]}</small></button>)}</div>
-                  : phase === "done" ? <button className="vbGo" onClick={finish}>수리 적용 · 다시 달리기 →</button> : null}
+                  : phase === "done" ? <small className="qaFinishHint">상단의 ‘수리 적용 · 주행 복귀’로 다음 단계로 이동합니다.</small> : null}
 
               </div>
             </aside>

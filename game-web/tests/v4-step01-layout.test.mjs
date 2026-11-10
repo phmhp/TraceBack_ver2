@@ -14,6 +14,7 @@ const verificationContract = readFileSync(new URL("../src/game/verificationContr
 const scenarios = readFileSync(new URL("../src/game/scenarios.ts", import.meta.url), "utf8");
 const simModel = readFileSync(new URL("../src/features/verification/simModel.ts", import.meta.url), "utf8");
 const vehicleSim = readFileSync(new URL("../src/sim/vehicleSim.ts", import.meta.url), "utf8");
+const main = readFileSync(new URL("../src/main.tsx", import.meta.url), "utf8");
 
 test("V4 STEP 01 keeps one stable frame across all three learning views", () => {
   assert.match(experience, /className="garageViewTools"/);
@@ -124,6 +125,15 @@ test("N-01 and N-02 preserve each late-stage workspace, gate replay, and render 
   assert.match(verificationLab, /tb-step04-progress-/);
   assert.match(verificationLab, /ReplayConfirm/);
   assert.match(latestCss, /specSheetPaper/);
+});
+
+test("P0 fresh games clear late-stage sessions while completed verification exposes an unclipped repair route", () => {
+  assert.match(main, /event\.type === "NEW_GAME"/);
+  assert.match(main, /tb-step/);
+  assert.match(main, /tb-verification-contract-/);
+  assert.match(verificationLab, /qaFinishBtn/);
+  assert.match(verificationLab, /수리 적용 · 주행 복귀/);
+  assert.match(latestCss, /\.qaFinishBtn/);
 });
 
 test("latest scenario scope keeps every root cause in software", () => {
