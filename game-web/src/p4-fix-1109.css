@@ -526,6 +526,17 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
 .inputBar .ctlBtn:disabled i { color: #7c827c; border-color: #aeb6ae; }
 .eeFlow g.later .eeFlowBase { stroke: #9ba7a2 !important; opacity: .32; marker-end: none; }
 .eeFlow g.later .eeStepDot { fill: #aeb8b3 !important; opacity: .65; }
+/* FB-P1-02: the diagram is behind its component boxes; view buttons live in the body. */
+.eeBlueprint .eeFlow { z-index: 1 !important; }
+.eeBlueprint .eeCol, .eeBlueprint .eeCore { position: relative; z-index: 3; }
+.eeBlueprint .eeParts3d { z-index: 2 !important; }
+.eeBlueprintView { overflow: hidden; }
+.eeBlueprintView .eeBlueprint { top: 54px; }
+.eeBodyTools { position: absolute; z-index: 12; top: 12px; right: 12px; display: flex; align-items: center; gap: 3px; max-width: calc(100% - 24px); padding: 5px; border: 1px solid #ecd9c4; border-radius: 10px; background: #fff7ee; box-shadow: 0 2px 7px #5c453014; }
+.eeBodyTools > span { margin-right: 3px; font: 700 11.5px Pretendard, system-ui; color: #8a6a43; white-space: nowrap; }
+.eeBodyTools button { height: 28px; padding: 0 7px; border-radius: 7px; border: 1px solid #d9c9b3; background: #fff; font: 600 11.5px Pretendard, system-ui; color: #5b4636; cursor: pointer; white-space: nowrap; }
+.eeBodyTools button.on { background: #9b6b64; border-color: #9b6b64; color: #fff; }
+.eeBodyTools button:focus-visible { outline: 3px solid #e5b55a; outline-offset: 2px; }
 .garageMechanismCard > .swStepControls { position: absolute; z-index: 9; right: 14px; top: 14px; display: flex; gap: 6px; }
 .garageMechanismCard > .swStepControls .ctlBtn { width: 82px; min-width: 82px; height: 32px; justify-content: center; padding: 0 8px; border-radius: 9px; border: 1.5px solid #cdb79a; background: #fffdf6; color: #5b4636; font: 700 12px Pretendard, system-ui; box-shadow: 0 2px 0 #cdb79a; cursor: pointer; }
 .garageMechanismCard > .garageStepControls { top: auto; right: 14px; bottom: 14px; }

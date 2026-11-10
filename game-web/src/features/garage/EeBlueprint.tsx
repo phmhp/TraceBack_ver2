@@ -98,7 +98,7 @@ export function EeBlueprint({ chain, roles, active, energizedThrough = active, r
     <svg className="eeFlow" width={size.w} height={size.h} viewBox={`0 0 ${size.w} ${size.h}`}>
       <defs>
         {paths.map(p => <linearGradient key={p.i} id={`eeG${p.i}`} gradientUnits="userSpaceOnUse" x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2}><stop offset="0" stopColor={`hsl(${hue(p.i)} 75% 55%)`} /><stop offset="1" stopColor={`hsl(${hue(p.i + 1)} 75% 55%)`} /></linearGradient>)}
-        {paths.map(p => <marker key={p.i} id={`eeM${p.i}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill={`hsl(${hue(p.i + 1)} 75% 50%)`} /></marker>)}
+        {paths.map(p => <marker key={p.i} id={`eeM${p.i}`} viewBox="0 0 8 8" refX="6.5" refY="4" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill={`hsl(${hue(p.i + 1)} 75% 50%)`} /></marker>)}
       </defs>
       {paths.filter(p => !showPath || showPath(p.i)).map(p => <g key={p.i} className={p.i === energizedThrough ? "hot" : p.i < energizedThrough ? "done" : "later"}>
         <path d={p.d} className="eeFlowBase" stroke={`url(#eeG${p.i})`} markerEnd={`url(#eeM${p.i})`} />

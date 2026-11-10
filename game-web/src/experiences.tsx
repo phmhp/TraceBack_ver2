@@ -682,7 +682,7 @@ function SimulinkFlow({ domain, feature, level, activeStep, onJump }: { domain: 
   </div>;
 }
 
-function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, noDomain = false, onJump, inputOn = false, eeLayer = "logic", selectedVehiclePart = null, onVehiclePartSelect }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; noDomain?: boolean; onJump?: (level: number, step: number) => void; inputOn?: boolean; eeLayer?: EeLayer; selectedVehiclePart?: number | null; onVehiclePartSelect?: (index: number) => void }) {
+function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, noDomain = false, onJump, inputOn = false, eeLayer = "logic", onEeLayerChange, selectedVehiclePart = null, onVehiclePartSelect }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; noDomain?: boolean; onJump?: (level: number, step: number) => void; inputOn?: boolean; eeLayer?: EeLayer; onEeLayerChange?: (layer: EeLayer) => void; selectedVehiclePart?: number | null; onVehiclePartSelect?: (index: number) => void }) {
   const [shell, setShell] = useState(false);
   const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "grid" : "one");
   const [inspect, setInspect] = useState<number | null>(null);
@@ -707,6 +707,7 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
     const inspector = inspect === null || inspect >= chain.length ? null : { index: inspect, tag: ROLE_TEXT[roles[inspect]].tag, input: inspect === 0 ? "운전자 조작 또는 센서가 재는 물리량" : signals[inspect - 1], does: ROLE_DOES[roles[inspect]](signals[inspect]), output: signals[inspect] };
     return <div className="mechanismViewer eeView eeBlueprintView">
       <EeBlueprint chain={chain} roles={roles} active={activeStep} energizedThrough={inputOn ? activeStep : -1} removed={removed} onPick={pickNode} signals={signals} layer={eeLayer} photo={photo} partId={index => partModelFor(domain, chain[index])} inspector={eeLayer === "part" ? null : inspector} onCloseInspector={() => setInspect(null)} />
+      <div className="eeBodyTools" role="group" aria-label="E/E 보기"><span>E/E 보기</span>{([['logic', '연결'], ['mix', '겹쳐'], ['part', '실제 부품']] as const).map(([id, label]) => <button key={id} className={eeLayer === id ? "on" : ""} onClick={() => onEeLayerChange?.(id)}>{label}</button>)}</div>
       <PartInspector />
     </div>;
   }
@@ -1040,9 +1041,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     <nav className="garageLayerNav" aria-label="설계 추상화 단계">
       <small className="viewAxisLabel">같은 기능, 세 관점</small>
       <div className="garageViewTools">
-        {chosen && routeLevel === 1
-          ? <div className="eeLayerSwitch" role="group" aria-label="E/E 보기"><span>E/E 보기</span><div>{([["logic", "연결"], ["mix", "겹쳐"], ["part", "실제 부품"]] as const).map(([id, label]) => <button key={id} className={eeLayer === id ? "on" : ""} onClick={() => { setEeLayer(id); play("pop"); }}>{label}</button>)}</div><em>논리·물리 관점을 바꿔 봅니다</em></div>
-          : <div className="garageViewContext"><b>{routeLevel === 0 ? "부품 위치 보기" : "판단 흐름 보기"}</b><span>{routeLevel === 0 ? "차량 안에서 어디가 움직이는지 봅니다" : "입력부터 출력까지 한 단계씩 봅니다"}</span></div>}
+        <div className="garageViewContext"><b>{routeLevel === 0 ? "부품 위치 보기" : routeLevel === 1 ? "연결 구조 보기" : "판단 흐름 보기"}</b><span>{routeLevel === 0 ? "차량 안에서 어디가 움직이는지 봅니다" : routeLevel === 1 ? "신호가 건너는 연결을 봅니다" : "입력부터 출력까지 한 단계씩 봅니다"}</span></div>
       </div>
       {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={`${routeLevel === index ? "active" : ""} ${!chosen && index > 0 ? "needsDomain" : ""}`} title={!chosen && index > 0 ? "도메인을 먼저 고르면 열려요" : ""}>
         <span>{String(index + 1).padStart(2, "0")}</span><b>{layer.name}</b><small>{!chosen && index > 0 ? "도메인을 고르면 열려요" : layer.tag}</small>
@@ -1053,7 +1052,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       <section className="garageMechanismCard">
         {chosen ? <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
           : <header><small>차량 시스템 › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위 탭에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레이어로 같은 기능을 다른 관점에서 봅니다."}</p></header>}
-        <MechanismViewer key={chosen ? "domain" : "all"} inputOn={signalVisible} eeLayer={eeLayer} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} selectedVehiclePart={selectedVehiclePart} onVehiclePartSelect={index => { setSelectedVehiclePart(index); setActiveStep(index); play("pop"); }} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
+        <MechanismViewer key={chosen ? "domain" : "all"} inputOn={signalVisible} eeLayer={eeLayer} onEeLayerChange={layer => { setEeLayer(layer); play("pop"); }} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} selectedVehiclePart={selectedVehiclePart} onVehiclePartSelect={index => { setSelectedVehiclePart(index); setActiveStep(index); play("pop"); }} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {chosen && <div className="inputBar" aria-label="입력 넣기">
           <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (inputSelected ? "입력이 선택됨 · 다음 스텝으로 신호를 관찰하세요" : cleared ? NORMAL_RESPONSE[domain] : missing.length ? `${conds.size ? "준비 중" : "차량 OFF"} · ${missing[0].label}부터 켜세요` : READY_RESPONSE[domain])}</p>

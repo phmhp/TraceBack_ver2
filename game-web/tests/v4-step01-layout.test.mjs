@@ -135,6 +135,17 @@ test("FB-P1-01 selects real Vehicle/System parts without treating camera drags a
   assert.match(latestCss, /\.vehiclePartInfo \{/);
 });
 
+test("FB-P1-02 keeps E/E signal lines behind components and view controls in the body", () => {
+  assert.match(eeBlueprint, /viewBox="0 0 8 8" refX="6\.5" refY="4" markerWidth="4" markerHeight="4"/);
+  assert.match(eeBlueprint, /M0 0 L8 4 L0 8 Z/);
+  assert.match(experience, /className="eeBodyTools" role="group" aria-label="E\/E 보기"/);
+  assert.match(experience, /onEeLayerChange=\{layer => \{ setEeLayer\(layer\); play\("pop"\); \}\}/);
+  assert.doesNotMatch(experience, /className="eeLayerSwitch"/);
+  assert.match(latestCss, /\.eeBlueprint \.eeFlow \{ z-index: 1 !important; \}/);
+  assert.match(latestCss, /\.eeBlueprint \.eeCol, \.eeBlueprint \.eeCore \{ position: relative; z-index: 3; \}/);
+  assert.match(latestCss, /\.eeBodyTools \{ position: absolute; z-index: 12; top: 12px; right: 12px/);
+});
+
 test("replay confirmation uses the shared stamp action treatment without changing dialog controls", () => {
   assert.match(replayConfirm, /className="replayCancel"/);
   assert.match(replayConfirm, /className="primary replayConfirmAction"/);
