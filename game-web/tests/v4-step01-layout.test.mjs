@@ -165,6 +165,17 @@ test("FB-P1-04 keeps the race HUD in reserved symmetric lanes", () => {
   assert.match(latestCss, /body:has\(\.raceV2\) \.soundToggle \{ right: 14px; top: 72px; bottom: auto; \}/);
 });
 
+test("FB-P1-05 keeps the design sheet fixed while its text and confirmation stamp print", () => {
+  assert.match(refPuzzle, /className="rpBoardZoom rpZoomTools"/);
+  assert.match(refPuzzle, /STEP04 테스트 설계서 · 보기/);
+  assert.match(refPuzzle, /STEP03 → STEP04 · 테스트 설계서/);
+  assert.match(refPuzzle, /설계서 확정/);
+  assert.match(verificationLab, /STEP03 테스트 설계서/);
+  assert.match(latestCss, /\.verificationContractModal > article\.specSheet\.receiptPrinting \{ animation: none; transform: none; \}/);
+  assert.match(latestCss, /@keyframes specSheetTextPrint/);
+  assert.match(latestCss, /\.specSheet \.contractCommit \{ position: absolute !important; right: 5\.2%; bottom: 5\.5%;/);
+});
+
 test("replay confirmation uses the shared stamp action treatment without changing dialog controls", () => {
   assert.match(replayConfirm, /className="replayCancel"/);
   assert.match(replayConfirm, /className="primary replayConfirmAction"/);
@@ -178,9 +189,9 @@ test("K-6 hands an explicit STEP03 experiment contract to STEP04", () => {
     assert.match(verificationContract, new RegExp(field));
   }
   assert.match(refPuzzle, /contractStorageKey/);
-  assert.match(refPuzzle, /STEP03 → STEP04 · 실행 계약/);
+  assert.match(refPuzzle, /STEP03 → STEP04 · 테스트 설계서/);
   assert.match(verificationLab, /fallbackVerificationContract/);
-  assert.match(verificationLab, /STEP03 계약/);
+  assert.match(verificationLab, /STEP03 테스트 설계서/);
 });
 
 test("K-7 exposes every simulation view to Chrome QA without a technique-name quiz", () => {

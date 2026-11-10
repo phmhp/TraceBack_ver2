@@ -586,7 +586,6 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     <header className="rpHead">
       <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p><b>목표</b> 검증에 쓸 정상 기준 장치를 완성해요 · <b>가려낼 가설</b> {RIG_GOAL[caseId]}</p><p className="rpWhy"><b>왜 필요한가</b> {WHY[caseId]}</p></div>
       <div className="rpTools">
-        <div className="rpZoomTools" role="group" aria-label="퍼즐 확대 축소"><button onClick={() => setScale(value => Math.max(.45, value - .1))}>−</button><button onClick={fitStage}>맞춤</button><button onClick={() => setScale(value => Math.min(1.25, value + .1))}>+</button></div>
         <button onClick={openNote} disabled={!noteReady} title={noteReady ? "" : "한 번 확인해 본 뒤 열 수 있어요"}><Icon name="book" /> 차고 노트{noteUsed ? "" : noteReady ? " · -5m" : " · 확인 후"}</button>
         {confirmed && <button className="stageReplayBtn" onClick={() => setReplayOpen(true)}>다시 풀기</button>}
       </div>
@@ -597,6 +596,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
         {ref.req.map((r, k) => <div key={r.text} className={`${ref.gaps.includes(r.slot) ? "gap" : ""} ${confirmed ? "done" : ""}`}><i>{confirmed ? "✓" : k + 1}</i><span>{numify(r.text)}</span></div>)}
       </aside>
       <section className="rpStage" ref={stage} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setDrag(null)}>
+        <div className="rpBoardZoom rpZoomTools" role="group" aria-label="퍼즐 확대 축소" onPointerDown={event => event.stopPropagation()}><button onClick={() => setScale(value => Math.max(.45, value - .1))}>−</button><button onClick={fitStage}>맞춤</button><button onClick={() => setScale(value => Math.min(1.25, value + .1))}>+</button></div>
         <div className="rpSizer" style={{ width: W * scale, height: H * scale }}><div className={`rpWorld ${connected ? "flowing" : ""}`} style={{ width: W, height: H, transform: `scale(${scale})` }}>
           <div className="rpTray main" style={{ left: slotX(0) - 14, top: MAIN_Y - 66, width: (n - 1) * PITCH + PIECE + 28, height: PIECE + 118 }}><span>입력 → 출력 · 연결이 맞으면 예시 입력의 값이 표시돼요</span></div>
           <div className="rpTray side" style={{ left: slotX(sideStart) - 10, top: SIDE_Y - 12, width: (ref.side.pieces.length - 1) * PITCH + PIECE + 20, height: PIECE + 24 }}><span>{ref.side.label}</span></div>
@@ -634,7 +634,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     <footer className="rpFoot">
       <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(msg)}</p></div>
       {connected && spec.input && !confirmed && <label className="rpSlider"><small>예시 입력 · {spec.input.label}</small><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label>}
-      {confirmed && <button className="rpExpect" onClick={() => setContractOpen(true)}><small><Icon name="clipboard" /> STEP04 실험 계약 · 보기</small><b>{spec.expect}</b></button>}
+      {confirmed && <button className="rpExpect" onClick={() => setContractOpen(true)}><small><Icon name="clipboard" /> STEP04 테스트 설계서 · 보기</small><b>{spec.expect}</b></button>}
       <span className="rpStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}<small>다시 시도 {fails}번</small></span>
       {confirmed ? <button className="rpNext stageProgressAction" onClick={() => { send({ type: "COMPILE", program: ref.program }); send({ type: "OPEN_BENCH" }); }}>다음: 시뮬레이션 검증 →</button>
         : connected ? <button className="rpRun" onClick={confirm}>요구사항과 같아요 · 기준 확정</button>
@@ -642,10 +642,10 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     </footer>
     <button className="secretSolve" title="개발용 정답 적용" onClick={solve}>정답 보기</button>
     {contractOpen && contract && <div className="verificationContractModal" onClick={() => setContractOpen(false)}><article className="receiptPrinting specSheet" onClick={event => event.stopPropagation()}>
-      <button className="contractClose" aria-label="실험 계약 닫기" onClick={() => setContractOpen(false)}>×</button>
-      <div className="specSheetPaper"><small>STEP03 → STEP04 · 실행 계약</small><h2>{contract.hypothesisLabel} — 어떻게 시험할까?</h2>
+      <button className="contractClose" aria-label="테스트 설계서 닫기" onClick={() => setContractOpen(false)}>×</button>
+      <div className="specSheetPaper"><small>STEP03 → STEP04 · 테스트 설계서</small><h2>{contract.hypothesisLabel} — 어떻게 시험할까?</h2>
       <dl><div><dt>목적</dt><dd>{contract.objective}</dd></div><div><dt>초기 조건</dt><dd>{contract.preconditions.join(" · ")}</dd></div><div><dt>입력</dt><dd>{contract.stimulus.sequence}</dd></div><div><dt>기대</dt><dd>{contract.expected.value}</dd></div><div><dt>관찰</dt><dd>{contract.observations.map(item => item.label).join(" → ")}</dd></div><div><dt>비교</dt><dd>{contract.comparison.baseline} · 같은 입력 · {contract.comparison.timeAxis} · {contract.comparison.units}</dd></div></dl>
-      <p>{contract.limitation}</p><button className="primary contractCommit" onClick={() => setContractOpen(false)}>계약 저장 완료</button></div>
+      <p>{contract.limitation}</p><button className="primary contractCommit" onClick={() => setContractOpen(false)}>설계서 확정</button></div>
     </article></div>}
     {replayOpen && <ReplayConfirm impact="기존 시험 계약과 STEP04의 실행 기록·판정도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); reset(); }} />}
     {noteOpen && <div className="pieceZoom" onClick={() => setNoteOpen(false)}><article className="rpNote" onClick={event => event.stopPropagation()}>

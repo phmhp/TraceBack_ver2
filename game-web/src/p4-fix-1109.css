@@ -450,7 +450,7 @@
 .replayConfirm footer .replayCancel:hover:not(:disabled) { border-color: #a88458; background: #fff8e8; }
 
 .verificationContractModal > article.receiptPrinting { transform-origin: top center; animation: receiptPrint .72s steps(8, end) both; background: repeating-linear-gradient(0deg, #fffdf3 0 18px, #f1e5c7 19px 20px); }
-.verificationContractModal > article.receiptPrinting::before { content: "TRACEBACK · 시험 계획서"; display: block; margin: -6px 0 10px; padding-bottom: 7px; border-bottom: 2px dashed #a88458; color: #a14e3d; font: 900 11px Pretendard, system-ui; letter-spacing: .08em; }
+.verificationContractModal > article.receiptPrinting::before { content: "TRACEBACK · 테스트 설계서"; display: block; margin: -6px 0 10px; padding-bottom: 7px; border-bottom: 2px dashed #a88458; color: #a14e3d; font: 900 11px Pretendard, system-ui; letter-spacing: .08em; }
 @keyframes receiptPrint { from { clip-path: inset(0 0 100% 0); transform: translateY(-28px); } to { clip-path: inset(0); transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .verificationContractModal > article.receiptPrinting { animation: none; } }
 .verificationContractModal article > small { color: #bd5a47; font: 900 11px Pretendard, system-ui; }
@@ -537,6 +537,19 @@ code.num, .polBig code, .qaLevels code, .dtGaugeTxt b, .clusterRow code {
 .eeBodyTools button { height: 28px; padding: 0 7px; border-radius: 7px; border: 1px solid #d9c9b3; background: #fff; font: 600 11.5px Pretendard, system-ui; color: #5b4636; cursor: pointer; white-space: nowrap; }
 .eeBodyTools button.on { background: #9b6b64; border-color: #9b6b64; color: #fff; }
 .eeBodyTools button:focus-visible { outline: 3px solid #e5b55a; outline-offset: 2px; }
+/* FB-P1-05: board-local zoom controls and a fixed paper with text-only printing. */
+.refPuzzle .rpStage .rpBoardZoom { position: absolute; z-index: 34; top: 10px; right: 10px; display: inline-flex; gap: 3px; padding: 4px; border: 1px solid #d9c9b3; border-radius: 9px; background: #fffdf6ef; box-shadow: 0 2px 7px #3b2f2530; }
+.refPuzzle .rpStage .rpBoardZoom button { min-width: 31px; height: 30px; padding: 0 7px; border: 1px solid #d9c9b3; border-radius: 6px; background: #fff; color: #5b4636; font: 800 12px Pretendard, system-ui; cursor: pointer; }
+.refPuzzle .rpStage .rpBoardZoom button:nth-child(2) { min-width: 42px; font-size: 10px; }
+.verificationContractModal > article.specSheet.receiptPrinting { animation: none; transform: none; }
+.verificationContractModal > article.specSheet.receiptPrinting::before { content: ""; margin: 0; padding: 0; border: 0; animation: none; }
+.specSheetPaper { position: relative; padding-bottom: 14% !important; }
+.specSheetPaper > small, .specSheetPaper > h2, .specSheetPaper > dl, .specSheetPaper > p { animation: specSheetTextPrint .42s ease-out both; }
+.specSheetPaper > h2 { animation-delay: .08s; }.specSheetPaper > dl { animation-delay: .15s; }.specSheetPaper > p { animation-delay: .23s; }
+@keyframes specSheetTextPrint { from { opacity: 0; clip-path: inset(0 100% 0 0); } to { opacity: 1; clip-path: inset(0); } }
+.specSheet .contractCommit { position: absolute !important; right: 5.2%; bottom: 5.5%; width: min(188px, 82%); min-height: 42px !important; border: 3px solid #a0281e !important; border-radius: 8px !important; background: #fff6f3 !important; color: #a0281e !important; box-shadow: 0 3px 0 rgba(160,40,30,.3) !important; font: 900 15px/1 Pretendard, system-ui !important; transform: rotate(-3deg); animation: specSheetStamp .32s .35s both cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes specSheetStamp { from { opacity: 0; transform: rotate(-8deg) scale(1.35); } to { opacity: 1; transform: rotate(-3deg) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .specSheetPaper > small, .specSheetPaper > h2, .specSheetPaper > dl, .specSheetPaper > p, .specSheet .contractCommit { animation: none; } }
 /* FB-P1-04: race HUD uses paired, reserved lanes at 1054px and above. */
 .raceV2 .raceTopHud { position: absolute; z-index: 5; left: 14px; top: 13px; display: flex; align-items: stretch; gap: 8px; max-width: calc(100% - 278px); }
 .raceV2 .raceTopHud .raceIdentity, .raceV2 .raceTopHud .raceTripHud { position: static !important; display: flex; }
