@@ -673,3 +673,51 @@ body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
 .garageV2 .domainTabs button.learned { border-color: #55a77f !important; background: #edf7ee !important; box-shadow: inset 0 0 0 1px #55a77f42, 0 3px 7px #2c6d4d18 !important; }
 .garageV2 .domainTabs button.learned small { color: #28785b !important; font-weight: 900 !important; }
 .garageV2 .inputStatus.ok { color: #236f54 !important; background: #e8f6eb !important; border-color: #62aa86 !important; }
+
+/* FB-P0-01: STEP02 uses one tall evidence/reasoning folder beside the trace. */
+.eeTrace .etStageFolder { position: absolute; z-index: 14; top: 102px; left: 24px; right: 24px; min-height: 52px; box-sizing: border-box; padding: 9px 18px 8px 260px; border: 1px solid #dfcfb6; border-radius: 0 10px 10px 10px; background: #fffdf6; box-shadow: 0 2px 7px #3b2b1c14; color: #514539; }
+.eeTrace .etStageFolder::before { content: ""; position: absolute; z-index: -1; left: 0; top: -12px; width: 242px; height: 18px; border: 1px solid #dfcfb6; border-bottom: 0; border-radius: 10px 10px 0 0; background: #f4eee1; }
+.eeTrace + .stageHistoryNav { position: absolute !important; z-index: 16 !important; top: 105px !important; left: 30px !important; display: flex; gap: 0 !important; }
+.eeTrace + .stageHistoryNav .stageBackButton, .eeTrace + .stageHistoryNav .stageForwardButton { min-width: 0 !important; height: 33px !important; padding: 5px 9px !important; border: 1px solid #dfcfb6 !important; border-radius: 8px 8px 0 0 !important; background: #ede4d5 !important; box-shadow: none !important; color: #665747 !important; font-size: 11px !important; }
+.eeTrace + .stageHistoryNav .stageForwardButton { margin-left: 2px; background: #fffdf6 !important; color: #9d4d3f !important; }
+.eeTrace .etStageFolder p { margin: 0; color: #3f342a; font: 800 14px/1.25 Pretendard, system-ui; }
+.eeTrace .etStageFolder small { display: block; margin-top: 3px; color: #79695a; font: 650 10.5px/1.25 Pretendard, system-ui; }
+.eeTrace .etStageFolder i { padding: 0 4px; color: #b45443; font-style: normal; }
+.eeTrace .etLayout { top: 166px !important; bottom: 10px !important; grid-template-columns: minmax(0, 1fr) minmax(254px, 286px) !important; grid-template-rows: minmax(0, 1fr) 154px 58px !important; gap: 7px !important; }
+.eeTrace .etLayout > .etBoard { grid-column: 1; grid-row: 1; }
+.eeTrace .etLayout > .etEvidence { grid-column: 2; grid-row: 1 / 3; }
+.eeTrace .etLayout > .etMugs { grid-column: 1; grid-row: 2; }
+.eeTrace .etLayout > .etBubble { grid-column: 1 / -1; grid-row: 3; }
+.eeTrace .etEvidence { display: grid !important; grid-template-rows: auto minmax(0, 1fr); min-width: 0; min-height: 0; overflow: hidden; border: 1px solid #ddcdb7; border-radius: 10px; background: radial-gradient(#e9dcc8 1px, transparent 1.2px) 0 0 / 12px 12px, #f5ecdf; box-shadow: 0 2px 7px #3b2b1c14; }
+.eeTrace .etEvidence > header { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto; gap: 2px 6px; padding: 8px 9px 0; background: #fffdf6ee; border-bottom: 1px solid #dfcfb6; }
+.eeTrace .etEvidence > header > b { grid-column: 1; grid-row: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eeTrace .etEvidence > header > small { grid-column: 1; grid-row: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eeTrace .etEvidence > header > .openBookButton { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+.eeTrace .etEvidence > header > .etEvidenceTabs { grid-column: 1 / -1; grid-row: 3; display: flex; align-items: end; gap: 3px; margin-top: 4px; }
+.eeTrace .etEvidenceTabs button { position: relative; min-width: 0; flex: 1 1 0; min-height: 25px; padding: 3px 5px; border: 1px solid #dbc5a7; border-bottom: 0; border-radius: 8px 8px 0 0; background: #ede4d5; color: #806b58; font: 800 10px/1 Pretendard, system-ui; white-space: nowrap; cursor: pointer; }
+.eeTrace .etEvidenceTabs button.on { z-index: 1; margin-bottom: -1px; background: #fffdf6; color: #9d4d3f; box-shadow: 0 -2px 0 #fffdf6; }
+.eeTrace .etEvidenceContent { min-height: 0; padding: 7px; overflow: hidden; }
+.eeTrace .etEvidence .polBoard { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; grid-auto-rows: auto; grid-template-rows: none !important; align-content: start; gap: 7px; height: auto; max-height: 100%; padding: 2px; overflow: hidden; }
+.eeTrace .etEvidence .pol { min-width: 0; aspect-ratio: 1 / 1.22; padding: 7px 6px 8px; overflow: hidden; }
+.eeTrace .etEvidence .pol .polPhoto { display: block; width: 100%; aspect-ratio: 1 / .97; overflow: hidden; }
+.eeTrace .etEvidence .pol > b { margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eeTrace .etEvidence .pol > small { min-height: 1.8em; overflow: hidden; line-height: 1.15; }
+.eeTrace .etEvidenceStack { height: 100%; box-sizing: border-box; grid-template-rows: auto auto minmax(0, 1fr); gap: 7px; padding: 4px; overflow: hidden; }
+.eeTrace .etEvidenceStack section { position: relative; min-width: 0; padding: 6px 7px; border: 1px solid #d7c09d; border-radius: 7px; background: #fffdf6; box-shadow: 1px 2px 0 #b58f6120; }
+.eeTrace .etEvidenceStack section::before { content: ""; position: absolute; left: 12px; top: -8px; width: 2px; height: 8px; background: #bf654e; }
+.eeTrace .etEvidenceStack section > small { display: block; margin-bottom: 4px; }
+.eeTrace .etReasonPath > div { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.eeTrace .etReasonPath span, .eeTrace .etReasonCandidates span, .eeTrace .etReasonHypotheses span { min-width: 0; border: 1px solid #e0c994; border-radius: 5px; background: #fff7df; color: #5b4636; font: 700 9px/1.25 Pretendard, system-ui; }
+.eeTrace .etReasonPath span { display: inline-flex; align-items: center; gap: 3px; padding: 3px 4px; }.eeTrace .etReasonPath > div > em { color: #bf654e; font-style: normal; }
+.eeTrace .etEvidenceStack i { display: inline-grid; width: 13px; height: 13px; place-items: center; border-radius: 50%; background: #bf654e; color: #fff; font: 800 8px Pretendard, system-ui; font-style: normal; }
+.eeTrace .etReasonCandidates > div, .eeTrace .etReasonHypotheses > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.eeTrace .etReasonCandidates span, .eeTrace .etReasonHypotheses span { position: relative; display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 3px; padding: 4px; }.eeTrace .etReasonCandidates span::after { content: ""; position: absolute; left: 7px; bottom: -5px; height: 5px; border-left: 1px dashed #c79570; }
+.eeTrace .etReasonCandidates b, .eeTrace .etReasonHypotheses b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.eeTrace .etReasonCandidates em, .eeTrace .etReasonHypotheses em { grid-column: 2; color: #a14e3d; font: 800 8px Pretendard, system-ui; font-style: normal; }
+.eeTrace .etReasonHypotheses span { grid-template-columns: minmax(0, 1fr); background: #f6f0e4; }.eeTrace .etReasonHypotheses em { grid-column: 1; }
+.eeTrace .etEvidenceStack p { white-space: normal; }
+.eeTrace .etBubble { display: grid !important; grid-template-columns: auto minmax(0, 4fr) minmax(154px, 1fr); align-items: center; gap: 8px; padding: 5px 9px !important; overflow: hidden; }
+.eeTrace .etBubble > p { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.eeTrace .etProgressSlot { min-width: 0; }.eeTrace .stageProgressAction { position: static !important; width: 100%; min-height: 38px; padding: 5px 8px; font-size: 11px; }
+.eeTrace .etMugs { min-width: 0; overflow: hidden; }.eeTrace .etCandidateRow { height: calc(100% - 32px); }.eeTrace .etMug { min-height: 0; }
+.eeTrace .etMugs .etNext { min-height: 0; }.eeTrace .etMugs .etNext .dtNext { display: none; }
+@media (max-width: 1100px) { .eeTrace .etStageFolder { left: 18px; right: 18px; padding-left: 244px; }.eeTrace .etStageFolder::before { width: 226px; }.eeTrace + .stageHistoryNav { left: 24px !important; }.eeTrace .etLayout { grid-template-columns: minmax(0, 1fr) 258px !important; }.eeTrace .etStageFolder p { font-size: 12px; }.eeTrace .etStageFolder small { font-size: 9.5px; }.eeTrace .etEvidenceTabs button { padding-inline: 3px; font-size: 9px; }.eeTrace .etEvidence .pol { padding: 6px 5px; }.eeTrace .etBubble { grid-template-columns: auto minmax(0, 4fr) 178px; } }

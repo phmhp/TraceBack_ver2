@@ -91,8 +91,8 @@ test("K-5 keeps the reverse trace central, evidence/stack on the right, and cand
   assert.match(eeTrace, /etEvidenceTabs/);
   assert.match(eeTrace, /검증 전에는 확정하지 않음/);
   assert.match(latestCss, /\.etLayout > \.etBoard \{ grid-column: 1; grid-row: 1; \}/);
-  assert.match(latestCss, /\.etLayout > \.etEvidence \{ grid-column: 2; grid-row: 1; \}/);
-  assert.match(latestCss, /\.etLayout > \.etMugs \{ grid-column: 1 \/ -1; grid-row: 2; \}/);
+  assert.match(latestCss, /\.etLayout > \.etEvidence \{ grid-column: 2; grid-row: 1 \/ 3; \}/);
+  assert.match(latestCss, /\.etLayout > \.etMugs \{ grid-column: 1; grid-row: 2; \}/);
   assert.match(latestCss, /-webkit-line-clamp: 2/);
 });
 
@@ -103,7 +103,7 @@ test("P0 STEP02 keeps initial observations compact and attaches earned output po
   assert.match(liveTrace, /증거판에 붙이기/);
   assert.match(liveTrace, /item\.id === "quote" && phase === "evidence"/);
   assert.doesNotMatch(liveTrace, /id: "road"/);
-  assert.match(latestCss, /grid-template-rows: minmax\(0, 1fr\) 176px 62px/);
+  assert.match(latestCss, /grid-template-rows: minmax\(0, 1fr\) 154px 58px/);
 });
 
 test("STEP02 keeps evidence and reasoning stack in the persisted right rail without displacing candidates", () => {
@@ -111,13 +111,26 @@ test("STEP02 keeps evidence and reasoning stack in the persisted right rail with
   assert.match(liveTrace, /const \[memoTab, setMemoTab\] = useState<"evidence" \| "stack">\(saved\.memoTab/);
   assert.match(liveTrace, /attached, sorted, memoTab, bubble/);
   assert.match(liveTrace, /etEvidenceTabs/);
-  assert.match(liveTrace, /추리 STACK/);
-  assert.match(liveTrace, /etEvidenceAttach/);
+  assert.match(liveTrace, /추리 보드/);
+  assert.doesNotMatch(liveTrace, /etEvidenceAttach/);
   assert.match(liveTrace, /etEvidenceStack/);
+  assert.match(liveTrace, /etReasonPath/);
+  assert.match(liveTrace, /etReasonCandidates/);
+  assert.match(liveTrace, /etReasonHypotheses/);
   assert.match(liveTrace, /etCandidateRow/);
   assert.match(latestCss, /\.etEvidence > header > \.etEvidenceTabs/);
   assert.match(latestCss, /\.etMugs \{ display: flex !important/);
   assert.match(latestCss, /\.etCandidateRow \{[\s\S]*overflow: hidden/);
+});
+
+test("FB-P0-01 makes the STEP02 rail a folder-tabbed evidence and reasoning board", () => {
+  assert.match(eeTrace, /etStageFolder/);
+  assert.match(eeTrace, /관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요/);
+  assert.match(eeTrace, /item\.dom && !attached\.includes\(item\.id\)/);
+  assert.match(latestCss, /\.eeTrace \.etEvidence \{[\s\S]*grid-template-rows: auto minmax\(0, 1fr\)/);
+  assert.match(latestCss, /\.eeTrace \.etEvidence \.pol \{[\s\S]*aspect-ratio: 1 \/ 1\.22/);
+  assert.match(latestCss, /\.eeTrace \.etEvidence \.pol \.polPhoto \{[\s\S]*aspect-ratio: 1 \/ \.97/);
+  assert.match(latestCss, /\.eeTrace \.stageProgressAction \{ position: static !important/);
 });
 
 test("FB-P1-01 keeps hover part labels as plain chocolate text", () => {
