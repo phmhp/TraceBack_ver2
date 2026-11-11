@@ -32,4 +32,5 @@
 - 구현: `GameHeader`의 `chapterChip` DOM을 제거하고 모든 사용 장면의 8단계 `JourneyProgress` rail을 로고 오른쪽 `clamp(520px, 46vw, 680px)` 폭으로 배치했다. rail은 가로 flex로 복원해 `NOW · n/8`과 현재 단계명이 카드 아래로 내려가지 않는다. `GarageExperience`는 추격 거리 props를 전달하지 않아 차고지에서 추격 HUD가 DOM/레이아웃에 포함되지 않는다. 주행·조사·수리 장면은 기존 실제 거리 기반 `headerPursuitGraphic`을 `clamp(220px, 18vw, 280px)` 가로 레일로 유지한다.
 - 구현: STEP01~04 공통 제목 박스의 장식용 `.stageFolderSubtitle::before` 돌출부를 제거했다. 본문·단계 이동 탭·제목 내용은 유지한다.
 - 검증: `npm test` 69/69 통과, `npm run build` 통과. 실제 Chrome CDP에서 1440×765 rail 662px, 강제 1054×723 rail 520px·수평 오버플로 없음과 도주 장면 `NOW · 2/8` 한 행 배치를 확인했다. 1536×960 실제 창 및 다른 STEP 화면은 추가 검증 대기다.
+- 도주 장면 우측 미션 카드의 3열 배치로 한국어가 두 글자씩 세로 분해되던 결함을 `p4-fix-1109.css`에서 3행 `라벨 | 설명` 구조로 수정했다. 실제 Chrome CDP 1440×765에서 3개 행의 폭/높이와 `overflow:false`를 확인했으며 1054×723·1536×960 추가 검증은 대기다.
 - 다음 작업: Windows Chrome에서 헤더 8단계 rail, 차고지 HUD 숨김, 주행 HUD 거리 연동, 제목 박스/이전 단계 탭 및 수평 오버플로를 실제 확인한다. 이후 기능 P0 `T-25 → T-24 → T-22 → T-01/T-08` 순서를 유지한다.

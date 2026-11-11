@@ -935,16 +935,37 @@ body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
 .pressureMeter.gapOnly .headerPursuitGraphic .headerPoliceMarker { filter: drop-shadow(0 1px 1px #243e6366); }
 .pressureMeter.gapOnly .headerPursuitGraphic .headerPlayerMarker { filter: drop-shadow(0 1px 1px #a43e3266); }
 
-/* The still-image getaway briefing is a two-column scene; its three mission
-   facts remain a horizontal row instead of collapsing into a vertical stack. */
+/* The still-image getaway briefing is a two-column scene.  Mission facts are
+   rows inside the card; keeping the label and sentence on one row prevents
+   the narrow three-column table from breaking Korean text into 2-character
+   strips. */
 .heistStillScene .stillCutLayout {
   grid-template-columns: minmax(300px, 1fr) minmax(340px, 430px) !important;
   gap: clamp(20px, 4vw, 64px) !important;
 }
 .heistStillScene .getawayBriefingCard { min-width: 0; box-sizing: border-box; }
-.heistStillScene .getawayBriefingCard dl { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-.heistStillScene .getawayBriefingCard dl div { min-width: 0; }
-.heistStillScene .getawayBriefingCard dd { overflow-wrap: anywhere; word-break: keep-all; }
+.heistStillScene .getawayBriefingCard dl {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+.heistStillScene .getawayBriefingCard dl div {
+  min-width: 0;
+  display: grid !important;
+  grid-template-columns: 52px minmax(0, 1fr) !important;
+  align-items: center;
+  column-gap: 10px;
+}
+.heistStillScene .getawayBriefingCard dt,
+.heistStillScene .getawayBriefingCard dd {
+  min-width: 0;
+  margin: 0;
+}
+.heistStillScene .getawayBriefingCard dd {
+  overflow-wrap: normal;
+  word-break: keep-all;
+  white-space: normal;
+}
 
 @media (max-width: 1100px) {
   :is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .gameHeader {
