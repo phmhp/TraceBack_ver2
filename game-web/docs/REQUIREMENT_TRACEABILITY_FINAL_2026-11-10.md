@@ -725,3 +725,14 @@ RepairAction → RetestRun → SystemRegression → ResolutionSummary
 | N-S02-01~03 / N-S04-01~02 / N-TECH-01~02 | **설계 기준선 정리 · 구현 상태 변경 없음** | `STEP02_STEP04_FLOW_BASELINE_2026-11-11.md`에 현재 상태, 실제 행동·질문·선택지·피드백, 전이 조건, 전달 데이터, UI ID와 유지/수정/통합 검토/보류를 분리해 기록했다. STEP02 도미노와 STEP04 네 관점 탭/검증 작업대는 각각 하나의 메인 작업대로 유지한다. T-25(가설 자동 덮어쓰기), T-24(계약의 실제 모델 입력 연결) 등 기능 P0는 이 문서로 완료 처리하지 않는다. |
 
 - 이번 증분의 코드 검증: `npm test` 69/69 통과, `npm run build` 통과. Windows Chrome은 컴퓨터 사용 연결이 URL 정책 확인 단계에서 종료되어 실제 UI 검증을 수행하지 못했다.
+
+## PART N-3 — 상단 헤더·제목 박스 정합성 보정 (2026-11-11)
+
+| ID | 실제 변경 / 상태 | 근거 및 남은 수락 기준 |
+|---|---|---|
+| UI-RULE-01 / N-UI-01 / L-9 | **부분 구현 · Chrome 실측 완료 · 추가 Windows 조건 검증 대기** | `src/ui/game-shell.tsx`의 `GameHeader`에서 차고지 배지·현재 제목을 담던 `chapterChip`을 헤더 DOM에서 제거했다. 현재 단계 정보는 동일 헤더의 `JourneyProgress` 활성 단계와 `NOW · n/8` 표시가 담당한다. `p4-fix-1109.css`는 모든 `GameHeader` 사용 장면(차고지·정적 도주/수리·조사)에 로고 오른쪽 `clamp(520px, 46vw, 680px)`의 고정 비율 rail을 적용하고 남는 공간만 spacer로 사용한다. rail은 가로 flex로 유지해 `NOW · n/8`과 현재 단계명이 두 번째 행으로 내려가지 않도록 했다. CDP Chrome 실측에서 1440×765 rail 662px, 강제 1054×723 rail 520px·수평 오버플로 없음이 확인됐다. 1536×960 실제 창과 다른 STEP 화면은 추가 검증 대기다. |
+| FB-P1-04 / P1-A | **부분 구현 · 장면별 UI 검증 대기** | `GarageExperience`에서 `GameHeader`에 `distanceMeters`/`raceDistanceMeters`를 전달하지 않아 차고지의 추격 HUD가 DOM과 레이아웃에서 제외된다. 주행·조사·수리 장면은 기존 `GameHeader`의 `headerPursuitGraphic`과 실제 `policeGapMeters`/`raceDistanceMeters` 연결을 유지하고, HUD는 `clamp(220px, 18vw, 280px)` 가로 레일로 표시한다. STEP02~04 표시 규칙은 기존 동작을 보존했으며 장면별 Chrome 실측은 남는다. |
+| UI-RULE-01 / N-UI-01 | **부분 구현 · 브라우저 검증 대기** | 공통 `.stageFolderSubtitle::before` 장식용 빈 돌출부를 마지막 CSS 규칙에서 `display:none`으로 제거했다. 제목 본체, 이전/다음 단계 `stageHistoryNav`, 배경·테두리·모서리·본문 정렬은 유지한다. STEP01~04에서 빈 공간·경계 잔상이 없는지 실제 화면 확인이 필요하다. |
+
+- 이번 증분은 STEP02·03·04의 메인 게임 UI·질문·시뮬레이션·데이터·추격 판정 로직을 변경하지 않았다.
+- 코드 검증: `npm test` 69/69 통과, `npm run build` 통과. Windows Chrome 1536×960·1054×723 실측은 미검증이다.

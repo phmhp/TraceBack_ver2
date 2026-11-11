@@ -74,10 +74,6 @@ export function GameHeader({
         <span>TraceBack</span>
       </button>
       <div className="stageHeaderInfo">
-        <div className="chapterChip">
-          <small>{chapter}</small>
-          <b>{title}</b>
-        </div>
         {progressScene && <JourneyProgress scene={progressScene} />}
       </div>
       <span className="gameHeaderSpacer" aria-hidden="true" />

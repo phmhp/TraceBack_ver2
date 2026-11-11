@@ -988,6 +988,115 @@ body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
   z-index: 1;
 }
 
+/* The title surface is a plain shared context box.  Stage navigation remains
+   in .stageHistoryNav; the old empty folder tab is not part of the header. */
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageFolderSubtitle::before {
+  display: none !important;
+}
+
+/* The active stage is already represented by JourneyProgress.  Removing the
+   chapter chip lets the live eight-stage rail use the space beside the logo. */
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .gameHeader {
+  grid-template-columns: 150px auto minmax(0, 1fr) clamp(220px, 18vw, 280px) !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageHeaderInfo {
+  grid-column: 2 !important;
+  display: block !important;
+  min-width: 0 !important;
+  width: clamp(560px, 50vw, 780px) !important;
+  max-width: 100% !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageHeaderInfo .journeyRail {
+  display: grid !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .journeyRailTrack article > span {
+  display: block !important;
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  font-size: clamp(8px, .7vw, 11px) !important;
+  line-height: 1.05 !important;
+  white-space: nowrap !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .journeyRail > strong {
+  width: 72px !important;
+  font-size: 10px !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .journeyRail > strong small {
+  font-size: 7px !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .gameHeader .gapOnly {
+  grid-column: 4 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  display: grid !important;
+  grid-template-columns: max-content minmax(110px, 1fr) max-content !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 5px 10px !important;
+  box-sizing: border-box !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .gapOnly .headerPursuitGraphic {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 20px !important;
+}
+
+/* GameHeader is also used by the static getaway/repair scenes.  Keep the
+   compact progress card and the wide pursuit rail identical there instead of
+   letting the legacy scene-specific flex rules shrink them. */
+.gameHeader {
+  display: grid !important;
+  grid-template-columns: 150px auto minmax(0, 1fr) clamp(220px, 18vw, 280px) !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.gameHeader .stageHeaderInfo {
+  grid-column: 2 !important;
+  display: block !important;
+  width: clamp(520px, 46vw, 680px) !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+.gameHeader .stageHeaderInfo .journeyRail {
+  display: flex !important;
+  flex-direction: row !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+.gameHeader .journeyRailTrack article > span {
+  display: block !important;
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  font-size: clamp(8px, .7vw, 11px) !important;
+  white-space: nowrap !important;
+}
+.gameHeader .journeyRail > strong { width: 72px !important; font-size: 10px !important; }
+.gameHeader .journeyRail > strong small { font-size: 7px !important; }
+.gameHeader .pressureMeter.gapOnly {
+  grid-column: 4 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  display: grid !important;
+  grid-template-columns: max-content minmax(110px, 1fr) max-content !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 5px 10px !important;
+  box-sizing: border-box !important;
+}
+.gameHeader .pressureMeter.gapOnly .headerPursuitGraphic {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 20px !important;
+}
+
 /* stageHistoryNav is a sibling, so it gets its own resolved values rather
    than referring to custom properties scoped on the preceding stage root. */
 :is(.garageV2, .dtBoard, .refPuzzle, .vbBench) + .stageHistoryNav {
