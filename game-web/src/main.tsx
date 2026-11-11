@@ -484,7 +484,7 @@ function Title({
   const saved = (() => { try { const raw = localStorage.getItem("traceback-v16-save"); return raw ? JSON.parse(raw) as Partial<Campaign> : null; } catch { return null; } })();
   const [panel, setPanel] = useState<"none" | "settings" | "keys">("none");
   const [prefs, setPrefsState] = useState(soundPrefs());
-  const STAGE_NAME: Record<string, string> = { GARAGE_L1: "차고지", DRIVE_BRIEFING: "범행·도주", CHASE_NORMAL: "주행", FAULT_CUE: "주행", BOARD: "원인 역추적", WIRING: "로직 퍼즐", TWIN_BENCH: "검증", VERIFY_FAIL: "검증", REPAIR: "수리", CHASE_RESUME: "주행", SHIP_ESCAPE: "해적선", SHIP_BOARDING: "해적선" };
+  const STAGE_NAME: Record<string, string> = { GARAGE_L1: "정비소", DRIVE_BRIEFING: "범행·도주", CHASE_NORMAL: "주행", FAULT_CUE: "주행", BOARD: "원인 역추적", WIRING: "퍼즐", TWIN_BENCH: "검증", VERIFY_FAIL: "검증", REPAIR: "수리", CHASE_RESUME: "주행", SHIP_ESCAPE: "해적선", SHIP_BOARDING: "해적선" };
   const savedLabel = saved?.scene && STAGE_NAME[saved.scene] ? `${STAGE_NAME[saved.scene]} 단계 · 추격차와 ${Math.round(saved.policeGapMeters ?? 0)}m` : null;
   useEffect(() => {
     const key = (event: KeyboardEvent) => { if (event.key === "Enter" && panel === "none") { event.preventDefault(); if (savedLabel && saved) send({ type: "LOAD_SAVE", save: saved }); else send({ type: "NEW_GAME" }); } if (event.key === "Escape") setPanel("none"); };
@@ -510,7 +510,7 @@ function Title({
         </nav>
         {panel === "settings" && <div className="titlePanel">
           <label><input type="checkbox" checked={prefs.sfx} onChange={() => { setSfx(!prefs.sfx); setPrefsState(soundPrefs()); }} /> 효과음 (버튼·모터·제동·충돌)</label>
-          <label><input type="checkbox" checked={prefs.music} onChange={() => { setMusic(!prefs.music); setPrefsState(soundPrefs()); }} /> 배경음 (타이틀·차고)</label>
+          <label><input type="checkbox" checked={prefs.music} onChange={() => { setMusic(!prefs.music); setPrefsState(soundPrefs()); }} /> 배경음 (타이틀·정비소)</label>
           <small>레이싱 배경음은 주행 화면 오른쪽 아래 음표 버튼으로 켜고 끕니다.</small>
         </div>}
         {panel === "keys" && <div className="titlePanel keys">

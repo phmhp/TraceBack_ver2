@@ -1036,7 +1036,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   }, [domain, feature, routeLevel]);
   return <div className="garageV2">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
-    <GameHeader chapter="차고지" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="정비소" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <StageFolderSubtitle className="garageStageFolder" action="차량 기능이 어떤 부품과 신호를 거쳐 동작하는지 확인하세요." detail={<>학습 대상: {chosen ? content.label : "전체 도메인"} <i>|</i> Vehicle/System · E/E · Control SW</>} />
     <StageIntro id="garage" title="차량 도메인 동작 원리" goal="차량 동작 원리를 파악하고 작동시켜보아요." steps={[
       { icon: "car", text: "위 탭에서 도메인을 고르세요. (예: 구동)" },
@@ -2618,7 +2618,7 @@ function EmbeddedBenchScene({ caseId, running, works }: { caseId: CaseId; runnin
   return <>
     {import.meta.env.DEV && <DevRenderProbe name="bench" />}
     <PartLabel className="labelSpacer" position={[0, -20, 0]}>{" "}</PartLabel>
-    <color attach="background" args={[works ? "#eaf5ee" : "#f5e8e3"]} />
+    <color attach="background" args={["#eef2ee"]} />
     <hemisphereLight intensity={2.2} color="#fff8e8" groundColor="#678077" />
     <directionalLight castShadow position={[3, 6, 4]} intensity={2.8} />
     {ids.map((id, slot) => <group key={id} position={BENCH_SLOTS[slot].position} scale={BENCH_SLOTS[slot].scale}>

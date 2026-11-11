@@ -2682,3 +2682,166 @@ body:has(.pursuitHud) .stageFolderSubtitle { padding-right: 420px !important; }
 .vbBench.v7.qa2 .qaChoice > span { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 3; -webkit-box-orient: vertical; font: 600 11px/1.25 Pretendard, system-ui; }
 .vbBench.v7.qa2 .qaHypo span { display: none !important; }
 .vbBench.v7.qa2 .qaInfoMain { min-height: 42px; }
+
+/* 2026-11-12 전시 안정화 P0 (STEP04) */
+/* P0-1: 3D 부품 라벨(drei Html, z-index 약 1,660만)이 시험 자료 팝오버 위로 올라오지 않도록 시각화 영역 안에 가둔다. */
+.vbBench.v7.qa2 .vbSimView { isolation: isolate; }
+/* P0-2: 자료함 '비교 조건' 줄의 숫자 칩이 그리드 칸마다 세로로 쪼개지던 문제. 라벨 폭은 유지하고 본문은 한 흐름으로 줄바꿈한다. */
+.vbBench.v7.qa2 .qaMatLine { display: block; padding-left: 104px; text-indent: -104px; }
+.vbBench.v7.qa2 .qaMatLine > b { display: inline-block; width: 96px; margin-right: 8px; text-indent: 0; vertical-align: top; }
+/* P0-3: 우측 결과 패널. 원인 판정 블록은 항상 보이고, 결과 블록만 남는 높이 안에서 스크롤한다. */
+.vbBench.v7.qa2 .qaPanel.qaObservePanel { overflow: hidden !important; }
+.vbBench.v7.qa2 .qaObservePanel > .qaResultBlock { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; }
+.vbBench.v7.qa2 .qaObservePanel > .qaResultBlock { gap: 3px; }
+.vbBench.v7.qa2 .qaObservePanel > .qaResultBlock > * { flex: none; min-height: auto; }
+.vbBench.v7.qa2 .qaObservePanel .qaProof { margin-top: 0; }
+.vbBench.v7.qa2 .qaObservePanel > .qaJudgeBlock { flex: none; }
+.vbBench.v7.qa2 .qaObservePanel .qaTable th,
+.vbBench.v7.qa2 .qaObservePanel .qaTable td { padding-top: 3px !important; padding-bottom: 3px !important; }
+@media (max-height: 860px) {
+  .vbBench.v7.qa2 .qaObservePanel .qaTable th,
+  .vbBench.v7.qa2 .qaObservePanel .qaTable td { padding-top: 2px !important; padding-bottom: 2px !important; }
+  .vbBench.v7.qa2 .qaJudgeBlock { gap: 3px; padding: 5px 7px 6px; }
+  .vbBench.v7.qa2 .qaJudgeBlock .qaObserveHead { padding-bottom: 2px; }
+  .vbBench.v7.qa2 .qaJudgeList > * { min-height: 20px; height: auto; padding-top: 2px; padding-bottom: 2px; }
+  .vbBench.v7.qa2 .qaProof { gap: 2px; padding: 4px 7px; }
+}
+/* P0-4: 모니터링 그래프. 신호 행 높이를 최대 44px로 두고 공간이 모자라면 같이 줄여 마지막 신호까지 보이게 한다. */
+.vbBench.v7.qa2 .vbSimView > .ovGraph { grid-template-rows: auto; grid-auto-rows: minmax(0, 44px); align-content: start; overflow: hidden; }
+.vbBench.v7.qa2 .vbSimView > .ovGraph .ovRow { min-height: 0; align-items: stretch; }
+.vbBench.v7.qa2 .vbSimView > .ovGraph .ovRow > span { align-self: center; }
+.vbBench.v7.qa2 .vbSimView > .ovGraph .ovRow .vbTrace { height: 100%; min-height: 0; }
+
+/* 2026-11-12 STEP02 하단 영역·폴라로이드 통일 (FB-P0-01 / N-S02-02 / N-S02-04) */
+/* 폴라로이드 공통: 오리지널 폴라로이드 비율(88×107), 사진 정사각에 가까운 창(1:0.97), 사진은 잘리지 않게 contain, 압정 전체 표시 */
+.eeTrace .pol { overflow: visible !important; }
+.eeTrace .pol .pin { top: -4px; }
+.eeTrace .etEvidence .polBoard { padding-top: 6px; }
+.eeTrace .pol .polPhoto, .eeTrace .polBig .polPhoto { overflow: hidden; background: #efe7da; }
+.eeTrace .pol .polPhoto img, .eeTrace .pol .polPhoto .dtPhoto img,
+.eeTrace .polBig .polPhoto img, .eeTrace .polBig .polPhoto .dtPhoto img { object-fit: contain !important; }
+.eeTrace .pol .polPhoto .dtPhoto.atlas, .eeTrace .polBig .polPhoto .dtPhoto.atlas { background-size: 300% 300%; }
+.eeTrace .polBig .polPhoto.big { justify-self: center; width: min(320px, 100%); aspect-ratio: 1 / .97; }
+.eeTrace .etMemoSeed > div > span { transform: none !important; }
+/* 하단 영역: 한 번에 질문 하나, 중앙 정렬, 폴라로이드가 높이를 최대한 사용 */
+.dtBoard.eeTrace:has(.stageProgressAction) .etMugs { display: flex !important; align-items: stretch; justify-content: center; padding: 8px 12px !important; }
+.eeTrace .etMugs > .etCarry { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; align-items: stretch; justify-content: center; padding: 0; }
+.eeTrace .etDock { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; text-align: center; }
+.eeTrace .etDock h3 { margin: 0; display: flex; align-items: center; justify-content: center; gap: 6px; color: #33291f; font: 700 12.5px/1.3 Pretendard, system-ui; }
+.eeTrace .etDockLine { margin: 0; color: #3b2f25; font: 600 12px/1.4 Pretendard, system-ui; }
+.eeTrace .etDockMeta { margin: 0; color: #8a7a6a; font: 500 10.5px/1.3 Pretendard, system-ui; }
+.eeTrace .etDockChoices { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.eeTrace .etDockChoices > button { min-width: 210px; height: 34px; padding: 0 14px; font: 600 11.5px Pretendard, system-ui; }
+.eeTrace .etDockLink { margin-left: 8px; padding: 2px 8px; height: 22px; font: 600 10.5px Pretendard, system-ui; }
+.eeTrace .etDockSection .etSecs { justify-content: center; }
+.eeTrace .etDockSection .etZoom.inline { margin: 0; }
+.eeTrace .etDockTrace { flex-direction: row; gap: 16px; }
+.eeTrace .etDockQ { flex: 0 0 210px; display: grid; gap: 8px; justify-items: center; align-content: center; }
+.eeTrace .etDockQ p { margin: 0; display: grid; gap: 3px; }
+.eeTrace .etDockQ b { color: #33291f; font: 700 12.5px/1.3 Pretendard, system-ui; }
+.eeTrace .etDockQ small { color: #6b5643; font: 500 10.5px/1.35 Pretendard, system-ui; }
+.eeTrace .etDockQ .etReplay { margin: 0; }
+.eeTrace .etSuspRow { min-width: 0; height: 100%; display: flex; gap: 14px; align-items: stretch; justify-content: center; }
+.eeTrace .etSusp { height: 100%; min-width: 0; display: flex; gap: 8px; align-items: center; }
+.eeTrace .etSusp .etPol { flex: none; height: 100%; width: auto; aspect-ratio: 88 / 107; display: grid; grid-template-rows: auto auto auto; align-content: start; gap: 2px; padding: 7px 6px 8px; cursor: default; }
+.eeTrace .etSusp .etPol:hover { transform: none; }
+.eeTrace .etSusp .etPol .polPhoto { width: 100%; aspect-ratio: 1 / .97; }
+.eeTrace .etSusp .etPol > b { margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10.5px; }
+.eeTrace .etSusp .etPol > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
+.eeTrace .etSuspSide { flex: none; width: 112px; display: grid; gap: 5px; align-content: center; }
+.eeTrace .etSuspSide .stamp { justify-self: center; padding: 1px 7px; border: 1.5px solid currentColor; border-radius: 4px; font: 700 10.5px Pretendard, system-ui; font-style: normal; transform: none !important; }
+.eeTrace .etSuspSide .dtGauge { margin: 0; transform: none; }
+.eeTrace .etSuspSide .dtGaugeTxt { font-size: 9.5px; }
+.eeTrace .etSuspSide .etStampBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.eeTrace .etSuspSide .etStampBtns button, .eeTrace .etSuspSide .etMeasure { height: 28px; padding: 0 6px; font: 600 11px Pretendard, system-ui; }
+.eeTrace .etSusp.shake { animation: dtShake .4s; }
+/* 용의자 4명 이상: 질문을 위 한 줄로 올리고 폴라로이드 줄이 나머지 높이를 쓴다 */
+.eeTrace .etDockTrace:has(.etSuspRow > :nth-child(4)) { flex-direction: column; gap: 6px; }
+.eeTrace .etDockTrace:has(.etSuspRow > :nth-child(4)) .etDockQ { flex: none; display: flex; align-items: center; gap: 12px; }
+.eeTrace .etDockTrace:has(.etSuspRow > :nth-child(4)) .etDockQ p { display: flex; align-items: baseline; gap: 8px; }
+.eeTrace .etDockTrace:has(.etSuspRow > :nth-child(4)) .etDockQ .etReplay { height: 26px; }
+.eeTrace .etDockTrace:has(.etSuspRow > :nth-child(4)) .etSuspRow { flex: 1 1 auto; min-height: 0; height: auto; gap: 10px; }
+.eeTrace .etDockTrace:has(.etSuspRow > :nth-child(4)) .etSuspSide { width: 96px; }
+/* 코치 강조를 새 하단 구조에 연결 */
+[data-coach="replay"] .etDockQ .etReplay, [data-coach="sort"] .etDockChoices { outline: 2.5px solid #e9784a; outline-offset: 3px; animation: coachPulse 1.6s ease-out infinite; }
+.dtBoard.eeTrace:has(.stageProgressAction) .etMugs { flex-wrap: nowrap !important; align-content: stretch !important; }
+.eeTrace .etMugs > .etDock, .eeTrace .etMugs > .etCarry { align-self: stretch; max-height: 100%; }
+.eeTrace .etSusp .etPol { grid-template-columns: minmax(0, 1fr) !important; grid-template-areas: none !important; justify-items: stretch; }
+.eeTrace .etSusp .etPol > * { grid-column: 1 !important; grid-row: auto !important; }
+.eeTrace .etSusp .etPol { padding: 7px 6px 8px !important; }
+
+/* 2026-11-12 STEP01 E/E 실제 부품·겹쳐 보기: 3D 부품은 칩 왼쪽 42px 이미지 칸 안에 맞춰 그린다(EeBlueprint PART_SLOT_W). */
+.eeBlueprint.layer-part .eeChip, .eeBlueprint.layer-mix .eeChip { padding-top: 6px !important; padding-bottom: 6px !important; min-height: 50px !important; }
+.eeBlueprint.layer-part .eeChip.hasPart, .eeBlueprint.layer-mix .eeChip.hasPart { padding-left: 50px !important; padding-right: 8px !important; text-align: left; }
+@media (max-height: 830px) {
+  .eeBlueprint.layer-part .eeChip, .eeBlueprint.layer-mix .eeChip { min-height: 44px !important; padding-top: 4px !important; padding-bottom: 4px !important; }
+}
+/* 부품 6개 이상인 열(구동 › 운전자 토크 요청 등)은 칩을 줄여 E/E 판·3D 캔버스 안에 들어가게 한다 */
+.eeBlueprint .eeCol:has(> .eeChip:nth-of-type(6)) { gap: 4px !important; }
+.eeBlueprint .eeCol:has(> .eeChip:nth-of-type(6)) > .eeChip { min-height: 42px !important; padding-top: 4px !important; padding-bottom: 4px !important; }
+@media (max-height: 830px) {
+  .eeBlueprint .eeCol:has(> .eeChip:nth-of-type(5)) { gap: 3px !important; padding-top: 6px !important; padding-bottom: 6px !important; }
+  .eeBlueprint .eeCol:has(> .eeChip:nth-of-type(5)) > .eeChip { min-height: 34px !important; padding-top: 3px !important; padding-bottom: 3px !important; font-size: 11px !important; line-height: 1.15 !important; }
+  .eeBlueprint .eeCol:has(> .eeChip:nth-of-type(6)) > .eeChip { min-height: 28px !important; font-size: 10.5px !important; }
+}
+
+/* 2026-11-12 STEP03 본문 윗모서리·고양이 말풍선 아랫모서리를 STEP02(.etLayout 142px / .etBubble 바닥 = 뷰포트 바닥 - 20px)와 일치 */
+.refPuzzle.v2 > .rpMain { margin-top: 70px !important; }
+.refPuzzle.v2 > .rpFoot { margin-bottom: 20px !important; }
+
+/* 2026-11-12 STEP03 시험 설계서: 목적 한 줄 굵게, 요구사항은 문장 단위·단어 단위 줄바꿈 */
+.specSheet .ssPurpose { display: grid; gap: 2px; margin: 6px 0 0; }
+.specSheet .ssPurpose > span { color: #9d4d3f; font: 600 11px/1.3 Pretendard, system-ui; }
+.specSheet .ssPurpose > b { color: #33291f; font: 700 13px/1.4 Pretendard, system-ui; word-break: keep-all; overflow-wrap: break-word; }
+.specSheet .ssReq { margin: 0; padding-left: 16px; display: grid; gap: 3px; }
+.specSheet .ssReq li { color: #3b2f25; font: 500 12px/1.45 Pretendard, system-ui; word-break: keep-all; overflow-wrap: break-word; }
+.specSheet h3 { font-weight: 600; }
+
+/* 2026-11-12 STEP04 정보 구조·현재 차례 강조 */
+/* 가설 번호 = 검증할 가설 선택. 상태는 번호 색으로, 이름·상태는 hover/포커스 툴팁 */
+.vbBench.v7.qa2 .qaProg .qaDots li { position: relative; padding: 0 !important; background: transparent !important; box-shadow: none !important; }
+.vbBench.v7.qa2 .qaProg .qaDots li > button { min-width: 26px; height: 26px; padding: 0 8px; border: 1px solid #d9c9b3; border-radius: 13px; background: #fff; color: #6b5643; font: 700 11px/1 Pretendard, system-ui; cursor: pointer; }
+.vbBench.v7.qa2 .qaProg .qaDots li > button:disabled { cursor: default; }
+.vbBench.v7.qa2 .qaProg .qaDots li.now > button { border-color: #c0574a; box-shadow: 0 0 0 2px #f3d3cc; color: #9b3d33; }
+.vbBench.v7.qa2 .qaProg .qaDots li.a-supported > button { border-color: #c0574a; background: #c0574a; color: #fff; }
+.vbBench.v7.qa2 .qaProg .qaDots li.a-refuted > button { border-color: #3f8a5c; background: #3f8a5c; color: #fff; }
+.vbBench.v7.qa2 .qaProg .qaDots li.a-open > button { border-color: #d7a542; background: #fff4d6; color: #7a5a12; }
+.vbBench.v7.qa2 .qaDotTip { position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; display: none; width: max-content; max-width: 280px; padding: 6px 9px; border: 1px solid #d8c3a7; border-radius: 6px; background: #fffdf6; box-shadow: 0 6px 16px #3b2b1c2e; text-align: left; white-space: normal; }
+.vbBench.v7.qa2 .qaDotTip b { display: block; color: #33291f; font: 600 11.5px/1.35 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaDotTip small { display: block; margin-top: 2px; color: #8a7a6a; font: 500 10.5px/1.3 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaDots li:hover .qaDotTip, .vbBench.v7.qa2 .qaDots li:focus-within .qaDotTip { display: block; }
+/* 이전 단계 산출물 버튼: 밝고 분명하게 */
+.vbBench.v7.qa2 .qaChips { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.vbBench.v7.qa2 .qaChip.qaMatChip { border: 1.5px solid #c98f7f !important; background: #fff6ef !important; cursor: pointer; }
+.vbBench.v7.qa2 .qaChip.qaMatChip small { color: #9b3d33 !important; font-weight: 700 !important; }
+.vbBench.v7.qa2 .qaChip.qaMatChip:hover { background: #ffece0 !important; }
+.vbBench.v7.qa2 .qaChip.qaMatChip.seen { border-color: #8fb79c !important; background: #f3faf5 !important; }
+.vbBench.v7.qa2 .qaChip.qaMatChip.seen small { color: #2f7a55 !important; }
+.vbBench.v7.qa2 .qaMatList { margin: 0; padding-left: 16px; display: grid; gap: 2px; }
+.vbBench.v7.qa2 .qaMatList li { font: 500 11px/1.4 Pretendard, system-ui; word-break: keep-all; }
+.vbBench.v7.qa2 div.qaMatLine { display: grid !important; grid-template-columns: 96px minmax(0, 1fr); gap: 8px; padding-left: 0; text-indent: 0; }
+.vbBench.v7.qa2 .qaMatMore summary { color: #8a7a6a; font: 600 10.5px Pretendard, system-ui; cursor: pointer; }
+.vbBench.v7.qa2 .qaPickedInput { margin: 0 0 4px; display: flex; align-items: baseline; gap: 8px; }
+.vbBench.v7.qa2 .qaPickedInput small { color: #9d4d3f; font: 600 10.5px Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaPickedInput b { color: #33291f; font: 600 11px/1.3 Pretendard, system-ui; }
+/* 판정 피드백은 질문 바로 아래에 보이게 */
+.vbBench.v7.qa2 .qaQuestion.fb-bad > span { color: #b5482f; font-weight: 600; }
+.vbBench.v7.qa2 .qaQuestion.fb-ok > span { color: #2f7a55; font-weight: 600; }
+/* 지금 답할 차례인 선지만 빨간 테두리가 살짝 깜빡인다 */
+@keyframes qaTurnPulse { 0%, 100% { box-shadow: 0 0 0 0 #c0574a00; border-color: #d9c9b3; } 50% { box-shadow: 0 0 0 2px #c0574a33; border-color: #c0574a; } }
+.vbBench.v7.qa2 .qaActionDock.your-turn:is(.phase-lab, .phase-retest) .qaChoices > button:not(:disabled) { animation: qaTurnPulse 1.8s ease-in-out infinite; }
+.vbBench.v7.qa2 .qaActionDock.your-turn .qaChoices > button:not(:disabled):hover { animation: none; }
+@media (prefers-reduced-motion: reduce) { .vbBench.v7.qa2 .qaActionDock.your-turn .qaChoices > button { animation: none !important; } }
+/* 정상 시나리오/이번 시험 토글: 탭과 겹치지 않게 시각화 안쪽 우상단에, 높이 통일 */
+.vbBench.v7.qa2 .v7View .v3dToggle { top: 66px !important; right: auto !important; left: 50% !important; transform: translateX(-50%); margin: 0 !important; gap: 4px; }
+.vbBench.v7.qa2 .v7View .v3dToggle button { height: 26px; padding: 0 10px; }
+/* 보고서: 가설 이름 형광펜, 설명·근거 */
+.v7Report mark.v7HypName { display: inline; padding: 0 3px; background: linear-gradient(transparent 45%, #ffe98a 45%); color: #33291f; font-weight: 700; }
+.v7Report .v7HypWhy { display: block; margin-top: 2px; }
+.v7Runs li span small { color: #8a7a6a; }
+.v7Runs li span small { display: inline !important; margin: 0 !important; font-size: inherit; }
+/* 보고서: 가설 판정(왼쪽)과 시험 기록(오른쪽)을 나란히 두어 수리 카드까지 한 화면에 들어가게 한다 */
+.vbBench.v7.qa2 .v7Fix .v7Report { display: grid !important; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); grid-template-areas: "head head" "list runs"; column-gap: 16px; align-items: start; }
+.vbBench.v7.qa2 .v7Fix .v7Report > header { grid-area: head; }
+.vbBench.v7.qa2 .v7Fix .v7Report > ul { grid-area: list; margin: 0; }
+.vbBench.v7.qa2 .v7Fix .v7Report > .v7Runs { grid-area: runs; margin: 0; padding-left: 14px; border-left: 1px dashed #e1d3c0; }

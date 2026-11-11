@@ -6,6 +6,25 @@ import React, { useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "../../ui/Icon";
 import { Canvas } from "@react-three/fiber";
 import { FittedPart } from "../parts/PartModel";
+import { getPartModel } from "../parts/partModels";
+import { Euler, Vector3 } from "three";
+
+// 3D parts in the part/mix layers sit in a fixed image slot on the left of their chip
+// (CSS: .eeChip.hasPart padding-left 50px = 4 + PART_SLOT_W + 4). Each model is scaled so its
+// projection after PART_ROT fits the slot, so no part can stick out of or be cut by its box.
+const PART_ROT = new Euler(.42, -.62, 0);
+const PART_SLOT_W = 42;
+const PART_SLOT_PAD = 4;
+function slotFitSize(id: string, w: number, h: number) {
+  const model = getPartModel(id);
+  let px = 0, py = 0;
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
+    const v = new Vector3(sx * model.size[0] / 2, sy * model.size[1] / 2, sz * model.size[2] / 2).applyEuler(PART_ROT);
+    px = Math.max(px, Math.abs(v.x)); py = Math.max(py, Math.abs(v.y));
+  }
+  const scale = Math.min(w / (2 * px || 1), h / (2 * py || 1)) * .9;
+  return scale * Math.max(...model.size);
+}
 
 type Role = "input" | "control" | "network" | "actuator" | "result";
 const ECU_BOXES = [
@@ -78,7 +97,7 @@ export function EeBlueprint({ chain, roles, active, energizedThrough = active, r
     return () => observer.disconnect();
   }, [chain.join("|"), roles.join("|"), layer]); // eslint-disable-line react-hooks/exhaustive-deps
   const hue = (i: number) => 205 - (i / Math.max(1, chain.length - 1)) * 190; // blue (input) → red (vehicle)
-  const chip = (item: { label: string; i: number }) => <button data-ee={item.i} key={`${item.label}-${item.i}`} className={`eeChip ${item.i === active ? "active" : ""} ${item.i === removed ? "out" : ""} ${marks?.[item.i] ? `mark-${marks[item.i]}` : ""}`} onClick={() => onPick?.(item.i)}>{item.i === removed ? <><Icon name="ban" /> </> : null}{item.label}{marks?.[item.i] === "ok" && <em className="eeMark">정상</em>}{marks?.[item.i] === "bad" && <em className="eeMark">이상</em>}{marks?.[item.i] === "first" && <em className="eeMark">처음 어긋남</em>}</button>;
+  const chip = (item: { label: string; i: number }) => <button data-ee={item.i} key={`${item.label}-${item.i}`} className={`eeChip ${layer !== "logic" && partId?.(item.i) ? "hasPart" : ""} ${item.i === active ? "active" : ""} ${item.i === removed ? "out" : ""} ${marks?.[item.i] ? `mark-${marks[item.i]}` : ""}`} onClick={() => onPick?.(item.i)}>{item.i === removed ? <><Icon name="ban" /> </> : null}{item.label}{marks?.[item.i] === "ok" && <em className="eeMark">정상</em>}{marks?.[item.i] === "bad" && <em className="eeMark">이상</em>}{marks?.[item.i] === "first" && <em className="eeMark">처음 어긋남</em>}</button>;
   const pop = inspector && chipBox[inspector.index];
   const popLeft = pop ? Math.max(8, Math.min(size.w - 308, pop.x + pop.w / 2 - 150)) : 0;
   const popTop = pop ? (pop.y + pop.h + 112 > size.h ? Math.max(4, pop.y - 110) : pop.y + pop.h + 8) : 0;
@@ -87,9 +106,9 @@ export function EeBlueprint({ chain, roles, active, energizedThrough = active, r
     {parts3d.length > 0 && <Canvas className="eeParts3d" orthographic camera={{ position: [0, 0, 400], zoom: 1, near: .1, far: 2000 }} dpr={[1, 1.5]} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2 }}>
       <hemisphereLight intensity={1.7} color="#fff5dc" groundColor="#6d8c7b" />
       <directionalLight position={[200, 300, 400]} intensity={2.4} />
-      {parts3d.map(({ i, id, box: b }) => <group key={i} position={[b!.x + b!.w / 2 - size.w / 2, size.h / 2 - (b!.y + 30), 0]} rotation={[.42, -.62, 0]}>
-        <FittedPart id={id!} size={48} castShadow={false} demo={i <= energizedThrough && energizedThrough < chain.length} />
-      </group>)}
+      {parts3d.map(({ i, id, box: b }) => { const slotH = b!.h - PART_SLOT_PAD * 2; return <group key={i} position={[b!.x + PART_SLOT_PAD + PART_SLOT_W / 2 - size.w / 2, size.h / 2 - (b!.y + b!.h / 2), 0]} rotation={[PART_ROT.x, PART_ROT.y, PART_ROT.z]}>
+        <FittedPart id={id!} size={slotFitSize(id!, PART_SLOT_W, slotH)} castShadow={false} demo={i <= energizedThrough && energizedThrough < chain.length} />
+      </group>; })}
     </Canvas>}
     {inspector && pop && <div className="eeInspector" style={{ left: popLeft, top: popTop }} role="dialog">
       <header><span>{inspector.tag}</span><b>{chain[inspector.index]}</b><button aria-label="닫기" onClick={onCloseInspector}>×</button></header>

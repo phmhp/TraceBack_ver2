@@ -167,7 +167,7 @@ export function journeyStageAccess(state: Campaign, stage: JourneyStageId): Jour
       const reasons: Record<InvestigationStep, string> = {
         locked: "주행 이상을 관찰하고 도미노 추리를 시작해야 열립니다.",
         board: "도미노에서 근거와 우선 가설을 확정해야 열립니다.",
-        wiring: "가설을 검증할 로직 퍼즐을 구성해야 열립니다.",
+        wiring: "가설을 검증할 퍼즐을 구성해야 열립니다.",
         bench: "시뮬레이션 결과로 가설을 검증해야 열립니다.",
         repair: "검증된 수리 적용을 완료해야 열립니다.",
         done: "",

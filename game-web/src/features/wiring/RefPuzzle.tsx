@@ -1,10 +1,10 @@
 // "정상 기준 만들기" v2 — the reference is assembled from the SAME Control SW blocks the player
-// saw in the garage (same picto, same tag, same plain words), so the moment reads "아, 차고에서 본 거!".
+// saw in the garage (same picto, same tag, same plain words), so the moment reads "아, 정비소에서 본 거!".
 // - Any piece fits any gap (shape = signal type of the board, never a hint about which piece goes where).
 // - Placing a piece draws nothing and shows no value. The player checks the build by pressing ▶ 실행:
 //   values flow left → right and stop at the first slot that breaks the requirement (first mismatch).
 // - Parallel logic: a side input (limit / other sensors) climbs into the merge block.
-// - 차고 노트 = open book: re-open the garage Control SW drawing (costs a hint).
+// - 정비소 노트 = open book: re-open the garage Control SW drawing (costs a hint).
 import { numify } from "../../ui/numify";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
@@ -47,14 +47,14 @@ const REF: Record<CaseId, Ref> = {
     spares: ["ramp", "mapB", "min", "est", "map"], joints: ["round", "round", "round", "square", "square", "square", "square", "zigzag"],
     side: { pieces: ["bms"], into: 5, value: "한계 260 Nm", label: "BMS가 보내는 토크 한계" },
     req: [
-      { text: "운전자가 가속 페달을 60% 밟는다 (센서 A·B)", slot: 0 },
-      { text: "두 센서 값이 서로 같은지 먼저 확인한다", slot: 1 },
-      { text: "잠깐 튀는 값은 걸러 낸다", slot: 2 },
-      { text: "페달 60%는 토크 204 Nm가 된다", slot: 3 },
-      { text: "D단 · READY일 때만 토크를 통과시킨다", slot: 4 },
-      { text: "배터리·온도 한계를 넘으면 한계값을 쓴다", slot: 5 },
-      { text: "토크는 갑자기 말고 천천히 올린다", slot: 6 },
-      { text: "인버터로 보내 모터가 204 Nm를 낸다", slot: 8 },
+      { text: "가속 페달 센서 A·B가 페달 위치를 읽는다 (유효 범위 0~100%, 이번 시나리오 입력 60%)", slot: 0 },
+      { text: "두 센서 값의 차이가 허용 범위 안인지 먼저 확인한다", slot: 1 },
+      { text: "순간적으로 튀는 값은 필터로 걸러 낸다", slot: 2 },
+      { text: "페달 맵으로 페달 위치를 토크 요청으로 바꾼다 (60% → 204 Nm)", slot: 3 },
+      { text: "D단이고 READY일 때만 토크 요청을 통과시킨다", slot: 4 },
+      { text: "BMS·온도 한계(260 Nm)보다 크면 한계값으로 제한한다", slot: 5 },
+      { text: "토크 요청을 정해진 기울기로 천천히 올린다", slot: 6 },
+      { text: "CAN으로 인버터에 보내 모터가 204 Nm를 낸다", slot: 8 },
     ],
     blocks: {
       aps: { id: "aps", label: "APS A/B 가속 페달", kind: "hw", img: `${T}accel_pedal.png`, out: "A 60% · B 60%", from: "구동 · 운전자 토크 요청" },
@@ -81,13 +81,13 @@ const REF: Record<CaseId, Ref> = {
     spares: ["hystB", "driver", "derate", "range", "hyst"], joints: ["tri", "tri", "tri", "zigzag", "wave", "wave"],
     side: { pieces: ["rpm"], into: 4, value: "실제 회전 1850 rpm", label: "팬 회전 피드백 (되돌아오는 값)" },
     req: [
-      { text: "냉각수 온도를 잰다 (78°C)", slot: 0 },
-      { text: "센서 값이 말이 되는 범위인지 확인한다", slot: 1 },
-      { text: "잠깐 튀는 값은 걸러 낸다", slot: 2 },
-      { text: "65°C를 넘으면 팬을 켠다 (끌 때는 60°C, 깜빡임 방지)", slot: 3 },
-      { text: "실제 회전수를 보며 목표 1850 rpm이 되게 PWM을 계속 조절한다", slot: 4 },
-      { text: "ECU 출력단이 PWM 신호와 12V 전원을 팬에 보낸다", slot: 5 },
-      { text: "팬이 1850 rpm으로 돈다", slot: 6 },
+      { text: "냉각수 온도 센서가 온도를 읽는다 (이번 시나리오 입력 78°C)", slot: 0 },
+      { text: "센서 값이 물리적으로 가능한 범위인지 확인한다", slot: 1 },
+      { text: "순간적으로 튀는 값은 필터로 걸러 낸다", slot: 2 },
+      { text: "65°C 이상이면 팬을 켜고 60°C 이하가 되면 끈다 (켜고 끄는 기준을 달리해 깜빡임 방지)", slot: 3 },
+      { text: "실제 회전수를 피드백 받아 목표 1850 rpm이 되도록 PWM을 계속 조절한다", slot: 4 },
+      { text: "ECU 출력단이 PWM 신호와 12V 전원을 팬에 공급한다", slot: 5 },
+      { text: "팬이 1850 rpm으로 회전한다", slot: 6 },
     ],
     blocks: {
       coolant: { id: "coolant", label: "냉각수 온도 센서", kind: "hw", img: `${T}motor_temp_sensor.png`, out: "78°C", from: "열관리 · 온도 상태 만들기" },
@@ -112,13 +112,13 @@ const REF: Record<CaseId, Ref> = {
     spares: ["hmod", "slip", "press", "pressB", "recv"], joints: ["round", "square", "square", "square", "tri", "tri"],
     side: { pieces: ["bms", "avail"], into: 2, value: "회생 가능 1.1 m/s²", label: "BMS가 보내는 회생 가용량" },
     req: [
-      { text: "운전자가 브레이크를 55% 밟는다", slot: 0 },
-      { text: "목표 감속 3.2 m/s²를 받는다", slot: 1 },
-      { text: "회생은 배터리가 받을 수 있는 만큼만 쓴다", slot: 2 },
-      { text: "모자란 만큼은 마찰 제동이 채운다", slot: 3 },
-      { text: "마찰 몫 2.1 m/s²는 압력 42 bar가 된다", slot: 4 },
+      { text: "브레이크 페달 센서가 페달 위치를 읽는다 (이번 시나리오 입력 55%)", slot: 0 },
+      { text: "Brake ECU가 목표 감속 3.2 m/s²를 받는다", slot: 1 },
+      { text: "회생 제동은 배터리가 받을 수 있는 만큼만 쓴다 (이번 조건 1.1 m/s²)", slot: 2 },
+      { text: "부족한 감속은 마찰 제동이 채운다 (3.2 − 1.1 = 2.1 m/s²)", slot: 3 },
+      { text: "마찰 몫 2.1 m/s²를 브레이크 압력 42 bar로 바꾼다", slot: 4 },
       { text: "유압 모듈이 명령대로 라인 압력 42 bar를 만든다", slot: 5 },
-      { text: "캘리퍼가 바퀴를 잡아 합계 3.2 m/s²", slot: 6 },
+      { text: "캘리퍼가 바퀴를 잡아 회생과 합쳐 3.2 m/s²로 감속한다", slot: 6 },
     ],
     blocks: {
       pedal: { id: "pedal", label: "브레이크 페달 센서", kind: "hw", img: `${T}brake_pedal.png`, out: "55%", from: "제동 · 페달 → 감속 요구" },
@@ -175,7 +175,7 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
   const [picked, setPicked] = useState<string | null>(null);
   const [run, setRun] = useState<{ step: number; status: "running" | "fail" | "pass"; failAt?: number } | null>(null);
   const [fails, setFails] = useState(0);
-  const [msg, setMsg] = useState(`오른쪽 요구사항을 읽고 빈칸 ${ref.gaps.length}곳에 블록을 넣은 뒤 ▶ 실행하세요. 모두 차고에서 본 블록·부품이에요.`);
+  const [msg, setMsg] = useState(`오른쪽 요구사항을 읽고 빈칸 ${ref.gaps.length}곳에 블록을 넣은 뒤 ▶ 실행하세요. 모두 정비소에서 본 블록·부품이에요.`);
   const [zoom, setZoomState] = useState<{ b: Blk; x: number; y: number; up: boolean } | null>(null);
   const setZoom = (b: Blk | null, el?: HTMLElement) => { if (!b || !el || !stage.current) { setZoomState(null); return; } const r = el.getBoundingClientRect(), base = stage.current.getBoundingClientRect(); const up = r.bottom - base.top > base.height - 190; setZoomState({ b, x: Math.min(Math.max(r.left - base.left + r.width / 2, 135), base.width - 135), y: up ? r.top - base.top - 8 : r.bottom - base.top + 8, up }); };
   useEffect(() => { const key = (e: KeyboardEvent) => { if (["Delete", "Backspace", "Escape"].includes(e.key)) setZoomState(null); }; addEventListener("keydown", key); return () => removeEventListener("keydown", key); }, []);
@@ -293,9 +293,9 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
   const requirementDone = (slot: number) => Boolean(reached(slot));
   return <div className="refPuzzle">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="검증 준비" title="요구사항 기반 로직 퍼즐" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증 준비" title="요구사항 기반 퍼즐" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
-    <StageIntro id="puzzle" title="요구사항 기반 로직 퍼즐" goal="주어진 요구사항대로 퍼즐을 구성해요." steps={[
+    <StageIntro id="puzzle" title="요구사항 기반 퍼즐" goal="주어진 요구사항대로 퍼즐을 구성해요." steps={[
       { icon: "clipboard", text: "오른쪽 요구사항을 읽어요. 노란 줄이 이번에 맞춰야 할 칸이에요." },
       { icon: "puzzle", text: "아래 남은 조각을 빈칸으로 끌어 넣어요. 조각의 ? 버튼을 누르면 하는 일과 표 값이 나와요." },
       { icon: "monitor", text: "▶ 실행하면 값이 칸마다 흘러요. 요구사항과 처음 다른 칸에서 멈추면 그 칸을 다시 생각해요." },
@@ -303,7 +303,7 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
     <header className="rpHead">
       <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p>요구사항대로 동작하려면 어떤 블록이 어떤 순서로 있어야 하는지 맞춥니다. <b>값의 단위가 바뀌는 곳</b>(예: % → Nm)이 단서예요.</p></div>
       <div className="rpTools">
-        <button onClick={openNote} disabled={!noteReady} title={noteReady ? "" : "한 번 실행해 본 뒤 열 수 있어요"}><Icon name="book" /> 차고 노트{noteUsed ? "" : noteReady ? " · -5m" : " · 실행 후"}</button>
+        <button onClick={openNote} disabled={!noteReady} title={noteReady ? "" : "한 번 실행해 본 뒤 열 수 있어요"}><Icon name="book" /> 정비소 노트{noteUsed ? "" : noteReady ? " · -5m" : " · 실행 후"}</button>
         <button onClick={reset}>↺ 초기화</button>
       </div>
     </header>
@@ -353,7 +353,7 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
           <b>{zoom.b.label}{zoom.b.tag ? ` · ${zoom.b.tag}` : ""}</b>
           <p>{doesOf(zoom.b)}</p>
           {zoom.b.spec && <p className="rpSpec">{zoom.b.spec}</p>}
-          <p className="rpFromLine">차고에서 본 곳: {zoom.b.from}</p>
+          <p className="rpFromLine">정비소에서 본 곳: {zoom.b.from}</p>
         </div>}
       </section>
     </main>
@@ -369,7 +369,7 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
 
     {noteOpen && <div className="pieceZoom" onClick={() => setNoteOpen(false)}><article className="rpNote" onClick={event => event.stopPropagation()}>
       <button className="pieceZoomClose" onClick={() => setNoteOpen(false)}>×</button>
-      <small><Icon name="book" /> 차고 노트 · Control Software</small><h2>차고에서 본 블록 카드</h2>
+      <small><Icon name="book" /> 정비소 노트 · Control Software</small><h2>정비소에서 본 블록 카드</h2>
       <p className="pzTip">순서는 섞여 있어요. 각 블록이 하는 일만 다시 확인하고, 순서는 요구사항으로 판단하세요.</p>
       {ref.notes.map(note => <section key={note.name}><b>{note.name}</b><div className="rpNoteCards">
         {[...getFeatureLayer(note.domain, note.feature, 3)].sort((a, b) => a.localeCompare(b, "ko")).map(label => { const kind = blockKind(label); return <div key={label} className={`rpNoteCard kind-${kind}`}><div className="flowBlock"><Picto kind={kind} /><small>{KIND_TAG[kind]}</small></div><b>{label}</b><span>{plainText(label, kind)}</span></div>; })}
@@ -413,12 +413,23 @@ const RIG_GOAL: Record<CaseId, string> = {
   thermal: "팬 요청 계산 SW인지, PWM 출력 어댑터 SW인지",
   brake: "배분 계산 SW인지, 압력 명령 I/O 어댑터 SW인지",
 };
-const SPEC: Record<CaseId, { text: string; input?: { label: string; unit: string; min: number; max: number; at: number }; expect: string }> = {
+/** STEP03 산출물: 정상 시나리오 요구사항 문장 (STEP04 시험 자료함에서 그대로 참고). */
+export const normalScenarioLines = (caseId: CaseId) => SPEC[caseId].lines;
+// One-line test purpose on the design sheet (the full contract objective stays in the tooltip and in STEP04).
+const SHEET_PURPOSE: Record<CaseId, string> = {
+  propulsion: "VCU 계산 SW와 입력 회로 중 원인 구분",
+  thermal: "팬 요청 계산 SW와 PWM 출력 SW 중 원인 구분",
+  brake: "배분 계산 SW와 압력 출력 SW 중 원인 구분",
+};
+const SPEC: Record<CaseId, { text: string; lines: string[]; input?: { label: string; unit: string; min: number; max: number; at: number }; expect: string }> = {
   propulsion: { text: "페달 0~100% → 토크 요청 0~340 Nm 선형 · 가용 토크 한계 260 Nm(BMS·온도) · D단·READY일 때만 통과",
+    lines: ["D단·READY 상태에서만 가속 페달 위치(0~100%)를 토크 요청(0~340\u00a0Nm, 비례)으로 바꾼다.", "토크 요청은 BMS·온도가 허용하는 가용 토크 260\u00a0Nm를 넘지 않는다.", "정상 시나리오: 페달 60% → 토크 요청 204\u00a0Nm → 모터 토크 204\u00a0Nm"],
     input: { label: "가속 페달", unit: "%", min: 0, max: 100, at: 60 }, expect: "페달 60% → 토크 요청 204 Nm → 모터 204 Nm" },
   thermal: { text: "냉각수 65°C 이상 팬 켜짐 · 60°C 이하 꺼짐 · 켜지면 실제 회전을 보며 목표 1850 rpm으로 PWM 조절 · 출력단이 PWM과 12V를 팬에 공급",
+    lines: ["냉각수 온도가 65°C 이상이면 냉각 팬을 켜고, 60°C 이하가 되면 끈다.", "팬이 켜지면 실제 회전수를 보며 목표 1850\u00a0rpm이 되도록 PWM을 조절한다.", "ECU 출력단은 PWM 신호와 12\u00a0V 전원을 팬에 공급한다."],
     input: { label: "냉각수 온도", unit: "°C", min: 40, max: 100, at: 78 }, expect: "냉각수 78°C → 팬 켜짐 → 팬 1850 rpm" },
-  brake: { text: "페달 55% → 목표 감속 3.2 m/s² · 회생은 가용량까지 · 나머지는 마찰(1 m/s²당 20 bar)", expect: "페달 55% → 감속 3.2 m/s²" },
+  brake: { text: "페달 55% → 목표 감속 3.2 m/s² · 회생은 가용량까지 · 나머지는 마찰(1 m/s²당 20 bar)",
+    lines: ["브레이크 페달을 55% 밟으면 목표 감속은 3.2\u00a0m/s²이다.", "회생 제동은 배터리가 받을 수 있는 만큼만 쓰고, 나머지는 마찰 제동이 채운다.", "마찰 제동 1\u00a0m/s²는 브레이크 압력 20\u00a0bar로 만든다."], expect: "페달 55% → 감속 3.2 m/s²" },
 };
 /** Value leaving each board slot for an example input (same numbers as simModel: 3.4 Nm/%, limit 260, 65/60 °C, 1850 rpm). */
 function exampleValue(caseId: CaseId, id: string, x: number, mapId = "map"): string | null {
@@ -464,7 +475,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const [scale, setScale] = useState(.8);
   const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ref.ecu; } catch { return ref.ecu; } })();
   useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ place, picked, check: check?.status === "running" ? null : check, x, confirmed, msg, contract })); } catch { /* ignore */ } }, [place, picked, check, x, confirmed, msg, contract, progressKey]);
-  // the board keeps a 44px toolbar strip (title + 차고 노트) on top, so the puzzle fits into the space below it
+  // the board keeps a 44px toolbar strip (title + 정비소 노트) on top, so the puzzle fits into the space below it
   const fitStage = () => { const r = stage.current?.getBoundingClientRect(); if (r && r.width) setScale(Math.min(r.width / W, (r.height - 44) / H, 1.1)); };
   useLayoutEffect(() => {
     fitStage(); const ob = new ResizeObserver(fitStage); if (stage.current) ob.observe(stage.current); return () => ob.disconnect();
@@ -572,10 +583,10 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   return <div className="refPuzzle v2" data-coach={coach}>
     {reaction && <ActuatorReaction key={reaction} caseId={caseId} ok={reaction === "ok"} />}
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="검증 준비" title="요구사항 기반 로직 퍼즐" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="검증 준비" title="요구사항 기반 퍼즐" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageFolderSubtitle className="puzzleStageFolder" action="고장 원인을 구별할 시험 조건과 정상 기준을 완성하세요." detail={<>이전 결과: {section} <i>|</i> 의심 구간: {RIG_GOAL[caseId]}</>} />
-    <StageIntro id="puzzle-v2" title="요구사항 기반 로직 퍼즐" goal="주어진 요구사항대로 퍼즐을 구성해요." steps={[
+    <StageIntro id="puzzle-v2" title="요구사항 기반 퍼즐" goal="주어진 요구사항대로 퍼즐을 구성해요." steps={[
       { icon: "puzzle", text: "빈칸에 조각을 끌어 넣고 '연결 확인'을 눌러요. 연결만 확인하고 값은 아직 판정하지 않아요." },
       { icon: "monitor", text: "예시 입력을 움직여 칸마다 값이 어떻게 나오는지 봐요." },
       { icon: "clipboard", text: "요구사항과 같으면 '기준 확정'. 이 값이 검증 단계의 기대값이 돼요." },
@@ -624,7 +635,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
           <b>{zoom.b.label}{zoom.b.tag ? ` · ${zoom.b.tag}` : ""}</b>
           <p>{doesOf(zoom.b)}</p>
           {zoom.b.spec && <p className="rpSpec">{zoom.b.spec}</p>}
-          <p className="rpFromLine">차고에서 본 곳: {zoom.b.from}</p>
+          <p className="rpFromLine">정비소에서 본 곳: {zoom.b.from}</p>
         </div>}
       </section>
     </main>
@@ -640,8 +651,8 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     {contractOpen && contract && <div className="verificationContractModal" onClick={() => setContractOpen(false)}><article className="receiptPrinting specSheet" onClick={event => event.stopPropagation()} aria-label="테스트 설계서">
       <button className="contractClose" aria-label="테스트 설계서 닫기" onClick={() => setContractOpen(false)}>×</button>
       <div className="specSheetPaper">
-        <div className="ssItem" style={{ animationDelay: "0s" }}><small>STEP03 → STEP04 · 테스트 설계서</small><h2>{contract.stimulus.label}</h2><p className="ssSection">의심 구간 · {contract.suspectSection}</p></div>
-        <section className="ssItem" style={{ animationDelay: ".28s" }}><h3>요구사항</h3><p>{numify(spec.text)}</p></section>
+        <div className="ssItem" style={{ animationDelay: "0s" }}><small>STEP03 → STEP04 · 테스트 설계서</small><h2>{contract.stimulus.label}</h2><p className="ssPurpose" title={contract.objective}><span>시험 목적</span><b>{SHEET_PURPOSE[caseId]}</b></p></div>
+        <section className="ssItem" style={{ animationDelay: ".28s" }}><h3>요구사항</h3><ul className="ssReq">{spec.lines.map(line => <li key={line}>{line}</li>)}</ul></section>
         <section className="ssItem" style={{ animationDelay: ".56s" }}><h3>입력 조건</h3>
           <table><thead><tr><th>신호</th><th>설정값</th><th>단위</th></tr></thead><tbody>
             {contract.execution.initial.map(item => <tr key={item.signalId}><td>{contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code></td><td>{item.unit}</td></tr>)}
@@ -649,7 +660,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
             <tr className="ssInput"><td>입력 변화 시간</td><td><code>{contract.execution.stimulus.rampSeconds}</code></td><td>s</td></tr>
             <tr className="ssInput"><td>입력 유지 시간</td><td><code>{contract.execution.stimulus.holdSeconds}</code></td><td>s</td></tr>
           </tbody></table></section>
-        <section className="ssItem" style={{ animationDelay: ".84s" }}><h3>예상 출력</h3>
+        <section className="ssItem" style={{ animationDelay: ".84s" }}><h3>예상 출력 조건</h3>
           <table><thead><tr><th>신호</th><th>기대값</th><th>허용 오차</th><th>단위</th></tr></thead><tbody>
             {contract.execution.expectedOutputs.map((item, index) => <tr key={item.signalId}><td>{index === 0 ? contract.expected.signal : contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code></td><td><code>±{item.tolerance}</code></td><td>{item.unit}</td></tr>)}
           </tbody></table></section>

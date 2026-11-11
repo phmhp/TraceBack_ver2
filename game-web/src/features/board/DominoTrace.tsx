@@ -377,7 +377,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
           <b><Icon name="clipboard" /> 쓰러진 곳 = 고친 뒤 다시 시험할 곳 (회귀 시험 {effects.length}곳)</b>
           <div className="dtHypCarry"><small>원인은 아직 확정하지 않아요 · 검증 단계로 넘기는 가설</small>{SCENARIO_META[caseId].hypotheses.map(h => <span key={h.id} className={h.stage1 ? "out" : "keep"} title={h.stage1 ?? "이 단계의 증거로는 구분할 수 없어요. 시험으로 가려요."}><b>{h.label}</b><em>{h.stage1 ? "반박됨" : "판단 보류"}</em></span>)}</div>
           <b className="dtStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</b>
-          <button className="dtNext" onClick={finish}>다음: 요구사항 기반 로직 퍼즐 →</button>
+          <button className="dtNext" onClick={finish}>다음: 요구사항 기반 퍼즐 →</button>
         </div>}
       </section>}
 

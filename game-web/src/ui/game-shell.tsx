@@ -109,11 +109,11 @@ export function StageFolderSubtitle({ action, detail, className = "" }: { action
 }
 
 const journeyStages = [
-  { id: "garage", label: "차고지", detail: "차량 도메인 학습" },
+  { id: "garage", label: "정비소", detail: "차량 도메인 학습" },
   { id: "heist", label: "범행·도주", detail: "고양이 탑승과 출발" },
   { id: "race", label: "주행", detail: "코스 지점까지 도주" },
   { id: "board", label: "도미노 추적", detail: "의심 구간 좁히기·영향도 분석" },
-  { id: "wiring", label: "로직 퍼즐", detail: "요구사항 기반 로직 퍼즐" },
+  { id: "wiring", label: "퍼즐", detail: "요구사항 기반 퍼즐" },
   { id: "bench", label: "검증", detail: "레벨·기법 선택, 정상 vs 현장 비교" },
   { id: "repair", label: "수리", detail: "검증 설계 적용" },
   { id: "escape", label: "해적선", detail: "최종 승선" },

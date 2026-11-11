@@ -109,11 +109,12 @@ test("K-5 keeps the reverse trace central, evidence/stack on the right, and cand
   assert.match(latestCss, /-webkit-line-clamp: 2/);
 });
 
-test("P0 STEP02 keeps initial observations compact and attaches earned output polaroids by click", () => {
+test("P0 STEP02 keeps initial observations compact and opens earned output polaroids without a pin-to-board step", () => {
   const liveTrace = eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3"));
+  // 2026-11-12 STEP02-06: the pin-to-board step is removed; `attached` stays only for saved-progress compatibility.
   assert.match(liveTrace, /const \[attached, setAttached\]/);
-  assert.match(liveTrace, /const attachEvidence/);
-  assert.match(liveTrace, /증거판에 붙이기/);
+  assert.doesNotMatch(liveTrace, /const attachEvidence/);
+  assert.doesNotMatch(liveTrace, /증거판에 붙이기/);
   assert.match(liveTrace, /item\.id === "quote" && phase === "evidence"/);
   assert.doesNotMatch(liveTrace, /id: "road"/);
   assert.match(latestCss, /grid-template-rows: minmax\(0, 1fr\) 154px 58px/);
@@ -135,7 +136,8 @@ test("STEP02 keeps evidence and reasoning stack in the persisted right rail with
   // T-25: the hypothesis handed to STEP03 is the player's own pick, never the answer key.
   assert.doesNotMatch(liveTrace, /SELECT_HYPOTHESIS", id: scenario\.root/);
   assert.match(liveTrace, /carryId/);
-  assert.match(liveTrace, /etCandidateRow/);
+  // 2026-11-12 STEP02-04: the bottom dock shows one question at a time; suspects are polaroids in .etSuspRow.
+  assert.match(liveTrace, /etSuspRow/);
   assert.match(latestCss, /\.etEvidence > header > \.etEvidenceTabs/);
   assert.match(latestCss, /\.etMugs \{ display: flex !important/);
   assert.match(latestCss, /\.etCandidateRow \{[\s\S]*overflow: hidden/);
@@ -144,7 +146,7 @@ test("STEP02 keeps evidence and reasoning stack in the persisted right rail with
 test("FB-P0-01 makes the STEP02 rail a folder-tabbed evidence and reasoning board", () => {
   assert.match(eeTrace, /etStageFolder/);
   assert.match(eeTrace, /관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요/);
-  assert.match(eeTrace, /item\.dom && !attached\.includes\(item\.id\)/);
+  assert.doesNotMatch(eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3")), /item\.dom && !attached\.includes\(item\.id\)/);
   assert.match(latestCss, /\.eeTrace \.etEvidence \{[\s\S]*grid-template-rows: auto minmax\(0, 1fr\)/);
   assert.match(latestCss, /\.eeTrace \.etEvidence \.pol \{[\s\S]*aspect-ratio: 1 \/ 1\.22/);
   assert.match(latestCss, /\.eeTrace \.etEvidence \.pol \.polPhoto \{[\s\S]*aspect-ratio: 1 \/ \.97/);
@@ -320,4 +322,52 @@ test("latest scenario scope keeps every root cause in software", () => {
   assert.match(simModel, /output-interface SW applies a second scale/);
   assert.match(vehicleSim, /fanPwmOutputScale/);
   assert.match(vehicleSim, /brakeCommandScale/);
+});
+
+test("STEP02 2026-11-12 bottom dock asks one question at a time and shares polaroid rules", () => {
+  const liveTrace = eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3"));
+  assert.match(liveTrace, /고장 당시 로그 재생/);
+  assert.doesNotMatch(liveTrace, /고장 당시 입력 재생/);
+  assert.doesNotMatch(liveTrace, /위가 최근에 찾은 단계|위가 최초 편차 쪽/);
+  assert.match(liveTrace, /const next = meta\.hypotheses\.find\(h => !sorted\[h\.id\]\)/);
+  assert.match(liveTrace, /className="pol etPol"/);
+  assert.match(latestCss, /\.eeTrace \.etSusp \.etPol \{[^}]*aspect-ratio: 88 \/ 107/);
+  assert.match(latestCss, /object-fit: contain !important/);
+  assert.match(latestCss, /\.eeTrace \.pol \{ overflow: visible !important; \}/);
+});
+
+test("STEP01 2026-11-12 shows 정비소 and fits E/E 3D parts inside their chip slot", () => {
+  assert.match(gameShell, /label: "정비소"/);
+  assert.match(experience, /GameHeader chapter="정비소"/);
+  assert.doesNotMatch(gameShell + experience + main, /"차고지"/);
+  assert.match(eeBlueprint, /function slotFitSize\(id: string, w: number, h: number\)/);
+  assert.match(eeBlueprint, /applyEuler\(PART_ROT\)/);
+  assert.doesNotMatch(eeBlueprint, /<FittedPart id=\{id!\} size=\{48\}/);
+  assert.match(latestCss, /\.eeBlueprint\.layer-part \.eeChip\.hasPart, \.eeBlueprint\.layer-mix \.eeChip\.hasPart \{ padding-left: 50px !important/);
+  assert.match(latestCss, /\.eeCol:has\(> \.eeChip:nth-of-type\(6\)\)/);
+});
+
+test("STEP04 2026-11-12 verifies each hypothesis with its own runs and simplified materials", () => {
+  const live = verificationLab.slice(verificationLab.indexOf("export function TwinBenchExperience"));
+  // runs are stored per hypothesis × level; a hypothesis is only judged from a run made for it
+  assert.match(verificationLab, /const runKey = \(fixed: boolean, lv: Lv, hyp = ""\) => \(fixed \? "fixed" : `\$\{hyp\}:fault-\$\{lv\}`\)/);
+  assert.match(live, /runs\[runKey\(fixed, level, q\?\.hyp\)\]/);
+  assert.match(live, /const selectHypothesis = \(k: number\)/);
+  assert.match(live, /questions\.findIndex\(\(item, k\) => k !== qi && !nextAnswers\[item\.hyp\]\)/);
+  // monitoring while running, back to the level view afterwards
+  assert.match(live, /setRunning\(true\); setU\(0\); setFeedback\(null\); setViewTab\("graph"\)/);
+  assert.match(live, /setViewTab\(viewOf\(lv\)\);/);
+  // wording and report
+  assert.match(live, /시험 결과가 선택한 고장 원인 가설을 뒷받침합니까\?/);
+  assert.doesNotMatch(live, /검증 결과 보고 · \{DRIVER_NAME\}에게/);
+  assert.match(live, /설명: \{a\?\.why\}/);
+  assert.match(verificationLab, /VCU 내부 계산 SW가 잘못된 거야\?/);
+  // materials: STEP02 then STEP03, no "이번 시험 조건" chip, STEP03 normal scenario shown
+  assert.ok(live.indexOf("STEP02 고장 재현 로그 열기") < live.indexOf("STEP03 시험 설계서 열기"));
+  assert.doesNotMatch(live, /<Icon name="monitor" \/> 이번 시험 조건/);
+  assert.match(live, /normalScenarioLines\(caseId\)/);
+  // TC line only reads signals observable on the current level (UI-V3-17)
+  assert.match(live, /const tcSig = tcOut \? list\.find\(sig => sig\.id === tcOut\.signalId\) : undefined;/);
+  assert.doesNotMatch(live, /className=\{`qaJudgeBlock/);
+  assert.match(latestCss, /@keyframes qaTurnPulse/);
 });

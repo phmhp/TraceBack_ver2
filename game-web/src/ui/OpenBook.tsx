@@ -23,7 +23,7 @@ export function OpenBookButton({ caseId }: { caseId: CaseId }) {
     <button className="openBookBtn" onClick={() => { setOpen(true); play("pop"); }}><Icon name="book" /> 오픈북</button>
     {open && <div className="pieceZoom" onClick={() => setOpen(false)}><article className="rpNote openBook" onClick={event => event.stopPropagation()}>
       <button className="pieceZoomClose" onClick={() => setOpen(false)}>×</button>
-      <small><Icon name="book" /> 오픈북 · 차고에서 본 정상 동작</small><h2>정상이면 이렇게 동작해요</h2>
+      <small><Icon name="book" /> 오픈북 · 정비소에서 본 정상 동작</small><h2>정상이면 이렇게 동작해요</h2>
       <p className="pzTip">사건 기록이 아니라 정상 자료예요. 원인은 직접 재고 시험해서 찾아요.</p>
       {BOOK[caseId].map(note => <section key={note.name}>
         <b>{note.name}</b>
