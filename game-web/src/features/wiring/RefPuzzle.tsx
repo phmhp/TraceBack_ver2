@@ -586,10 +586,10 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     <GameHeader chapter="검증 준비" title="요구사항 기반 퍼즐" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageFolderSubtitle className="puzzleStageFolder" action="고장 원인을 구별할 시험 조건과 정상 기준을 완성하세요." detail={<>이전 결과: {section} <i>|</i> 의심 구간: {RIG_GOAL[caseId]}</>} />
-    <StageIntro id="puzzle-v2" title="요구사항 기반 퍼즐" goal="주어진 요구사항대로 퍼즐을 구성해요." steps={[
-      { icon: "puzzle", text: "빈칸에 조각을 끌어 넣고 '연결 확인'을 눌러요. 연결만 확인하고 값은 아직 판정하지 않아요." },
-      { icon: "monitor", text: "예시 입력을 움직여 칸마다 값이 어떻게 나오는지 봐요." },
-      { icon: "clipboard", text: "요구사항과 같으면 '기준 확정'. 이 값이 검증 단계의 기대값이 돼요." },
+    <StageIntro id="puzzle-v2" stage="STEP 03" title="퍼즐" goal="정상 동작 로직을 구성하고 시험 기준 만들기" steps={[
+      { icon: "puzzle", text: "요구사항을 읽고 빈칸에 조각을 넣은 뒤 '연결 확인'" },
+      { icon: "monitor", text: "예시 입력을 움직여 칸마다 나오는 값 확인하기" },
+      { icon: "clipboard", text: "요구사항과 같으면 '기준 확정' → 시험 설계서 발급" },
     ]} />
     <main className="rpMain">
       <aside className="rpReq">

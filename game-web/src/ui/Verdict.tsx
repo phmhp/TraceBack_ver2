@@ -22,23 +22,27 @@ export function VerdictLayer() {
 }
 
 /** First-visit tutorial for a stage: dim + blur the screen, three short steps, Enter to start. */
-export function StageIntro({ id, title, goal, steps }: { id: string; title: string; goal: string; steps: { icon: IconName; text: string }[] }) {
-  const storageKey = `tb-intro-${id}`;
-  const [open, setOpen] = useState(() => { try { return !localStorage.getItem(storageKey); } catch { return true; } });
-  const close = () => { setOpen(false); try { localStorage.setItem(storageKey, "1"); } catch { /* ignore */ } };
+/**
+ * Stage entry overlay (2026-11-12): shown every time a stage is entered, over a softly blurred stage.
+ * Big stage name, one-sentence goal, a few short actions and a "풀기" button. It never touches saved
+ * progress, so returning to a stage in progress just shows the same reminder and keeps the state.
+ */
+export function StageIntro({ id, title, goal, steps, stage, onClose }: { id: string; title: string; goal: string; steps: { icon: IconName; text: string }[]; stage?: string; onClose?: () => void }) {
+  const [open, setOpen] = useState(true);
+  const close = () => { setOpen(false); onClose?.(); };
   useEffect(() => {
     if (!open) return;
     const key = (event: KeyboardEvent) => { if (event.key === "Enter" || event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(); } };
     addEventListener("keydown", key, true); return () => removeEventListener("keydown", key, true);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!open) return null;
-  return <div className="stageIntro" role="dialog" aria-modal="true">
+  return <div className="stageIntro stageGate" role="dialog" aria-modal="true" aria-labelledby={`stage-gate-${id}`} data-stage-intro={id}>
     <article>
-      <small>처음 해 보는 단계</small>
-      <h2>{title}</h2>
+      {stage && <small>{stage}</small>}
+      <h2 id={`stage-gate-${id}`}>{title}</h2>
       <p className="stageIntroGoal">{goal}</p>
       <ol>{steps.map((step, i) => <li key={step.text}><i><Icon name={step.icon} /></i><b>{i + 1}</b><span>{step.text}</span></li>)}</ol>
-      <button className="primary" onClick={close}>시작하기 (Enter)</button>
+      <button className="primary" onClick={close}>풀기 (Enter)</button>
     </article>
   </div>;
 }

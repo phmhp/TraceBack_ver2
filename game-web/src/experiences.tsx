@@ -1038,10 +1038,10 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
     <GameHeader chapter="정비소" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <StageFolderSubtitle className="garageStageFolder" action="차량 기능이 어떤 부품과 신호를 거쳐 동작하는지 확인하세요." detail={<>학습 대상: {chosen ? content.label : "전체 도메인"} <i>|</i> Vehicle/System · E/E · Control SW</>} />
-    <StageIntro id="garage" title="차량 도메인 동작 원리" goal="차량 동작 원리를 파악하고 작동시켜보아요." steps={[
-      { icon: "car", text: "위 탭에서 도메인을 고르세요. (예: 구동)" },
-      { icon: "clipboard", text: "오른쪽에서 주요 기능을 고르세요. (예: 운전자 토크 요청)" },
-      { icon: "layers", text: "왼쪽에서 관점을 바꿔요: 3D 부품 위치 → E/E 연결 → Control SW 판단. 아래 단계 칸을 눌러 신호를 한 단계씩 보내 보세요." },
+    <StageIntro id="garage" stage="STEP 01" title="정비소" goal="차량 기능이 부품·신호·SW를 거쳐 어떻게 동작하는지 이해하기" steps={[
+      { icon: "car", text: "위 탭에서 도메인, 오른쪽에서 기능을 고르기" },
+      { icon: "layers", text: "왼쪽 세 관점으로 같은 기능을 비교하기 (부품 · E/E 연결 · Control SW)" },
+      { icon: "signal", text: "입력 부품을 길게 눌러 신호가 한 단계씩 전달되는 과정 보기" },
     ]} />
     <nav className="garageLayerNav" aria-label="설계 추상화 단계">
       <small className="viewAxisLabel">같은 기능, 세 관점</small>
@@ -1628,6 +1628,10 @@ function RearMirror3D({ gap, visible }: { gap: number; visible: boolean }) {
 export function RaceExperience({ state, send, mode }: { state: Campaign; send: Send; mode: RaceMode }) {
   const firstStart = mode === "normal" && state.raceDistance < 1;
   const [countdown, setCountdown] = useState(firstStart ? 3 : 0);
+  // stage entry overlay: the race (countdown, physics, pursuit gap) waits until the player presses 풀기
+  const [introOpen, setIntroOpen] = useState(mode === "normal" || mode === "resume");
+  const introOpenRef = useRef(introOpen);
+  useEffect(() => { introOpenRef.current = introOpen; }, [introOpen]);
   const [goFlash, setGoFlash] = useState(false);
   const [sim, setSim] = useState<DriveSim>(() => ({ speed: 0, lane: 0, steer: 0, distance: state.raceDistance, gap: state.policeGapMeters, heat: state.caseId === "thermal" ? 66 : 36, elapsed: state.raceElapsedSeconds }));
   // EVs use a single-speed reduction gear: no gear steps. Q/E set the regen level (0–3).
@@ -1667,16 +1671,17 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     ["/assets/cutscene-ship-jump-v1.png", "/assets/cutscene-ship-land-v1.png"].forEach(src => { const image = new Image(); image.src = src; });
   }, [mode]);
   useEffect(() => {
-    if (!countdown) return;
+    if (!countdown || introOpen) return;
     play("beep");
     const timer = window.setTimeout(() => {
       if (countdown === 1) { setCountdown(0); setGoFlash(true); play("go"); window.setTimeout(() => setGoFlash(false), 650); }
       else setCountdown(value => value - 1);
     }, 820);
     return () => clearTimeout(timer);
-  }, [countdown]);
+  }, [countdown, introOpen]);
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
+      if (introOpenRef.current) return;
       const name = raceKey(event);
       if (name.startsWith("arrow")) event.preventDefault();
       keys.current.add(name);
@@ -1709,6 +1714,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     const loop = (now: number) => {
       const dt = Math.min(.05, (now - last) / 1000); last = now;
       setSim(previous => {
+        if (introOpenRef.current) return previous;
         const k = keys.current;
         const allowed = countdown === 0;
         const throttle = allowed && gear === "D" && (k.has("w") || k.has("arrowup"));
@@ -1925,6 +1931,11 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       {([[["↑"], "가속"], [["↓"], "브레이크"], [["←", "→"], "조향"], [["1", "~", "4"], "기어 P·R·N·D"], [["Q", "E"], "회생 강·약"], [["R"], "READY"], [["Esc"], "멈춤"]] as [string[], string][]).map(([keys, meaning]) =>
         <span key={meaning} className="keyItem"><i>{keys.map(key => key === "~" ? <small key={key}>~</small> : <kbd key={key} className={key.length > 1 ? "wide" : ""}>{key}</kbd>)}</i><em>{meaning}</em></span>)}
     </div>
+    {introOpen && <StageIntro id={`race-${mode}`} stage={mode === "resume" ? "주행 복귀" : "주행"} title={mode === "resume" ? "수리 후 주행 복귀" : "주행"} goal={mode === "resume" ? "수리한 차로 추격을 따돌리며 다시 달리기" : "추격을 따돌리며 달리고, 고장 증상이 나타나면 관찰하기"} steps={[
+      { icon: "car", text: "↓ 브레이크를 밟고 4로 D단, ↑ 가속 · ←→ 조향" },
+      { icon: "bolt", text: "Q·E로 회생 제동 단계 조절, 추격차 격차 확인" },
+      { icon: "warning", text: "경고와 증상이 나타나면 무엇이 달라졌는지 기억하기" },
+    ]} onClose={() => setIntroOpen(false)} />}
     {(countdown > 0 || goFlash) && <div className="startCountdown"><small>출발 준비</small><b>{goFlash ? "GO!" : countdown}</b></div>}
     {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="경찰 차량 접근" sound="siren" />}
     {symptom && <ComicBurst tone="fault" side="right" image="/assets/ending-thumbs/accel_pedal.png" title="가속 저하 발생" sound="alarm" />}
@@ -2673,7 +2684,7 @@ export function BenchVisual({ tab, caseId, running, works }: { tab: BenchTab; ca
   if (tab === "sw") return <div className={`benchSwVisual detailed ${running ? "running" : ""} ${works ? "works" : "broken"}`}><div className="simulinkModelHeader"><b>요구사항 기반 실행 모델 · MIL/SIL 개념</b><span>입력 검증 → 상태/분기 → 제어 계산 → 제한 → 출력 → 폐루프 피드백</span></div><div className="swFlowchart"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M13 25 H27 M36 25 H50 M59 25 H73 M82 25 V62 M73 74 H59 M50 74 H36 M27 74 H13" /><path className="feedback" d="M13 74 C3 74 3 25 13 25" /></svg>{swNodes.map(([name,value],index)=><span key={name} style={{left:`${swPositions[index][0]}%`,top:`${swPositions[index][1]}%`}} className={`swDiagramBlock ${index===1?"decision":""} ${index===7?"sink":""}`}><i>{index===1?"◇":String(index+1).padStart(2,"0")}</i><b>{name}</b><small>{value}</small><u className="swInPort" /><u className="swOutPort" /></span>)}<em className="swFeedbackLabel">FEEDBACK · 상태/진단 경계로 되먹임</em></div></div>;
   if (tab === "embedded") return <EmbeddedBench3D caseId={caseId} running={running} works={works} />;
   if (tab === "system") return <div className={`systemBenchVisual ${running ? "running" : ""} ${works ? "works" : "broken"}`}><header><b>차량 시스템 통합 · 가상 차량/네트워크</b><span>여러 ECU와 물리 플랜트의 상호작용을 한 기능 시나리오로 검증</span></header><section><article><small>DRIVER / ENV</small><b>{caseId === "thermal" ? "열부하 78.4°C" : caseId === "brake" ? "제동 요구 55%" : "가속 요구 60%"}</b></article><i>CAN FD</i><article><small>DOMAIN CONTROLLERS</small><b>VCU · BMS · Brake · Thermal</b><em className="networkBus" /></article><i>COMMAND</i><article><small>VEHICLE PLANT</small><b>{works ? "요구 성능 만족" : "통합 경계에서 불일치"}</b></article></section><footer><span>요구사항</span><i /><span>기능 네트워크</span><i /><span>차량 거동</span></footer></div>;
-  return <div className={`benchVehicleVisual ${running ? "running" : ""} ${works ? "works" : "broken"}`}><LabRaceView running={running} works={works} caseId={caseId} /><div className="vehicleReadout"><span>요구<b>{caseId === "propulsion" ? "60%" : caseId === "thermal" ? "72°C" : "55%"}</b></span><span>응답<b>{works ? "정상 범위" : "반응 없음"}</b></span></div></div>;
+  return <div className={`benchVehicleVisual ${running ? "running" : ""} ${works ? "works" : "broken"}`}><LabRaceView running={running} works={works} caseId={caseId} /></div>;
 }
 
 function TwinDesign({ title, subtitle, tab, caseId, running, works, result }: { title: string; subtitle: string; tab: BenchTab; caseId: CaseId; running: boolean; works: boolean; result?: boolean }) {

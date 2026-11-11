@@ -67,6 +67,8 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const [memoTab, setMemoTab] = useState<"evidence" | "stack">(saved.memoTab ?? "evidence");
   const [bubble, setBubble] = useState(saved.bubble ?? `왼쪽 폴라로이드를 눌러 크게 보세요. 기준과 비교할 수 있는 기록에서 다른 곳을 찾으세요.`);
   const [replayOpen, setReplayOpen] = useState(false);
+  // guards the short delay between "every suspect judged" and moving to the next output (no double-advance on fast clicks)
+  const advancing = useRef(false);
   const focus = chain[chain.length - 1];
   const suspects = focus ? causesOf(focus) : [];
   const cleared = suspects.length > 0 && suspects.every(id => stamps[id] === "refuted");
@@ -89,7 +91,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     if (phase === "output") {
       if (id !== data.start) { nope(id, `${dom(id).label}${josa(dom(id).label, "은", "는")} 증거에 나온 증상이 아니에요. 증거는 '${start.label}'이에요.`); return; }
       play("zip"); setChain([id]); setPhase("trace");
-      setBubble(`${start.label}${josa(start.label, "을", "를")} 확인한 폴라로이드가 오른쪽 증거에 추가됐어요. 고장 당시 로그를 재생하고 용의자를 하나씩 재 보세요.`);
+      setBubble(`${start.label}${josa(start.label, "을", "를")} 확인한 폴라로이드가 오른쪽 증거에 추가됐어요. 고장 당시 로그를 재생하고 후보를 하나씩 측정하세요.`);
       return;
     }
     if (phase === "trace" && suspects.includes(id)) measure(id);
@@ -102,10 +104,11 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     const d = dom(id);
     play("zip"); window.setTimeout(() => play(d.status === "bad" ? "stamp" : "pop"), 160);
     setBubble(d.status === "bad"
-      ? `${d.label}도 기준과 달라요(${fmt(d.t!)}${unit}에 달라짐). ${dom(focus).label}보다 먼저인가요, 나중인가요? 도장을 고르세요.`
-      : `${d.label}${josa(d.label, "은", "는")} ${d.status === "tol" ? "조금 다르지만 허용 범위예요" : "기준과 같아요"}. 도장을 고르세요.`);
+      ? `${d.label}도 기준과 달라요. 카드에 적힌 달라진 시점(${fmt(d.t!)}${unit})을 지금 출력(${fmt(dom(focus).t!)}${unit})과 비교해 판단하세요.`
+      : `${d.label}${josa(d.label, "은", "는")} ${d.status === "tol" ? "조금 다르지만 허용 범위예요" : "기준과 같아요"}. 판단을 고르세요.`);
   };
   const stamp = (id: string, pick: Stamp) => {
+    if (advancing.current || stamps[id]) return;
     const d = dom(id), f = dom(focus);
     const earlier = d.status === "bad" && (d.t ?? 0) < (f.t ?? 0);
     const answer: Stamp = earlier ? "likely" : "refuted";
@@ -115,12 +118,35 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
         : `${d.label}${josa(d.label, "은", "는")} ${f.label}보다 먼저 달라졌어요. 원인 쪽일 수 있어요.`);
       return;
     }
-    setStamps(previous => ({ ...previous, [id]: pick }));
+    const next = { ...stamps, [id]: pick };
+    setStamps(next);
     showVerdict(true, STAMP_KO[pick]);
-    if (pick === "likely") {
-      setBubble(`${d.label}${josa(d.label, "이", "가")} 먼저 달라졌어요. 이제 ${d.label}${josa(d.label, "이", "가")} 새 출력이에요. 용의자가 바뀌어요.`);
-      window.setTimeout(() => setChain(previous => [...previous, id]), 700);
-    } else setBubble(`${d.label} 반박. 남은 용의자를 재 보세요.`);
+    const pending = suspects.filter(item => !next[item]);
+    if (pending.length) {
+      setBubble(pick === "likely"
+        ? `${d.label}: 유력. 아직 판단하지 않은 후보가 ${pending.length}개 남았어요. 모든 후보를 측정하고 판단해야 다음 출력으로 넘어가요.`
+        : `${d.label}: 반박. 남은 후보 ${pending.length}개를 측정하고 판단하세요.`);
+      return;
+    }
+    // every suspect of this output is judged: follow the earliest likely one, or stop here (handled by the effect below)
+    const likely = suspects.filter(item => next[item] === "likely").sort((a, b) => (dom(a).t ?? 0) - (dom(b).t ?? 0));
+    if (likely.length) {
+      const nextOut = dom(likely[0]);
+      advancing.current = true;
+      setBubble(`모든 후보를 판단했어요. ${nextOut.label}${josa(nextOut.label, "이", "가")} ${f.label}보다 먼저 달라졌으니 이제 새 출력이에요. 그 앞의 후보를 다시 측정해요.`);
+      // a judgement is relative to the output it was compared with: the new output's suspects are judged again (measurements stay)
+      window.setTimeout(() => {
+        setStamps(previous => { const kept = { ...previous }; causesOf(likely[0]).forEach(item => { delete kept[item]; }); return kept; });
+        setChain(previous => previous.includes(likely[0]) ? previous : [...previous, likely[0]]);
+        advancing.current = false;
+      }, 700);
+    }
+  };
+  // a judged suspect can be reopened until every suspect of the current output is judged
+  const unstamp = (id: string) => {
+    if (advancing.current || !suspects.includes(id)) return;
+    setStamps(previous => { const next = { ...previous }; delete next[id]; return next; });
+    play("pop"); setBubble(`${dom(id).label}의 판단을 다시 고를 수 있어요.`);
   };
   // 5) every suspect cleared → the current output is where it first went wrong
   useEffect(() => {
@@ -193,7 +219,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const evidenceCards = [...(chain.length ? [start] : []), ...measured.map(dom)].filter((d, i, all) => all.findIndex(x => x.id === d.id) === i);
   const pols: Pol[] = [
     { id: "quote", kind: "quote", title: `${DRIVER} 진술`, sub: "운전자 체감", photo: <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /> },
-    { id: "lamp", kind: "lamp", title: "계기판", sub: LAMP[caseId].label, photo: <span className="polIcon"><Icon name="warning" /></span> },
+    { id: "lamp", kind: "lamp", title: "계기판", sub: LAMP[caseId].label, photo: <img src="/assets/intake/images/HMI/instrument_cluster__EVID-fault.png" alt="" /> },
     ...evidenceCards.map(d => ({ id: d.id, kind: `m s-${d.status}`, title: d.label, sub: d.status === "bad" ? "기준과 다름" : d.status === "tol" ? "허용 범위 안" : "기준과 같음", photo: <Photo src={d.img} />, dom: d })),
   ];
   const zoomed = pols.find(item => item.id === zoomPol);
@@ -208,10 +234,10 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     <GameHeader chapter="원인 추적" title="도미노 역추적" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageFolderSubtitle className="etStageFolder" action="관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요." detail={<>출발 증거: {scenario.symptom} <i>|</i> 추적 대상: 신호·제어 경로</>} />
-    <StageIntro id="trace-v2" title="도미노 역추적" goal="증상에서 거꾸로 따라가 처음 쓰러진 도미노를 찾아요. 원인은 검증 단계에서 시험으로 확인해요." steps={[
-      { icon: "camera", text: "폴라로이드를 눌러 크게 보고, 기준과 다른 기록을 찾아요." },
-      { icon: "layers", text: "E/E 판에서 그 증상을 만든 출력을 고르면 용의자가 아래에 올라와요." },
-      { icon: "search", text: "고장 당시 로그를 재생하고 용의자를 하나씩 재서 반박·유력 도장을 찍어요." },
+    <StageIntro id="trace-v2" stage="STEP 02" title="도미노 역추적" goal="첫 편차를 찾고 고장 원인 가설 세우기" steps={[
+      { icon: "camera", text: "운전자 진술로 증상을 확인하고, 그 증상을 만든 출력을 고르기" },
+      { icon: "search", text: "고장 당시 로그를 재생해 후보를 측정하고 반박·유력 판단하기" },
+      { icon: "clipboard", text: "처음 어긋난 곳의 의심 구간을 고르고 가설 정리하기" },
     ]} />
     <main className="dtLayout etLayout">
       {/* right: independent evidence rail */}
@@ -238,13 +264,14 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       <section className="etMugs">
         {phase === "evidence" || phase === "output" ? <div className="etMemoSeed"><p className="etEmpty"><Icon name="detective" /> 출력을 고르면, 그 출력에 영향을 준 부품이 압정 카드로 올라와요.</p><div><span><small>관찰 사실</small><b>{start.label} 기준 이탈</b></span><span><small>최초 편차</small><b>아직 추적 전</b></span><span><small>원인 후보</small><b>검증 전에는 확정하지 않음</b></span></div></div>
           : phase === "trace" ? <div className="etDock etDockTrace">
-            <div className="etDockQ"><p><b>지금 출력: {dom(focus).label}</b><small>영향을 준 부품 {suspects.length}개를 하나씩 재고, 기준과 비교해 반박·유력을 판정하세요.</small></p><button className={`etReplay ${replayed ? "on" : ""}`} onClick={replay}>{replayed ? "✓ 로그 재생 중" : "▶ 고장 당시 로그 재생"}</button></div>
+            <div className="etDockQ"><p><b>지금 출력: {dom(focus).label}{dom(focus).t !== undefined ? ` · ${fmt(dom(focus).t!)}${unit}에 기준과 달라짐` : ""}</b><small><em>유력</em> 기준과 다르고 지금 출력보다 먼저 달라짐 · <em>반박</em> 기준과 같거나(허용 범위 포함) 지금 출력보다 늦게 달라짐(결과) · 후보 {suspects.length}개를 모두 판단해야 넘어가요</small></p><button className={`etReplay ${replayed ? "on" : ""}`} onClick={replay}>{replayed ? "✓ 로그 재생 중" : "▶ 고장 당시 로그 재생"}</button></div>
             <div className="etSuspRow">{suspects.map((id, k) => { const d = dom(id), st = mugStatus(id); return <article key={id} className={`etSusp m-${st} ${shake === id ? "shake" : ""}`}>
-              <div className="pol etPol"><i className="pin" /><span className="polPhoto"><Photo src={d.img} /></span><b>{d.label}</b><small>용의자 {String(k + 1).padStart(2, "0")} · {d.zone}</small></div>
-              <div className="etSuspSide"><em className={`stamp st-${st}`}>{STAMP_KO[st]}</em>
-                {st === "untested" ? <button className="etMeasure" onClick={() => measure(id)}><Icon name="search" /> 재기</button>
-                  : st === "measured" ? <><Gauge dom={d} /><span className="etStampBtns"><button onClick={() => stamp(id, "refuted")}>반박</button><button onClick={() => stamp(id, "likely")}>유력</button></span></>
-                    : <Gauge dom={d} />}</div>
+              <div className="pol etPol"><i className="pin" /><span className="polPhoto"><Photo src={d.img} /></span><b>{d.label}</b><small>후보 {String(k + 1).padStart(2, "0")} · {d.zone}</small></div>
+              <div className="etSuspAct"><em className={`stamp st-${st}`}>{STAMP_KO[st]}</em>
+                {st === "untested" ? <button className="etMeasure" onClick={() => measure(id)}><Icon name="search" /> 측정하기</button>
+                  : <><Gauge dom={d} /><small className="etWhen">{d.status === "bad" ? `${fmt(d.t!)}${unit}에 달라짐` : d.status === "tol" ? "허용 범위 안" : "기준과 같음"}</small>
+                    {st === "measured" ? <span className="etStampBtns"><button onClick={() => stamp(id, "refuted")}>반박</button><button onClick={() => stamp(id, "likely")}>유력</button></span>
+                      : <button className="etUndo" onClick={() => unstamp(id)}>다시 판단</button>}</>}</div>
             </article>; })}</div>
           </div>
             : <div className="etCarry">
@@ -255,8 +282,8 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
                 : (() => { const next = meta.hypotheses.find(h => !sorted[h.id]); const order = meta.hypotheses.findIndex(h => h.id === next?.id) + 1; return next
                   ? <div className="etDock etDockAsk"><h3><Icon name="clipboard" /> 가설 정리 {order}/{meta.hypotheses.length}</h3><p className="etDockLine">‘{next.label}’ · 지금까지의 측정값으로 반박할 수 있나요?</p><div className="etDockChoices tbSort"><button onClick={() => sortHyp(next.id, "out")}>반박 · 측정값과 맞지 않음</button><button onClick={() => sortHyp(next.id, "hold")}>보류 · 검증 시험이 필요함</button></div></div>
                   : carryPool.length > 1 && !carryId
-                    ? <div className="etDock etDockAsk"><h3><Icon name="target" /> 먼저 검증할 가설</h3><p className="etDockLine">보류한 가설 중 시뮬레이션 검증에서 먼저 확인할 가설을 고르세요.</p><div className="etDockChoices">{carryPool.map(id => <button key={id} className="etCarryPick" onClick={() => { setCarry(id); play("pop"); }}>{meta.hypotheses.find(h => h.id === id)?.label}</button>)}</div></div>
-                    : <div className="etDock etDockAsk"><h3><Icon name="flag" /> 가설 정리 완료</h3><p className="etDockLine">검증으로 넘길 가설: <b>{meta.hypotheses.find(h => h.id === carryId)?.label ?? "없음"}</b>{carryPool.length > 1 && <button className="etDockLink" onClick={() => { setCarry(""); play("pop"); }}>다시 고르기</button>}</p><p className="etDockMeta">반박 {meta.hypotheses.filter(h => sorted[h.id] === "out").length} · 보류 {heldIds.length} · 회귀 시험 {effects.length}곳 · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</p></div>; })()}
+                    ? <div className="etDock etDockAsk"><h3><Icon name="target" /> 먼저 시험할 가설 선택</h3><p className="etDockLine">다음 시험에서 먼저 확인할 가설을 선택하세요. 보류한 가설 {carryPool.length}개는 모두 검증 단계에서 차례로 시험하고 판정해요.</p><div className="etDockChoices">{carryPool.map(id => <button key={id} className="etCarryPick" onClick={() => { setCarry(id); play("pop"); }}>{meta.hypotheses.find(h => h.id === id)?.label}</button>)}</div></div>
+                    : <div className="etDock etDockAsk"><h3><Icon name="flag" /> 가설 정리 완료</h3><p className="etDockLine">먼저 시험할 가설: <b>{meta.hypotheses.find(h => h.id === carryId)?.label ?? "없음"}</b>{carryPool.length > 1 && <button className="etDockLink" onClick={() => { setCarry(""); play("pop"); }}>다시 고르기</button>}</p><p className="etDockMeta">반박 {meta.hypotheses.filter(h => sorted[h.id] === "out").length} · 보류 {heldIds.length} · 회귀 시험 {effects.length}곳 · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</p></div>; })()}
             </div>}
       </section>
 

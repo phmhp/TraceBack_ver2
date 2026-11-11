@@ -44,6 +44,10 @@ const CAR = "/assets/traceback-red-ev-v2.png";
 const SENSOR = "/assets/ASSET_090_Input_Sensor_Node.png";
 const ECU = "/assets/ASSET_091_ECU_Controller_Node.png";
 const RADIATOR = "/assets/ASSET_030_Radiator_Cooling_Fan_TRANSPARENT.png";
+// Real part photos (asset intake) for nodes that used generic icon cards.
+const CLUSTER = "/assets/intake/images/HMI/instrument_cluster__EVID-fault.png";
+const GEAR = "/assets/intake/images/HMI/gear_selector__CUT.png";
+const GATEWAY = "/assets/intake/images/ecu/gateway__CUT.png";
 
 const OK = (id: string, label: string, img: string, zone: Zone, ref: number | string, unit: string, status: Status = "ok", run?: number | string): Dom => ({ id, label, img, zone, ref, run: run ?? ref, unit, status });
 
@@ -57,17 +61,17 @@ export const CASES: Record<CaseId, CaseData> = {
       { id: "can_cmd", label: "CAN 토크 명령", img: B("torque_cmd"), zone: "CAN", ref: 204, run: 92, unit: "Nm", status: "bad", t: 20, causes: ["inv_i", "gateway", "vcu_in"], ev: "torque_cmd" },
       { id: "vcu_in", label: "VCU 페달 처리값", img: B("pedal_processed"), zone: "제어기", ref: 60, run: 27, unit: "%", status: "bad", t: 10, causes: ["aps", "brake_sw", "gear", "bms_lim", "temp_lim"], ev: "pedal_processed" },
       // traps: abnormal, but they changed LATER than the domino they are offered for
-      { id: "cluster", label: "계기판 출력 게이지", img: ECU, zone: "차량", ref: 60, run: 27, unit: "%", status: "bad", t: 70 },
+      { id: "cluster", label: "계기판 출력 게이지", img: CLUSTER, zone: "차량", ref: 60, run: 27, unit: "%", status: "bad", t: 70 },
       { id: "batt_i", label: "배터리 방전 전류", img: E("bms"), zone: "부품", ref: 180, run: 85, unit: "A", status: "bad", t: 40 },
       { id: "inv_i", label: "인버터 전류", img: E("mcu"), zone: "부품", ref: 310, run: 140, unit: "A", status: "bad", t: 25 },
       OK("aps", "가속 페달 센서", B("pedal_raw"), "센서", 60, "%"),
       OK("brake_sw", "브레이크 스위치", E("brake_pedal"), "센서", "꺼짐", ""),
-      OK("gear", "기어 위치", SENSOR, "센서", "D", ""),
+      OK("gear", "기어 위치", GEAR, "센서", "D", ""),
       OK("bms_lim", "BMS 허용 출력", E("bms"), "제어기", 160, "kW"),
       OK("temp_lim", "온도 보호 제한", B("thermal_protection"), "제어기", "없음", ""),
       OK("regen", "회생 제동", B("regen_request"), "제어기", 0, "%"),
       OK("motor_temp", "모터 온도", B("motor_temp"), "부품", 62, "°C"),
-      OK("gateway", "게이트웨이 전달", ATLAS(1), "CAN", 100, "%"),
+      OK("gateway", "게이트웨이 전달", GATEWAY, "CAN", 100, "%"),
     ],
     section: { name: "VCU 내부 (입력 회로·페달 처리·토크 계산)", choices: [
       { label: "가속 페달 센서·배선", ok: false, why: "페달 센서 값은 60%로 기준과 같아요. 센서 쪽이 원인이면 들어오는 값부터 달랐어야 해요." },
@@ -91,7 +95,7 @@ export const CASES: Record<CaseId, CaseData> = {
       { id: "motor_temp", label: "모터 온도", img: B("motor_temp"), zone: "부품", ref: 70, run: 96, unit: "°C", status: "bad", t: 55, causes: ["coolant", "inv_temp", "pump"] },
       { id: "coolant", label: "냉각수 온도", img: E("motor_temp_sensor"), zone: "센서", ref: 65, run: 78, unit: "°C", status: "bad", t: 40, causes: ["batt_temp", "coolant_lv", "fan_rpm"], ev: "motor_temp" },
       { id: "fan_rpm", label: "팬 PWM 출력 어댑터", img: B("fan_actual"), zone: "제어기", ref: 100, run: 0, unit: "%", status: "bad", t: 0, causes: ["fan_cmd", "air_temp", "pump"], ev: "fan_actual" },
-      { id: "warn_lamp", label: "파워다운 표시등", img: ECU, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 75 },
+      { id: "warn_lamp", label: "파워다운 표시등", img: CLUSTER, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 75 },
       { id: "batt_out", label: "배터리 출력", img: E("bms"), zone: "부품", ref: 160, run: 100, unit: "kW", status: "bad", t: 71 },
       { id: "inv_temp", label: "인버터 온도", img: E("mcu"), zone: "부품", ref: 60, run: 84, unit: "°C", status: "bad", t: 60 },
       { id: "batt_temp", label: "배터리 온도", img: E("bms"), zone: "센서", ref: 30, run: 41, unit: "°C", status: "bad", t: 50 },
@@ -102,13 +106,13 @@ export const CASES: Record<CaseId, CaseData> = {
       OK("pump", "냉각수 펌프 유량", B("pump_flow"), "부품", 12, "L/min"),
       OK("bms_req", "BMS 출력 제한 요청", E("bms"), "제어기", "없음", ""),
       OK("coolant_lv", "냉각수 양", E("coolant_reservoir"), "부품", 100, "%"),
-      OK("air_temp", "바깥 기온", SENSOR, "센서", 25, "°C", "tol", 26),
+      OK("air_temp", "바깥 기온", CAR, "센서", 25, "°C", "tol", 26),
       OK("regen", "회생 제동", B("regen_request"), "제어기", 0, "%"),
     ],
     section: { name: "Thermal ECU 팬 요청→PWM 출력 SW 경계", choices: [
       { label: "팬 켜기 상태 전이 SW", ok: false, why: "팬 요청은 기준대로 100%였어요. 켜기 판단은 정상이에요." },
       { label: "Thermal ECU 팬 요청→PWM 출력 SW 경계", ok: true, why: "팬 요청은 100%인데 I/O 어댑터 출력은 0%예요. 어떤 SW 인터페이스 오류인지는 검증에서 가려요." },
-      { label: "출력 제한(보호) SW", ok: false, why: "출력 제한은 온도가 오른 뒤에 달라졌어요. 시간상 결과 쪽이에요." },
+      { label: "출력 제한(보호) SW", ok: false, why: "출력 제한은 모터 온도가 오른 뒤에 달라졌어요(추적 카드의 달라진 시점 비교). 원인이 아니라 결과 쪽이에요." },
     ] },
     zoom: {
       where: "Thermal ECU 출력 SW", kind: "sw",
@@ -125,7 +129,7 @@ export const CASES: Record<CaseId, CaseData> = {
       { id: "stop", label: "정지 거리", img: CAR, zone: "차량", ref: 32, run: 58, unit: "m", status: "bad", t: 3, causes: ["decel", "road", "fluid"] },
       { id: "decel", label: "차량 감속", img: B("brake_request"), zone: "차량", ref: 3.2, run: 1.4, unit: "m/s²", status: "bad", t: 0.2, causes: ["pitch", "caliper", "regen"] },
       { id: "caliper", label: "I/O 어댑터 압력 명령", img: B("brake_actual"), zone: "제어기", ref: 42, run: 8, unit: "bar", status: "bad", t: 0.1, causes: ["p_cmd", "pad_temp", "bpp"], ev: "brake_actual" },
-      { id: "rear_warn", label: "후방 추돌 경고", img: ECU, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 3.2 },
+      { id: "rear_warn", label: "후방 추돌 경고", img: CLUSTER, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 3.2 },
       { id: "pitch", label: "차체 앞 쏠림", img: CAR, zone: "차량", ref: 3, run: 1.2, unit: "°", status: "bad", t: 0.4 },
       { id: "pad_temp", label: "브레이크 패드 온도", img: ATLAS(7), zone: "부품", ref: 180, run: 60, unit: "°C", status: "bad", t: 0.5 },
       OK("p_cmd", "압력 명령 (Brake ECU)", E("brake_ecu"), "제어기", 42, "bar"),
