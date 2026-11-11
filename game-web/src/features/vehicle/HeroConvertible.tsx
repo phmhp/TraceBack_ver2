@@ -218,10 +218,10 @@ export function HeroConvertible({ steer = 0, spin = 0, speed = 0, crew = true, c
   const pawLeft = useRef<THREE.Object3D>(null);
   const pawRight = useRef<THREE.Object3D>(null);
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     const { steer: s, spin: w, speed: v } = live.current;
     // Spin groups sit in car axes, so all four wheels share one sign (top rolls toward -Z when driving forward).
-    for (const group of spinGroups.current) if (group) group.rotation.x = -w;
+    for (const group of spinGroups.current) if (group) group.rotation.x = THREE.MathUtils.damp(group.rotation.x, -w, 24, delta);
     for (const group of steerGroups.current) if (group) group.rotation.y = -s;
     // Steering wheel turns ~14.5× the road-wheel angle (clockwise from the driver's seat when steering right).
     if (steering.current) steering.current.rotation.z = THREE.MathUtils.clamp(-s * 14.5, -2.4, 2.4);

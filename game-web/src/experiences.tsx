@@ -1555,13 +1555,15 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
   const player = useRef<THREE.Group>(null!);
   const police = useRef<THREE.Group>(null!);
   const lookTarget = useRef(new THREE.Vector3());
-  // The sim is stepped in its own rAF loop and reaches this scene through React; the two loops are not in
-  // lockstep, so the raw distance moves in uneven steps (car judder). Extrapolate by speed between updates.
-  const simAt = useRef({ d: sim.distance, v: sim.speed, t: performance.now() });
-  if (simAt.current.d !== sim.distance) simAt.current = { d: sim.distance, v: sim.speed, t: performance.now() };
+  // The simulation and Three.js render loops are independent. Keep a monotonic
+  // visual distance so a late React update never moves the car backwards for
+  // one frame (the source of the small launch judder in Chrome).
+  const visualDistance = useRef(sim.distance);
+  if (sim.distance > visualDistance.current) visualDistance.current = sim.distance;
   useFrame(({ camera }, delta) => {
-    const at = simAt.current;
-    const distance = at.d + at.v / 3.6 * Math.min(.06, (performance.now() - at.t) / 1000);
+    const projected = visualDistance.current + sim.speed / 3.6 * delta;
+    visualDistance.current = Math.max(sim.distance, ship ? Math.min(projected, DECK_STOP) : projected);
+    const distance = visualDistance.current;
     const roadLane = 3.35 + sim.lane;
     const playerFrame = trackFrame(distance, roadLane);
     const boarding = ship ? boardingPose(distance) : { y: .02, pitch: 0, airborne: false };

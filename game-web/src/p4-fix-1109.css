@@ -1260,9 +1260,28 @@ body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
 }
 .garageV2 .garageFlowPanel:has(> .garageProceed.stageProgressAction) { padding-right: 24px !important; }
 .garageV2 .garageFlowPanel:has(> .garageProceed.stageProgressAction) > div:not(.flowStepCard) {
-  margin-right: 320px !important;
+  margin-right: 0 !important;
 }
-.garageV2 .garageFlowPanel > .garageProceed.stageProgressAction { right: 86px !important; }
+.garageV2 .garageFlowPanel {
+  grid-column: 1 / 3 !important;
+  position: relative !important;
+  width: 100% !important;
+  padding: 10px 242px 10px 14px !important;
+  box-sizing: border-box !important;
+}
+.garageV2 .garageFlowPanel:has(> .garageProceed.stageProgressAction) > div:not(.flowStepCard) {
+  position: absolute !important;
+  left: 14px !important;
+  right: 242px !important;
+  bottom: 10px !important;
+  height: 54px !important;
+  margin: 0 !important;
+}
+.garageV2 .garageFlowPanel > .garageProceed.stageProgressAction {
+  position: absolute !important;
+  right: 14px !important;
+  bottom: 10px !important;
+}
 
 /* Keep the abstraction cards readable with equal inner insets on every view. */
 .garageV2 .garageLayerNav { padding: 12px !important; }
@@ -1284,7 +1303,7 @@ body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
 .heistStillScene .getawayBriefingCard > em { margin-top: 8px !important; line-height: 1.2; }
 
 /* Equal inset on the cockpit gauge content in Chrome. */
-.raceV2 .cockpitGauge.cluster1109 { padding-inline: 14px !important; }
+.raceV2 .cockpitGauge.cluster1109 { padding: 14px !important; }
 .raceV2 .cockpitGauge.cluster1109 > *,
 .raceV2 .cockpitGauge.cluster1109 .clusterRow {
   box-sizing: border-box;
@@ -1295,6 +1314,7 @@ body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
     height: 340px !important;
     min-height: 340px !important;
   }
-  .garageV2 .garageFlowPanel:has(> .garageProceed.stageProgressAction) > div:not(.flowStepCard) { margin-right: 230px !important; }
-  .garageV2 .garageFlowPanel > .garageProceed.stageProgressAction { right: 78px !important; }
+  .garageV2 .garageFlowPanel { padding-right: 228px !important; }
+  .garageV2 .garageFlowPanel:has(> .garageProceed.stageProgressAction) > div:not(.flowStepCard) { right: 228px !important; }
+  .garageV2 .garageFlowPanel > .garageProceed.stageProgressAction { right: 14px !important; }
 }
