@@ -5,9 +5,10 @@ export type IconName =
   | "map" | "search" | "target" | "clock" | "pin" | "clipboard" | "detective" | "camera" | "book" | "bulb" | "wrench"
   | "probe" | "flag" | "monitor" | "tag" | "repeat" | "sensor" | "chip" | "signal" | "gear" | "car" | "clue"
   | "bolt" | "disc" | "wheel" | "battery" | "shift" | "thermo" | "spring" | "grid" | "layers" | "eye" | "mail" | "arm"
-  | "shield" | "compass" | "finish" | "road" | "warning" | "sound" | "mute" | "music" | "ban" | "cloud" | "beaker" | "puzzle";
+  | "shield" | "compass" | "finish" | "road" | "warning" | "sound" | "mute" | "music" | "ban" | "cloud" | "beaker" | "puzzle" | "lock";
 
 const P: Record<IconName, React.ReactNode> = {
+  lock: <><rect x="5.5" y="10.5" width="13" height="9.5" rx="1.5" /><path d="M8.5 10.5 V7.5 a3.5 3.5 0 0 1 7 0 V10.5" /></>,
   map: <><path d="M3 6 L9 4 L15 6 L21 4 V18 L15 20 L9 18 L3 20Z" /><path d="M9 4 V18 M15 6 V20" /></>,
   search: <><circle cx="10.5" cy="10.5" r="6" /><path d="M15 15 L20 20" /></>,
   clue: <><circle cx="10.5" cy="10.5" r="6" /><path d="M15 15 L20 20" /><path d="M10.5 7.5 V10.5 L12.5 12" /></>,

@@ -1,4 +1,5 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
+import { Icon } from "./Icon";
 import { journeyStageAccess, type Campaign, type JourneyStageId } from "../game/runtime";
 
 const JourneyNavigationContext = createContext<{
@@ -151,7 +152,7 @@ export function JourneyProgress({ scene }: { scene: string }) {
           aria-disabled={locked || activeStage}
           onClick={() => !locked && !activeStage && navigation?.navigate(stage.id)}
         />
-        <i>{locked ? "🔒" : access.status === "done" ? "✓" : index + 1}</i>
+        <i>{locked ? <Icon name="lock" /> : access.status === "done" ? "✓" : index + 1}</i>
         <span>{stage.label}</span>
         {index < journeyStages.length - 1 && <em />}
       </article>;

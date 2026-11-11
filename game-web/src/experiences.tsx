@@ -755,9 +755,9 @@ const DOMAIN_SYMPTOM: Record<DomainId, string> = {
   brake: "제동이 약해지거나 정지 거리가 늘어나요",
   steer: "핸들이 무거워지거나 원하는 만큼 안 돌아요",
   power: "READY가 안 켜지거나 출력이 제한돼요",
-  gear: "🅿️ 변속이 안 되거나 P에서 안 풀려요",
+  gear: "변속이 안 되거나 P에서 안 풀려요",
   thermal: "온도가 올라 출력이 제한돼요(파워다운)",
-  suspension: "〰️ 승차감이 나빠지고 자세 제어가 약해져요",
+  suspension: "승차감이 나빠지고 자세 제어가 약해져요",
 };
 
 function PullOutBubble({ domain, label, role }: { domain: DomainId; label: string; role: PartRole }) {
@@ -911,7 +911,7 @@ function ControllerCard({ label, onPull, onClose }: { label: string; onPull: () 
         <div className="ecuRow"><i><Icon name="eye" /></i><span>{ecu.sensors.length ? ecu.sensors.map(id => <em key={id}>{ko(id)}</em>) : <em>다른 제어기의 메시지</em>}</span></div>
         <div className="ecuRow"><i><Icon name="chip" /></i><span>{ecu.functions.map(item => <em key={item} className="do">{item}</em>)}</span></div>
         <div className="ecuRow"><i><Icon name="arm" /></i><span>{ecu.actuators.length ? ecu.actuators.map(id => <em key={id}>{ko(id)}</em>) : <em>다른 제어기에 명령 전달</em>}</span></div>
-        <div className="ecuRow"><i>✉️</i><span>{ecu.interfaces.map(item => <em key={item} className="bus">{item}</em>)}</span></div>
+        <div className="ecuRow"><i><Icon name="mail" /></i><span>{ecu.interfaces.map(item => <em key={item} className="bus">{item}</em>)}</span></div>
       </> : <div className="ecuRow"><i><Icon name="chip" /></i><span><em className="do">입력 신호로 계산·판단해 명령 값을 출력</em></span></div>}
       <button className="ecuPull" onClick={onPull}>이 제어기 빼 보기</button>
     </div>
@@ -2007,7 +2007,8 @@ export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) 
     return () => cancelAnimationFrame(frame);
   }, [state.policeGapMeters, state.raceDistance]);
   return <div className="faultDialogueScene">
-    <RaceWorld sim={dialogueSim} ship={false} policeVisible />
+    {/* before the two required cases the stopped car cannot be caught, so the interceptor stays out of sight */}
+    <RaceWorld sim={dialogueSim} ship={false} policeVisible={state.completedCases.length >= 2} />
     <div className="faultDialogueShade" />
     <JourneyProgress scene="FAULT_CUE" />
     <div className="warningWash"><i /><i /></div>

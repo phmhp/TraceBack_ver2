@@ -75,7 +75,14 @@ export type HypStatus = "untested" | "open" | "supported" | "refuted";
 export type Lv = "unit" | "swint" | "embedded" | "vehicle";
 /** Fires on one bench run when every listed signal was probed in that run with one of the given observations. */
 export type HypRule = { levels?: Lv[]; need: Record<string, Obs[]>; verdict: "supported" | "refuted"; why: string };
-export type Hypothesis = { id: string; label: string; truth: boolean; stage1?: string; rules: HypRule[] };
+/** Why a test level cannot decide a hypothesis (data item 10): what is seen, what is not, why, and which level decides it. */
+export type HoldReason = { seen: string; unseen: string; why: string; next: Lv[] };
+/**
+ * decideAt: levels where this hypothesis is decided under the scenario's fault (data item 11).
+ * hold: one entry for every STEP04 level that ends in 판단 보류. Both are checked against the rules
+ * and the bench model by tests/feedback-1112.test.mjs, so the guidance and the judging logic stay the same.
+ */
+export type Hypothesis = { id: string; label: string; truth: boolean; stage1?: string; rules: HypRule[]; decideAt?: Lv[]; decide?: string; hold?: Partial<Record<Lv, HoldReason>> };
 export type ScenarioMeta = {
   domain: string; goal: string; trigger: string; injection: string; faultModel: string; normalSpec: string;
   fix: string; regression: string; status: "implemented" | "optional"; review: string;
@@ -101,10 +108,18 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
       { id: "vcu_sw", label: "VCU 페달 처리 SW(계산·보정값)", truth: true, rules: [
         { levels: SW, need: { proc: ["lower"] }, verdict: "supported", why: "입력 회로 없이 SW만 실행해도 처리값이 낮아요. SW 계산에서 생긴 차이예요." },
         { levels: SW, need: { proc: ["same"] }, verdict: "refuted", why: "SW만 실행하면 처리값이 기준과 같아요." },
-      ] },
+      ], decideAt: ["unit"], decide: "SW 단위 시험: 페달 60% 입력에서 페달 처리값이 27%(기준 60%)로 낮으면 지지",
+      hold: {
+        embedded: { seen: "APS 핀 전압 정상 · CAN 토크 명령 낮음", unseen: "VCU 내부 페달 처리값", why: "입력 회로와 SW가 함께 실행돼 둘 중 어디서 값이 줄었는지 나눌 수 없어요.", next: ["unit"] },
+        vehicle: { seen: "페달(로거) 정상 · CAN 토크 낮음", unseen: "VCU 내부 페달 처리값", why: "입력 회로와 SW가 함께 실행돼 둘 중 어디서 값이 줄었는지 나눌 수 없어요.", next: ["unit"] },
+      } },
       { id: "vcu_hw", label: "VCU 입력 회로·신호 변환(HW)", truth: false, rules: [
         { levels: SW, need: { proc: ["lower"] }, verdict: "refuted", why: "입력 회로가 없는 SW 시험에서도 같은 차이가 나요. 입력 회로 탓이 아니에요." },
-      ] },
+      ], decideAt: ["unit"], decide: "SW 단위 시험: 입력 회로 없이도 페달 처리값이 낮으면 반박",
+      hold: {
+        embedded: { seen: "APS 핀 전압 정상 · CAN 토크 명령 낮음", unseen: "VCU 내부 페달 처리값", why: "입력 회로와 SW가 함께 실행돼 둘 중 어디서 값이 줄었는지 나눌 수 없어요.", next: ["unit"] },
+        vehicle: { seen: "페달(로거) 정상 · CAN 토크 낮음", unseen: "VCU 내부 페달 처리값", why: "입력 회로와 SW가 함께 실행돼 둘 중 어디서 값이 줄었는지 나눌 수 없어요.", next: ["unit"] },
+      } },
       { id: "drive", label: "인버터·구동 모터", truth: false, stage1: "도미노 역추적: VCU가 보낸 CAN 토크 명령부터 이미 낮았어요.", rules: [] },
     ],
   },
@@ -122,14 +137,24 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
       { id: "fan_sw", label: "Thermal ECU 출력 어댑터 SW 실행 순서", truth: true, rules: [
         { levels: ["embedded", "vehicle"], need: { pwm: ["lower"] }, verdict: "supported", why: "팬 요청 계산 뒤 I/O 어댑터 출력부터 0%예요. SW 실행 순서에서 처음 갈라져요." },
         { levels: ["vehicle"], need: { fpwm: ["lower"] }, verdict: "supported", why: "팬 요청은 정상인데 커넥터 PWM부터 출력되지 않아요." },
-      ] },
+      ], decideAt: ["embedded", "vehicle"], decide: "통합 SW·제어기 I/O 시험: 팬 요청 100%인데 PWM 출력 어댑터 값이 0%면 지지",
+      hold: {
+        unit: { seen: "냉각수 온도 입력 · 팬 요청 · PI 출력 PWM 비율 모두 정상", unseen: "PWM 출력 어댑터 값(I/O 단계)", why: "SW 단위 시험은 출력 어댑터가 실행되기 전 계산값까지만 보여 줘서 실행 순서 누락을 확인할 수 없어요.", next: ["embedded", "vehicle"] },
+      } },
       { id: "fan_path", label: "팬 켜기 상태 전이 SW", truth: false, rules: [
         { levels: SW, need: { duty: ["same"] }, verdict: "refuted", why: "히스테리시스와 PWM 요청 계산은 기준과 같아요." },
-      ] },
+      ], decideAt: ["unit"], decide: "SW 단위 시험: 65°C 이상에서 팬 요청·PWM 비율 계산이 기준과 같으면 반박",
+      hold: {
+        embedded: { seen: "온도 센서 핀 전압 정상 · PWM 출력 어댑터 값 0%", unseen: "히스테리시스 팬 요청 · PI 출력 계산값", why: "출력 0%는 상태 전이 오류와 출력 단계 오류 모두로 설명돼, 계산 단계가 정상인지 알 수 없어요.", next: ["unit"] },
+        vehicle: { seen: "팬 커넥터 PWM 0% · 팬 회전 0", unseen: "히스테리시스 팬 요청 · PI 출력 계산값", why: "출력 0%는 상태 전이 오류와 출력 단계 오류 모두로 설명돼, 계산 단계가 정상인지 알 수 없어요.", next: ["unit"] },
+      } },
       { id: "fan_motor", label: "팬 회전 피드백 처리 SW", truth: false, rules: [
         { levels: ["embedded", "vehicle"], need: { pwm: ["lower"] }, verdict: "refuted", why: "회전 피드백을 읽기 전 PWM 출력부터 없어요." },
         { levels: ["vehicle"], need: { fpwm: ["lower"] }, verdict: "refuted", why: "피드백 처리 문제가 아니라 팬으로 나가는 PWM부터 낮아요." },
-      ] },
+      ], decideAt: ["embedded", "vehicle"], decide: "통합 SW·제어기 I/O 시험: 회전 피드백을 읽기 전 PWM 출력부터 0%면 반박",
+      hold: {
+        unit: { seen: "냉각수 온도 입력 · 팬 요청 · PI 출력 PWM 비율 모두 정상", unseen: "PWM 출력값 · 읽어 온 팬 회전값", why: "피드백 처리는 실제 출력과 회전값이 있어야 동작하는데 SW 단위 시험에는 그 경로가 없어요.", next: ["embedded", "vehicle"] },
+      } },
     ],
   },
   brake: {
@@ -145,13 +170,24 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
     hypotheses: [
       { id: "blend_sw", label: "Brake ECU 회생·마찰 배분 SW", truth: false, stage1: "도미노 역추적: 내부 압력 계산값은 42 bar로 기준과 같았어요.", rules: [
         { levels: SW, need: { cmd: ["same"] }, verdict: "refuted", why: "SW 시험에서 압력 명령이 요구사항과 같아요." },
-      ] },
+      ], decideAt: ["unit"], decide: "SW 단위 시험: 페달 55% 입력에서 마찰 압력 명령이 42 bar로 기준과 같으면 반박",
+      hold: {
+        embedded: { seen: "압력 계산값 42 bar 정상 · I/O 어댑터 출력값 낮음", unseen: "회생 가용량 · 마찰 몫(배분 계산 과정)", why: "배분 계산의 입력과 중간값을 관찰하지 않아요. 배분 계산 자체는 SW 단위 시험에서 직접 확인해요.", next: ["unit"] },
+        vehicle: { seen: "제동 페달(로거) 정상 · 전송된 압력 명령 낮음", unseen: "압력 계산값 · 회생 가용량 · 마찰 몫", why: "차량에서는 전송값만 보여 배분 계산이 틀렸는지, 계산 뒤 출력 단계에서 줄었는지 나눌 수 없어요.", next: ["unit"] },
+      } },
       { id: "hyd_path", label: "압력 명령 I/O 어댑터 SW 스케일링", truth: true, rules: [
         { levels: ["embedded", "vehicle"], need: { cmd: ["same"], cmdOut: ["lower"] }, verdict: "supported", why: "내부 계산값은 정상인데 I/O 어댑터가 내보낸 값부터 낮아요." },
-      ] },
+      ], decideAt: ["embedded"], decide: "통합 SW·제어기 I/O 시험: 압력 계산값 42 bar · I/O 어댑터 출력값 약 8 bar면 지지",
+      hold: {
+        unit: { seen: "제동 요구 · 마찰 압력 명령 42 bar 정상", unseen: "I/O 어댑터 출력값", why: "SW 단위 시험에는 I/O 어댑터가 포함되지 않아 출력 단계 스케일링을 볼 수 없어요.", next: ["embedded"] },
+        vehicle: { seen: "전송된 압력 명령 · 캘리퍼 압력 낮음", unseen: "압력 계산값(I/O 어댑터 입력)", why: "어댑터에 들어간 값을 함께 볼 수 없어 계산 단계와 출력 단계 중 어디서 줄었는지 나눌 수 없어요.", next: ["embedded"] },
+      } },
       { id: "caliper", label: "압력 피드백 데이터 처리 SW", truth: false, rules: [
         { levels: ["embedded", "vehicle"], need: { cmdOut: ["lower"] }, verdict: "refuted", why: "피드백을 읽기 전에 전송 명령부터 낮아요." },
-      ] },
+      ], decideAt: ["embedded", "vehicle"], decide: "통합 SW·제어기 I/O 시험: 피드백을 읽기 전 I/O 어댑터 출력값부터 낮으면 반박",
+      hold: {
+        unit: { seen: "제동 요구 · 마찰 압력 명령 42 bar 정상", unseen: "I/O 어댑터 출력값 · 읽어 온 라인 압력", why: "SW 단위 시험에는 압력 피드백 경로가 없어 피드백 처리를 확인할 수 없어요.", next: ["embedded", "vehicle"] },
+      } },
     ],
   },
 };

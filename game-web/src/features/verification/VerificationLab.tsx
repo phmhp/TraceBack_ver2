@@ -626,21 +626,47 @@ function contractForInput(caseId: CaseId, contract: VerificationContract, deriv:
   });
   return { ...contract, execution: { ...execution, expectedOutputs } };
 }
+/** What each input condition is for. The input sequence itself is printed from the executed contract, never hand-written. */
+const INPUT_INFO: Record<CaseId, Partial<Record<Deriv, { tag: string; purpose: string }>>> = {
+  propulsion: {
+    reqa: { tag: "대표 요구사항 시험", purpose: "정상 요구사항의 대표 입력(페달 60% → 토크 204 Nm)에서 기대 출력이 나오는지 확인" },
+    bound: { tag: "경계 시험", purpose: "입력 범위 끝(100%)에서 토크 제한(가용 한계 260 Nm)이 정상 동작하는지 확인" },
+    usecase: { tag: "고장 상황 재현 시험", purpose: "고장 당시 기록을 바탕으로 재구성한 조작으로 같은 출력 저하가 다시 나타나는지 확인" },
+  },
+  thermal: {
+    reqa: { tag: "대표 요구사항 시험", purpose: "65°C 켜짐 기준을 지날 때 팬이 켜지고 목표 회전수로 제어되는지 확인" },
+    usecase: { tag: "고장 상황 재현 시험", purpose: "고장 당시 장거리 고속 열부하를 재구성해 팬이 돌지 않는 현상이 다시 나타나는지 확인" },
+  },
+  brake: {
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "고장 당시와 같은 제동 조작(페달 55%, 회생 가능)에서 감속 3.2 m/s²가 나오는지 확인" },
+    bound: { tag: "경계 시험", purpose: "회생이 0인 경계(배터리 가득)에서 마찰 제동이 감속 전부를 채우는지 확인" },
+  },
+};
+const fmtNum = (v: number) => Number.isInteger(v) ? String(v) : v.toFixed(1);
+/** Plain description of the executed stimulus: values, change shape and hold time. */
+function inputSequenceText(execution: VerificationExecution, base: VerificationExecution) {
+  const st = execution.stimulus;
+  const shape = st.rampSeconds <= 0 ? "한 번에 바꾸는 계단 입력" : `${fmtNum(st.rampSeconds)}초 동안 점진적으로 변화`;
+  const changed = execution.initial.filter(item => base.initial.find(b => b.signalId === item.signalId)?.value !== item.value).map(item => `${contractSignalLabel(item.signalId)} ${fmtNum(item.value)} ${item.unit}`);
+  return `${contractSignalLabel(st.signalId)} ${fmtNum(st.startValue)} → ${fmtNum(st.endValue)} ${st.unit} · ${shape}${st.holdSeconds ? ` · ${fmtNum(st.holdSeconds)}초 유지` : ""}${changed.length ? ` · ${changed.join(", ")}` : ""}`;
+}
 /** Final cause cards: name, cause type (the actual fault mechanism in simModel), location, short explanation. */
-const CAUSES: Record<CaseId, { hyp: string; name: string; type: string; where: string; desc: string }[]> = {
+// photos are the same assets as the STEP02 domino polaroids, so the card and the evidence look alike
+const CAUSE_IMG = { board: (name: string) => `/assets/board-photos/${name}.png`, part: (name: string) => `/assets/ending-thumbs/${name}.png` };
+const CAUSES: Record<CaseId, { hyp: string; name: string; type: string; where: string; desc: string; img: string }[]> = {
   propulsion: [
-    { hyp: "vcu_sw", name: "페달 처리 SW의 설계 외 보정 계수(×0.45)", type: "데이터 처리 오류", where: "VCU · 페달 처리 SW", desc: "필터를 지난 페달값에 설계에 없는 계수가 곱해져 토크 요청이 낮아짐" },
-    { hyp: "vcu_hw", name: "VCU 입력 회로의 신호 변환 이상", type: "센서·입력 회로 문제(HW)", where: "VCU · 입력 회로", desc: "페달 전압을 디지털 값으로 바꾸는 회로가 값을 틀리게 읽음" },
+    { hyp: "vcu_sw", name: "페달 처리 SW의 설계 외 보정 계수(×0.45)", type: "신호 변환·스케일링 오류", where: "VCU · 페달 처리 SW", desc: "필터를 지난 페달값에 설계에 없는 계수가 곱해져 토크 요청이 낮아짐", img: CAUSE_IMG.board("pedal_processed") },
+    { hyp: "vcu_hw", name: "VCU 입력 회로의 신호 변환 이상", type: "입력 회로·신호 변환 오류(HW)", where: "VCU · 입력 회로", desc: "페달 전압을 디지털 값으로 바꾸는 회로가 값을 틀리게 읽음", img: CAUSE_IMG.part("vcu") },
   ],
   thermal: [
-    { hyp: "fan_sw", name: "PWM 출력 어댑터 주기 작업 누락", type: "타이밍(실행 순서) 오류", where: "Thermal ECU · 출력 어댑터 SW", desc: "팬 요청 계산 뒤 PWM 쓰기 작업이 실행 순서에서 빠져 출력이 0%" },
-    { hyp: "fan_path", name: "팬 켜기 상태 전이 SW 오류", type: "상태 전이 오류", where: "Thermal ECU · 팬 제어 SWC", desc: "65°C 켜짐 · 60°C 꺼짐 상태 전이가 잘못되어 팬 요청이 나오지 않음" },
-    { hyp: "fan_motor", name: "팬 회전 피드백 처리 SW 오류", type: "데이터 처리 오류(피드백)", where: "Thermal ECU · 피드백 처리 SW", desc: "읽어 온 회전수를 잘못 처리해 PI 제어가 틀린 값을 계산" },
+    { hyp: "fan_sw", name: "PWM 출력 어댑터 주기 작업 누락", type: "타이밍·실행 순서 오류", where: "Thermal ECU · 출력 어댑터 SW", desc: "팬 요청 계산 뒤 PWM 쓰기 작업이 실행 순서에서 빠져 출력이 0%", img: CAUSE_IMG.board("fan_actual") },
+    { hyp: "fan_path", name: "팬 켜기 상태 전이 SW 오류", type: "SW 로직 오류(상태 전이)", where: "Thermal ECU · 팬 제어 SWC", desc: "65°C 켜짐 · 60°C 꺼짐 상태 전이가 잘못되어 팬 요청이 나오지 않음", img: CAUSE_IMG.part("thermal_ecu") },
+    { hyp: "fan_motor", name: "팬 회전 피드백 처리 SW 오류", type: "SW 로직 오류(피드백 처리)", where: "Thermal ECU · 피드백 처리 SW", desc: "읽어 온 회전수를 잘못 처리해 PI 제어가 틀린 값을 계산", img: CAUSE_IMG.part("cooling_fan") },
   ],
   brake: [
-    { hyp: "blend_sw", name: "회생·마찰 배분 계산 SW 오류", type: "SW 로직 오류(계산)", where: "Brake ECU · 제동 배분 SWC", desc: "회생과 마찰 몫을 잘못 나눠 압력 계산값이 틀어짐" },
-    { hyp: "hyd_path", name: "압력 명령 I/O 어댑터 중복 스케일링(×0.19)", type: "신호 변환·인터페이스 오류", where: "Brake ECU · I/O 어댑터 SW", desc: "내부 계산 42 bar에 출력 단계에서 축척을 한 번 더 곱해 8 bar로 전송" },
-    { hyp: "caliper", name: "압력 피드백 데이터 처리 SW 오류", type: "데이터 처리 오류(피드백)", where: "Brake ECU · 피드백 처리 SW", desc: "읽어 온 라인 압력을 잘못 처리해 압력 제어가 틀어짐" },
+    { hyp: "blend_sw", name: "회생·마찰 배분 계산 SW 오류", type: "SW 로직 오류(배분 계산)", where: "Brake ECU · 제동 배분 SWC", desc: "회생과 마찰 몫을 잘못 나눠 압력 계산값이 틀어짐", img: CAUSE_IMG.board("regen_request") },
+    { hyp: "hyd_path", name: "압력 명령 I/O 어댑터 중복 스케일링(×0.19)", type: "인터페이스 오류(I/O 스케일링 중복)", where: "Brake ECU · I/O 어댑터 SW", desc: "내부 계산 42 bar에 출력 단계에서 축척을 한 번 더 곱해 8 bar로 전송", img: CAUSE_IMG.board("brake_actual") },
+    { hyp: "caliper", name: "압력 피드백 데이터 처리 SW 오류", type: "SW 로직 오류(피드백 처리)", where: "Brake ECU · 피드백 처리 SW", desc: "읽어 온 라인 압력을 잘못 처리해 압력 제어가 틀어짐", img: CAUSE_IMG.part("brake_caliper") },
   ],
 };
 // Verification levels (what is verified) — ISO 26262-6 §9, §10, §11 and ISO 26262-4 §7.
@@ -852,9 +878,10 @@ function SeriesTrace({ sig, upto, probed }: { sig: Series; upto: number; probed:
 const clampTo = (v: number) => Math.max(0, Math.min(1.05, v));
 
 /** Normal scenario (dashed, full) overlaid with this test (solid, drawn up to `upto`); red mark = first divergence. */
-function OverlayGraph({ list, upto, look }: { list: Series[]; upto: number; look: Set<string> }) {
+function OverlayGraph({ list, upto, look, note }: { list: Series[]; upto: number; look: Set<string>; note?: string }) {
   return <div className="ovGraph">
     <p className="ovLegend"><i className="ref" /> 정상 시나리오 <i className="run" /> 이번 시험 <i className="split" /> 처음 달라진 때</p>
+    {note && <p className="ovNote">{note}</p>}
     {list.map(sig => {
       const n = sig.ref.length - 1, last = Math.round(upto * n), d = divergeIndex(sig);
       const y = (v: number) => (34 - clampTo(v / sig.max) * 30).toFixed(1);
@@ -1377,7 +1404,7 @@ const PREDICT: Record<string, string> = {
   hyd_path: "I/O 스케일링 SW가 원인이라면: 내부 압력 계산은 42 bar지만 전송값부터 약 8 bar여야 해요.",
   caliper: "피드백 처리 SW가 원인이라면: 전송 명령은 정상이고 읽어 온 압력값만 낮아야 해요.",
 };
-const ANSWER_BTN: Record<Answer, [string, string]> = { supported: ["가설 지지", "관측 결과가 이 가설이 예측한 신호 변화와 일치해요"], refuted: ["가설 반박", "관측 결과가 이 가설의 예측과 일치하지 않아요"], open: ["판단 보류", "이 시험 수준·관측 신호로는 구분할 수 없어요"] };
+const ANSWER_BTN: Record<Answer, [string, string]> = { supported: ["가설 지지", "관찰한 신호·출력 변화가 이 가설의 예측과 일치"], refuted: ["가설 반박", "관찰한 결과가 이 가설의 예측과 모순"], open: ["판단 보류", "필요한 신호를 이 수준에서 볼 수 없거나 다른 원인과 구분할 증거 부족"] };
 const CONTRACT_SIGNAL_LABEL: Record<string, string> = {
   ready: "READY 상태",
   gearDrive: "변속 위치 D",
@@ -1478,6 +1505,9 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   // signals the current question's rules look at on this level (highlighted as "볼 곳")
   const lookAt = new Set((hypDef?.rules ?? []).filter(rule => !rule.levels || rule.levels.includes(level)).flatMap(rule => Object.keys(rule.need)));
   const hypothesisSignals = [...lookAt].map(id => list.find(sig => sig.id === id)?.name ?? id);
+  // levels where this hypothesis can actually be decided (scenario rules), shown as the next-test hint
+  // levels that decide this hypothesis under the scenario fault (scenario data, checked against the rules by tests)
+  const decisiveLevels = QA_LEVELS.filter(lv => hypDef?.decideAt ? hypDef.decideAt.includes(lv) : (hypDef?.rules ?? []).some(rule => !rule.levels || rule.levels.includes(lv) || (lv === "unit" && rule.levels.includes("swint"))));
   const hypothesisStep = Math.min(qi + 1, questions.length);
   const answeredHypotheses = questions.filter(item => answers[item.hyp]).length;
   const at = (sig: Series) => divergeIndex(sig) !== null ? sig.ref.reduce((best, v, i) => (Math.abs(v - sig.run[i]) > Math.abs(sig.ref[best] - sig.run[best]) ? i : best), 0) : sig.ref.reduce((best, v, i) => (v > sig.ref[best] ? i : best), 0);
@@ -1511,11 +1541,13 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       : phase === "lab" && running
         ? "시험을 실행 중이에요. 정상 기준(점선)과 같은 입력이 고장 모델에도 들어가고 있어요. 끝나면 결과 표가 채워져요."
         : phase === "lab" && !shown && !materialsReady
-          ? `먼저 시험 자료를 확인하세요. 위쪽 ‘STEP03 시험 설계서’${step02.linked ? "와 ‘STEP02 고장 재현 로그’" : ""}를 눌러 정상 기준과 고장 당시 기록을 불러오면 시험할 수 있어요.`
+          ? `${step02.linked ? "STEP02 고장 재현 로그는 '고장 때 실제로 이렇게 나왔다', " : ""}STEP03 시험 설계서는 '정상이면 이렇게 나와야 한다'예요. 두 자료를 열어 비교한 뒤 시험해요.`
           : phase === "lab" && !shown
-            ? `${TEST_CARD[level].name}(${VIEW_SUB[level]})입니다. ${needsInputPick ? "입력 조건을 하나 고른 뒤 " : "왼쪽 시험 조건을 확인하고 "}시험을 실행하세요. 다른 수준은 위쪽 탭으로 바꿀 수 있고, 수준마다 결과가 따로 저장돼요.`
+            ? (needsInputPick ? "고장 당시 운전 조작과 차량 상태를 시험 입력으로 재구성해, 정상 기준 모델과 고장이 들어 있는 시험 대상 SW에 똑같이 넣어요. 확인하려는 목적에 맞는 입력을 고르세요." : `${TEST_CARD[level].name}(${VIEW_SUB[level]})입니다. 왼쪽 시험 입력을 확인하고 실행하세요. 실행 중에는 모니터링에서 점선(정상)과 실선(이번 시험)이 갈라지는 곳을 보세요.`)
+            : phase === "lab" && feedback
+              ? bubble
             : phase === "lab"
-              ? `${TEST_CARD[level].name} 결과가 나왔어요(시험 ${lastRun ? VERDICT_KO[lastRun.verdict] : ""}). 오른쪽 표로 기대값과 실제값을 비교하고 아래 질문에 답하세요. 이 수준으로 가를 수 없으면 다른 시험 수준 탭에서 실행하세요.`
+              ? `판정 근거 · 이 가설이 맞다면: ${PREDICT[q?.hyp ?? ""] ?? "-"} · 이 수준에서 볼 신호: ${hypothesisSignals.length ? hypothesisSignals.join(", ") : "없음(이 수준으로는 이 가설을 가를 수 없어요)"} · 가를 수 있는 시험: ${decisiveLevels.map(lv => TEST_CARD[lv].name).join(", ") || "없음"}`
             : phase === "report"
               ? "가설 판정을 모두 마쳤어요. 보고서의 판정과 근거를 보고, 원인 유형·발생 위치까지 맞는 최종 고장 원인을 고르세요."
               : phase === "ab"
@@ -1536,7 +1568,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       : answeredHypotheses > 0
         ? `앞 가설은 판정했어요. 남은 ${questions.length - answeredHypotheses}개 후보도 같은 방식으로 확인해야 원인을 가를 수 있어요.`
         : "후보를 하나씩 확인해야 원인을 가를 수 있어요. 판정하면 다음 가설로 넘어가요.";
-  const logSummary = !step02.linked ? "기록 없음" : step02.section ? `처음 어긋난 곳 · ${step02.section}` : step02.chain.length ? `역추적 ${step02.chain.length}단계` : "STEP02 진행 기록";
+  const logSummary = !step02.linked ? "기록 없음" : step02.chain.length ? `최초 편차 · ${step02.chain[step02.chain.length - 1].label}${step02.section ? ` · 의심 구간 ${step02.section}` : ""}` : step02.section ? `의심 구간 · ${step02.section}` : "STEP02 진행 기록";
   const [chip, setChip] = useState<"tc" | "log" | null>(null);
   const initialConditionRows = activeContract.execution.initial.map(item => ({ label: contractSignalLabel(item.signalId), value: item.value, unit: item.unit }));
   const stimulusRows = [
@@ -1604,8 +1636,10 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     }
     if (pick === "open") {
       play("pop"); setHeld(prev => ({ ...prev, [q.hyp]: [...new Set([...(prev[q.hyp] ?? []), lastRun.level])] }));
-      const text = `판단 보류로 기록했어요. ${TEST_CARD[lastRun.level].name}으로는 이 가설을 가를 수 없어요. 위쪽 탭에서 다른 시험 수준을 골라 이 가설로 다시 실행하세요.`;
-      setFeedback({ ok: true, text }); setBubble(text); return;
+      const hold = hypDef?.hold?.[lastRun.level];
+      const next = (hold?.next ?? decisiveLevels).filter(lv => lv !== lastRun.level).map(lv => TEST_CARD[lv].name);
+      const text = `판단 보류로 기록했어요. ${TEST_CARD[lastRun.level].name}에서는 ${hold ? `이 가설을 가를 신호(${hold.unseen})를 볼 수 없어요. ${hold.why}` : "이 가설을 가를 신호를 볼 수 없어요."}${next.length ? ` 다음에는 ${next.join(" 또는 ")}을 골라 이 가설로 다시 실행하세요.` : " 다른 시험 수준에서 다시 실행하세요."}`;
+      setFeedback({ ok: true, text: hold ? `판단 보류 · 이 시험에서 볼 수 없는 신호: ${hold.unseen}${next.length ? ` → 다음: ${next.join(" 또는 ")}` : ""}` : text }); setBubble(text); return;
     }
     const evidence = `${TEST_CARD[lastRun.level].name} · ${keyAns.need.map(id => lastRun.vals[id]).filter(Boolean).join(", ")}`;
     const nextAnswers = { ...answers, [q.hyp]: { answer: pick, why: keyAns.why, evidence } };
@@ -1664,7 +1698,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   };
   const reveal = () => { setAnswers(Object.fromEntries(questions.map(item => { const h = meta.hypotheses.find(x => x.id === item.hyp)!; return [item.hyp, { answer: h.truth ? "supported" as Answer : "refuted" as Answer, why: h.rules[0]?.why ?? h.stage1 ?? "", evidence: "개발용 정답" }]; }))); setPhase("report"); };
 
-  const tabVisual = viewTab === "graph" ? <OverlayGraph list={list} upto={shown ? 1 : running ? u : 0} look={lookAt} />
+  const tabVisual = viewTab === "graph" ? <OverlayGraph list={list} upto={shown ? 1 : running ? u : 0} look={lookAt} note={lookAt.size ? "빨간 이름이 이 가설을 가를 신호예요. 점선(정상)과 실선(이번 시험)이 처음 갈라지는 곳을 보세요." : "이 수준에는 이 가설을 가를 신호가 없어요. 어떤 신호가 정상과 갈라지는지만 확인하세요."} />
     : viewTab === "sw" ? <RefPuzzleTrack key={`sw-${level}-${fixed}`} mode={level === "unit" ? "unit" : "swint"} caseId={caseId} progress={u} fixed={fixed} same={fixed || swSame} running={running} />
     : viewTab === "ecu" ? <EmbeddedBench3D caseId={caseId} running={running} works={show3d === "normal" || (ecuReal ? works : true)} />
       : caseId === "propulsion" ? <BenchVisual tab="vehicle" caseId={caseId} running={running} works={show3d === "normal" || (plantReal ? works : true)} /> : <EmbeddedBench3D caseId={caseId} running={running} works={show3d === "normal" || (plantReal ? works : true)} />;
@@ -1676,10 +1710,11 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     <GameHeader chapter="검증" title="시뮬레이션 검증" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageFolderSubtitle className="benchStageFolder" action="의심한 SW를 시험·수정하고 정상 차량과 결과를 비교하세요." detail={<>이전 결과: 테스트 설계서 <i>|</i> 비교: 정상 기준선 ↔ 수정 후 차량</>} />
-    <StageIntro id="bench-qa2" stage="STEP 04" title="시뮬레이션 검증" goal="시험을 실행하고 가설을 판정하기" steps={[
-      { icon: "clipboard", text: "STEP02 로그와 STEP03 시험 설계서를 열어 보기" },
-      { icon: "monitor", text: "가설마다 시험 수준과 입력 조건을 골라 직접 실행하기" },
-      { icon: "flag", text: "결과로 가설 지지 · 반박 · 보류를 판정하고 최종 원인 고르기" },
+    <StageIntro id="bench-qa2" stage="STEP 04 · 실험 검증" title="실험 검증" goal="추리한 고장 원인 가설이 실제 원인인지 시험으로 확인합니다." steps={[
+      { icon: "clipboard", text: "정상 동작 기준(STEP03)과 고장 당시 기록(STEP02)을 비교합니다." },
+      { icon: "monitor", text: "고장 당시 조건을 재현할 시험 입력을 고르고 실행합니다." },
+      { icon: "search", text: "실행 결과와 신호 변화를 관찰합니다." },
+      { icon: "flag", text: "관측 증거를 근거로 원인 가설을 판정합니다." },
     ]} />
     <main className="vbLayout">
       {!contractReady && <aside className="qaCriteria big" role="alert"><small><Icon name="clipboard" /> 테스트 설계서 오류</small><p>{contractErrors.join(" ")}</p><button onClick={() => send({ type: "OPEN_WIRING" })}>STEP03에서 테스트 설계서 다시 발급</button></aside>}
@@ -1687,7 +1722,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         <div className="qaInfoMain">
           <div className="qaHypo">
             <small>{phase === "pick" || phase === "lab" ? numify(`검증 대상 고장 원인 가설 · ${hypothesisStep}/${questions.length}`) : phase === "report" ? "가설 판정 완료" : phase === "ab" ? "최종 원인 확인" : phase === "repair" ? "수리 선택" : "수리 후 확인"}</small>
-            <b>{phase === "pick" || phase === "lab" ? hypothesisGoal : phase === "report" ? "최종 고장 원인 선택" : phase === "ab" ? "정상 모델 vs 원인 제거 모델 (A/B)" : phase === "repair" ? "원인을 제거할 수리 방법 선택" : "동일 조건 기준선 재시험"}</b>
+            <b title={phase === "pick" || phase === "lab" ? hypothesisGoal : undefined}>{phase === "pick" || phase === "lab" ? hypothesisGoal : phase === "report" ? "최종 고장 원인 선택" : phase === "ab" ? "정상 모델 vs 원인 제거 모델 (A/B)" : phase === "repair" ? "원인을 제거할 수리 방법 선택" : "동일 조건 기준선 재시험"}</b>
             {(phase === "pick" || phase === "lab") && q && <span>“{q.ask}”</span>}
           </div>
           <div className="qaProg">
@@ -1704,18 +1739,22 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
           <button className={`qaChip qaMatChip ${chip === "log" ? "on" : ""} ${seen.log ? "seen" : ""} ${step02.linked ? "" : "empty"}`} aria-expanded={chip === "log"} onClick={() => openMaterial("log")}><small><Icon name="probe" /> STEP02 고장 재현 로그 열기{seen.log ? " ✓" : ""}</small><b>{numify(logSummary)}</b></button>
           <button className={`qaChip qaMatChip ${chip === "tc" ? "on" : ""} ${seen.tc ? "seen" : ""}`} aria-expanded={chip === "tc"} onClick={() => openMaterial("tc")}><small><Icon name="clipboard" /> STEP03 시험 설계서 열기{seen.tc ? " ✓" : ""}</small><b>{numify(expect || contract.expected.value)}</b></button>
         </div>
-        {chip && <aside className="qaChipPop qaMaterial" role="dialog" aria-label="시험 자료">
+        {chip && <div className="qaScrim" aria-hidden="true" onClick={() => setChip(null)} />}
+        {chip && <aside className="qaChipPop qaMaterial" role="dialog" aria-modal="true" aria-label="시험 자료">
           <button className="qaChipClose" aria-label="닫기" onClick={() => setChip(null)}>×</button>
           {chip === "tc" && <><h4>STEP03 시험 설계서 · {contract.stimulus.label}</h4>
+            <p className="qaMatRole"><b>정상 기준</b>정상일 때 어떤 입력에서 어떤 출력이 나와야 하는지 확인하는 자료예요.</p>
             <p className="qaMatLine"><b>무엇을 검증하나요</b>{contract.objective}</p>
             <div className="qaMatLine"><b>정상 시나리오</b><ul className="qaMatList">{normalScenarioLines(caseId).map(line => <li key={line}>{line}</li>)}</ul></div>
             <table className="qaMatTable"><thead><tr><th>정상일 때 기대 출력</th><th>기대값</th><th>허용 오차</th><th>단위</th></tr></thead><tbody>{contract.execution.expectedOutputs.map((item, index) => <tr key={item.signalId}><td>{index === 0 ? contract.expected.signal : contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code></td><td><code>±{item.tolerance}</code></td><td>{item.unit}</td></tr>)}</tbody></table>
-            <p className="qaMatLine"><b>이번 시험 입력</b>{pickedDeriv ? tech.input : "아직 고르지 않았어요 · 아래에서 직접 선택"}</p>
+            <p className="qaMatLine"><b>이번 시험 입력</b>{pickedDeriv ? tech.input : "아직 고르지 않았어요 · 가운데 카드에서 선택"}</p>
             <p className="qaMatLine"><b>무엇과 비교하나요</b>같은 입력을 넣은 정상 기준 모델</p>
             <details className="qaMatMore"><summary>세부 정보</summary><p className="qaMatLine"><b>관찰 신호</b>{contract.observations.map(item => item.label).join(" · ")}</p><p className="qaMatLine"><b>비교 조건</b>{numify(`${contract.comparison.timeAxis} · 허용 ±${contract.execution.comparisonTolerancePercent}%`)}</p></details></>}
           {chip === "log" && (step02.linked ? <><h4>STEP02 고장 재현 로그 · 도미노 역추적 결과</h4>
+            <p className="qaMatRole"><b>고장 당시 기록</b>실제 고장 때 입력·출력과 신호가 정상과 얼마나 달랐는지 확인하는 자료예요.</p>
             <p className="qaMatLine"><b>선택한 가설</b>{meta.hypotheses.find(h => h.id === contract.hypothesisId)?.label ?? meta.hypotheses.find(h => h.id === state.hypothesis[caseId])?.label ?? contract.hypothesisLabel}</p>
-            <p className="qaMatLine"><b>최초 편차 발생 지점</b>{step02.section ?? "STEP02에서 구간을 고르지 않음"}</p>
+            <p className="qaMatLine"><b>최초 편차 신호</b>{step02.chain.length ? step02.chain[step02.chain.length - 1].label : "기록 없음"}</p>
+            <p className="qaMatLine"><b>의심 구간</b>{step02.section ?? "STEP02에서 구간을 고르지 않음"}</p>
             {step02.chain.length > 0 ? <table className="qaMatTable"><thead><tr><th>핵심 신호</th><th>정상</th><th>고장</th></tr></thead><tbody>{[...step02.chain].reverse().map(item => <tr key={item.id}><td>{item.label}</td><td><code>{item.ref}</code> {item.unit}</td><td><code>{item.run}</code> {item.unit}</td></tr>)}</tbody></table> : <p className="qaMatLine"><b>핵심 신호</b>기록 없음</p>}
             <p className="qaMatLine"><b>대표 증거</b>{step02.chain.length ? `증상 ${step02.chain[0].label} → 최초 편차 ${step02.chain[step02.chain.length - 1].label}` : "기록 없음"}</p>
             {step02.measured.length > 3 && <details className="qaMatMore"><summary>측정한 지점 전체 ({step02.measured.length}곳)</summary><p className="qaMatLine"><b>측정 지점</b>{step02.measured.map(item => item.label).join(" · ")}</p></details>}</> : <p className="qaChipEmpty">STEP02 저장 기록이 이 세션에 없어요. 값을 임의로 채우지 않고 ‘기록 없음’으로 표시해요.</p>)}
@@ -1746,10 +1785,15 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
             <div className="v7Runs"><small>시험 기록 · 실제로 실행한 시험만 표시</small>{runLog.length ? <ol>{runLog.map((r, k) => { const hypId = r.hyp ?? questions[r.q]?.hyp; const hypIndex = questions.findIndex(item => item.hyp === hypId); const judged = hypId ? answers[hypId] : undefined; const judgement = r.fixed ? "" : judged && judged.evidence.startsWith(TEST_CARD[r.level].name) ? ANSWER_KO[judged.answer] : hypId && held[hypId]?.includes(r.level) ? "판단 보류" : "판정에 쓰지 않음"; return <li key={k}><i>{k + 1}</i><span>{TEST_CARD[r.level].name} · {r.fixed ? "수리 후 재시험" : `가설 ${hypIndex + 1}`}{judgement && <small> · 판정: {judgement}</small>}</span><em className={`rv-${r.verdict.toLowerCase()}`}>{VERDICT_KO[r.verdict]}</em></li>; })}</ol> : <p>이 세션에 저장된 시험 기록이 없어요.</p>}</div>
           </article>
           <h2><Icon name="target" /> 최종 고장 원인을 고르세요</h2>
-          <div className="vbChoices causeCards">{CAUSES[caseId].map(item => <button key={item.hyp} className={`causeCard ${cause === item.hyp ? causeOk ? "right" : "wrong" : ""}`} onClick={() => pickCause(item.hyp)}><em className="causeType">{item.type}</em><b>{item.name}</b><small className="causeWhere">발생 위치 · {item.where}</small><span>{item.desc}</span></button>)}</div>
+          <div className="vbChoices causeCards">{CAUSES[caseId].map(item => <button key={item.hyp} className={`causeCard ${cause === item.hyp ? causeOk ? "right" : "wrong" : ""}`} onClick={() => pickCause(item.hyp)}><span className="causePhoto"><img src={item.img} alt="" /></span><em className="causeType">{item.type}</em><b>{item.name}</b><small className="causeWhere">발생 위치 · {item.where}</small><span>{item.desc}</span></button>)}</div>
         </section>
         : phase === "repair" ? <section className="vbStage v7Fix">
-          <p className="causeChosen"><small>확정한 고장 원인</small><b>{CAUSES[caseId].find(item => item.hyp === cause)?.name}</b><em>{CAUSES[caseId].find(item => item.hyp === cause)?.type}</em></p>
+          {(() => { const c = CAUSES[caseId].find(item => item.hyp === cause); const a = cause ? answers[cause] : undefined; return <article className="finalJudge">
+            <header><small>최종 판단 보고</small><b>{c?.name}</b><em>{c?.type}</em></header>
+            <p><span>요약</span>{c?.desc} · 발생 위치 {c?.where}</p>
+            <p><span>관측 근거</span>{a ? `${a.why} (${a.evidence})` : "시험 판정 기록 없음"} · A/B 비교에서 원인을 제거한 모델이 정상 모델과 일치</p>
+            <p><span>한계</span>{contract.limitation}</p>
+          </article>; })()}
           <h2><Icon name="wrench" /> 이 원인을 제거할 수리 방법을 고르세요</h2>
           <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}><img src={item.img} alt="" /><b>{item.label}</b></button>)}</div>
         </section>
@@ -1770,7 +1814,8 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               {abTab === "graph" ? <div className="abGraph"><OverlayGraph list={abSim.levels.vehicle} upto={running ? u : abDone ? 1 : 0} look={new Set()} /><p className="abLegend">점선 = 정상 모델 · 실선 = 원인 제거 모델</p></div>
                 : <section className="qaResultBlock abResult">{(() => { const assessment = abDone ? assessContractRun(activeContract, "vehicle", abSim.levels.vehicle) : null; return <>
                   <div className={`qaResultState ${assessment ? (causeOk ? "pass" : "fail") : "pending"}`}><b>{assessment ? causeOk ? "원인 제거 모델 = 정상 모델" : "원인 제거 모델 ≠ 정상 모델" : "동시 실행 전"}</b><span>{assessment ? `요구사항(시험 설계서) 판정: ${VERDICT_KO[assessment.verdict]} (${assessment.verdict})` : "두 모델을 같은 조건으로 실행하면 결과가 표시돼요."}</span></div>
-                  <table className="qaTable"><thead><tr><th>신호</th><th>정상 기준</th><th>원인 제거 후</th><th>차이</th></tr></thead><tbody>{abSim.levels.vehicle.map(sig => { const i = sig.ref.length - 1, d = sig.run[i] - sig.ref[i], same = Math.abs(d) <= sig.max * .02; return <tr key={sig.id}><td>{sig.name}</td><td><code>{fmtV(sig, sig.ref[i])}</code></td><td>{abDone ? <code>{fmtV(sig, sig.run[i])}</code> : "—"}</td><td>{abDone ? <b className={`qaW ${same ? "w-같음" : "w-낮음"}`}>{same ? "일치" : `${d > 0 ? "+" : ""}${d.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}`}</b> : "—"}</td></tr>; })}</tbody></table>
+                  <table className="qaTable"><thead><tr><th>신호</th><th>정상 기준</th><th>원인 제거 후</th><th>전 구간 최대 차이</th></tr></thead><tbody>{abSim.levels.vehicle.map(sig => { const i = sig.ref.length - 1, d = sig.run.reduce((m, v, k) => Math.abs(v - sig.ref[k]) > Math.abs(m) ? v - sig.ref[k] : m, 0), same = Math.abs(d) <= sig.max * .02; return <tr key={sig.id}><td>{sig.name}</td><td><code>{fmtV(sig, sig.ref[i])}</code></td><td>{abDone ? <code>{fmtV(sig, sig.run[i])}</code> : "—"}</td><td>{abDone ? <b className={`qaW ${same ? "w-같음" : "w-낮음"}`}>{same ? "일치" : `${d > 0 ? "+" : ""}${d.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}`}</b> : "—"}</td></tr>; })}</tbody></table>
+                  <p className="qaVerdictNote">차량 수준 전 신호를 전 시간 구간에서 비교해, 원인 제거 외에 달라진 동작이 없는지(회귀) 확인해요. 실제 수리 효과는 수리 뒤 재시험에서 따로 확인해요.</p>
                 </>; })()}</section>}
             </aside>
             <section className={`qaActionDock phase-ab ${abDone ? "is-result" : running ? "is-running" : "is-ready"} ${running ? "" : "your-turn"}`} aria-label="질문과 선택지">
@@ -1797,13 +1842,19 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
             <div className="v7View">
               <nav className="v7Tabs qaLevelTabs" role="tablist" aria-label="시험 수준과 관찰 화면">{QA_LEVELS.map(lv => { const done = runs[runKey(fixed, lv, q?.hyp)]; const on = viewTab !== "graph" && level === lv; return <button key={lv} role="tab" aria-selected={on} className={on ? "on" : ""} disabled={running || (fixed && lv !== "vehicle")} onClick={() => { selectLevel(lv); play("pop"); }}><b>{TEST_CARD[lv].name}</b><small>{VIEW_SUB[lv]}{done ? <> · <em className={`rv-${done.verdict.toLowerCase()}`}>{VERDICT_KO[done.verdict]}</em></> : ""}</small></button>; })}<button role="tab" aria-selected={viewTab === "graph"} className={`graphTab ${viewTab === "graph" ? "on" : ""}`} onClick={() => { setViewTab("graph"); play("pop"); }}><b>모니터링</b><small>시간축 신호 비교</small></button></nav>
               {/* qaTabQuestion: the long explanatory copy moved to the action dock; keep the simulation surface labelled for QA. */}
-              <div className={`vbSimView ${running ? "running" : ""}`} aria-label={`같은 입력: ${contract.stimulus.sequence}`}>{tabVisual}{shown && lastRun && <span className={`vbStamp ${lastRun.verdict === "PASS" ? "pass" : lastRun.verdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastRun.verdict]}</span>}</div>
+              <div className={`vbSimView ${running ? "running" : ""}`} aria-label={`같은 입력: ${contract.stimulus.sequence}`}>{tabVisual}
+                {phase === "lab" && materialsReady && needsInputPick && !running && <div className="qaInputGuide" role="group" aria-label="입력 조건 안내">
+                  <p className="qaInputWhy"><b>왜 입력 조건을 고르나요?</b>같은 입력을 정상 기준 모델과 시험 대상(고장이 든 현장 SW)에 넣고, 나타나는 신호 차이로 가설을 확인해요.</p>
+                  {CASE_DERIVS[caseId].map(d => { const info = INPUT_INFO[caseId][d.id]; const exec = contractForInput(caseId, contract, d.id, d.tech).execution; const observe = activeContract.execution.observationSignalIds[level].map(id => list.find(sig => sig.id === id)?.name ?? id); return <button key={d.id} className="qaInputCard" onClick={() => { setPickedDeriv(d.id); play("pop"); setBubble(`입력을 '${d.input}'(으)로 골랐어요. 정상 모델과 시험 대상에 같은 입력이 들어가요.`); }}>
+                    <em className="qaInputTag">{info?.tag ?? "시험 입력"}</em><b>{info?.purpose ?? d.input}</b><small>입력 · {inputSequenceText(exec, contract.execution)}</small><small>관찰 · {observe.join(", ") || "-"}</small>
+                  </button>; })}
+                </div>}{shown && lastRun && <span className={`vbStamp ${lastRun.verdict === "PASS" ? "pass" : lastRun.verdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastRun.verdict]}</span>}</div>
               {(viewTab === "ecu" || viewTab === "plant") && <span className="v3dToggle">{([["normal", "정상 시나리오"], ["run", "이번 시험"]] as const).map(([id, label]) => <button key={id} className={show3d === id ? "on" : ""} onClick={() => { setShow3d(id); play("pop"); }}>{label}</button>)}</span>}
             </div>
             <aside className="qaPanel qaObservePanel" aria-label="관찰 결과와 가설 판정">
               <section className="qaResultBlock" aria-label="시험 결과">
                 <header className="qaObserveHead"><small>03 · 시험 결과</small><b>기대값과 실제값 비교</b></header>
-                <div className={`qaResultState ${shown && lastRun ? lastRun.verdict.toLowerCase() : "pending"}`}><b>{shown && lastRun ? `시험 결과: ${VERDICT_KO[lastRun.verdict]} (${lastRun.verdict})` : running ? "시험 실행 중" : "시험 실행 전"}</b><span>{shown && lastRun ? `요구사항 대비 결과예요${lastRun.input ? ` · 입력: ${lastRun.input}` : ""}. 원인 판정은 아래 질문에서 따로 해요.` : phase === "lab" ? `${TEST_CARD[level].name}은(는) 아직 실행하지 않았어요` : "동일 조건 기준선 비교 검증을 준비합니다."}</span></div>
+                <div className={`qaResultState ${shown && lastRun ? lastRun.verdict.toLowerCase() : "pending"}`}><b>{shown && lastRun ? `시험 결과: ${VERDICT_KO[lastRun.verdict]} (${lastRun.verdict})` : running ? "시험 실행 중" : "시험 실행 전"}</b><span>{shown && lastRun ? (() => { const a = lastRun.assessment; const nameOf = (id: string) => list.find(sig => sig.id === id)?.name ?? id; const off = [...new Set([...a.outOfRangeSignalIds, ...a.expectedOutputFailures])].map(nameOf); return lastRun.verdict === "PASS" ? "관찰한 출력이 정상 기준의 기대값·허용 범위를 만족했어요." : lastRun.verdict === "FAIL" ? `관찰한 출력이 정상 기준을 벗어났어요 · 벗어난 신호: ${off.join(", ") || "-"}` : a.missingSignalIds.length ? `이 수준에서는 시험 설계서가 요구한 관찰 신호(${a.missingSignalIds.map(nameOf).join(", ")})를 볼 수 없어 요구사항 판정을 못 해요.` : `이 수준에서는 기대 출력(${contract.expected.signal})을 관찰할 수 없어 요구사항 판정을 못 해요.`; })() : phase === "lab" ? `${TEST_CARD[level].name}은(는) 아직 실행하지 않았어요` : "동일 조건 기준선 비교 검증을 준비합니다."}{shown && lastRun && !fixed && <em className="qaVerdictNote">시험 결과일 뿐, 원인 판정은 아래 질문에서 신호 근거로 따로 해요.</em>}</span></div>
                 <table className="qaTable">
                   <thead><tr><th>신호</th><th>{sameConditionCompare ? "정상 기준선" : "기대값"}</th><th>{sameConditionCompare ? "수정 후" : "실제값"}</th><th>{sameConditionCompare ? "정상 범위" : "비교"}</th></tr></thead>
                   <tbody>{list.map(sig => { const i = at(sig), w = word(sig), look = phase === "lab" && lookAt.has(sig.id); return <tr key={sig.id} className={`${look ? "look" : ""}`}>
@@ -1840,8 +1891,8 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
                   question = "시험 자료를 확인하세요"; sub = "정상 기준(STEP03)과 고장 당시 기록(STEP02)을 불러온 뒤 시험합니다.";
                   choices = <>{step02.linked && matBtn("log", "STEP02 고장 재현 로그 열기")}{matBtn("tc", "STEP03 시험 설계서 열기")}</>;
                 } else if (phase === "lab" && needsInputPick) {
-                  question = "어떤 입력 조건으로 시험할까요?"; sub = "정상 모델과 고장 모델에 같은 입력이 들어갑니다.";
-                  choices = CASE_DERIVS[caseId].map(d => <button key={d.id} className="qaChoice" onClick={() => { setPickedDeriv(d.id); play("pop"); setBubble(`입력을 '${d.input}'(으)로 골랐어요. 정상 모델과 고장 모델에 같은 입력이 들어가요.`); }}><span>{numify(d.input)}</span></button>);
+                  question = "확인 목적에 맞는 시험 입력을 고르세요"; sub = "가운데 카드에서 시험 유형·입력 방식·관찰 신호를 비교하고 고르세요. 같은 입력이 정상 모델과 시험 대상에 들어가요.";
+                  choices = CASE_DERIVS[caseId].map(d => <button key={d.id} className="qaChoice" onClick={() => { setPickedDeriv(d.id); play("pop"); setBubble(`입력을 '${d.input}'(으)로 골랐어요. 정상 모델과 시험 대상에 같은 입력이 들어가요.`); }}><span>{INPUT_INFO[caseId][d.id]?.tag ?? numify(d.input)}</span></button>);
                 } else if (phase === "lab") {
                   question = `${TEST_CARD[level].name}을 실행할까요?`; sub = numify(`입력 조건 · ${tech.input}`) as unknown as string;
                   choices = <><button className="vbGo qaChoice qaRunButton" disabled={!contractReady} onClick={run}>▶ 시험 실행</button>{CASE_DERIVS[caseId].length > 1 && <button className="qaChoice" onClick={() => { setPickedDeriv(null); play("pop"); }}>입력 조건 바꾸기</button>}</>;

@@ -67,9 +67,79 @@ test("STEP04 A/B: removing the true cause matches the normal model; a wrong caus
     assert.ok(fixed.every(sig => sig.run.every((v, i) => Math.abs(v - sig.ref[i]) <= sig.max * .02)), `${caseId}: cause removed = normal`);
     assert.ok(fault.some(sig => sig.run.some((v, i) => Math.abs(v - sig.ref[i]) > sig.max * .02)), `${caseId}: wrong cause keeps the fault`);
   }
-  assert.match(lab, /const CAUSES: Record<CaseId, \{ hyp: string; name: string; type: string; where: string; desc: string \}\[\]>/);
+  assert.match(lab, /const CAUSES: Record<CaseId, \{ hyp: string; name: string; type: string; where: string; desc: string; img: string \}\[\]>/);
+  // every cause card shows a real part photo from the STEP02 polaroid assets
+  assert.equal((lab.match(/img: CAUSE_IMG\.(board|part)\("[a-z_]+"\)/g) ?? []).length, 8);
+  assert.match(live04, /<span className="causePhoto"><img src=\{item\.img\} alt="" \/><\/span>/);
+  // A/B compares every vehicle signal over the whole run (regression), not the last sample only
+  assert.match(live04, /<th>전 구간 최대 차이<\/th>/);
+  assert.match(live04, /원인 제거 외에 달라진 동작이 없는지\(회귀\) 확인해요\. 실제 수리 효과는 수리 뒤 재시험에서 따로 확인해요/);
+  // before the two required cases the stopped car is not caught and the interceptor is not drawn
+  assert.match(experiences, /<RaceWorld sim=\{dialogueSim\} ship=\{false\} policeVisible=\{state\.completedCases\.length >= 2\} \/>/);
   assert.match(live04, /className="causeType">\{item\.type\}/);
   assert.match(live04, /simulate\(caseId, tech\.tech, causeOk, activeContract\.execution\)/);
   // the report no longer reveals the answer before the player picks the final cause
   assert.doesNotMatch(live04, /<b>원인: \{meta\.hypotheses\.find\(h => h\.truth\)!\.label\}<\/b>/);
+});
+
+test("STEP04 learning flow: purpose, material roles, input cards, PASS/FAIL meaning, evidence guide", () => {
+  assert.match(live04, /title="실험 검증" goal="추리한 고장 원인 가설이 실제 원인인지 시험으로 확인합니다\."/);
+  assert.match(live04, /className="qaScrim"/);
+  assert.match(live04, /className="qaMatRole"><b>정상 기준<\/b>/);
+  assert.match(live04, /className="qaMatRole"><b>고장 당시 기록<\/b>/);
+  // input cards: test type + purpose, sequence printed from the executed contract (not hand-written)
+  assert.match(lab, /const INPUT_INFO: Record<CaseId/);
+  assert.match(lab, /function inputSequenceText\(execution: VerificationExecution, base: VerificationExecution\)/);
+  assert.match(live04, /inputSequenceText\(exec, contract\.execution\)/);
+  // PASS/FAIL is a test result, not the cause judgement; deviating signals are listed from the assessment
+  assert.match(live04, /관찰한 출력이 정상 기준의 기대값·허용 범위를 만족했어요/);
+  assert.match(live04, /a\.outOfRangeSignalIds, \.\.\.a\.expectedOutputFailures/);
+  assert.match(live04, /시험 결과일 뿐, 원인 판정은 아래 질문에서 신호 근거로 따로 해요/);
+  // evidence guide and next-level hint come from the scenario rules
+  assert.match(live04, /const decisiveLevels = QA_LEVELS\.filter/);
+  assert.match(live04, /다음에는 \$\{next\.join\(" 또는 "\)\}을 골라 이 가설로 다시 실행하세요/);
+  assert.match(live04, /className="finalJudge"/);
+  assert.match(live04, /<span>한계<\/span>\{contract\.limitation\}/);
+});
+
+test("Scenario data: hold reasons and deciding levels match the judging rules under each fault", async () => {
+  const { judgeRun, SCENARIO_META } = await import("../src/game/scenarios.ts");
+  const asked = { propulsion: ["vcu_sw", "vcu_hw"], thermal: ["fan_sw", "fan_path", "fan_motor"], brake: ["blend_sw", "hyd_path", "caliper"] };
+  const firstSplit = sig => sig.ref.findIndex((v, i) => Math.abs(sig.run[i] - v) > sig.max * .02);
+  for (const caseId of Object.keys(asked)) {
+    const contract = buildVerificationContract(caseId, { hypothesisId: "x", hypothesisLabel: "x", suspectSection: "x" });
+    const sim = simulate(caseId, "req", false, contract.execution);
+    for (const hyp of asked[caseId]) {
+      const def = SCENARIO_META[caseId].hypotheses.find(h => h.id === hyp);
+      const decided = [];
+      for (const level of ["unit", "embedded", "vehicle"]) {
+        const ids = contract.execution.observationSignalIds[level], obs = {};
+        sim.levels[level].forEach(sig => { if (!ids.includes(sig.id)) return; const d = firstSplit(sig); obs[sig.id] = d < 0 ? "same" : sig.run[d] > sig.ref[d] ? "higher" : "lower"; });
+        const verdict = judgeRun(caseId, { level, fixed: false, obs }).find(item => item.id === hyp).verdict;
+        if (verdict === "open") {
+          const hold = def.hold?.[level];
+          assert.ok(hold && hold.seen && hold.unseen && hold.why, `${caseId}/${hyp}/${level}: hold reason`);
+          assert.ok(hold.next.length && hold.next.every(lv => def.decideAt.includes(lv)), `${caseId}/${hyp}/${level}: next level decides`);
+        } else {
+          decided.push(level);
+          assert.equal(def.hold?.[level], undefined, `${caseId}/${hyp}/${level}: no hold where the rules decide`);
+        }
+      }
+      assert.deepEqual(def.decideAt, decided, `${caseId}/${hyp}: decideAt`);
+      assert.ok(def.decide, `${caseId}/${hyp}: deciding test text`);
+    }
+  }
+});
+
+test("STEP04 hold feedback uses the scenario hold data; the dialogue bar shows the full reason after an answer", () => {
+  assert.match(live04, /const hold = hypDef\?\.hold\?\.\[lastRun\.level\];/);
+  assert.match(live04, /hypDef\?\.decideAt \? hypDef\.decideAt\.includes\(lv\)/);
+  assert.match(live04, /: phase === "lab" && feedback\n\s+\? bubble/);
+});
+
+test("Live screens carry no emoji in the journey rail and STEP01 part cards", () => {
+  const shell = read("../src/ui/game-shell.tsx");
+  assert.doesNotMatch(shell, /🔒/);
+  assert.match(shell, /<Icon name="lock" \/>/);
+  assert.doesNotMatch(experiences, /🅿️|〰️|✉️/);
 });
