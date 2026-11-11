@@ -243,7 +243,7 @@ export function DominoBoard({ state, send }: { state: Campaign; send: Send }) {
       </aside>
 
       <footer className="dbFoot">
-        <div className="boardStepper">{["이상 카드 정리", "원인 화살표 잇기", "제어기 안으로 확대", "범인 확정"].map((label, index) => <span key={label} className={index < step ? "done" : index === step ? "now" : ""}><i>{index < step ? "✓" : index + 1}</i>{label}</span>)}</div>
+        <div className="boardStepper">{["이상 카드 정리", "원인 화살표 잇기", "ECU 내부 SW 로직 확대", "범인 확정"].map((label, index) => <span key={label} className={index < step ? "done" : index === step ? "now" : ""}><i>{index < step ? "✓" : index + 1}</i>{label}</span>)}</div>
         <button className="dbNext" disabled={!zoomDone} onClick={finish}>{zoomDone ? "벤치에서 고치고 검증하기 →" : `정리 ${solvedCount}/${toJudge.length}`}</button>
       </footer>
     </main>
@@ -254,7 +254,7 @@ export function DominoBoard({ state, send }: { state: Campaign; send: Send }) {
         <li>방금 만든 <b>정상 기준</b>과 <b>이번 주행 기록</b>을 설계도 위에 나란히 놓았어요. 빨간 카드는 기준과 다른 곳이에요.</li>
         <li>고장은 <b>도미노처럼 번져요</b>. 빨간 카드마다 <b>🎯 시작점</b> / <b>➡ 다른 이상 때문에 생긴 영향</b> / <b>🚫 무시</b>(허용 범위·무관) 중 하나로 정해요.</li>
         <li>영향이라면 그 원인 카드를 눌러 <b>화살표</b>를 이어요. 신호는 설계도의 길(센서 → 제어기 → CAN → 부품 → 차량)을 따라 흘러요.</li>
-        <li>다 정리하면 도미노가 넘어가고, 시작점이 있는 <b>제어기 안으로 확대</b>해 기준 설계와 다른 곳(SW 블록 또는 부품)을 찾아요.</li>
+        <li>다 정리하면 도미노가 넘어가고, 시작점이 있는 <b>ECU 내부 로직으로 확대</b>해 기준 설계와 다른 곳(SW 블록 또는 부품)을 찾아요.</li>
         <li>영향 카드들은 벤치의 <b>회귀 검증 목록</b>이 돼요. <b>실무자</b> 모드는 엉뚱한 단서·측정 전 카드가 섞이고 시간 순서가 숨겨져요.</li>
       </ol>
       <button onClick={() => setRulesOpen(false)}>알겠어!</button>

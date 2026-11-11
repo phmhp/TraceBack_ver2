@@ -35,9 +35,9 @@ const SHOW_EE_TABS = false; // E/E "흐름 따라가기/부품 소개" strip: re
 const garageAutoTour = false; // the old 1.45 s background tour fought the pause button
 const learningLayers = [
   // ISO 26262 abstraction: item (vehicle function) → system architecture (HW/SW elements) → SW architecture & unit design
-  { name: "Vehicle / System", tag: "어디서 움직이나 · 차 안의 부품 위치" },
-  { name: "E/E Architecture", tag: "무엇과 연결되나 · 전기·전자 연결(센서·제어기·통신)" },
-  { name: "Control Software", tag: "왜 그렇게 하나 · 제어기 안 판단(제어 SW)" },
+  { name: "Vehicle / System", tag: "기계 동작 흐름 · 차량 부품 위치" },
+  { name: "E/E Architecture", tag: "하드웨어·소프트웨어 연결 · 센서·ECU·통신" },
+  { name: "Control Software", tag: "ECU 내부 SW 로직 · 제어 판단" },
 ] as const;
 
 // Garage navigation has three learning lenses.  The content model keeps a
@@ -1046,7 +1046,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     <nav className="garageLayerNav" aria-label="설계 추상화 단계">
       <small className="viewAxisLabel">같은 기능, 세 관점</small>
       <div className="garageViewTools">
-        <div className="garageViewContext"><b>{routeLevel === 0 ? "부품 위치 보기" : routeLevel === 1 ? "연결 구조 보기" : "판단 흐름 보기"}</b><span>{routeLevel === 0 ? "차량 안에서 어디가 움직이는지 봅니다" : routeLevel === 1 ? "신호가 건너는 연결을 봅니다" : "입력부터 출력까지 한 단계씩 봅니다"}</span></div>
+        <div className="garageViewContext"><b>{routeLevel === 0 ? "기계 동작 흐름 시각화" : routeLevel === 1 ? "하드웨어·소프트웨어 연결 시각화" : "ECU 내부 SW 로직"}</b><span>{routeLevel === 0 ? "차량 부품의 위치와 작동 경로" : routeLevel === 1 ? "센서·ECU·통신 경로를 확인합니다" : "입력 조건부터 제어 출력까지 확인합니다"}</span></div>
       </div>
       {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={`${routeLevel === index ? "active" : ""} ${!chosen && index > 0 ? "needsDomain" : ""}`} title={!chosen && index > 0 ? "도메인을 먼저 고르면 열려요" : ""}>
         <span>{String(index + 1).padStart(2, "0")}</span><b>{layer.name}</b><small>{!chosen && index > 0 ? "도메인을 고르면 열려요" : layer.tag}</small>
@@ -1110,7 +1110,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         })()}
       </section>
       {!chosen && <aside className="domainFunctionShelf"><small>주요 기능</small><h2>도메인을 골라 보세요</h2><div className="functionNote"><b>주요 기능</b><p>위 탭에서 도메인을 고르면 그 도메인의 주요 기능과 신호 흐름이 여기에 나와요.</p></div></aside>}
-      {!chosen && <section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → 제어기 → 출력 순서가 여기에 나와요.</b><div /><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "START_RACE" })}>다음 →</button></section>}
+      {!chosen && <section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → ECU → 출력 순서가 여기에 나와요.</b><div /><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "START_RACE" })}>다음 →</button></section>}
       {chosen && <aside className="domainFunctionShelf">
         <small>주요 기능</small><h2>{content.label}의 주요 기능</h2>
         {content.functions.map((item, index) => <button key={item} className={feature === index ? "active" : ""} onClick={() => setFeature(index)}><span>{index + 1}</span><b>{item}</b><i>›</i></button>)}
