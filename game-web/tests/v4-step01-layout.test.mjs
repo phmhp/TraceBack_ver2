@@ -128,8 +128,13 @@ test("STEP02 keeps evidence and reasoning stack in the persisted right rail with
   assert.doesNotMatch(liveTrace, /etEvidenceAttach/);
   assert.match(liveTrace, /etEvidenceStack/);
   assert.match(liveTrace, /etReasonPath/);
-  assert.match(liveTrace, /etReasonCandidates/);
-  assert.match(liveTrace, /etReasonHypotheses/);
+  // N-S02-01 (2026-11-11): the stack shows only the trace; selected candidates and hypotheses stay internal.
+  assert.doesNotMatch(liveTrace, /etReasonCandidates/);
+  assert.doesNotMatch(liveTrace, /etReasonHypotheses/);
+  assert.match(liveTrace, /etStack/);
+  // T-25: the hypothesis handed to STEP03 is the player's own pick, never the answer key.
+  assert.doesNotMatch(liveTrace, /SELECT_HYPOTHESIS", id: scenario\.root/);
+  assert.match(liveTrace, /carryId/);
   assert.match(liveTrace, /etCandidateRow/);
   assert.match(latestCss, /\.etEvidence > header > \.etEvidenceTabs/);
   assert.match(latestCss, /\.etMugs \{ display: flex !important/);
@@ -208,7 +213,9 @@ test("FB-P1-05 keeps the design sheet fixed while its text and confirmation stam
   assert.match(verificationLab, /STEP03 테스트 설계서/);
   assert.match(latestCss, /\.verificationContractModal > article\.specSheet\.receiptPrinting \{ animation: none; transform: none; \}/);
   assert.match(latestCss, /@keyframes specSheetTextPrint/);
-  assert.match(latestCss, /\.specSheet \.contractCommit \{ position: absolute !important; right: 5\.2%; bottom: 5\.5%;/);
+  // P2: the confirm button lives inside the paper (static, no tilt) and only the sheet content reveals top to bottom.
+  assert.match(latestCss, /\.specSheet \.contractCommit \{ position: static !important;/);
+  assert.match(latestCss, /@keyframes ssReveal/);
 });
 
 test("replay confirmation uses the shared stamp action treatment without changing dialog controls", () => {
@@ -235,9 +242,9 @@ test("K-7 exposes every simulation view to Chrome QA without a technique-name qu
   }
   assert.match(verificationLab, /requestedView/);
   assert.match(verificationLab, /같은 입력:/);
-  assert.match(verificationLab, /가능성 높음/);
-  assert.match(verificationLab, /가능성 낮음/);
-  assert.match(verificationLab, /아직 모름/);
+  assert.match(verificationLab, /가설 지지/);
+  assert.match(verificationLab, /가설 반박/);
+  assert.match(verificationLab, /판단 보류/);
   assert.match(verificationLab, /PASS/);
   assert.match(verificationLab, /FAIL/);
   assert.match(verificationLab, /INCONCLUSIVE|판정 불가/);

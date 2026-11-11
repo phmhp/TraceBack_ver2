@@ -5,6 +5,7 @@
 // The test environment is a separate axis (MIL/SIL/PIL/HIL/차량). Up to the embedded SW test the plant
 // (sensors, loads, vehicle) is SIMULATED. Fault injection is limited to SW logic, data and interfaces.
 import type { CaseId } from "../../game/runtime";
+import type { VerificationContract, VerificationExecution, VerificationLevel } from "../../game/verificationContract";
 
 export type Lv = "unit" | "swint" | "embedded" | "vehicle";
 export type Tech = "req" | "replay" | "boundary" | "soak" | "inject";
@@ -29,10 +30,18 @@ function integrate<S>(seconds: number, init: S, step: (s: S, t: number, dt: numb
 }
 
 // ── 구동: 페달 → (필터 → [×0.45 끼어든 보정] → 페달 맵 → 허용 → MIN → 램프) → CAN → 인버터·모터 → 차량 ──
-function propulsion(tech: Tech, fault: boolean) {
+const initialValue = (execution: VerificationExecution | undefined, signalId: string, fallback: number) => execution?.initial.find(item => item.signalId === signalId)?.value ?? fallback;
+const rampInput = (execution: VerificationExecution, t: number) => {
+  const { startValue, endValue, rampSeconds } = execution.stimulus;
+  if (rampSeconds <= 0) return endValue;
+  return startValue + (endValue - startValue) * clamp(t / rampSeconds, 0, 1);
+};
+
+function propulsion(tech: Tech, fault: boolean, execution?: VerificationExecution) {
   // req: 60 % step (requirement value) · boundary: 100 % step (top of the pedal map, torque limit 260 Nm) · replay: field ramp with driver wobble
-  const pedal = (t: number) => tech === "replay" ? (t < .1 ? 0 : Math.min(60, (t - .1) * 150 + Math.sin(t * 9) * 1.2)) : t < .1 ? 0 : tech === "boundary" ? 100 : 60;
-  return integrate(3, { filt: 0, ramp: 0, can: 0, mot: 0, v: 60 / 3.6, acc: 0, p: 0, proc: 0, req: 0, arb: 0 }, (s, t, dt) => {
+  const pedal = (t: number) => execution ? rampInput(execution, t) : tech === "replay" ? (t < .1 ? 0 : Math.min(60, (t - .1) * 150 + Math.sin(t * 9) * 1.2)) : t < .1 ? 0 : tech === "boundary" ? 100 : 60;
+  const seconds = execution?.durationSeconds ?? 3;
+  return integrate(seconds, { filt: execution?.stimulus.startValue ?? 0, ramp: 0, can: 0, mot: 0, v: initialValue(execution, "vehicleSpeed", 60) / 3.6, acc: 0, p: 0, proc: 0, req: 0, arb: 0 }, (s, t, dt) => {
     s.p = pedal(t);
     s.filt += (s.p - s.filt) * dt / .04;
     s.proc = s.filt * (fault ? .45 : 1);           // the fault: a calibration block that is not in the design
@@ -47,11 +56,16 @@ function propulsion(tech: Tech, fault: boolean) {
 }
 
 // ── 열관리: 열 부하 → 냉각수 온도 → (범위 검사 → 필터 → 히스테리시스 → PI) → PWM 출력단 → 팬 모터 → 냉각 ──
-function thermal(tech: Tech, fault: boolean) {
+function thermal(tech: Tech, fault: boolean, execution?: VerificationExecution) {
   const heat = tech === "soak" || tech === "replay" ? 57 : 50; // a short requirement pulse heats less
-  return integrate(8, { tc: 64, tf: 64, on: 0, int: 0, duty: 0, rpm: 0, tm: 70, der: 100 }, (s, t, dt) => {
-    const load = tech === "req" && t > 2 ? 30 : heat;
-    s.tc += (load - (1 + .267 * s.rpm / 1850) * (s.tc - 25)) / 3 * dt;
+  const initialTemperature = initialValue(execution, "coolantTemperature", 64);
+  const seconds = execution?.durationSeconds ?? 8;
+  return integrate(seconds, { tc: initialTemperature, tf: initialTemperature, on: 0, int: 0, duty: 0, rpm: 0, tm: 70, der: 100 }, (s, t, dt) => {
+    if (execution) s.tc = rampInput(execution, t);
+    else {
+      const load = tech === "req" && t > 2 ? 30 : heat;
+      s.tc += (load - (1 + .267 * s.rpm / 1850) * (s.tc - 25)) / 3 * dt;
+    }
     s.tf += (s.tc - s.tf) * dt / .2;
     if (s.tf > 65) s.on = 1; else if (s.tf < 60) s.on = 0;    // hysteresis 65 / 60 °C
     const e = s.on ? 1850 - s.rpm : 0;
@@ -66,10 +80,11 @@ function thermal(tech: Tech, fault: boolean) {
 }
 
 // ── 제동: 페달 → (요구 → 회생 MIN → 잔여력 → 마찰 압력) → 밸브 → 유압 라인 → 캘리퍼 → 차량 감속 ──
-function brake(tech: Tech, fault: boolean) {
-  const regenMax = tech === "boundary" ? 0 : 1.1; // battery full → no regeneration: friction carries everything
-  return integrate(3, { p: 0, req: 0, regen: 0, fric: 0, cmd: 0, line: 0, cal: 0, v: 50 / 3.6, dec: 0 }, (s, t, dt) => {
-    s.p = clamp((t - .05) / .2, 0, 1) * 55;
+function brake(tech: Tech, fault: boolean, execution?: VerificationExecution) {
+  const regenMax = initialValue(execution, "regenAvailable", tech === "boundary" ? 0 : 1.1); // battery full → no regeneration: friction carries everything
+  const seconds = execution?.durationSeconds ?? 3;
+  return integrate(seconds, { p: execution?.stimulus.startValue ?? 0, req: 0, regen: 0, fric: 0, cmd: 0, line: 0, cal: 0, v: initialValue(execution, "vehicleSpeed", 50) / 3.6, dec: 0 }, (s, t, dt) => {
+    s.p = execution ? rampInput(execution, t) : clamp((t - .05) / .2, 0, 1) * 55;
     s.req = s.p * 3.2 / 55;
     s.regen += (Math.min(s.req, regenMax) - s.regen) * dt / .05;
     s.fric = Math.max(0, s.req - s.regen);
@@ -107,6 +122,7 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
     vehicle: [
       { id: "aps", name: "페달 (로거)", unit: "%", max: 100, src: "aps" },
       { id: "can", name: "CAN 토크 (로거)", unit: "Nm", max: 260, src: "can" },
+      { id: "mot", name: "모터 실제 토크", unit: "Nm", max: 260, src: "mot" },
       { id: "acc", name: "차량 가속도", unit: "m/s²", max: 4, src: "acc" },
       { id: "spd", name: "차량 속도", unit: "km/h", max: 110, src: "spd" },
     ],
@@ -159,9 +175,11 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
       { id: "line", name: "유압 모델 라인 압력", unit: "bar", max: 70, src: "line" },
     ],
     vehicle: [
+      { id: "p", name: "제동 페달 (로거)", unit: "%", max: 100, src: "p" },
       { id: "cmd", name: "압력 계산값", unit: "bar", max: 70, src: "cmd" },
       { id: "cmdOut", name: "전송된 압력 명령", unit: "bar", max: 70, src: "cmdOut" },
       { id: "line", name: "캘리퍼 입구 압력 (실부품 연결)", unit: "bar", max: 70, src: "line" },
+      { id: "cal", name: "캘리퍼 실제 압력", unit: "bar", max: 70, src: "cal" },
       { id: "dec", name: "차량 감속", unit: "m/s²", max: 4, src: "dec" },
     ],
   },
@@ -170,14 +188,49 @@ const MODELS = { propulsion, thermal, brake };
 const TIME: Record<CaseId, [number, string]> = { propulsion: [3, "s"], thermal: [8, "분(압축)"], brake: [3, "s"] };
 
 /** Reference = healthy design, run = field fault (or the fixed design). Same input for both. */
-export function simulate(caseId: CaseId, tech: Tech, fixed: boolean): SimResult {
-  const ref = MODELS[caseId](tech, false);
-  const run = MODELS[caseId](tech, !fixed);
+export function simulate(caseId: CaseId, tech: Tech, fixed: boolean, execution?: VerificationExecution): SimResult {
+  const ref = MODELS[caseId](tech, false, execution);
+  const run = MODELS[caseId](tech, !fixed, execution);
   const levels = {} as Record<Lv, Series[]>;
   (Object.keys(VIEW[caseId]) as Lv[]).forEach(lv => {
     levels[lv] = VIEW[caseId][lv].map(d => ({ id: d.id, name: d.name, unit: d.unit, max: d.max, ref: ref[d.src], run: d.model ? ref[d.src] : run[d.src] }));
   });
-  return { seconds: TIME[caseId][0], timeUnit: TIME[caseId][1], levels };
+  return { seconds: execution?.durationSeconds ?? TIME[caseId][0], timeUnit: TIME[caseId][1], levels };
+}
+
+export type ContractRunVerdict = "PASS" | "FAIL" | "INCONCLUSIVE";
+export type ContractRunAssessment = {
+  verdict: ContractRunVerdict;
+  requiredSignalIds: string[];
+  missingSignalIds: string[];
+  outOfRangeSignalIds: string[];
+  expectedOutputFailures: string[];
+};
+
+/** Evaluates only signals declared by the STEP03 contract. Hypothesis judgment remains separate. */
+export function assessContractRun(contract: VerificationContract, level: VerificationLevel, list: Series[]): ContractRunAssessment {
+  const requiredSignalIds = contract.execution.observationSignalIds[level] ?? [];
+  const byId = new Map(list.map(signal => [signal.id, signal]));
+  const missingSignalIds = requiredSignalIds.filter(id => !byId.has(id));
+  const threshold = contract.execution.comparisonTolerancePercent / 100;
+  const outOfRangeSignalIds = requiredSignalIds.filter(id => {
+    const signal = byId.get(id);
+    return signal ? signal.run.some((value, index) => Math.abs(value - signal.ref[index]) > signal.max * threshold) : false;
+  });
+  const expectedOutputFailures: string[] = [];
+  for (const expected of contract.execution.expectedOutputs) {
+    const signal = byId.get(expected.signalId);
+    if (!signal) continue;
+    const actual = signal.run[signal.run.length - 1];
+    if (Math.abs(actual - expected.value) > expected.tolerance) expectedOutputFailures.push(expected.signalId);
+  }
+  const hasExpectedOutput = contract.execution.expectedOutputs.some(expected => byId.has(expected.signalId));
+  const verdict: ContractRunVerdict = missingSignalIds.length || !hasExpectedOutput
+    ? "INCONCLUSIVE"
+    : outOfRangeSignalIds.length || expectedOutputFailures.length
+      ? "FAIL"
+      : "PASS";
+  return { verdict, requiredSignalIds, missingSignalIds, outOfRangeSignalIds, expectedOutputFailures };
 }
 
 /** First sample where the run leaves the reference by more than 2 % of full scale (null = never). */

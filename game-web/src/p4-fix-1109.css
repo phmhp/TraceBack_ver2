@@ -1278,6 +1278,648 @@ body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
   margin: 0 !important;
 }
 
+/* Final STEP04 interaction layout overrides.  Keep these after legacy
+   recovery rules so the action dock remains the only bottom interaction lane. */
+.qa2 .qaLab {
+  grid-template-areas: "setup model observe" "actions actions actions" !important;
+  grid-template-rows: minmax(0, 1fr) clamp(132px, 18vh, 176px) !important;
+}
+.qa2 .qaActionDock { grid-area: actions; }
+.qa2 .v7View .vbSimView {
+  width: min(100%, 430px) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 4 / 3 !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+@media (max-width: 1100px) {
+  .qa2 .qaLab {
+    grid-template-columns: minmax(170px, .85fr) minmax(270px, 1.35fr) minmax(210px, 1fr) !important;
+  }
+  .qa2 .qaLab > .v7View {
+    width: auto !important;
+    height: auto !important;
+    aspect-ratio: auto !important;
+    justify-self: stretch !important;
+    align-self: stretch !important;
+  }
+}
+@media (max-width: 900px) {
+  .qa2 .qaLab {
+    grid-template-columns: minmax(150px, .72fr) minmax(260px, 1.28fr) minmax(190px, .9fr) !important;
+  }
+  .qa2 .qaActionDock {
+    grid-template-columns: minmax(0, 1fr) minmax(180px, .85fr) !important;
+    grid-template-rows: minmax(0, 1fr) 42px !important;
+    overflow: hidden !important;
+  }
+  .qa2 .qaActionSelection { grid-column: 1; grid-row: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .qa2 .qaActionDecision { grid-column: 2; grid-row: 1; }
+  .qa2 .qaActionRun { grid-column: 1 / -1; grid-row: 2; }
+  .qa2 .qaActionDock .qaInputs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .qa2 .v7View .vbSimView {
+    width: min(100%, 360px) !important;
+    aspect-ratio: 4 / 3 !important;
+  }
+}
+
+/* STEP04 second-pass layout: one compact status header, a three-column
+   reference workspace, and one state-driven interaction dock.  These rules
+   intentionally come last because older recovery patches target the same
+   selectors. */
+.vbBench.v7.qa2 .vbLayout {
+  grid-template-rows: 48px 32px minmax(0, 1fr) 44px !important;
+  gap: 5px !important;
+  padding: 8px 10px !important;
+}
+.qa2 .qaTop {
+  display: grid !important;
+  grid-template-columns: minmax(220px, 1.25fr) auto minmax(150px, .8fr) minmax(260px, 1.25fr) auto auto;
+  align-items: center;
+  gap: 7px !important;
+  min-width: 0;
+  overflow: hidden;
+}
+.qa2 .qaTop > * { min-width: 0; }
+.qa2 .qaAsk { height: 44px; min-height: 44px; overflow: hidden; }
+.qa2 .qaAsk p b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qa2 .qaHypothesisProgress { max-width: none; }
+.qa2 .qaExpect { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qa2 .qaRoadmap {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 3px 8px;
+  grid-template-columns: minmax(0, 1.5fr) minmax(180px, .8fr);
+}
+.qa2 .qaRoadmap li { font-size: 9.5px; }
+.qa2 .qaRoadmap li i { width: 18px; height: 18px; }
+
+.qa2 .qaLab {
+  grid-template-columns: minmax(220px, 250px) minmax(390px, 1fr) minmax(260px, 300px) !important;
+  grid-template-rows: minmax(0, 1fr) 116px !important;
+  grid-template-areas: "setup model observe" "actions actions actions" !important;
+  gap: 7px !important;
+  overflow: hidden !important;
+}
+.qa2 .qaSetupPanel,
+.qa2 .qaPanel.qaObservePanel,
+.qa2 .qaLab > .v7View {
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden !important;
+}
+.qa2 .qaSetupPanel {
+  display: flex !important;
+  flex-direction: column;
+  gap: 6px !important;
+  padding: 8px !important;
+}
+.qa2 .qaSetupPanel > header { flex: none; }
+.qa2 .qaSetupPanel > header b { font-size: 13px; }
+.qa2 .qaSetupPanel > header span { max-height: 26px; overflow: hidden; font-size: 9px; }
+.qa2 .qaConditionBlock { min-width: 0; flex: none; }
+.qa2 .qaConditionBlock h3 {
+  margin: 0 0 3px;
+  color: #9d4d3f;
+  font: 900 9px/1.2 Pretendard, system-ui;
+}
+.qa2 .qaConditionBlock table,
+.qa2 .qaTable { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.qa2 .qaConditionBlock th,
+.qa2 .qaConditionBlock td {
+  padding: 3px 4px;
+  border-bottom: 1px dashed #e7d9c5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  color: #594c40;
+  font: 650 8.5px/1.2 Pretendard, system-ui;
+}
+.qa2 .qaConditionBlock th { color: #887568; font-weight: 850; background: #f6f0e7; }
+.qa2 .qaConditionBlock th:nth-child(2),
+.qa2 .qaConditionBlock td:nth-child(2) { width: 32%; text-align: right; }
+.qa2 .qaConditionBlock th:last-child,
+.qa2 .qaConditionBlock td:last-child { width: 19%; }
+.qa2 .qaSetupNote {
+  display: grid;
+  gap: 2px;
+  margin: auto 0 0;
+  padding: 5px 6px;
+  border-radius: 6px;
+  background: #edf3ed;
+  color: #52675c;
+  font: 650 8.5px/1.25 Pretendard, system-ui;
+}
+.qa2 .qaSetupNote b { color: #2f7256; font-size: 8px; }
+
+.qa2 .qaLab > .v7View {
+  display: flex !important;
+  flex-direction: column;
+  padding: 6px !important;
+}
+.qa2 .v7View .v7Tabs {
+  flex: none;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 3px;
+  width: 100%;
+  margin: 0 0 4px;
+}
+.qa2 .v7View .v7Tabs button {
+  justify-content: center;
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 3px;
+  overflow: hidden;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.qa2 .v7Tabs .graphTab { margin-left: 0; }
+.qa2 .v7View .vbSimView {
+  flex: none !important;
+  align-self: center;
+  height: min(calc(100% - 32px), 480px) !important;
+  width: auto !important;
+  max-width: 100% !important;
+  max-height: calc(100% - 32px) !important;
+  aspect-ratio: 4 / 3 !important;
+  margin: 0 auto !important;
+}
+.qa2 .v3dToggle { flex: none; margin-top: 3px; }
+
+.qa2 .qaPanel.qaObservePanel {
+  display: flex !important;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px !important;
+}
+.qa2 .qaObserveHead { flex: none; }
+.qa2 .qaObserveHead b { font-size: 13px; }
+.qa2 .qaResultState {
+  display: grid;
+  gap: 2px;
+  flex: none;
+  padding: 6px 7px;
+  border: 1px solid #dfd3bf;
+  border-radius: 6px;
+  background: #f8f3e9;
+}
+.qa2 .qaResultState b { color: #665547; font: 900 10px/1.2 Pretendard, system-ui; }
+.qa2 .qaResultState span { color: #7b6a5d; font: 650 8.5px/1.3 Pretendard, system-ui; }
+.qa2 .qaResultState.pass { border-color: #8ebfa3; background: #edf7f0; }
+.qa2 .qaResultState.fail { border-color: #dc9b8c; background: #fff0ed; }
+.qa2 .qaResultState.inconclusive { border-color: #d7bd7f; background: #fff8e8; }
+.qa2 .qaObservePanel .qaTable { flex: 1 1 auto; min-height: 0; }
+.qa2 .qaObservePanel .qaTable th,
+.qa2 .qaObservePanel .qaTable td {
+  padding: 4px 3px !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 8.8px !important;
+}
+.qa2 .qaObservePanel .qaTable th:first-child { width: 36%; }
+.qa2 .qaObservePanel .qaTable th:last-child { width: 19%; }
+
+.qa2 .qaActionDock {
+  grid-area: actions;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.75fr) minmax(170px, .55fr) minmax(180px, .55fr) !important;
+  gap: 8px;
+  height: 116px;
+  min-height: 116px;
+  padding: 7px 9px;
+  overflow: hidden !important;
+  align-items: stretch;
+}
+.qa2 .qaActionSelection {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+  gap: 8px;
+}
+.qa2 .qaActionGroup { align-content: stretch; grid-template-rows: auto minmax(0, 1fr); }
+.qa2 .qaActionDock .qaLevels,
+.qa2 .qaActionDock .qaInputs { height: 100%; align-items: stretch; }
+.qa2 .qaActionDock .qaLevels button,
+.qa2 .qaActionDock .qaInputs button,
+.qa2 .qaActionDecision .qaAnswers button {
+  width: 100%;
+  height: 64px;
+  min-height: 64px;
+  box-sizing: border-box;
+  border-radius: 7px;
+}
+.qa2 .qaActionDock .qaLevels button { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px; }
+.qa2 .qaActionDock .qaLevels button span { display: grid; min-width: 0; gap: 2px; }
+.qa2 .qaActionDock .qaLevels button span b,
+.qa2 .qaActionDock .qaLevels button span em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qa2 .qaActionDock .qaInputs { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.qa2 .qaActionDecision { min-width: 0; align-content: center; }
+.qa2 .qaActionRun { min-width: 0; align-items: center; }
+.qa2 .qaActionRun .qaRunButton { width: 100%; min-height: 64px; height: 64px; }
+.qa2 .qaActionDock.is-result {
+  grid-template-columns: minmax(0, 1fr) !important;
+  padding-inline: clamp(80px, 16vw, 260px);
+}
+.qa2 .qaActionDock.is-result .qaActionDecision { width: 100%; }
+.qa2 .qaActionDock.is-result .qaAnswers { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.qa2 .qaActionDock.is-result .qaAnswers button { height: 68px; min-height: 68px; }
+.qa2 .qaActionDock.is-running .qaActionDecision { justify-items: center; }
+
+.qa2 .qaPick { padding: 8px 12px !important; gap: 7px !important; }
+.qa2 .qaPickQuestion { font-size: 15px; }
+.qa2 .qaPick .qaCriteria.big { max-width: none; padding: 6px 10px !important; }
+.qa2 .qaPick .qaCriteria.big p { margin: 2px 0 0; font-size: 10.5px !important; line-height: 1.3 !important; }
+.qa2 .qaPick h2 { margin: 0; font-size: 14px; }
+.qa2 .qaPick .qaTests { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: min(100%, 960px); margin: 0 auto; }
+.qa2 .qaPick .qaTests button { width: 100%; min-width: 0; min-height: 132px; padding: 10px !important; }
+
+@media (max-width: 1100px) {
+  .vbBench.v7.qa2 .vbLayout { grid-template-rows: 44px 30px minmax(0, 1fr) 42px !important; padding: 6px 8px !important; }
+  .qa2 .qaTop { grid-template-columns: minmax(190px, 1.2fr) auto minmax(125px, .8fr) minmax(180px, 1fr) auto; gap: 4px !important; }
+  .qa2 .qaTop .qaHelpBtn { display: none; }
+  .qa2 .qaAsk { height: 40px; min-height: 40px; }
+  .qa2 .qaRoadmap { height: 30px !important; min-height: 30px !important; grid-template-columns: 1fr; }
+  .qa2 .qaRoadmap p { display: none; }
+  .qa2 .qaLab {
+    grid-template-columns: minmax(178px, 205px) minmax(320px, 1fr) minmax(220px, 250px) !important;
+    grid-template-rows: minmax(0, 1fr) 106px !important;
+  }
+  .qa2 .qaConditionBlock th,
+  .qa2 .qaConditionBlock td { padding: 2px 3px; font-size: 7.8px; }
+  .qa2 .qaSetupNote { font-size: 7.8px; }
+  .qa2 .qaActionDock { height: 106px; min-height: 106px; grid-template-columns: minmax(0, 1.7fr) minmax(125px, .42fr) minmax(145px, .48fr) !important; }
+  .qa2 .qaActionDock .qaLevels button,
+  .qa2 .qaActionDock .qaInputs button,
+  .qa2 .qaActionRun .qaRunButton { height: 56px; min-height: 56px; }
+  .qa2 .qaActionDock .qaLevels button svg { display: none; }
+  .qa2 .qaActionDock .qaLevels button span b { font-size: 8px; }
+  .qa2 .qaActionDock .qaLevels button span em { font-size: 7px; }
+  .qa2 .qaActionDock .qaInputs button { font-size: 7.5px; }
+  .qa2 .qaActionDock.is-result { padding-inline: 70px; }
+  .qa2 .v7View .v7Tabs button i { display: none; }
+}
+
+/* STEP04 interaction contract: the monitoring graph is shown only in the
+   Monitoring tab; the bottom dock owns all player choices and the run CTA. */
+.qa2 .qaLab {
+  grid-template-areas: "setup model observe" "actions actions actions" !important;
+  grid-template-rows: minmax(0, 1fr) clamp(132px, 18vh, 176px) !important;
+}
+.qa2 .qaSetupPanel {
+  padding: 10px !important;
+  overflow: auto !important;
+}
+.qa2 .qaSetupNote {
+  margin: auto 0 0;
+  color: #7c6c5e;
+  font: 600 10px/1.4 Pretendard, system-ui;
+}
+.qa2 .qaSetupPanel .qaContractSummary {
+  grid-template-columns: 1fr !important;
+}
+.qa2 .qaActionDock {
+  grid-area: actions;
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(220px, 1fr) minmax(170px, .65fr);
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  padding: 7px 9px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid #d8c9b5;
+  border-radius: 8px;
+  background: #fffdf6;
+}
+.qa2 .qaActionSelection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
+.qa2 .qaActionGroup {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+.qa2 .qaActionGroup > small,
+.qa2 .qaActionDecision > small {
+  color: #9d4d3f;
+  font: 900 9px/1.2 Pretendard, system-ui;
+}
+.qa2 .qaActionGroup > small code,
+.qa2 .qaActionDecision > small code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: #f5e9d7;
+  color: #9d4d3f;
+  font: 800 9px/1 JetBrains Mono, monospace;
+}
+.qa2 .qaActionDock .qaLevels {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 4px !important;
+  margin: 0 !important;
+}
+.qa2 .qaActionDock .qaLevels > small { display: none; }
+.qa2 .qaActionDock .qaLevels button {
+  min-width: 0;
+  min-height: 42px;
+  height: 42px;
+  padding: 4px 5px;
+  overflow: hidden;
+}
+.qa2 .qaActionDock .qaLevels button span,
+.qa2 .qaActionDock .qaLevels button em { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qa2 .qaActionDock .qaInputs {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+}
+.qa2 .qaActionDock .qaInputs button {
+  min-width: 0;
+  min-height: 42px;
+  height: 42px;
+  padding: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qa2 .qaActionDecision {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+.qa2 .qaActionDecision .qaAnswers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+.qa2 .qaActionDecision .qaAnswers button {
+  min-width: 0;
+  min-height: 48px;
+  padding: 4px;
+  overflow: hidden;
+}
+.qa2 .qaActionDecision .qaAnswers button b,
+.qa2 .qaActionDecision .qaAnswers button small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qa2 .qaActionRun {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.qa2 .qaActionRun .qaRunButton {
+  position: static !important;
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  margin: 0;
+}
+.qa2 .qaActionState {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #7c6c5e;
+  font: 700 10px/1.3 Pretendard, system-ui;
+}
+.qa2 .qaActionState i {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: #d0b36f;
+}
+.qa2 .qaActionState i.running { background: #db6b52; animation: qa-pulse 1s ease-in-out infinite; }
+.qa2 .qaActionState i.done { background: #55a477; }
+@keyframes qa-pulse { 50% { opacity: .35; } }
+
+/* The selected viewpoint owns the single 4:3 visualization surface. */
+.qa2 .v7View { display: flex; flex-direction: column; min-height: 0; }
+.qa2 .v7View .vbSimView {
+  flex: none;
+  align-self: center;
+  width: auto;
+  height: min(100%, 560px);
+  aspect-ratio: 4 / 3;
+  max-width: 100%;
+  max-height: 100%;
+  margin: auto;
+}
+.qa2 code,
+.qa2 .qaTable code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(236, 224, 205, .72);
+  color: #b45443;
+  font: 700 .92em/1.1 JetBrains Mono, ui-monospace, monospace;
+}
+.qa2 .qaTable code { white-space: nowrap; }
+
+@media (max-width: 1100px) {
+  .qa2 .qaActionDock { grid-template-columns: minmax(0, 1fr) minmax(180px, .85fr); }
+  .qa2 .qaActionRun { grid-column: 1 / -1; justify-content: flex-end; }
+}
+@media (max-width: 900px) {
+  .qa2 .qaActionDock { grid-template-columns: 1fr; overflow: auto; }
+  .qa2 .qaActionRun { grid-column: auto; }
+  .qa2 .qaActionSelection { grid-template-columns: 1fr; }
+  .qa2 .v7View .vbSimView { height: min(100%, 420px); }
+}
+
+/* STEP04 verification roadmap and hypothesis guidance.  This is presentation
+   only; the existing pick → lab → report → retest → done state machine stays
+   unchanged. */
+.qa2 .qaTop { row-gap: 5px; }
+.qa2 .qaHypothesisProgress {
+  display: grid;
+  min-width: 150px;
+  max-width: min(260px, 28vw);
+  gap: 1px;
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: #f4eee1;
+  color: #6e5543;
+  line-height: 1.15;
+}
+.qa2 .qaHypothesisProgress b { font: 900 10.5px Pretendard, system-ui; color: #9d4d3f; }
+.qa2 .qaHypothesisProgress span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 10px Pretendard, system-ui; }
+.qa2 .qaRoadmap {
+  flex: 0 0 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(210px, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid #e1d3c0;
+  border-radius: 7px;
+  background: #fffdf6;
+  box-sizing: border-box;
+}
+.qa2 .qaRoadmap ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.qa2 .qaRoadmap li { display: flex; align-items: center; gap: 4px; min-width: 0; color: #a99787; font: 700 9px/1.1 Pretendard, system-ui; }
+.qa2 .qaRoadmap li i { display: grid; place-items: center; flex: none; width: 17px; height: 17px; border-radius: 50%; background: #efe6dc; color: #7b6a5c; font: 900 9px Pretendard, system-ui; font-style: normal; }
+.qa2 .qaRoadmap li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qa2 .qaRoadmap li.done, .qa2 .qaRoadmap li.now { color: #59483a; }
+.qa2 .qaRoadmap li.done i { background: #65a981; color: #fff; }
+.qa2 .qaRoadmap li.now i { background: #e9784a; color: #fff; box-shadow: 0 0 0 2px #f6d5c8; }
+.qa2 .qaRoadmap p { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6f6256; font: 650 9.5px/1.2 Pretendard, system-ui; }
+.qa2 .qaHypothesisCard { display: grid; gap: 3px; padding: 6px 7px; border-left: 3px solid #d9b874; border-radius: 0 6px 6px 0; background: #f8f0df; }
+.qa2 .qaHypothesisCard small { color: #a15a46; font: 900 9px Pretendard, system-ui; }
+.qa2 .qaHypothesisCard b { color: #514539; font: 900 11px/1.2 Pretendard, system-ui; }
+.qa2 .qaHypothesisCard span { color: #75675a; font: 650 9px/1.3 Pretendard, system-ui; }
+.qa2 .qaHypothesisHint { min-height: 15px; margin: -1px 4px 4px; color: #806b58; font: 650 9px/1.25 Pretendard, system-ui; }
+
+/* Keep mandatory controls reachable without allowing the whole stage to jump.
+   The left condition panel and right judgement panel get their own scroll
+   lanes; the run CTA remains reserved at the bottom of the left lane. */
+.qa2 .qaSetupPanel { overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; }
+.qa2 .qaPanel.qaObservePanel { overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; }
+.qa2 .qaSetupPanel { padding-bottom: 10px; }
+.qa2 .qaRunState { position: sticky; bottom: 48px; margin-top: auto; }
+.qa2 .qaRunButton { position: sticky; bottom: 9px; margin-top: 0; }
+.qa2 .qaLab { grid-template-rows: minmax(0, 1fr) clamp(116px, 18vh, 154px); }
+.qa2 .qaObservePanel .qaFoot { padding-bottom: 2px; }
+@media (max-width: 1100px) {
+  .qa2 .qaRoadmap { grid-template-columns: 1fr; gap: 2px; }
+  .qa2 .qaRoadmap p { display: none; }
+  .qa2 .qaHypothesisProgress { max-width: 190px; }
+  .qa2 .qaLab { grid-template-rows: minmax(0, 1fr) clamp(108px, 18vh, 136px); }
+}
+
+/* STEP04 layout recovery: reserve compact roadmap/footer rows explicitly.
+   The state machine and all test data remain unchanged; this only prevents
+   auto-placement from stretching the roadmap into the work area. */
+.vbBench.v7.qa2 .vbLayout {
+  grid-template-rows: 52px 34px minmax(0, 1fr) 46px !important;
+  align-content: stretch;
+  gap: 6px !important;
+}
+.qa2 .qaTop { grid-row: 1 !important; min-height: 0; }
+.qa2 .qaRoadmap {
+  grid-row: 2 !important;
+  align-self: stretch;
+  height: 34px !important;
+  min-height: 34px !important;
+  overflow: hidden;
+}
+.qa2 .qaHelpCard { grid-row: 2 !important; }
+.qa2 .qaLab,
+.qa2 .qaPick,
+.qa2 .v7Fix {
+  grid-row: 3 !important;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+.qa2 .vbBubble { grid-row: 4 !important; min-height: 0; }
+
+.qa2 .qaLab {
+  grid-template-rows: minmax(0, 1fr) clamp(108px, 15vh, 132px) !important;
+}
+.qa2 .qaSetupPanel {
+  position: relative;
+  display: flex !important;
+  min-height: 0;
+  padding: 10px !important;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.qa2 .qaRunState,
+.qa2 .qaRunButton {
+  position: sticky !important;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  flex: none;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 4;
+}
+.qa2 .qaRunState {
+  margin-top: 0;
+  top: calc(100% - 78px);
+  min-height: 18px;
+  padding: 3px 6px;
+  background: #fffdf6;
+}
+.qa2 .qaRunButton {
+  margin-top: 0;
+  top: calc(100% - 42px);
+  min-height: 34px;
+  background: #fffdf6;
+}
+.qa2 .qaSetupPanel { gap: 3px !important; }
+.qa2 .qaSetupPanel > header,
+.qa2 .qaObserveHead { gap: 1px; padding-bottom: 4px; }
+.qa2 .qaSetupPanel > header small { font-size: 9px; }
+.qa2 .qaSetupPanel > header b { font-size: 13px; }
+.qa2 .qaSetupPanel > header span { font-size: 9px; line-height: 1.15; }
+.qa2 .qaContractSummary { gap: 3px !important; }
+.qa2 .qaContractSummary > div { padding: 3px 5px !important; }
+.qa2 .qaContractSummary dt { font-size: 8.5px !important; }
+.qa2 .qaContractSummary dd { margin-top: 1px !important; font-size: 8.5px !important; line-height: 1.15 !important; }
+.qa2 .qaHypothesisCard { gap: 2px; padding: 4px 6px; }
+.qa2 .qaHypothesisCard small { font-size: 8px; }
+.qa2 .qaHypothesisCard b { font-size: 10px; }
+.qa2 .qaHypothesisCard span { font-size: 7.5px; line-height: 1.15; }
+.qa2 .qaSetupPanel .qaLevels { gap: 3px; }
+.qa2 .qaSetupPanel .qaLevels button { min-height: 29px; padding: 2px 5px; }
+.qa2 .qaSetupPanel .qaLevels button small { font-size: 8px; }
+.qa2 .qaSetupPanel .qaLevels button b { font-size: 9.5px; line-height: 1.1; }
+.qa2 .qaSetupPanel .qaLevels button em,
+.qa2 .qaSetupPanel .qaLevels button span { font-size: 8px; line-height: 1.1; }
+.qa2 .qaSetupPanel .qaInputs { gap: 3px; }
+.qa2 .qaSetupPanel .qaInputs button { min-height: 26px; padding: 2px 6px; font-size: 8.5px; line-height: 1.1; }
+.qa2 .qaPanel.qaObservePanel {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.qa2 .qaObservePanel .qaFoot { margin-top: auto; flex: none; }
+.qa2 .qaTimeline { min-height: 0; }
+@media (max-width: 900px) {
+  /* Narrow Chrome windows keep judgement controls in a visible footer while
+     the criteria/table use the panel's own compact scroll lanes. */
+  .qa2 .qaPanel.qaObservePanel {
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 4px;
+    overflow: hidden;
+  }
+  .qa2 .qaObservePanel .qaObserveHead { min-height: 0; padding-bottom: 3px; }
+  .qa2 .qaObservePanel .qaCriteria {
+    min-height: 0;
+    max-height: 62px;
+    overflow: auto;
+    padding: 4px 5px !important;
+  }
+  .qa2 .qaObservePanel .qaCriteria p { font-size: 8px !important; line-height: 1.2 !important; }
+  .qa2 .qaObservePanel .qaTable {
+    min-height: 0;
+    max-height: 72px;
+    overflow: auto;
+    display: block;
+    font-size: 8px;
+  }
+  .qa2 .qaObservePanel .qaTable th,
+  .qa2 .qaObservePanel .qaTable td { padding-top: 2px !important; padding-bottom: 2px !important; font-size: 8px; }
+  .qa2 .qaObservePanel .qaFoot { min-height: 0; margin-top: 0; }
+  .qa2 .qaObservePanel .qaAnswers { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 2px; }
+  .qa2 .qaObservePanel .qaAnswers button { min-height: 42px; padding: 3px 2px; }
+  .qa2 .qaObservePanel .qaAnswers button b { font-size: 9px; }
+  .qa2 .qaObservePanel .qaAnswers button small { font-size: 7px; line-height: 1.1; }
+}
+
 /* Keep the footer surface and the progression action as separate siblings.
    This prevents the E/E flowStepCard from being covered by the CTA. */
 .garageV2 .garageFooterRow {
@@ -1406,6 +2048,27 @@ body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
   .garageV2 .garageFlowPanel > .garageProceed.stageProgressAction { right: 14px !important; }
 }
 
+/* DriveBriefing uses two stable card contracts, not one stretched height:
+   the story card stays compact around its copy while the mission card keeps
+   enough room for the three fact rows and CTA.  Both frames use the same
+   role-based sizes so frame 1/2 and 2/2 never shift their card geometry. */
+.heistStillScene {
+  --heist-story-card-height: clamp(220px, 27vh, 300px);
+  --heist-briefing-card-height: clamp(310px, 34vh, 360px);
+}
+.heistStillScene .stillStoryCard {
+  height: var(--heist-story-card-height) !important;
+  min-height: 0 !important;
+  align-self: end !important;
+  overflow: hidden !important;
+}
+.heistStillScene .getawayBriefingCard {
+  height: var(--heist-briefing-card-height) !important;
+  min-height: 0 !important;
+  align-self: end !important;
+  overflow: hidden !important;
+}
+
 /* The progression action is a separate stage-level slot.  In particular,
    E/E uses the richer flowStepCard and must never share its box geometry with
    the action button. */
@@ -1427,3 +2090,595 @@ body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
   min-height: 42px !important;
   margin: 0 !important;
 }
+
+/* STEP04 canonical interaction layout.  This final block intentionally wins
+   over the older recovery patches above: reference panels stay in the work
+   row, while every player choice lives in one independent bottom lane. */
+.vbBench.v7.qa2 .vbLayout {
+  grid-template-rows: 48px 32px minmax(0, 1fr) 44px !important;
+  gap: 5px !important;
+  padding: 8px 10px !important;
+}
+.qa2 .qaTop { grid-row: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+.qa2 .qaRoadmap {
+  grid-row: 2 !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 3px 8px !important;
+}
+.qa2 .qaLab {
+  grid-template-areas: "setup model observe" "actions actions actions" !important;
+  grid-template-columns: minmax(220px, 250px) minmax(390px, 1fr) minmax(260px, 300px) !important;
+  grid-template-rows: minmax(0, 1fr) 116px !important;
+  gap: 7px !important;
+  overflow: hidden !important;
+}
+.qa2 .qaSetupPanel,
+.qa2 .qaPanel.qaObservePanel,
+.qa2 .qaLab > .v7View {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  box-sizing: border-box !important;
+}
+.qa2 .qaSetupPanel {
+  display: flex !important;
+  padding: 8px !important;
+  gap: 6px !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+.qa2 .qaSetupNote { margin-top: auto !important; }
+.qa2 .qaLab > .v7View {
+  display: flex !important;
+  width: auto !important;
+  height: auto !important;
+  aspect-ratio: auto !important;
+  padding: 6px !important;
+  overflow: hidden !important;
+  align-self: stretch !important;
+  justify-self: stretch !important;
+}
+.qa2 .v7View .v7Tabs {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  width: 100% !important;
+  flex: none !important;
+  gap: 3px !important;
+  margin: 0 0 4px !important;
+}
+.qa2 .v7View .vbSimView {
+  flex: none !important;
+  align-self: center !important;
+  width: auto !important;
+  height: min(calc(100% - 32px), 560px) !important;
+  min-height: 0 !important;
+  max-width: 100% !important;
+  max-height: calc(100% - 32px) !important;
+  aspect-ratio: 4 / 3 !important;
+  margin: 0 auto !important;
+}
+.qa2 .qaPanel.qaObservePanel {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 8px !important;
+  gap: 6px !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+.qa2 .qaActionDock {
+  grid-area: actions !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.75fr) minmax(170px, .55fr) minmax(180px, .55fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  width: 100% !important;
+  height: 116px !important;
+  min-height: 116px !important;
+  padding: 7px 9px !important;
+  gap: 8px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+.qa2 .qaActionSelection {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr) !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+.qa2 .qaActionDock .qaLevels,
+.qa2 .qaActionDock .qaInputs { height: 100% !important; align-items: stretch !important; }
+.qa2 .qaActionDock .qaLevels button,
+.qa2 .qaActionDock .qaInputs button,
+.qa2 .qaActionDecision .qaAnswers button,
+.qa2 .qaActionRun .qaRunButton {
+  height: 64px !important;
+  min-height: 64px !important;
+  box-sizing: border-box !important;
+}
+.qa2 .qaActionDecision,
+.qa2 .qaActionRun { min-width: 0 !important; align-content: center !important; }
+.qa2 .qaActionDock.phase-lab.is-result,
+.qa2 .qaActionDock.phase-done {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.qa2 .qaActionDock.phase-lab.is-result .qaActionDecision,
+.qa2 .qaActionDock.phase-done .qaActionDecision { grid-column: 1 / -1 !important; }
+.qa2 .qaActionDock.phase-retest {
+  grid-template-columns: minmax(0, 1fr) minmax(230px, .38fr) !important;
+}
+
+@media (max-width: 1100px) {
+  .vbBench.v7.qa2 .vbLayout {
+    grid-template-rows: 44px 30px minmax(0, 1fr) 42px !important;
+    padding: 6px 8px !important;
+  }
+  .qa2 .qaRoadmap { height: 30px !important; min-height: 30px !important; }
+  .qa2 .qaLab {
+    grid-template-columns: minmax(178px, 205px) minmax(320px, 1fr) minmax(220px, 250px) !important;
+    grid-template-rows: minmax(0, 1fr) 106px !important;
+  }
+  .qa2 .qaActionDock {
+    height: 106px !important;
+    min-height: 106px !important;
+  }
+  .qa2 .qaActionDock.phase-lab:not(.is-result) {
+    grid-template-columns: minmax(0, 1fr) 170px !important;
+  }
+  .qa2 .qaActionDock.phase-lab:not(.is-result) .qaActionDecision { display: none !important; }
+  .qa2 .qaActionDock .qaLevels button,
+  .qa2 .qaActionDock .qaInputs button,
+  .qa2 .qaActionDecision .qaAnswers button,
+  .qa2 .qaActionRun .qaRunButton {
+    height: 56px !important;
+    min-height: 56px !important;
+  }
+  .qa2 .qaActionDock.is-result,
+  .qa2 .qaActionDock.phase-done { grid-template-columns: minmax(0, 1fr) !important; }
+  .qa2 .qaActionDock.phase-retest { grid-template-columns: minmax(0, 1fr) 190px !important; }
+  .qa2 .v7View .v7Tabs button i { display: none !important; }
+}
+
+/* ===== STEP04 final layout v2 (TwinBenchExperience only) =====
+   Rows of .vbLayout: [info strip] [work area]. The cat guidance is its own full-width
+   footer row (.qaCatDock) below .vbLayout: the layout reserves that band, so nothing overlaps.
+   Scoped to .vbBench.v7.qa2 so STEP03 and other stages keep their shared rules. */
+.vbBench.v7.qa2 { --qa-cat-h: 64px; --qa-btn-h: 52px; }
+.vbBench.v7.qa2 .vbLayout {
+  bottom: calc(var(--qa-cat-h) + 18px) !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  gap: 6px !important;
+  padding: 7px 10px 8px !important;
+  overflow: hidden !important;
+}
+.vbBench.v7.qa2 .vbLayout > .qaCriteria.big[role="alert"] { position: absolute; z-index: 40; top: 8px; right: 10px; width: min(460px, 60%); }
+.vbBench.v7.qa2 .qaInfo { grid-row: 1 !important; position: relative; display: grid; gap: 5px; min-width: 0; }
+.vbBench.v7.qa2 .qaInfoMain { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.vbBench.v7.qa2 .qaHypo { display: grid; gap: 1px; flex: 1.35 1 0; min-width: 0; padding: 3px 10px; border-left: 3px solid #d9b874; border-radius: 0 7px 7px 0; background: #f8f0df; }
+.vbBench.v7.qa2 .qaHypo small { color: #a15a46; font: 700 9.5px/1.2 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaHypo b { overflow: hidden; color: #4a3d31; font: 600 13px/1.25 Pretendard, system-ui; text-overflow: ellipsis; white-space: nowrap; }
+.vbBench.v7.qa2 .qaHypo span { overflow: hidden; color: #75675a; font: 500 10.5px/1.25 Pretendard, system-ui; text-overflow: ellipsis; white-space: nowrap; }
+.vbBench.v7.qa2 .qaProg { display: flex; align-items: center; gap: 8px; flex: 1.2 1 0; min-width: 0; }
+.vbBench.v7.qa2 .qaProg .qaDots { display: flex; flex: none; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.vbBench.v7.qa2 .qaProg .qaDots li { height: 24px; min-width: 24px; padding: 0 6px; border-radius: 12px; font-size: 10px; line-height: 24px; text-align: center; white-space: nowrap; }
+.vbBench.v7.qa2 .qaProg p { display: grid; gap: 1px; min-width: 0; margin: 0; }
+.vbBench.v7.qa2 .qaProg p b { overflow: hidden; color: #6e5543; font: 600 10.5px/1.2 Pretendard, system-ui; text-overflow: ellipsis; white-space: nowrap; }
+.vbBench.v7.qa2 .qaProg p span { overflow: hidden; color: #85766a; font: 500 10px/1.25 Pretendard, system-ui; text-overflow: ellipsis; white-space: nowrap; }
+.vbBench.v7.qa2 .qaSteps { display: flex; flex: none; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.vbBench.v7.qa2 .qaSteps li { display: flex; align-items: center; gap: 3px; color: #a99787; font: 500 9.5px/1 Pretendard, system-ui; white-space: nowrap; }
+.vbBench.v7.qa2 .qaSteps li i { display: grid; flex: none; width: 16px; height: 16px; place-items: center; border-radius: 50%; background: #efe6dc; color: #7b6a5c; font: 600 9px Pretendard, system-ui; font-style: normal; }
+.vbBench.v7.qa2 .qaSteps li.done i { background: #65a981; color: #fff; }
+.vbBench.v7.qa2 .qaSteps li.now { color: #59483a; }
+.vbBench.v7.qa2 .qaSteps li.now i { background: #e9784a; color: #fff; }
+.vbBench.v7.qa2 .qaInfoMain .v7CostChip, .vbBench.v7.qa2 .qaInfoMain .qaHelpBtn, .vbBench.v7.qa2 .qaInfoMain .stageReplayBtn { flex: none; margin: 0 !important; }
+.vbBench.v7.qa2 .qaChips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; min-width: 0; }
+.vbBench.v7.qa2 .qaChip { display: grid; gap: 1px; min-width: 0; height: 36px; padding: 3px 10px; border: 1px solid #e1d3c0; border-radius: 8px; background: #fffdf6; color: #4a3d31; text-align: left; cursor: pointer; }
+.vbBench.v7.qa2 .qaChip small { display: flex; align-items: center; gap: 4px; overflow: hidden; color: #9d4d3f; font: 500 9.5px/1.2 Pretendard, system-ui; white-space: nowrap; }
+.vbBench.v7.qa2 .qaChip b { overflow: hidden; font: 600 11.5px/1.25 Pretendard, system-ui; text-overflow: ellipsis; white-space: nowrap; }
+.vbBench.v7.qa2 .qaChip.on { border-color: #c98d84; background: #fbece6; }
+.vbBench.v7.qa2 .qaChip.empty b { color: #9a8b7e; font-weight: 500; }
+.vbBench.v7.qa2 .qaChipPop { position: absolute; z-index: 35; top: 100%; left: 0; right: 0; margin-top: 4px; padding: 10px 34px 10px 12px; border: 1px solid #d8c3a7; border-radius: 9px; background: #fffdf6; box-shadow: 0 8px 22px #3b2b1c33; }
+.vbBench.v7.qa2 .qaChipPop dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 16px; margin: 0; }
+.vbBench.v7.qa2 .qaChipPop dl > div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; }
+.vbBench.v7.qa2 .qaChipPop dt { color: #9d4d3f; font: 600 10.5px/1.4 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaChipPop dd { margin: 0; color: #4a3d31; font: 500 11px/1.4 Pretendard, system-ui; overflow-wrap: anywhere; }
+.vbBench.v7.qa2 .qaChipPop dd .qaReal { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.vbBench.v7.qa2 .qaChipEmpty { margin: 0; color: #75675a; font: 500 11.5px/1.5 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaChipClose { position: absolute; top: 6px; right: 8px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: #efe6dc; color: #6e5543; font: 600 14px/1 Pretendard, system-ui; cursor: pointer; }
+.vbBench.v7.qa2 .qaHelpCard { position: absolute !important; z-index: 36; top: 58px; right: 10px; width: min(440px, 80%); grid-row: auto !important; max-height: calc(100% - 70px); overflow: auto; }
+
+/* work area */
+.vbBench.v7.qa2 .qaLab, .vbBench.v7.qa2 .qaPick, .vbBench.v7.qa2 .v7Fix { grid-row: 2 !important; min-height: 0 !important; overflow: hidden !important; }
+.vbBench.v7.qa2 .qaLab {
+  display: grid !important;
+  grid-template-areas: "setup model observe" "actions actions actions" !important;
+  grid-template-columns: minmax(240px, .75fr) minmax(0, 1.5fr) minmax(290px, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) auto !important;
+  gap: 7px !important;
+}
+.vbBench.v7.qa2 .qaSetupPanel { grid-area: setup; padding: 8px !important; gap: 5px !important; overflow-x: hidden !important; overflow-y: auto !important; }
+.vbBench.v7.qa2 .qaSetupPanel > header { padding-bottom: 5px; }
+.vbBench.v7.qa2 .qaSetupPanel .qaConditionBlock h3 { margin: 0 0 3px; color: #7a3f33; font: 600 11px/1.2 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaSetupPanel table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.vbBench.v7.qa2 .qaSetupPanel th { height: 20px; color: #8b7b6d; font: 500 9.5px/1 Pretendard, system-ui; text-align: left; }
+.vbBench.v7.qa2 .qaSetupPanel th:nth-child(2), .vbBench.v7.qa2 .qaSetupPanel td:nth-child(2) { width: 74px; text-align: right; }
+.vbBench.v7.qa2 .qaSetupPanel th:nth-child(3), .vbBench.v7.qa2 .qaSetupPanel td:nth-child(3) { width: 40px; padding-left: 6px; text-align: left; }
+.vbBench.v7.qa2 .qaSetupPanel td { height: 24px; padding: 0 2px; border-top: 1px solid #efe5d6; color: #4a3d31; font: 500 10.5px/1.15 Pretendard, system-ui; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vbBench.v7.qa2 .qaSetupPanel td code { font: 600 10.5px/1 Pretendard, system-ui; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vbBench.v7.qa2 .qaSetupPanel td:nth-child(3) { color: #8b7b6d; }
+.vbBench.v7.qa2 .qaSetupNote { margin-top: auto !important; font-size: 10px; line-height: 1.35; }
+.vbBench.v7.qa2 .qaLab > .v7View {
+  grid-area: model; container-type: size; display: flex !important; flex-direction: column; align-items: center; gap: 4px;
+  width: auto !important; height: auto !important; aspect-ratio: auto !important; min-width: 0 !important; min-height: 0 !important;
+  padding: 6px !important; overflow: hidden !important; position: relative;
+}
+.vbBench.v7.qa2 .v7View .v7Tabs { width: 100% !important; flex: none; }
+.vbBench.v7.qa2 .v7View .v7Tabs button { min-height: 30px; }
+.vbBench.v7.qa2 .v7View .vbSimView {
+  flex: none !important; margin: 0 auto !important; max-height: none !important; min-height: 0 !important; aspect-ratio: 4 / 3 !important;
+  width: min(100%, calc((100cqh - 74px) * 4 / 3)) !important; height: auto !important;
+}
+.vbBench.v7.qa2 .v7View .vbSimView { container-type: inline-size; }
+.vbBench.v7.qa2 .vbSimView .garage3dLabel { font-size: clamp(7px, 1.9cqw, 12px) !important; padding: 2px 6px !important; line-height: 1.2 !important; white-space: nowrap; }
+.vbBench.v7.qa2 .vbSimView .vbStamp { right: 8px !important; top: 8px !important; font-size: clamp(13px, 3.4cqw, 21px) !important; padding: 1px 8px !important; border-width: 3px !important; opacity: .93; pointer-events: none; width: auto !important; height: auto !important; inset: 4px 6px auto auto !important; white-space: nowrap; line-height: 1.15 !important; }
+.vbBench.v7.qa2 .v7Fix { display: flex !important; flex-direction: column; justify-content: flex-start !important; align-items: stretch; gap: 8px; padding: 8px 12px !important; overflow-x: hidden !important; overflow-y: auto !important; }
+.vbBench.v7.qa2 .v7Fix > h2 { flex: none; margin: 0; font-size: 14px; }
+.vbBench.v7.qa2 .v7Fix .v7Report { flex: none; width: 100%; max-width: none; margin: 0; }
+.vbBench.v7.qa2 .v7Fix .vbChoices { flex: none; }
+.vbBench.v7.qa2 .qaLook { display: inline-block; margin-right: 3px; white-space: nowrap; }
+.vbBench.v7.qa2 .qaApplied { display: flex; flex: none; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 12px; width: 100%; margin: 0; color: #5a4a3c; font: 500 10.5px/1.3 Pretendard, system-ui; font-variant-numeric: tabular-nums; }
+.vbBench.v7.qa2 .qaApplied b { color: #9d4d3f; font-weight: 600; }
+.vbBench.v7.qa2 .v7View .v3dToggle { position: absolute; right: 12px; top: 44px; z-index: 3; }
+
+/* right: test result vs hypothesis judgement */
+.vbBench.v7.qa2 .qaPanel.qaObservePanel { grid-area: observe; display: flex !important; flex-direction: column !important; gap: 6px !important; padding: 8px !important; overflow-x: hidden !important; overflow-y: auto !important; }
+.vbBench.v7.qa2 .qaResultBlock, .vbBench.v7.qa2 .qaJudgeBlock { display: grid; gap: 5px; align-content: start; min-width: 0; }
+.vbBench.v7.qa2 .qaJudgeBlock { flex: none; padding: 7px 8px 8px; border: 1px solid #e1d3c0; border-radius: 8px; background: #fdf6e8; }
+.vbBench.v7.qa2 .qaJudgeBlock.ready { border-color: #d9a76b; box-shadow: 0 0 0 2px #f6e2c5; }
+.vbBench.v7.qa2 .qaJudgeBlock .qaObserveHead { padding-bottom: 4px; }
+.vbBench.v7.qa2 .qaJudgeHint { margin: 0; color: #75675a; font: 500 10.5px/1.35 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaJudgeBlock .qaAnswers { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 5px !important; }
+.vbBench.v7.qa2 .qaJudgeBlock .qaAnswers button { display: grid; align-content: center; gap: 2px; height: 50px !important; min-height: 50px !important; padding: 3px 4px; box-sizing: border-box; text-align: center; }
+.vbBench.v7.qa2 .qaJudgeBlock .qaAnswers button b { font: 600 11px/1.2 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaJudgeBlock .qaAnswers button small { font: 500 9px/1.2 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaJudgeBlock .qaAnswers button:disabled { opacity: .45; cursor: not-allowed; }
+.vbBench.v7.qa2 .qaTable { width: 100%; table-layout: fixed; }
+.vbBench.v7.qa2 .qaTable th:first-child, .vbBench.v7.qa2 .qaTable td:first-child { width: 36%; }
+.vbBench.v7.qa2 .qaTable td { font-variant-numeric: tabular-nums; }
+.vbBench.v7.qa2 .qaTable td code { white-space: nowrap; }
+
+/* bottom controls: one row, same button height in every state */
+.vbBench.v7.qa2 .qaActionDock {
+  grid-area: actions !important; display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(220px, 280px) !important; grid-template-rows: auto !important;
+  align-items: center; gap: 10px !important; height: auto !important; min-height: 0 !important; padding: 6px 9px !important; overflow: hidden !important; box-sizing: border-box !important;
+}
+.vbBench.v7.qa2 .qaActionDock.phase-lab:not(.is-result) { grid-template-columns: minmax(0, 1fr) minmax(220px, 280px) !important; }
+.vbBench.v7.qa2 .qaActionDock .qaActionSelection { display: grid !important; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) !important; gap: 10px !important; min-width: 0; }
+.vbBench.v7.qa2 .qaActionDock .qaActionSelection:has(.qaLevelGroup:only-child) { grid-template-columns: minmax(0, 1fr) !important; }
+.vbBench.v7.qa2 .qaActionGroup { display: grid; gap: 3px; min-width: 0; }
+.vbBench.v7.qa2 .qaActionGroup > small { color: #7a3f33; font: 600 10px/1.2 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaActionDock .qaLevels, .vbBench.v7.qa2 .qaActionDock .qaInputs { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 5px !important; margin: 0 !important; height: auto !important; }
+.vbBench.v7.qa2 .qaActionDock .qaLevels button, .vbBench.v7.qa2 .qaActionDock .qaInputs button, .vbBench.v7.qa2 .qaActionRun .qaRunButton {
+  height: var(--qa-btn-h) !important; min-height: var(--qa-btn-h) !important; box-sizing: border-box !important; margin: 0 !important; white-space: normal; line-height: 1.2;
+}
+.vbBench.v7.qa2 .qaActionDock .qaLevels button { display: flex; align-items: center; gap: 6px; padding: 4px 8px; text-align: left; }
+.vbBench.v7.qa2 .qaActionDock .qaLevels button b { display: block; font: 600 10.5px/1.2 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaActionDock .qaLevels button em { font: 500 9.5px/1.2 Pretendard, system-ui; font-style: normal; }
+.vbBench.v7.qa2 .qaActionDock .qaInputs button { padding: 4px 8px; font: 500 10.5px/1.25 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaActionDecision { min-width: 0; align-self: center; }
+.vbBench.v7.qa2 .qaActionRun { min-width: 0; grid-column: 2; }
+.vbBench.v7.qa2 .qaActionRun .qaRunButton { width: 100% !important; }
+.vbBench.v7.qa2 .qaActionDock .qaActionDecision:first-child { grid-column: 1; }
+.vbBench.v7.qa2 .qaActionState { display: inline-flex; align-items: center; gap: 6px; color: #5a4a3c; font: 500 11px/1.3 Pretendard, system-ui; }
+
+/* cat guidance: its own full-width row under the work area */
+.vbBench.v7.qa2 .qaCatDock {
+  position: absolute; z-index: 3; left: var(--stage-frame-inset); right: var(--stage-frame-inset); bottom: 10px; height: var(--qa-cat-h);
+  display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 6px 14px; box-sizing: border-box;
+  border: 1px solid #e1d3c0; border-radius: 12px; background: #fffdf6; box-shadow: 0 2px 8px #3b2b1c1f;
+}
+.vbBench.v7.qa2 .qaCatDock img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+.vbBench.v7.qa2 .qaCatDock p { display: grid; gap: 1px; min-width: 0; margin: 0; }
+.vbBench.v7.qa2 .qaCatDock p b { color: #b45443; font: 600 11px/1.2 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaCatAct { display: -webkit-box; overflow: hidden; color: #3f342a; font: 600 12.5px/1.4 Pretendard, system-ui; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.vbBench.v7.qa2 .qaCatNote { overflow: hidden; color: #85766a; font: 500 10.5px/1.3 Pretendard, system-ui; text-overflow: ellipsis; white-space: nowrap; }
+.vbBench.v7.qa2 .qaCatDock .stageProgressAction { position: static !important; width: 240px !important; height: var(--qa-btn-h) !important; min-height: var(--qa-btn-h) !important; margin: 0 !important; }
+
+@media (max-width: 1100px) {
+  .vbBench.v7.qa2 { --qa-cat-h: 54px; --qa-btn-h: 44px; }
+  .vbBench.v7.qa2 .qaSteps, .vbBench.v7.qa2 .qaProg p span { display: none; }
+  .vbBench.v7.qa2 .qaChip { height: 32px; padding: 2px 8px; }
+  .vbBench.v7.qa2 .qaLab { grid-template-columns: minmax(180px, .9fr) minmax(0, 1.5fr) minmax(240px, 1.05fr) !important; }
+  .vbBench.v7.qa2 .qaCatDock { grid-template-columns: 36px minmax(0, 1fr) auto; padding: 4px 10px; }
+  .vbBench.v7.qa2 .qaCatDock img { width: 36px; height: 36px; }
+  .vbBench.v7.qa2 .qaCatAct { font-size: 11.5px; }
+  .vbBench.v7.qa2 .qaCatDock .stageProgressAction { width: 190px !important; }
+  .vbBench.v7.qa2 .vbLayout { gap: 4px !important; padding: 5px 8px 6px !important; }
+  .vbBench.v7.qa2 .qaInfo { gap: 4px; }
+  .vbBench.v7.qa2 .qaHypo { padding: 2px 8px; }
+  .vbBench.v7.qa2 .qaHypo b { font-size: 12px; }
+  .vbBench.v7.qa2 .qaHypo span { display: none; }
+  .vbBench.v7.qa2 .qaChip { height: 30px; padding: 2px 8px; }
+  .vbBench.v7.qa2 .qaChip small { font-size: 9px; }
+  .vbBench.v7.qa2 .qaChip b { font-size: 10.5px; }
+  .vbBench.v7.qa2 .qaSetupPanel { padding: 6px !important; gap: 3px !important; }
+  .vbBench.v7.qa2 .qaSetupPanel > header span, .vbBench.v7.qa2 .qaObservePanel .qaObserveHead span { display: none; }
+  .vbBench.v7.qa2 .qaSetupPanel td { height: 20px; }
+  .vbBench.v7.qa2 .qaSetupPanel th { height: 16px; }
+  .vbBench.v7.qa2 .qaSetupNote { display: none; }
+  .vbBench.v7.qa2 .qaApplied { flex-wrap: nowrap; gap: 8px; font-size: 9.5px; }
+  .vbBench.v7.qa2 .qaApplied span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vbBench.v7.qa2 .qaApplied span:last-child { display: none; }
+  .vbBench.v7.qa2 .qaResultState > span, .vbBench.v7.qa2 .qaJudgeHint { display: none; }
+  .vbBench.v7.qa2 .qaPanel.qaObservePanel { padding: 6px !important; gap: 4px !important; }
+  .vbBench.v7.qa2 .qaJudgeBlock { padding: 5px 6px 6px; }
+  .vbBench.v7.qa2 .qaJudgeBlock .qaAnswers button { height: 40px !important; min-height: 40px !important; }
+  .vbBench.v7.qa2 .qaJudgeBlock .qaAnswers button small { display: none; }
+  .vbBench.v7.qa2 .qaActionDock { padding: 4px 8px !important; }
+  .vbBench.v7.qa2 .qaActionGroup > small { display: none; }
+  .vbBench.v7.qa2 .qaActionDock .qaLevels button b { display: -webkit-box; overflow: hidden; font-size: 10px; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; }
+  .vbBench.v7.qa2 .qaActionDock .qaLevels button { padding: 3px 6px; gap: 4px; }
+  .vbBench.v7.qa2 .qaActionDock .qaLevels button svg { display: none; }
+  .vbBench.v7.qa2 .v7Fix { gap: 5px; padding: 5px 10px !important; }
+  .vbBench.v7.qa2 .v7Fix .v7Report li { padding-top: 2px; padding-bottom: 2px; }
+  .vbBench.v7.qa2 .v7Fix .v7Report li > span { font-size: 10.5px; line-height: 1.3; }
+  .vbBench.v7.qa2 .v7Fix .v7Report li small { font-size: 9.5px; }
+  .vbBench.v7.qa2 .v7Fix .vbChoices button { min-height: 0 !important; padding: 4px !important; }
+  .vbBench.v7.qa2 .v7Fix .vbChoices button img { max-height: 54px; width: auto; object-fit: contain; }
+  .vbBench.v7.qa2 .v7Fix .vbChoices button b { font-size: 10.5px; line-height: 1.25; }
+  .vbBench.v7.qa2 .qaActionDock { grid-template-columns: minmax(0, 1fr) minmax(170px, 210px) !important; }
+  .vbBench.v7.qa2 .qaActionDock.phase-lab:not(.is-result) { grid-template-columns: minmax(0, 1fr) minmax(170px, 210px) !important; }
+  .vbBench.v7.qa2 .qaActionDock .qaActionSelection { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; }
+  .vbBench.v7.qa2 .qaActionDock .qaInputs button { display: -webkit-box; overflow: hidden; font-size: 9.5px; line-height: 1.2; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+  .vbBench.v7.qa2 .qaTable th:first-child, .vbBench.v7.qa2 .qaTable td:first-child { width: 40%; }
+  .vbBench.v7.qa2 .qaChipPop dl { grid-template-columns: 1fr; }
+}
+
+/* ===== STEP01~04 common frame v3 =====
+   One slot each for: history buttons (always rendered, disabled when unavailable), sound toggle
+   (top-right inside the 64px bar, never over body boxes), and the STEP02~04 pursuit HUD (right end of
+   the folder row directly under the top bar). Race scenes keep their own rules. */
+.gameStage .stageFolderSubtitle { border-radius: 10px !important; }
+.stageHistoryNav button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.25); }
+body:has(.gameHeader):not(:has(.raceV2)) .soundToggle { top: 13px; right: 16px; bottom: auto; gap: 6px; z-index: 95; }
+body:has(.gameHeader):not(:has(.raceV2)) .soundToggle button { width: 36px; height: 36px; }
+
+.pursuitHud {
+  position: absolute; z-index: 18; top: 84px; right: 28px; width: 372px; height: 40px; box-sizing: border-box;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px;
+  padding: 0 4px 0 10px; border-left: 1px solid #e1d3c0; background: none;
+}
+.pursuitHud .hudFlag { display: grid; justify-items: center; gap: 0; }
+.pursuitHud .hudFlag img { width: 20px; height: 20px; display: block; }
+.pursuitHud .hudFlag small { color: #8a6a43; font: 600 8.5px/1 Pretendard, system-ui; letter-spacing: .04em; }
+.pursuitHud .hudTrack { position: relative; height: 6px; margin-top: 8px; border-radius: 3px; background: repeating-linear-gradient(90deg, #d9c9ad 0 6px, transparent 6px 10px); }
+.pursuitHud .hudCar { position: absolute; top: -17px; width: 34px; height: 24px; transform: translateX(-50%); transition: left .4s ease; }
+.pursuitHud .hudCar img { display: block; width: 100%; height: 100%; object-fit: contain; background: none; filter: drop-shadow(0 1px 1px #5a3a2a40); }
+.pursuitHud .hudGap { display: grid; gap: 1px; justify-items: end; min-width: 76px; white-space: nowrap; }
+.pursuitHud .hudGap small { color: #8a6a43; font: 500 9px/1.1 Pretendard, system-ui; }
+.pursuitHud .hudGap code { color: #b5482f; font: 700 15px/1.1 ui-monospace, "SFMono-Regular", Consolas, monospace; font-variant-numeric: tabular-nums; }
+body:has(.pursuitHud) .stageFolderSubtitle { padding-right: 420px !important; }
+@media (max-width: 1100px) {
+  .pursuitHud { width: 310px; right: 22px; gap: 6px; }
+  body:has(.pursuitHud) .stageFolderSubtitle { padding-right: 350px !important; }
+}
+
+/* common v3 · radius, history-button alignment, STEP04 de-duplication */
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench, .eeTrace) + .stageHistoryNav :is(.stageBackButton, .stageForwardButton) { margin-top: 0 !important; height: 32px !important; }
+.vbBench.v7.qa2 :is(.qaSetupPanel, .qaPanel.qaObservePanel, .qaLab > .v7View, .qaActionDock, .qaChip, .qaJudgeBlock, .qaChipPop, .qaHypo) { border-radius: 6px !important; }
+.vbBench.v7.qa2 .qaCatDock { border-radius: 6px; }
+.vbBench.v7.qa2 .qaSetupPanel > header span, .vbBench.v7.qa2 .qaResultState.pending span, .vbBench.v7.qa2 .qaSetupNote { display: none !important; }
+
+/* STEP02 · cat guidance spans the same width as the body boxes; the next button slot is always reserved */
+.eeTrace .etBubble { justify-self: stretch !important; width: auto !important; max-width: none !important; border-radius: 6px !important; grid-template-columns: 44px minmax(0, 1fr) minmax(190px, 232px) !important; padding: 6px 14px !important; }
+.eeTrace .etBubble > img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.eeTrace .etBubble .etProgressSlot { display: block; }
+.eeTrace .etBubble .stageProgressAction { width: 100% !important; height: 40px !important; min-height: 40px !important; margin: 0 !important; }
+.eeTrace .etBubble .stageProgressAction:disabled { opacity: .45; cursor: not-allowed; }
+.eeTrace .etEvidence { border-radius: 6px !important; }
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench, .eeTrace) + .stageHistoryNav :is(.stageBackButton, .stageForwardButton) { transform: none !important; }
+
+/* ===== STEP01 garage v3 =====
+   Viz title = small red breadcrumb only (view › domain › function); the long h1/p stay in the DOM for
+   screen readers. The domain tabs span the full row; the layer nav and the body boxes start on the same line.
+   The next button is a compact 4:3 control centred in the right footer column. */
+.garageV2 .garageMechanismCard > header.garageVizTag { max-width: none !important; padding: 0 !important; left: 14px !important; top: 10px !important; background: none !important; box-shadow: none !important; border: 0 !important; border-radius: 0 !important; pointer-events: none; }
+.garageV2 .garageMechanismCard > header.garageVizTag small { display: block; color: #b5482f !important; font: 600 11.5px/1.3 Pretendard, system-ui !important; white-space: nowrap !important; }
+.garageV2 .garageMechanismCard > header.garageVizTag :is(h1, p) { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.garageV2 .garageStudio .domainTabs { margin-left: -177px; width: calc(100% + 177px); position: relative; z-index: 11; }
+.garageV2 .garageLayerNav { top: calc(var(--stage-frame-workspace-top) + 52px) !important; }
+.garageV2 .garageStudio .garageFooterRow .garageFlowPanel > .garageProceed, .garageV2 .garageFooterRow > .garageProceed { width: 128px !important; height: 96px !important; min-height: 0 !important; margin: 0 !important; justify-self: center; align-self: center; padding: 6px !important; font-size: 13px; }
+.garageV2 .garageFooterRow { align-items: stretch; }
+.garageV2 .garageFooterRow > .garageProceed { grid-column: 2; }
+.garageV2 .garageMechanismCard, .garageV2 .garageFlowPanel, .garageV2 .domainFunctionShelf, .garageV2 .garageLayerNav { border-radius: 6px !important; }
+.garageV2 .garageFooterRow > .garageProceed.stageProgressAction { width: 128px !important; height: 96px !important; min-height: 0 !important; margin: 0 !important; justify-self: center !important; align-self: center !important; padding: 6px !important; font-size: 13px !important; line-height: 1.25 !important; }
+.garageV2 .garageStudio .domainTabs { margin-left: -196px !important; width: calc(100% + 196px) !important; display: grid !important; grid-template-columns: none !important; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
+.garageV2 .garageStudio .domainTabs > button { min-width: 0 !important; width: auto !important; }
+@media (max-width: 1100px) {
+  .garageV2 .garageStudio .domainTabs { margin-left: -177px !important; width: calc(100% + 177px) !important; }
+}
+.garageV2 .garageLayerNav .viewAxisLabel { height: auto !important; min-height: 14px; overflow: visible !important; line-height: 1.3 !important; }
+/* garage vehicle view: the wiring legend sits under the breadcrumb so it never overlaps the step controls */
+.garageV2 .garageMechanismCard .flowLegend { top: 34px !important; bottom: auto !important; left: 14px !important; border-radius: 6px; padding: 5px 8px; font-size: 10.5px; max-height: 120px; overflow: hidden; }
+@media (max-width: 1100px) {
+  .garageV2 .softwareView { padding-top: 40px !important; padding-bottom: 84px !important; }
+  .garageV2 .softwareView .simulinkSvgWrap { padding: 6px 2px 0 !important; }
+  .garageV2 .softwareView .simPath { margin-bottom: 0; }
+}
+.pursuitHud .hudCar.hudPolice { z-index: 1; }
+.pursuitHud .hudCar:not(.hudPolice) { z-index: 2; }
+/* Control SW view: path chips share the breadcrumb row so the flow diagram gets the freed height */
+.garageV2 .softwareView .simPath { position: absolute; top: 6px; right: 14px; margin: 0 !important; z-index: 3; max-width: calc(100% - 300px); }
+.garageV2 .softwareView { padding-top: 36px !important; }
+.pursuitHud .hudCar { width: 30px; height: 20px; }
+.pursuitHud .hudCar.hudPolice { top: -11px; }
+.pursuitHud .hudCar:not(.hudPolice) { top: -19px; }
+
+/* ===== no tilt: UI cards, stamps and notes stay level (3D scenes and the road/vehicle are not touched) ===== */
+.pol, .pol:nth-child(3n+1), .pol:nth-child(3n+3), .polaroidCard { transform: none !important; }
+.etMemoSeed > div > span, .etMemoSeed > div > span:nth-child(2), .etMemoSeed > div > span:nth-child(3) { transform: none !important; }
+.etMug .stamp, .tbStamp, .firstFlag, .vrStamp { transform: none !important; }
+.vbStamp, .vbSimView .vbStamp, .vbBench.v7.qa2 .vbSimView .vbStamp { transform: none !important; }
+.vbSimView:has(.ovGraph) .vbStamp { transform: scale(.5) !important; }
+.sbCard.picked { transform: translateY(-4px) !important; }
+.sbStamp { transform: translateX(-50%) !important; }
+.verdictStamp { transform: none !important; }
+@keyframes verdictSlam { 0% { transform: scale(3); opacity: 0; } 18% { transform: scale(.92); opacity: 1; } 28% { transform: scale(1.04); } 80% { transform: scale(1); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+
+/* ===== pursuit HUD v2: the track is a road, the cars (original getaway/police icons) sit on it with a ground shadow ===== */
+.pursuitHud .hudTrack { height: 9px; margin-top: 14px; border-radius: 5px; background: #7a6a5c; box-shadow: inset 0 -1px 0 #5a4a3e; }
+.pursuitHud .hudTrack::before { content: ""; position: absolute; left: 6px; right: 6px; top: 3.5px; height: 2px; background: repeating-linear-gradient(90deg, #f1dfb8 0 6px, transparent 6px 11px); }
+.pursuitHud .hudCar, .pursuitHud .hudCar.hudPolice, .pursuitHud .hudCar:not(.hudPolice) { top: auto !important; bottom: calc(100% - 5px) !important; width: 26px; height: 16px; }
+.pursuitHud .hudCar::after { content: ""; position: absolute; left: 10%; right: 10%; bottom: -4px; height: 4px; border-radius: 50%; background: #2b1d1470; filter: blur(.8px); z-index: -1; }
+.pursuitHud .hudCar img { filter: none; }
+/* cat guidance panels: equal padding on all four sides, image centred on the text */
+.eeTrace .etBubble { padding: 9px !important; gap: 10px !important; grid-template-columns: 40px minmax(0, 1fr) minmax(190px, 232px) !important; }
+.eeTrace .etBubble > img, .vbBench.v7.qa2 .qaCatDock img { align-self: center; }
+.vbBench.v7.qa2 .qaCatDock { padding: 8px !important; gap: 10px; grid-template-columns: 48px minmax(0, 1fr) auto; }
+.vbBench.v7.qa2 .qaCatDock img { width: 48px; height: 48px; }
+
+/* STEP03: the fixed "의심 구간" title box (rpHead) is gone; its title and tools live on the puzzle board */
+.refPuzzle.v2 .rpMain { margin-top: 72px !important; }
+.refPuzzle .rpStageBar { position: absolute; z-index: 6; left: 12px; top: 10px; right: 150px; display: flex; align-items: center; gap: 10px; pointer-events: none; }
+.refPuzzle .rpStageBar > small { color: #b5482f; font: 600 12px/1.3 Pretendard, system-ui; white-space: nowrap; }
+.refPuzzle .rpStageBar .rpTools { display: flex; gap: 6px; margin-left: auto; pointer-events: auto; }
+.refPuzzle .rpReq .rpWhy { margin: 6px 0 0; padding-top: 6px; border-top: 1px dashed #e1d3c0; color: #5b4636; font: 500 12px/1.4 Pretendard, system-ui; }
+.refPuzzle .rpReq .rpWhy b { margin-right: 4px; color: #9b6b64; }
+.refPuzzle.v2 > .rpMain { grid-row: 3 !important; }
+.refPuzzle.v2 > .rpFoot { grid-row: 4 !important; }
+.refPuzzle.v2 > .rpMain { margin-bottom: 8px !important; }
+
+/* STEP04 roadmap (5 steps), proof lines, run log */
+.vbBench.v7.qa2 .qaSteps { gap: 8px; }
+.vbBench.v7.qa2 .qaSteps li { align-items: center; gap: 4px; }
+.vbBench.v7.qa2 .qaSteps li > span { display: grid; gap: 0; }
+.vbBench.v7.qa2 .qaSteps li b { font: 500 9.5px/1.2 Pretendard, system-ui; white-space: nowrap; }
+.vbBench.v7.qa2 .qaSteps li.now b { font-weight: 600; }
+.vbBench.v7.qa2 .qaSteps li em { color: #b5482f; font: 500 9px/1.2 Pretendard, system-ui; font-style: normal; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.vbBench.v7.qa2 .qaSteps li:not(:last-child)::after { content: "›"; color: #c9b8a2; margin-left: 2px; }
+.vbBench.v7.qa2 .qaProof { display: grid; gap: 4px; margin-top: 4px; padding: 6px 8px; border: 1px dashed #d8c3a7; border-radius: 6px; background: #fffaf0; }
+.vbBench.v7.qa2 .qaProof p { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 6px; margin: 0; font: 500 10.5px/1.35 Pretendard, system-ui; color: #4a3d31; }
+.vbBench.v7.qa2 .qaProof small { color: #9d4d3f; font: 600 10px/1.35 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaProof b.ok { color: #2f8a55; }
+.vbBench.v7.qa2 .qaProof b.bad { color: #c0392b; }
+.v7Runs { margin-top: 8px; padding-top: 6px; border-top: 1px dashed #e1d3c0; }
+.v7Runs small { color: #9d4d3f; font: 600 11px Pretendard, system-ui; }
+.v7Runs ol { display: grid; gap: 2px; margin: 4px 0 0; padding: 0; list-style: none; }
+.v7Runs li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 6px; align-items: center; font: 500 11px/1.3 Pretendard, system-ui; }
+.v7Runs li i { font-style: normal; color: #8b7b6d; }
+.v7Runs li em { font-style: normal; font-weight: 600; }
+.v7Runs .rv-pass { color: #2f8a55; }
+.v7Runs .rv-fail { color: #c0392b; }
+.v7Runs .rv-inconclusive { color: #8b7b6d; }
+.v7Runs p { margin: 4px 0 0; font: 500 11px Pretendard, system-ui; color: #75675a; }
+@media (max-width: 1100px) { .vbBench.v7.qa2 .qaSteps li:not(.now) b { display: none; } }
+
+.vbBench.v7.qa2 .qaProg p span { display: none; }
+
+.refPuzzle.v2 .rpStage { padding-top: 44px !important; box-sizing: border-box; }
+
+/* E/E mix / part layers: compact chips so a column of 5-7 parts fits above the step controls */
+.eeBlueprint.layer-part .eeChip, .eeBlueprint.layer-mix .eeChip { min-height: 54px !important; padding-top: 34px !important; }
+.eeBlueprint.layer-part .eeCol, .eeBlueprint.layer-mix .eeCol { gap: 6px !important; }
+
+@media (max-height: 830px) {
+  .eeBlueprint.layer-part .eeChip, .eeBlueprint.layer-mix .eeChip { min-height: 42px !important; padding-top: 22px !important; font-size: 11px; }
+  .eeBlueprint.layer-part .eeCol, .eeBlueprint.layer-mix .eeCol { gap: 4px !important; }
+}
+
+/* ===== P1 · STEP02 : T-25 carry pick, vertical STACK, evidence rail 3 columns (N-S02-01~03) ===== */
+.eeTrace .etCarryPick { margin-left: 6px; min-height: 26px; padding: 2px 9px; border: 1px solid #dfcfb6; border-radius: 6px; background: #fffdf6; color: #9d4d3f; font: 600 11px/1.2 Pretendard, system-ui; cursor: pointer; }
+.eeTrace .etCarryPick.on { border-color: #c98d84; background: #fbece6; color: #8f3f33; }
+.eeTrace .etStack { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+.eeTrace .etStack > span { display: block; padding: 5px 10px; border: 1px solid #dfcfb6; border-radius: 6px; background: #fffdf6; color: #4a3d31; font: 500 11.5px/1.3 Pretendard, system-ui; text-align: center; }
+.eeTrace .etStack > span.top { border-color: #c98d84; background: #fbece6; font-weight: 600; }
+.eeTrace .etStack > span i { margin-right: 6px; color: #9d4d3f; font-style: normal; font-weight: 600; }
+.eeTrace .etStack > em, .eeTrace .etStack > i { align-self: center; color: #b5482f; font: 600 13px/1.2 Pretendard, system-ui; font-style: normal; }
+.eeTrace .etTraceSummary .etStack { width: min(360px, 90%); margin: 6px auto 0; }
+.eeTrace .etLayout { grid-template-columns: minmax(0, 1fr) minmax(300px, 340px) !important; }
+.eeTrace .etEvidence .polBoard { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 10px 8px !important; }
+.eeTrace .etEvidence .pol b { font-size: 10.5px; min-height: 24px; }
+.eeTrace .etEvidence .pol small { font-size: 9px; }
+@media (max-width: 1100px) { .eeTrace .etLayout { grid-template-columns: minmax(0, 1fr) minmax(280px, 300px) !important; } }
+
+/* ===== P2 · STEP03 : no top tape, architecture levels, spec sheet (tables, sequential reveal, level, no tilt) ===== */
+.refPuzzle .rpStage::before, .refPuzzle .rpReq::before, .refPuzzle .rpFoot::before, .refPuzzle .rpMain::before { display: none !important; }
+.refPuzzle .rpLevels { display: flex; align-items: center; gap: 5px; min-width: 0; pointer-events: none; }
+.refPuzzle .rpLevels > span { display: grid; gap: 0; min-width: 0; padding: 3px 9px; border: 1px solid #e1d3c0; border-radius: 6px; background: #fffdf6; }
+.refPuzzle .rpLevels > span small { color: #8b7b6d; font: 500 9px/1.2 Pretendard, system-ui; }
+.refPuzzle .rpLevels > span b { overflow: hidden; color: #4a3d31; font: 600 11.5px/1.3 Pretendard, system-ui; text-overflow: ellipsis; white-space: nowrap; }
+.refPuzzle .rpLevels > span.on { border-color: #c98d84; background: #fbece6; }
+.refPuzzle .rpLevels > span.on small { color: #9d4d3f; }
+.refPuzzle .rpLevels > i { color: #c9b8a2; font-style: normal; font-size: 13px; }
+
+.verificationContractModal > article.specSheet { animation: none !important; transform: none !important; }
+.specSheetPaper { display: flex; flex-direction: column; gap: 10px; padding: 9% 5.4% 7% !important; }
+.specSheetPaper .ssItem { animation: ssReveal .38s ease-out both; }
+@keyframes ssReveal { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .specSheetPaper .ssItem { animation: none; } }
+.specSheetPaper small { color: #506c7c; font: 600 10.5px/1.3 Pretendard, system-ui; }
+.specSheetPaper h2 { margin: 3px 0 2px; color: #2f4a59; font: 700 clamp(17px, 1.6vw, 22px)/1.25 Pretendard, system-ui; }
+.specSheetPaper h3 { margin: 0 0 4px; color: #b45443; font: 600 11.5px/1.3 Pretendard, system-ui; }
+.specSheetPaper .ssSection { margin: 0; padding: 0; border: 0; background: none; color: #6b7a82; font: 500 11px/1.4 Pretendard, system-ui; }
+.specSheetPaper section > p { margin: 0; padding: 0; border: 0; background: none; color: #34443f; font: 500 12px/1.5 Pretendard, system-ui; }
+.specSheetPaper table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.specSheetPaper th { padding: 3px 4px; border-bottom: 1px solid #b7c4cb; color: #6b7a82; font: 500 10px/1.3 Pretendard, system-ui; text-align: left; }
+.specSheetPaper td { height: 24px; padding: 2px 4px; border-bottom: 1px solid #e3e9ec; color: #34443f; font: 500 11.5px/1.3 Pretendard, system-ui; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.specSheetPaper td code { font: 600 11.5px/1 ui-monospace, "SFMono-Regular", Consolas, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.specSheetPaper th:nth-child(2), .specSheetPaper td:nth-child(2) { width: 30%; text-align: right; }
+.specSheetPaper th:last-child, .specSheetPaper td:last-child { width: 16%; padding-left: 8px; }
+.specSheetPaper table:has(th:nth-child(4)) th:nth-child(3), .specSheetPaper table:has(th:nth-child(4)) td:nth-child(3) { width: 24%; text-align: right; }
+.specSheetPaper tr.ssInput td { background: #f3f8fb; }
+.specSheetPaper .ssActions { margin-top: auto; padding-top: 4px; }
+.specSheet .contractCommit { position: static !important; width: 100% !important; min-height: 42px !important; margin: 0 !important; transform: none !important; animation: none !important; font: 600 14px/1.2 Pretendard, system-ui !important; }
+.specSheetPaper table:has(th:nth-child(4)) td:first-child { white-space: normal; line-height: 1.25; height: auto; }
+
+/* ===== P3 · STEP04 : test level = tab, one question at a time in the bottom dock, test materials drawer ===== */
+.vbBench.v7.qa2 .qaHypo { border: 1px solid #e1d3c0 !important; border-left-width: 1px !important; border-radius: 6px !important; background: #fffdf6 !important; }
+.vbBench.v7.qa2 .qaChip.seen { border-color: #8bbf9f; }
+.vbBench.v7.qa2 .qaChip.seen small { color: #2f7d5b; }
+
+.vbBench.v7.qa2 .qaLevelTabs { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 4px !important; }
+.vbBench.v7.qa2 .qaLevelTabs button { display: grid; align-content: center; gap: 1px; min-width: 0; height: 44px; min-height: 44px !important; padding: 3px 8px; text-align: center; }
+.vbBench.v7.qa2 .qaLevelTabs button b { overflow: hidden; font: 600 12px/1.2 Pretendard, system-ui; text-overflow: ellipsis; white-space: nowrap; }
+.vbBench.v7.qa2 .qaLevelTabs button small { overflow: hidden; color: #8b7b6d; font: 500 9.5px/1.2 Pretendard, system-ui; text-overflow: ellipsis; white-space: nowrap; }
+.vbBench.v7.qa2 .qaLevelTabs button.on small { color: #7a3f33; }
+.vbBench.v7.qa2 .qaLevelTabs button:disabled { opacity: .5; cursor: not-allowed; }
+.vbBench.v7.qa2 .qaLevelTabs em { font-style: normal; font-weight: 600; }
+.vbBench.v7.qa2 .qaLevelTabs .rv-pass { color: #2f8a55; }
+.vbBench.v7.qa2 .qaLevelTabs .rv-fail { color: #c0392b; }
+.vbBench.v7.qa2 .qaLevelTabs .rv-inconclusive { color: #8b7b6d; }
+.vbBench.v7.qa2 .v7View .vbSimView { width: min(100%, calc((100cqh - 62px) * 4 / 3)) !important; }
+
+.vbBench.v7.qa2 .qaActionDock { grid-template-columns: minmax(240px, 1fr) minmax(0, 1.5fr) !important; grid-template-rows: auto !important; align-items: center; gap: 14px !important; }
+.vbBench.v7.qa2 .qaActionDock.phase-lab:not(.is-result), .vbBench.v7.qa2 .qaActionDock.phase-retest, .vbBench.v7.qa2 .qaActionDock.phase-done { grid-template-columns: minmax(240px, 1fr) minmax(0, 1.5fr) !important; }
+.vbBench.v7.qa2 .qaQuestion { display: grid; gap: 2px; min-width: 0; }
+.vbBench.v7.qa2 .qaQuestion small { color: #9d4d3f; font: 600 10px/1.2 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaQuestion b { overflow: hidden; color: #3f342a; font: 600 13px/1.3 Pretendard, system-ui; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.vbBench.v7.qa2 .qaQuestion span { overflow: hidden; color: #75675a; font: 500 10.5px/1.3 Pretendard, system-ui; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.vbBench.v7.qa2 .qaChoices { display: flex; gap: 8px; min-width: 0; justify-content: flex-end; }
+.vbBench.v7.qa2 .qaChoice { flex: 1 1 0; min-width: 0; max-width: 260px; height: var(--qa-btn-h) !important; min-height: var(--qa-btn-h) !important; padding: 4px 10px; box-sizing: border-box; border: 1px solid #dfcfb6; border-radius: 6px; background: #fffdf6; color: #4a3d31; font: 600 12px/1.25 Pretendard, system-ui; text-align: center; cursor: pointer; display: grid; align-content: center; gap: 1px; }
+.vbBench.v7.qa2 .qaChoice.on { border-color: #8bbf9f; background: #eef7f0; color: #2f7d5b; }
+.vbBench.v7.qa2 .qaChoice small { font: 500 9.5px/1.2 Pretendard, system-ui; color: inherit; opacity: .8; }
+.vbBench.v7.qa2 .qaChoice:disabled { opacity: .5; cursor: not-allowed; }
+.vbBench.v7.qa2 .qaChoice.qaRunButton { border-color: #a0281e; background: #fff6f3; color: #a0281e; }
+
+.vbBench.v7.qa2 .qaJudgeList { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.vbBench.v7.qa2 .qaJudgeList li { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 4px 6px; border: 1px solid #e9ddce; border-radius: 6px; background: #fffaf0; font: 500 10.5px/1.3 Pretendard, system-ui; color: #4a3d31; }
+.vbBench.v7.qa2 .qaJudgeList li.now { border-color: #d9a76b; background: #fdf1de; }
+.vbBench.v7.qa2 .qaJudgeList li i { color: #8b7b6d; font-style: normal; }
+.vbBench.v7.qa2 .qaJudgeList li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vbBench.v7.qa2 .qaJudgeList li em { font-style: normal; font-weight: 600; color: #8b7b6d; }
+.vbBench.v7.qa2 .qaJudgeList li.a-supported em { color: #2f8a55; }
+.vbBench.v7.qa2 .qaJudgeList li.a-refuted em { color: #c0392b; }
+
+.vbBench.v7.qa2 .qaMaterial { display: grid; gap: 6px; }
+.vbBench.v7.qa2 .qaMaterial h4 { margin: 0; color: #4a3d31; font: 600 12.5px/1.3 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaMatLine { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px; margin: 0; color: #4a3d31; font: 500 11px/1.4 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaMatLine b { color: #9d4d3f; font-weight: 600; }
+.vbBench.v7.qa2 .qaMatTable { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.vbBench.v7.qa2 .qaMatTable th { padding: 3px 6px; border-bottom: 1px solid #d8c3a7; color: #8b7b6d; font: 500 10px/1.3 Pretendard, system-ui; text-align: left; }
+.vbBench.v7.qa2 .qaMatTable td { padding: 3px 6px; border-bottom: 1px solid #efe5d6; color: #4a3d31; font: 500 11px/1.35 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaMatTable td code { font: 600 11px/1 ui-monospace, "SFMono-Regular", Consolas, monospace; font-variant-numeric: tabular-nums; }
+@media (max-width: 1100px) { .vbBench.v7.qa2 .qaLevelTabs button small { display: none; } .vbBench.v7.qa2 .qaLevelTabs button { height: 36px; min-height: 36px !important; } .vbBench.v7.qa2 .v7View .vbSimView { width: min(100%, calc((100cqh - 54px) * 4 / 3)) !important; } }
+.vbBench.v7.qa2 .qaChoice > span { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 3; -webkit-box-orient: vertical; font: 600 11px/1.25 Pretendard, system-ui; }
+.vbBench.v7.qa2 .qaHypo span { display: none !important; }
+.vbBench.v7.qa2 .qaInfoMain { min-height: 42px; }

@@ -67,7 +67,10 @@ export function GameHeader({
   const policeMarker = distanceMeters === undefined
     ? 1
     : Math.max(1, Math.min(96, playerMarker - Math.max(4, distanceMeters / 12)));
+  // STEP02~04 share one pursuit HUD below the top bar (same component and slot); the header meter is kept for other scenes.
+  const hud = distanceMeters !== undefined && ["BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL"].includes(progressScene ?? "");
   return (
+    <>
     <header className="gameHeader">
       <button className="brandLockup" aria-label="일시정지 메뉴 열기" onClick={onPause}>
         <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />
@@ -77,7 +80,7 @@ export function GameHeader({
         {progressScene && <JourneyProgress scene={progressScene} />}
       </div>
       <span className="gameHeaderSpacer" aria-hidden="true" />
-      {distanceMeters !== undefined && (
+      {distanceMeters !== undefined && !hud && (
         <div className="pressureMeter gapOnly" aria-label={`추격 차량과 거리 ${Math.round(distanceMeters)}미터`}>
           <span>추격차 격차</span>
           <div className="headerPursuitGraphic" aria-hidden="true">
@@ -88,6 +91,13 @@ export function GameHeader({
         </div>
       )}
     </header>
+    {hud && <div className="pursuitHud" role="img" aria-label={`출발에서 도착까지 진행 ${Math.round(playerMarker)}%, 경찰차와 자차의 추격차 격차 ${Math.round(distanceMeters!)}미터`}>
+      <span className="hudFlag"><img src="/assets/ui/icons/flag.svg" alt="" /><small>START</small></span>
+      <div className="hudTrack" aria-hidden="true"><i className="hudCar hudPolice" style={{ left: `${Math.min(92, policeMarker)}%` }}><img src="/assets/ui/icons/police-car.svg" alt="" /></i><i className="hudCar" style={{ left: `${Math.min(96, playerMarker)}%` }}><img src="/assets/ui/icons/getaway-car.svg" alt="" /></i></div>
+      <span className="hudFlag"><img src="/assets/ui/icons/flag.svg" alt="" /><small>FINISH</small></span>
+      <b className="hudGap"><small>추격차 격차</small><code>{Math.round(distanceMeters!)}m</code></b>
+    </div>}
+    </>
   );
 }
 
