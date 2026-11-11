@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Playback check</title></head><body style="margin:0;background:#000">
+<video id="v" width="960" height="540" src="../output/TraceBack_Promo_55s_1080p.mp4" preload="auto"></video>
+<canvas id="c" width="1920" height="1080" style="display:none"></canvas>
+<script>
+// Plays the file at 1× to the end and reports decode/playback stats; also measures audio loudness per second and grabs decoded frames.
+const v = document.getElementById("v"), c = document.getElementById("c").getContext("2d");
+const post = (name, blob) => fetch("/save?name=" + encodeURIComponent(name), { method: "POST", body: blob });
+window.check = async (grab = []) => {
+  const res = { errors: [] }; v.onerror = () => res.errors.push(v.error?.message ?? "error");
+  await new Promise(r => v.readyState >= 1 ? r() : v.addEventListener("loadedmetadata", r, { once: true }));
+  res.duration = v.duration; res.size = [v.videoWidth, v.videoHeight];
+  for (const t of grab) { v.currentTime = t; await new Promise(r => v.addEventListener("seeked", r, { once: true })); c.drawImage(v, 0, 0, 1920, 1080);
+    await post(`previews/play-${String(Math.round(t * 10)).padStart(3, "0")}.jpg`, await new Promise(r => c.canvas.toBlob(r, "image/jpeg", .85))); }
+  v.currentTime = 0; v.muted = true; const t0 = performance.now(); await v.play();
+  await new Promise(r => v.addEventListener("ended", r, { once: true }));
+  res.wallSeconds = (performance.now() - t0) / 1000; const q = v.getVideoPlaybackQuality(); res.totalFrames = q.totalVideoFrames; res.dropped = q.droppedVideoFrames; res.ended = v.ended;
+  const ab = await new AudioContext().decodeAudioData(await (await fetch(v.src)).arrayBuffer());
+  res.audio = { seconds: ab.duration, channels: ab.numberOfChannels, rate: ab.sampleRate, rmsDbPerSecond: [] };
+  const L = ab.getChannelData(0); for (let s = 0; s < Math.floor(ab.duration); s++) { let e = 0; for (let i = s * ab.sampleRate; i < (s + 1) * ab.sampleRate; i++) e += L[i] * L[i]; res.audio.rmsDbPerSecond.push(Math.round(10 * Math.log10(e / ab.sampleRate + 1e-12))); }
+  return res;
+};
+</script></body></html>

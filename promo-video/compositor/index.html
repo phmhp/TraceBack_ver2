@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>TraceBack Promo Compositor</title>
+<style>
+@font-face{font-family:Pretendard;font-weight:400;src:url(fonts/Pretendard-Regular.woff2) format("woff2")}
+@font-face{font-family:Pretendard;font-weight:500;src:url(fonts/Pretendard-Medium.woff2) format("woff2")}
+@font-face{font-family:Pretendard;font-weight:600;src:url(fonts/Pretendard-SemiBold.woff2) format("woff2")}
+@font-face{font-family:Pretendard;font-weight:700;src:url(fonts/Pretendard-Bold.woff2) format("woff2")}
+@font-face{font-family:Pretendard;font-weight:800;src:url(fonts/Pretendard-ExtraBold.woff2) format("woff2")}
+@font-face{font-family:Pretendard;font-weight:900;src:url(fonts/Pretendard-Black.woff2) format("woff2")}
+@font-face{font-family:TraceRounded;src:url(fonts/Jalnan2.otf) format("opentype")}
+body{margin:0;background:#111;color:#ddd;font:14px Pretendard,sans-serif}
+canvas{width:960px;height:540px;display:block}
+</style></head><body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<pre id="log"></pre>
+<script src="lib/mp4-muxer.js"></script>
+<script type="module">
+import { renderFrame, loadClips, W, H } from "./render.js";
+import { renderAudio } from "./audio.js";
+import { DURATION, FPS } from "./timeline.js";
+const canvas = document.getElementById("c"), ctx = canvas.getContext("2d", { alpha: false });
+const log = m => { document.getElementById("log").textContent += m + "\n"; console.log(m); };
+const post = async (name, blob) => (await fetch("/save?name=" + encodeURIComponent(name), { method: "POST", body: blob })).text();
+async function ready() {
+  const fams = ["400", "600", "700", "800", "900"].map(w => `${w} 20px Pretendard`).concat(["20px TraceRounded"]);
+  for (const f of fams) await document.fonts.load(f, "가TraceBack");
+  await loadClips();
+}
+const readyP = ready();
+// preview: render given times to JPEG files in previews/
+window.snap = async (times, prefix = "p") => { await readyP; const out = [];
+  for (const t of times) { await renderFrame(ctx, t); const b = await new Promise(r => canvas.toBlob(r, "image/jpeg", .9)); const n = `previews/${prefix}-${String(Math.round(t * 100)).padStart(5, "0")}.jpg`; await post(n, b); out.push(n); }
+  return out; };
+// final render: H.264 High + AAC-LC in MP4 (constant 30 fps)
+window.renderVideo = async (name = "output/TraceBack_Promo_55s_1080p.mp4") => {
+  await readyP;
+  const { Muxer, ArrayBufferTarget } = Mp4Muxer;
+  const target = new ArrayBufferTarget();
+  const muxer = new Muxer({ target, fastStart: "in-memory", video: { codec: "avc", width: W, height: H, frameRate: FPS }, audio: { codec: "aac", sampleRate: 48000, numberOfChannels: 2 } });
+  const vcfg = { codec: "avc1.640028", width: W, height: H, bitrate: 16_000_000, framerate: FPS, bitrateMode: "variable", avc: { format: "avc" }, latencyMode: "quality" };
+  const vs = await VideoEncoder.isConfigSupported(vcfg); log("video support " + vs.supported);
+  const acfg = { codec: "mp4a.40.2", sampleRate: 48000, numberOfChannels: 2, bitrate: 192000 };
+  const as = await AudioEncoder.isConfigSupported(acfg); log("audio support " + as.supported);
+  let err = null;
+  const BT709 = { primaries: "bt709", transfer: "bt709", matrix: "bt709", fullRange: false }; // SDR Rec.709 tag (colr box)
+  const ve = new VideoEncoder({ output: (c, m) => { if (m?.decoderConfig) m.decoderConfig.colorSpace = { ...BT709, ...(m.decoderConfig.colorSpace ?? {}) }; muxer.addVideoChunk(c, m); }, error: e => err = e }); ve.configure(vcfg);
+  const ae = new AudioEncoder({ output: (c, m) => muxer.addAudioChunk(c, m), error: e => err = e }); ae.configure(acfg);
+  // audio first (independent of video timing)
+  const clips = (await import("./render.js")).__clips ?? null;
+  const buf = await renderAudio(window.__clipData);
+  const L = buf.getChannelData(0), R = buf.getChannelData(1), N = 1024;
+  let peak = 0; for (let i = 0; i < L.length; i++) peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
+  log("audio peak " + peak.toFixed(3));
+  const gain = .93 / peak; // peak-normalize the mix to about -0.6 dBFS
+  for (let i = 0; i < L.length; i += N) { const n = Math.min(N, L.length - i), d = new Float32Array(n * 2); for (let k = 0; k < n; k++) { d[k] = L[i + k] * gain; d[n + k] = R[i + k] * gain; }
+    ae.encode(new AudioData({ format: "f32-planar", sampleRate: 48000, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(i / 48000 * 1e6), data: d })); }
+  await ae.flush();
+  const total = Math.round(DURATION * FPS);
+  for (let i = 0; i < total; i++) {
+    if (err) throw err;
+    await renderFrame(ctx, i / FPS);
+    const vf = new VideoFrame(canvas, { timestamp: Math.round(i * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
+    ve.encode(vf, { keyFrame: i % (FPS * 2) === 0 }); vf.close();
+    while (ve.encodeQueueSize > 6) await new Promise(r => setTimeout(r, 2));
+    if (i % 150 === 0) log(`frame ${i}/${total}`);
+  }
+  await ve.flush(); muxer.finalize();
+  const res = await post(name, new Blob([target.buffer], { type: "video/mp4" }));
+  log("saved " + res); return { bytes: target.buffer.byteLength, frames: total };
+};
+window.__ready = readyP.then(async () => { window.__clipData = await (await import("./render.js")).getClips(); return true; });
+</script></body></html>

@@ -1,0 +1,23 @@
+// Scene: STEP 01 정비소 — domain overview, drive domain, three views (real mouse input).
+import { launch, sleep } from "./cdp.mjs";
+const OUT = process.argv[2];
+const b = await launch({ profile: process.env.S + "/chrome-prof" });
+await b.goto("http://127.0.0.1:5180/?qa=GARAGE_L1&case=propulsion");
+await sleep(1500);
+await b.press("Enter", "Enter", 13); await sleep(1500);
+await b.startRec(OUT);
+await sleep(500);
+b.log("mark", { name: "overview" });
+await b.drag({ x: 760, y: 560 }, { x: 900, y: 520 }, 1200); await sleep(600);
+b.log("mark", { name: "domain" });
+await b.click({ x: 279, y: 165 }); await sleep(1600);
+await b.click({ x: 516, y: 722 }); await sleep(700);
+await b.click({ x: 646, y: 722 }); await sleep(700);
+b.log("mark", { name: "pedal" });
+await b.longPress({ x: 809, y: 722 }, 2200); await sleep(800);
+b.log("mark", { name: "ee" });
+await b.click({ x: 109, y: 530 }); await sleep(2600);
+b.log("mark", { name: "sw" });
+await b.click({ x: 109, y: 674 }); await sleep(2800);
+console.log(await b.stopRec());
+b.close(); process.exit(0);
