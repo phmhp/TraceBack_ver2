@@ -70,3 +70,9 @@
 - `experiences.tsx`: 차고지 하단을 `garageFooterRow` 안의 패널과 진행 버튼 형제 요소로 분리했다. E/E의 `flowStepCard`가 버튼 영역을 침범하지 않도록 했다.
 - `p4-fix-1109.css`: 패널은 가변 콘텐츠 폭, 우측 `다음`은 독립 슬롯으로 고정하고 빨간 이중 테두리 공통 스타일을 적용했다. Vehicle/System·E/E·Control SW에서 블록 높이 54px와 버튼 하단 기준선을 유지한다.
 - Chrome 검증: 1440×675 CSS viewport에서 E/E 패널 982×122, 카드 706×102, 버튼 214×42, 겹침 `false`; Vehicle/System·Control SW도 겹침 `false`를 확인했다. 1054×723·1536×960 추가 실측은 대기한다.
+
+## 2026-11-11 차고지 본문·하단 폭 정렬
+
+- `p4-fix-1109.css`: 차고지 `garageStudio`와 `garageFooterRow`가 동일한 본문 열/우측 기능 열 변수를 공유하도록 정렬했다. 하단 패널의 좌우 모서리가 `garageMechanismCard`와 일치한다.
+- 세 관점의 하단 블록은 이제 패널 내부 콘텐츠 열 전체를 사용하며, 기존 E/E의 `1fr + 240px` 잔여 그리드와 Control SW의 0폭 위치 override를 제거했다.
+- Chrome 검증: 1440×675에서 Vehicle/System·E/E·Control SW 모두 본문/하단 패널의 leftDelta·rightDelta가 `0`, E/E 카드 폭 902px, 버튼과 패널 겹침 `false`를 확인했다.
