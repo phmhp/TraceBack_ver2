@@ -1110,7 +1110,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         })()}
       </section>
       {!chosen && <aside className="domainFunctionShelf"><small>주요 기능</small><h2>도메인을 골라 보세요</h2><div className="functionNote"><b>주요 기능</b><p>위 탭에서 도메인을 고르면 그 도메인의 주요 기능과 신호 흐름이 여기에 나와요.</p></div></aside>}
-      {!chosen && <section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → 제어기 → 출력 순서가 여기에 나와요.</b><div /><button className="garageProceed primary" onClick={() => send({ type: "START_RACE" })}>다음 →</button></section>}
+      {!chosen && <section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → 제어기 → 출력 순서가 여기에 나와요.</b><div /><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "START_RACE" })}>다음 →</button></section>}
       {chosen && <aside className="domainFunctionShelf">
         <small>주요 기능</small><h2>{content.label}의 주요 기능</h2>
         {content.functions.map((item, index) => <button key={item} className={feature === index ? "active" : ""} onClick={() => setFeature(index)}><span>{index + 1}</span><b>{item}</b><i>›</i></button>)}
@@ -1120,7 +1120,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         <small>{content.functions[feature]} · {learningLayers[routeLevel].tag}</small>
         <b className="flowRelationship">{routeLevel === 2 ? "핵심 제어 SW를 물리 입력·출력 경계와 함께 추적" : "선택한 기능에 필요한 경계만 표시 · 단계 수는 기능마다 달라집니다"}</b>
         {routeLevel === 1 ? <FlowStepCard chain={chain} signals={flowSignals(domain, feature, chain.length)} step={Math.min(activeStep, chain.length - 1)} onStep={i => { setActiveStep(i); play("pop", 1 + i * .08); }} /> : <div>{(routeLevel === 2 ? [getFeatureLayer(domain, feature, 1)[0], getFeatureLayer(domain, feature, 1).at(-1)!] : getFeatureLayer(domain, feature, garageLayerSource[routeLevel])).map((node, index, flow) => { const step = index ? (routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length - 1 : index) : 0; return <React.Fragment key={`${node}-${index}`}><button onClick={() => inspectStep(index, step)} className={`${index === 0 || index === flow.length - 1 ? "focus" : ""} ${(activeStep === index || routeLevel === 2 && index === 1 && activeStep === getFeatureLayer(domain, feature, 3).length - 1) ? "activeStep" : ""}`}><i>{index + 1}</i><b>{node}</b><span>{index === 0 ? "입력" : index === flow.length - 1 ? "출력" : routeLevel === 0 ? "기능 단계" : "부품·제어기"}</span></button>{index < flow.length - 1 && <em>→</em>}</React.Fragment>; })}</div>}
-        <button className="garageProceed primary" onClick={() => send({ type: "START_RACE" })}>다음 →</button>
+        <button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "START_RACE" })}>다음 →</button>
       </section>}
     </main>
   </div>;

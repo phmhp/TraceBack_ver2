@@ -967,6 +967,48 @@ body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
   white-space: normal;
 }
 
+/* Garage footer alignment: the primary action uses the same fixed red-stamp
+   slot as STEP02–04, while the variable flow blocks keep only a shared height
+   and adapt their widths to the selected view/domain/function. */
+.garageV2 .garageFlowPanel:has(> .garageProceed.stageProgressAction) {
+  grid-template-columns: minmax(0, 1fr) !important;
+  padding-right: 250px !important;
+}
+.garageV2 .garageFlowPanel > .garageProceed.stageProgressAction {
+  position: fixed !important;
+  z-index: 90 !important;
+  right: 112px !important;
+  bottom: 18px !important;
+  width: 214px !important;
+  min-width: 214px !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  margin: 0 !important;
+  padding: 7px 12px !important;
+  box-sizing: border-box;
+  justify-self: auto !important;
+  align-self: auto !important;
+}
+.garageV2 .garageFlowPanel > div:not(.flowStepCard) {
+  min-height: 54px !important;
+  height: 54px !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  gap: 6px;
+}
+.garageV2 .garageFlowPanel > div:not(.flowStepCard) > button {
+  flex: 1 1 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  min-height: 54px !important;
+  height: 54px !important;
+}
+.garageV2 .garageFlowPanel .flowStepBody > div {
+  min-height: 54px !important;
+  height: 54px !important;
+  box-sizing: border-box;
+}
+
 @media (max-width: 1100px) {
   :is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .gameHeader {
     grid-template-columns: 128px minmax(0, 1fr) 132px !important;
