@@ -19,3 +19,10 @@
 - 마지막 수정: `src/ui/game-shell.tsx`, `src/experiences.tsx`, `src/features/board/EeTrace.tsx`, `src/features/wiring/RefPuzzle.tsx`, `src/features/verification/VerificationLab.tsx`, `src/features/cutscenes/StaticCutscenes.tsx`, `src/p4-fix-1109.css`, `docs/REQUIREMENT_TRACEABILITY_FINAL_2026-11-10.md`, `WORK_HANDOFF.md` (이번 P0 감사는 문서만 갱신, 3D 코드·에셋 변경 없음)
 - 검증: 2026-11-11 P0 바퀴 축 감사에서 nvm Node `v20.20.2`/npm `10.8.2`로 `npm test`와 `npm run build`를 각각 1회 실행했다. 테스트는 49개 중 45개 통과·4개 실패이며, 실패 원인은 `tests/image-prompts.test.mjs`·`part-models.test.mjs`·`sim.test.mjs`가 `src/sim/components.ts`를, `vehicle.test.mjs`가 `src/features/vehicle/bake.ts`를 Node 기본 ESM loader로 직접 import해 `ERR_UNKNOWN_FILE_EXTENSION`이 난 기존 러너 설정이다. 빌드는 `node_modules/.bin/tsc: Permission denied`로 타입 검사 시작 전에 중단됐다. 브라우저는 로컬 `127.0.0.1:5180`에서 macOS Chrome 1536×960 공용 차량 쇼룸 및 CHASE_NORMAL, 1054×723 STEP01 Vehicle/System·E/E·Control SW를 실제 확인했다. 기존 Chrome 탭(`localhost:5180`) 오류 및 과거 UI 프레임 QA 기록은 보존한다.
 - 다음 작업: 기능 P0는 T-25(플레이어 가설 자동 덮어쓰기) → T-24(STEP03 계약의 실제 모델 입력 연결) → T-22(수리 선택의 모델 효과) → T-01/T-08(thermal 정답 기준/PWM 정합) 순서로 수정·실행 검증한다. UI 작업을 재개할 때는 개별 N-S02/N-S03/N-S04보다 먼저 UI-RULE-01/N-UI-01의 공통 헤더·폴더 연결부·본문 시작선·하단 80/20을 하나의 토큰 계약으로 정규화하고, STEP02 보드는 재배치하지 않는다. 이후 두 macOS 해상도와 Windows Chrome(L-9.3)에서 비교 QA한다.
+
+## 2026-11-11 공통 UI 잔여 복구 / 설계 기준선
+
+- 완료한 범위: `UI-RULE-01`/`N-UI-01`/`L-9` 공통 폴더 표면·탭 token과 STEP03·04 하단 CTA 충돌을 최소 CSS로 복구했다. STEP04 완료 CTA는 기존 `BENCH_RESULT` 동작을 유지한 채 하단 안내 슬롯으로 옮겼다. `DriveBriefing` 1/2·2/2 카드의 공통 최소 높이와 CTA 기준선을 맞췄다. 실제 추격차 미니 레일은 `21d17b8`부터 실제 거리 상태를 쓰는 기존 구현임을 재확인했다.
+- 설계 자료: `docs/STEP02_STEP04_FLOW_BASELINE_2026-11-11.md` — STEP02·04의 실제 상태/행동/질문/판정/전이/전달 데이터와 향후 결정 항목만 기록했다. 게임 흐름·추리/시뮬레이션 판정은 바꾸지 않았다.
+- 검증: `npm test` 69/69 통과, `npm run build` 통과. Windows Chrome UI QA는 컴퓨터 사용 연결의 URL 정책 확인 실패로 **미검증**이다. 빌드가 `dist/` 산출물을 갱신했으나 사용자 작업으로 보존하고 커밋하지 않는다.
+- 남은 우선순위: 기능 P0 `N-TECH-01/T-25` → `N-TECH-02/T-24` → `T-22` → `T-01/T-08`; 이후 N-S02/N-S03/N-S04 내부 작업대 설계를 사용자 승인 후 별도 진행한다. 실제 UI QA(1536×960, 1054×723)는 Windows Chrome 연결이 가능할 때 수행한다.

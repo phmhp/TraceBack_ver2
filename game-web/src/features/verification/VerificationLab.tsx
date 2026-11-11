@@ -1483,7 +1483,6 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         <span className="v7CostChip">비용 {cost} · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span>
         <button className="qaHelpBtn" aria-label="도움말" onClick={() => { setHelp(v => !v); play("pop"); }}>?</button>
         {phase === "done" && <button className="stageReplayBtn" onClick={() => setReplayOpen(true)}>다시 풀기</button>}
-        {phase === "done" && <button className="qaFinishBtn stageProgressAction" onClick={finish}>수리 적용 · 주행 복귀 →</button>}
       </div>
       {help && <aside className="qaHelpCard" role="dialog" aria-label="검증 도움말">
         <b>시험 수준과 결론</b>
@@ -1555,7 +1554,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               <div><OverlayGraph list={list} upto={shown ? 1 : running ? u : 0} look={lookAt} /></div>
             </section>
           </section>}
-      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(bubble)}</p></div>
+      <div className="vbBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(bubble)}</p>{phase === "done" && <button className="qaFinishBtn stageProgressAction" onClick={finish}>수리 적용 · 주행 복귀 →</button>}</div>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
     {replayOpen && <ReplayConfirm onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); resetStage(); }} />}

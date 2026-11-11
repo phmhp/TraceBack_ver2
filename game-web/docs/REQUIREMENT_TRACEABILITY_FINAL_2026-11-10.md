@@ -713,3 +713,15 @@ RepairAction → RetestRun → SystemRegression → ResolutionSummary
 - 변경: `src/features/board/EeTrace.tsx`(STEP02가 `StageFolderSubtitle` 재사용), `src/p4-fix-1109.css`(공통 frame token 및 레거시 예외 override). 시나리오·시뮬레이션·STEP02 보드 배치/데이터는 변경하지 않았다.
 - 실제 브라우저: macOS Chrome 1536×960에서 STEP01→STEP02→STEP03→STEP04를 각각 실제 진입해 헤더·폴더·본문 시작선·하단 진행을 확인했고, 1054×723에서 STEP01 공통 프레임을 확인했다. 1054에서 STEP02~04도 동일 selector/token으로 렌더링되며, Windows Chrome 및 반복 왕복 QA는 L-9.3 후속 항목이다.
 - **검증 제한:** 이번 현재 빌드에서 1054×723 STEP02~04의 재진입 픽셀 측정은 아직 하지 않았다. 공통 selector/token 적용은 코드로 확인했지만, 이 세 단계와 Windows Chrome의 실제 화면 QA를 완료로 표기하지 않는다.
+
+## PART N-2 — 공통 UI 잔여 결함 복구 및 STEP02·04 설계 기준선 (2026-11-11)
+
+| ID | 실제 변경 / 상태 | 근거 및 남은 수락 기준 |
+|---|---|---|
+| UI-RULE-01 / N-UI-01 / L-9 | **부분 구현 · Windows Chrome UI 검증 대기** | `p4-fix-1109.css`에서 STEP01~04 폴더 본문·돌출부·단계 탭의 표면을 `#fffdf6` 단일 토큰으로 맞췄다. 활성 상태는 표면색이 아닌 z-index, 테두리와 inset shadow로 구분한다. 단계 루트와 형제인 `.stageHistoryNav`에는 자체 fallback token을 공급해 상속 실패를 제거했고, 탭 높이(32px)·radius·간격을 고정했다. 헤더는 기존 외곽 64px과 최소폭 Grid를 보존한 채 긴 제목/진도/격차가 서로 침범하지 않도록 clip/ellipsis 안전장치를 추가했다. 1536×960·1054×723 Windows 실제 화면, 선택/비선택 탭이 하나의 연속 표면으로 보이는지, 반복 단계 이동은 아직 검증하지 않았다. |
+| UI-RULE-01 / L-9 / FB-P1-05 / FB-P1-07 | **부분 구현 · Windows Chrome UI 검증 대기** | STEP02의 기존 80/20 안내/진행 구조와 STEP03·04의 전역 fixed CTA 예외를 분리했다. STEP03과 STEP04 CTA는 공통 하단 guidance slot 안의 flow action으로 고정해 본문을 덮지 않으며, STEP04의 `수리 적용 · 주행 복귀` CTA는 완료 조건·`BENCH_RESULT` 전달을 바꾸지 않고 안내 영역으로만 이동했다. STEP01은 기존 학습 내부 단계 rail을 유지한다. 실제 완료/미완료 상태, 키보드 접근성, 1054×723 CTA 접근성은 검증 대기다. |
+| L-9 / DriveBriefing (도주 1/2·2/2) | **부분 구현 · Windows Chrome UI 검증 대기** | `DriveBriefing` frame 0/1의 공통 카드에 동일한 최소 높이·stretch/end 정렬을 적용하고, 스토리 점·CTA를 카드 하단 기준선에 붙여 제목 길이에 따른 세로 적층을 줄였다. 컷신 내용·이미지·주행 판정은 변경하지 않았다. 두 해상도에서 카드 높이, CTA 간격, HUD/차량 충돌은 실제 검증 대기다. |
+| FB-P1-04 / P1-A | **기존 구현 재확인 · 추가 로직 변경 없음** | Git `21d17b8`의 `GameHeader`는 실제 `raceDistanceMeters`와 `policeGapMeters`에서 자차·경찰차 위치와 m 거리를 계산하는 `headerPursuitGraphic`을 이미 사용한다. 정적 장식으로 대체하지 않았으며 이번 증분은 그 상태를 보존했다. 실제 거리·차량 미니 레일의 Windows 렌더 연동 검증은 대기다. |
+| N-S02-01~03 / N-S04-01~02 / N-TECH-01~02 | **설계 기준선 정리 · 구현 상태 변경 없음** | `STEP02_STEP04_FLOW_BASELINE_2026-11-11.md`에 현재 상태, 실제 행동·질문·선택지·피드백, 전이 조건, 전달 데이터, UI ID와 유지/수정/통합 검토/보류를 분리해 기록했다. STEP02 도미노와 STEP04 네 관점 탭/검증 작업대는 각각 하나의 메인 작업대로 유지한다. T-25(가설 자동 덮어쓰기), T-24(계약의 실제 모델 입력 연결) 등 기능 P0는 이 문서로 완료 처리하지 않는다. |
+
+- 이번 증분의 코드 검증: `npm test` 69/69 통과, `npm run build` 통과. Windows Chrome은 컴퓨터 사용 연결이 URL 정책 확인 단계에서 종료되어 실제 UI 검증을 수행하지 못했다.

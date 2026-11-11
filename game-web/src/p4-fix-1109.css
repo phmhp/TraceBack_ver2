@@ -964,3 +964,105 @@ body:has(.raceV2) .soundToggle { right: 14px; top: 72px; bottom: auto; }
   .pressureMeter.gapOnly .headerPursuitGraphic { width: 42px; }
   .heistStillScene .stillCutLayout { padding: 24px 32px 30px !important; gap: 24px !important; }
 }
+
+/* UI-RULE-01 recovery: the learning-stage folder is one continuous paper
+   surface.  These rules intentionally live after the legacy stage variants. */
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) {
+  --stage-frame-surface: #fffdf6;
+  --stage-frame-tab-height-local: 32px;
+  --stage-frame-tab-radius: 10px 10px 0 0;
+  --stage-frame-tab-shadow: 0 -1px 0 #fffdf6, 0 2px 7px #3b2b1c14;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageFolderSubtitle {
+  isolation: isolate;
+  background: var(--stage-frame-surface) !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageFolderSubtitle::before {
+  z-index: 0 !important;
+  background: var(--stage-frame-surface) !important;
+  box-shadow: var(--stage-frame-tab-shadow);
+  pointer-events: none;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageFolderSubtitle > :is(p, small) {
+  position: relative;
+  z-index: 1;
+}
+
+/* stageHistoryNav is a sibling, so it gets its own resolved values rather
+   than referring to custom properties scoped on the preceding stage root. */
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) + .stageHistoryNav {
+  --stage-history-surface: #fffdf6;
+  --stage-history-border: #dfcfb6;
+  --stage-history-height: 32px;
+  top: 81px !important;
+  left: 22px !important;
+  gap: 2px !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) + .stageHistoryNav :is(.stageBackButton, .stageForwardButton) {
+  position: relative;
+  z-index: 1;
+  height: var(--stage-history-height) !important;
+  border: 1px solid var(--stage-history-border) !important;
+  border-radius: var(--stage-frame-tab-radius, 10px 10px 0 0) !important;
+  background: var(--stage-history-surface) !important;
+  box-shadow: 0 -1px 0 var(--stage-history-surface), 0 2px 7px #3b2b1c14 !important;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) + .stageHistoryNav .stageForwardButton {
+  z-index: 2;
+  transform: translateY(-1px);
+  box-shadow: inset 0 2px 0 #e9ddce, 0 -1px 0 var(--stage-history-surface), 0 2px 7px #3b2b1c14 !important;
+}
+
+/* Keep the recovered header's minimum tracks, but make every child shrink or
+   truncate inside its own track instead of overlapping the pursuit indicator. */
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageHeaderInfo,
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .stageHeaderInfo > *,
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .gameHeader .gapOnly {
+  min-width: 0 !important;
+  overflow: hidden;
+}
+:is(.garageV2, .dtBoard, .refPuzzle, .vbBench) .chapterChip :is(small, b) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* STEP03/04 progress stays in its own footer content instead of covering the
+   workbench.  STEP02 already owns the same 80/20-style bottom slot. */
+:is(.refPuzzle, .vbBench) .stageProgressAction {
+  position: static !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: clamp(164px, 20vw, 214px) !important;
+  min-height: 40px !important;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.refPuzzle:has(.stageProgressAction) .rpFoot {
+  margin-right: var(--stage-frame-inset, 16px) !important;
+  padding-right: 12px !important;
+}
+.vbBench.v7 .vbBubble:has(.stageProgressAction) {
+  width: min(100%, 980px);
+  max-width: none;
+  justify-self: stretch;
+  display: grid;
+  grid-template-columns: auto minmax(0, 4fr) minmax(164px, 1fr);
+  gap: 8px;
+  box-sizing: border-box;
+}
+.vbBench.v7 .vbBubble:has(.stageProgressAction) .stageProgressAction { width: 100% !important; }
+
+/* Both DRIVE_BRIEFING frames use the same stage.  A stable card minimum keeps
+   a longer frame-0 title from shifting the mission card/CTA baseline. */
+.heistStillScene .stillCutLayout { align-items: stretch !important; }
+.heistStillScene :is(.stillStoryCard, .getawayBriefingCard) { align-self: end; min-height: 278px; box-sizing: border-box; }
+.heistStillScene .stillStoryCard { display: flex; flex-direction: column; }
+.heistStillScene .stillFrameDots { margin-top: auto; }
+.heistStillScene .getawayBriefingCard { display: flex; flex-direction: column; }
+.heistStillScene .getawayBriefingCard > .primary { margin-top: auto; }
+@media (max-width: 1100px) {
+  :is(.garageV2, .dtBoard, .refPuzzle, .vbBench) + .stageHistoryNav { left: 16px !important; }
+  .heistStillScene :is(.stillStoryCard, .getawayBriefingCard) { min-height: 254px; }
+  .vbBench.v7 .vbBubble:has(.stageProgressAction) { grid-template-columns: auto minmax(0, 3fr) minmax(178px, 1fr); }
+}
