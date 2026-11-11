@@ -1,3 +1,0 @@
-# Claude final QA/polish prompt
-
-Review completed game against `STATIC_CHARACTER_AND_INTERACTION_POLICY.md`, `GAME_RUNTIME_SPEC.md`, 22 screen navigation states, and acceptance matrix. Verify no non-race scene accidentally demands moving cats, each visual switch has a working UI/game handler, actual 3D race scenes and their collisions affect simulation, inspector controls work, no keyboard/gamepad scroll bugs, no broken back navigation, and save/capture/pause/error transitions preserve clues correctly. Run tests + browser gameplay checks and produce evidence table. Improve pastel original assets, mobile is not required. Maintain checked scope and report missing parts explicitly.

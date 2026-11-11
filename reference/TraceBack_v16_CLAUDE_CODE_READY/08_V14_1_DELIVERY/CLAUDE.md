@@ -1,6 +1,0 @@
-# TraceBack v14.1 project rules
-Read `00_START_HERE/01_RULES_AND_PRECEDENCE.md`, then `08_V14_1_DELIVERY/START_HERE.md` and `contracts/DECISION_REGISTRY.md`. The v14 original files take precedence except for explicit v14.1 approved decisions and newly tested adapter paths. Do not read historical archives as current implementation instructions.
-
-**Project goal:** PC 16:9 web game, React + TypeScript + R3F/Three.js, cozy original stylized 3D cats and electric car, playable police chase with physically-linked educational v14 vehicle ECU loop, garage E/E explorer 11 domains, fault investigation -> constrained logic repair -> paired bench -> return chase. First required cases: propulsion pedal gateway, thermal fan stuck; brake optional.
-
-Rules: no fake PASS, no fake trace, no arbitrary ECU safety bypass, no claim of OEM/HIL compliance, no fake rigged 3D assets, no scene button without handler. All user-approved, provisional and unresolved decisions reside in registry. Never overwrite original nested ZIP. Use source-control commits per validated milestone, report `not implemented` explicitly. Tests are necessary but do not mean complete game. Deliver vertical slice before breadth. If no app scaffold yet, create it in NEW `game-web/` (not in original v14 core). See `08_V14_1_DELIVERY/prompts/` for ordered steps.
