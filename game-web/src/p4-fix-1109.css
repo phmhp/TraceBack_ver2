@@ -3023,3 +3023,25 @@ body:has(.pursuitHud) .stageFolderSubtitle { padding-right: 420px !important; }
 .vbBench.v7.qa2 .v7Fix .causeCard > .causePhoto img { flex: 1 1 auto; min-height: 0; width: 100%; object-fit: contain; background: #f6efe6; }
 /* 2026-11-11 · journey rail lock is a line icon (no emoji) */
 .journeyRail .journeyRailTrack > article.isLocked > i svg { width: 11px; height: 11px; }
+
+/* 2026-11-12 · ship arrival fireworks (2D overlay above the 3D view, below the HUD cards) */
+.tbFireworks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+
+/* 2026-11-12 · final cause cards: same polaroid as STEP02 (88:107 paper, pin, photo window), no tilt */
+.vbBench.v7.qa2 .v7Fix .causeCard { grid-template-columns: 76px minmax(0, 1fr); }
+.vbBench.v7.qa2 .v7Fix .causeCard > .causePhoto { position: relative; overflow: visible; width: 76px; aspect-ratio: 88 / 107; padding: 6px 6px 8px; box-sizing: border-box; border: 0; border-radius: 3px; background: #fffefa; box-shadow: 0 1px 1px rgba(0,0,0,.12), 0 6px 12px rgba(60, 40, 20, .16); transform: none; margin-top: 4px; }
+.vbBench.v7.qa2 .v7Fix .causeCard > .causePhoto .pin { position: absolute; top: -4px; left: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ff8a7a, #c0392b 70%); box-shadow: 0 2px 2px rgba(0,0,0,.3); z-index: 2; }
+.vbBench.v7.qa2 .v7Fix .causeCard > .causePhoto .causePhotoWin { display: block; width: 100%; aspect-ratio: 1 / .97; overflow: hidden; border-radius: 1px; background: #efe7da; }
+.vbBench.v7.qa2 .v7Fix .causeCard > .causePhoto .causePhotoWin img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+/* 2026-11-12 · STEP04 driving view fills its frame (the old 47 px light-blue strip under the 3D view is removed) */
+.benchVehicleVisual .labRaceWorld { inset: 0 !important; }
+
+/* 2026-11-12 · four input conditions (propulsion): slightly tighter spacing so all cards stay inside the view */
+.vbBench.v7.qa2 .qaInputGuide:has(> button.qaInputCard:nth-of-type(4)) { gap: 4px; padding-top: 6px; padding-bottom: 6px; }
+@media (max-height: 830px) { .vbBench.v7.qa2 .qaInputGuide:has(> button.qaInputCard:nth-of-type(4)) { gap: 3px; padding-top: 3px; padding-bottom: 3px; } }
+
+/* 2026-11-12 · what the simulation compares (fixed caption at the bottom of the simulation view) */
+.vbBench.v7.qa2 .qaSimCaption { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 6; margin: 0; max-width: calc(100% - 24px); padding: 4px 10px; border-radius: 999px; background: rgba(255, 253, 246, .94); box-shadow: 0 1px 3px rgba(70, 45, 30, .18); color: #5b4636; font: 600 10.5px/1.35 Pretendard, system-ui; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.vbBench.v7.qa2 .qaSimCaption b { display: inline !important; white-space: nowrap; margin-right: 6px; color: #9b3d33; font-weight: 800; }
+.vbBench.v7.qa2 .v7View:has(.qaInputGuide) .qaSimCaption { display: none; }

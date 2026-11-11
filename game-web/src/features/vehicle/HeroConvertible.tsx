@@ -195,6 +195,8 @@ export type HeroConvertibleProps = {
   speed?: number;
   /** Show the two cats (true in the story; off for an empty showroom view). */
   crew?: boolean;
+  /** Ship arrival: the cats cheer (smiling eyes, both arms up). */
+  cheer?: boolean;
   /** Lets a cutscene toggle the seated crew per frame (e.g. hidden until the cats board). */
   crewRef?: React.Ref<THREE.Group>;
 };
@@ -204,13 +206,13 @@ const CORNERS: { z: number; side: 1 | -1; front: boolean }[] = [
   { z: D.rearAxleZ, side: -1, front: false }, { z: D.rearAxleZ, side: 1, front: false },
 ];
 
-export function HeroConvertible({ steer = 0, spin = 0, speed = 0, crew = true, crewRef }: HeroConvertibleProps) {
+export function HeroConvertible({ steer = 0, spin = 0, speed = 0, crew = true, crewRef, cheer = false }: HeroConvertibleProps) {
   const materials = useCarMaterials();
   // Per-frame values go through refs; the React tree below is built once.
   const live = useRef({ steer, spin, speed });
   live.current = { steer, spin, speed };
   const catLive = useRef<CatLiveInput>({ steer, speed });
-  catLive.current = { steer, speed };
+  catLive.current = { steer, speed, cheer };
   const spinGroups = useRef<(THREE.Group | null)[]>([]);
   const steerGroups = useRef<(THREE.Group | null)[]>([]);
   const steering = useRef<THREE.Group>(null);
@@ -252,7 +254,7 @@ export function HeroConvertible({ steer = 0, spin = 0, speed = 0, crew = true, c
         steerRef={corner.front ? group => { steerGroups.current[index] = group; } : undefined} />)}
       {crew && <group ref={crewRef}>
         <group position={[-D.seatX, .555, .16]}><SeatedCat variant="lou" pawTargets={[pawLeft, pawRight]} live={catLive} /></group>
-        <group position={[D.seatX, .555, .16]}><SeatedCat variant="ming" live={catLive} /></group>
+        <group position={[D.seatX, .555, .16]}><SeatedCat variant="ming" live={catLive} armsFree /></group>
       </group>}
     </group>;
   }, [materials, crew, crewRef]);

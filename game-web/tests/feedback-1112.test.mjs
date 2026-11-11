@@ -70,7 +70,7 @@ test("STEP04 A/B: removing the true cause matches the normal model; a wrong caus
   assert.match(lab, /const CAUSES: Record<CaseId, \{ hyp: string; name: string; type: string; where: string; desc: string; img: string \}\[\]>/);
   // every cause card shows a real part photo from the STEP02 polaroid assets
   assert.equal((lab.match(/img: CAUSE_IMG\.(board|part)\("[a-z_]+"\)/g) ?? []).length, 8);
-  assert.match(live04, /<span className="causePhoto"><img src=\{item\.img\} alt="" \/><\/span>/);
+  assert.match(live04, /<span className="causePhoto"><i className="pin" \/><span className="causePhotoWin"><img src=\{item\.img\} alt="" \/><\/span><\/span>/);
   // A/B compares every vehicle signal over the whole run (regression), not the last sample only
   assert.match(live04, /<th>전 구간 최대 차이<\/th>/);
   assert.match(live04, /원인 제거 외에 달라진 동작이 없는지\(회귀\) 확인해요\. 실제 수리 효과는 수리 뒤 재시험에서 따로 확인해요/);
@@ -142,4 +142,84 @@ test("Live screens carry no emoji in the journey rail and STEP01 part cards", ()
   assert.doesNotMatch(shell, /🔒/);
   assert.match(shell, /<Icon name="lock" \/>/);
   assert.doesNotMatch(experiences, /🅿️|〰️|✉️/);
+});
+
+test("Race traffic: no last-moment dodge, crashes only on body contact, the hit car hesitates", async () => {
+  const { CAR_CONTACT, trafficStateFor, stallTraffic, resetTrafficStall } = await import("../src/game/traffic.ts");
+  const traffic = read("../src/game/traffic.ts");
+  assert.doesNotMatch(traffic + experiences, /approachingPlayer/);
+  resetTrafficStall();
+  const same = [0, 2, 4, 6].map(index => trafficStateFor({ elapsed: 30 }, index));
+  // driving on the lane line (player centre 3.35 m) passes every same-direction car without touching it
+  for (const car of same) assert.ok(Math.abs(car.lane - 3.35) >= CAR_CONTACT.lateral, `lane ${car.lane}`);
+  // the same lane right behind a car is a real contact (1.8 m + 1.83 m wide bodies, 3.95 m + 3.34 m long)
+  assert.ok(CAR_CONTACT.lateral > 1.8 && CAR_CONTACT.lateral < 1.85 && CAR_CONTACT.longitudinal > 3.5 && CAR_CONTACT.longitudinal < 3.7);
+  // after a crash the traffic car loses distance for 0.7 s (both cars hesitate), then drives on at its speed
+  const car = same[1], before = trafficStateFor({ elapsed: 31 }, car.index).distance;
+  stallTraffic(car.index, 30, car.speedKph);
+  const after = trafficStateFor({ elapsed: 31 }, car.index).distance;
+  assert.ok(Math.abs((before - after) - .7 * car.speedKph / 3.6 * .85) < 1e-6, `${before - after}`);
+  resetTrafficStall();
+  assert.match(experiences, /stallTraffic\(trafficHit\.index, previous\.elapsed, trafficHit\.speedKph\)/);
+  assert.match(experiences, /if \(nowSeconds > collisionCooldown\.current\) speed = Math\.max\(trafficHit\.speedKph, speed \* \.65\);/);
+});
+
+test("Race and ending sounds: start rev, soft siren near the police, fanfare and fireworks on the ship", () => {
+  const sfx = read("../src/ui/sfx.ts");
+  for (const name of ["vroom", "police", "fanfare", "firework"]) assert.match(sfx, new RegExp(`case "${name}":`));
+  assert.match(experiences, /movingRef\.current = true; play\("vroom"\);/);
+  assert.match(experiences, /if \(near && \(!sirenNear\.current \|\| \(sim\.gap < 25 && now - sirenAt\.current > 5000\)\)\) \{ play\("police"\);/);
+  assert.match(experiences, /if \(!hasTouchedDeck\) \{ setDeckSettled\(false\); return; \}\n    play\("fanfare"\);/);
+  assert.match(experiences, /\{hasTouchedDeck && <Fireworks \/>\}/);
+  // the result opens about 3 s after the camera has turned to the cheering cats
+  assert.match(experiences, /setTimeout\(\(\) => setCelebrated\(true\), 3200\)/);
+  assert.match(experiences, /\} else if \(mode === "ship" && celebrated\) \{/);
+  assert.match(experiences, /cheer=\{celebrate\}/);
+  const cat = read("../src/features/vehicle/CatCharacter.tsx");
+  assert.match(cat, /if \(cheer\) tmp\.target\.set\(/);           // both paws above the head
+  assert.match(cat, /new THREE\.TorusGeometry\(\.024, \.0065, 8, 18, Math\.PI\)/); // "^^" eyes
+});
+
+test("STEP04 polish: polaroid cause cards without tilt, full-height driving view, short A/B stamp", () => {
+  assert.match(live04, /<span className="causePhoto"><i className="pin" \/><span className="causePhotoWin">/);
+  assert.match(css, /\.causeCard > \.causePhoto \{[^}]*aspect-ratio: 88 \/ 107;[^}]*transform: none;/);
+  assert.match(css, /\.benchVehicleVisual \.labRaceWorld \{ inset: 0 !important; \}/);
+  assert.match(live04, /showVerdict\(true, "결과 일치"\)/);
+  assert.doesNotMatch(live04, /showVerdict\(true, "정상 기준과 일치"\)/);
+});
+
+test("STEP04 input conditions matter: an input outside the fault condition passes and decides nothing", async () => {
+  const { judgeRun } = await import("../src/game/scenarios.ts");
+  const outside = {
+    propulsion: ex => ({ ...ex, stimulus: { ...ex.stimulus, startValue: 0, endValue: 0, rampSeconds: 0 } }),
+    thermal: ex => ({ ...ex, stimulus: { ...ex.stimulus, startValue: 55, endValue: 62, rampSeconds: 4, holdSeconds: Math.max(0, ex.durationSeconds - 4) } }),
+    brake: ex => ({ ...ex, stimulus: { ...ex.stimulus, startValue: 0, endValue: 15 } }),
+  };
+  const path = { propulsion: "proc", thermal: "duty", brake: "cmd" };
+  const exercisedBy = levels => Object.values(levels).flat().filter(s => s.id === path[levels.__case]).some(s => Math.max(...s.ref.map(Math.abs)) > s.max * .02);
+  for (const caseId of Object.keys(outside)) {
+    const contract = buildVerificationContract(caseId, { hypothesisId: "x", hypothesisLabel: "x", suspectSection: "x", expectedValue: "1" });
+    const inside = simulate(caseId, "req", false, contract.execution), out = simulate(caseId, "req", false, outside[caseId](contract.execution));
+    inside.levels.__case = caseId; out.levels.__case = caseId;
+    assert.equal(exercisedBy(inside.levels), true, `${caseId}: the case input uses the faulty function`);
+    assert.equal(exercisedBy(out.levels), false, `${caseId}: the outside input leaves it idle`);
+    // outside the fault condition the fault model equals the normal model → PASS, and no hypothesis may be decided
+    for (const sig of out.levels.vehicle) assert.ok(sig.run.every((v, i) => Math.abs(v - sig.ref[i]) <= sig.max * .02), `${caseId}/${sig.id} identical`);
+    for (const level of ["unit", "embedded", "vehicle"]) {
+      const obs = Object.fromEntries(out.levels[level].map(s => [s.id, "same"]));
+      assert.ok(judgeRun(caseId, { level, fixed: false, obs, exercised: false }).every(h => h.verdict === "open"), `${caseId}/${level}: all open`);
+    }
+  }
+  assert.match(live04, /const exercised = exercisesFaultPath\(caseId, sim\.levels\);/);
+  assert.match(live04, /judgeRun\(caseId, \{ level: lastRun\.level, fixed: false, obs: lastRun\.obs, exercised: lastRun\.exercised \}\)/);
+  assert.match(lab, /equiv: \{ tag: "다른 입력 구간 시험"/);
+  assert.match(lab, /tag: "경계값 시험 · 입력 상한", purpose: "페달 100%\(입력 범위 끝\)에서 토크 요청이 가용 한계 260 Nm를 넘지 않게 제한되는지 확인"/);
+  assert.match(live04, /PASS가 고장이 없다는 뜻은 아니에요/);
+  assert.match(live04, /<p className="qaSimCaption"><b>비교 방식<\/b>같은 입력 → 정상 설계 모델 vs 시험 대상 SW\(고장 요인 포함\)<\/p>/);
+});
+
+test("Pursuit keeps closing during STEP02–04 at 0.2 m/s (visible on the HUD)", () => {
+  const main = read("../src/main.tsx");
+  assert.match(main, /const pursuitScenes = \["FAULT_CUE", "BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR"\]/);
+  assert.match(main, /send\(\{ type: "TICK_PURSUIT", meters: \.2, seconds: 1 \}\)/);
 });

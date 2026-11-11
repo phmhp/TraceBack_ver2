@@ -2,7 +2,7 @@
 // no licences). Soft, toy-like tones in the spirit of a cosy island game.
 // Sound and music each have an on/off switch saved per browser.
 
-type Sfx = "pop" | "squish" | "zip" | "stamp" | "success" | "error" | "siren" | "crash" | "alarm" | "beep" | "go" | "skid" | "correct" | "wrong" | "ready" | "depart";
+type Sfx = "pop" | "squish" | "zip" | "stamp" | "success" | "error" | "siren" | "crash" | "alarm" | "beep" | "go" | "skid" | "correct" | "wrong" | "ready" | "depart" | "vroom" | "police" | "fanfare" | "firework";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -86,6 +86,15 @@ export function play(name: Sfx, pitch = 1) {
     // EV power-on chime: two soft rising notes over a short low hum (no combustion engine sound)
     case "ready": tone("sine", 392, 392, t, .28, .1); tone("sine", 587, 587, t + .16, .4, .1); tone("sine", 70, 140, t, .6, .06); break;
     // EV pull-away: a short, clean inverter whine that rises once and fades
+    // short engine rev at pull-away ("부릉")
+    case "vroom": tone("sawtooth", 62, 165, t, .3, .075); tone("sawtooth", 165, 92, t + .28, .42, .06); tone("square", 31, 78, t, .32, .045); noise(t, .4, .07, 520); break;
+    // soft two-tone siren when the police car closes in ("삐용삐용")
+    case "police": for (let i = 0; i < 2; i++) { const s0 = t + i * .5; tone("triangle", 1180, 1180, s0, .17, .045); tone("triangle", 1180, 800, s0 + .18, .26, .045); } break;
+    // arrival fanfare: rising call, then a held major chord
+    case "fanfare": [392, 523, 659].forEach((f, i) => { tone("sawtooth", f, f, t + i * .13, .12, .045); tone("triangle", f, f, t + i * .13, .14, .09); });
+      [523, 659, 784, 1047].forEach(f => { tone("sawtooth", f, f, t + .42, .95, .035); tone("triangle", f, f, t + .42, 1.05, .07); }); tone("sine", 131, 131, t + .42, 1.1, .12); break;
+    // one firework: whistle up, burst
+    case "firework": tone("sine", 700 * vary, 1900 * vary, t, .32, .018); noise(t + .33, .45, .3, 3400); tone("sine", 95, 40, t + .33, .32, .16); break;
     case "depart": tone("sine", 260, 900, t, .9, .045); tone("triangle", 520, 1800, t, .7, .015); noise(t, .5, .025, 900); break;
     case "skid": { const ac2 = audio(); if (!ac2 || !master) break; const len = .55, buf = ac2.createBuffer(1, Math.ceil(ac2.sampleRate * len), ac2.sampleRate), d = buf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.min(1, (d.length - i) / (d.length * .4));

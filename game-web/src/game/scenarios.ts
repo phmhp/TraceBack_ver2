@@ -192,13 +192,16 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
   },
 };
 
-export type BenchRun = { level: Lv; fixed: boolean; obs: Record<string, Obs> };
+/** exercised = false: the input never used the faulty function (the normal model also leaves it idle), so no rule may fire. */
+export type BenchRun = { level: Lv; fixed: boolean; obs: Record<string, Obs>; exercised?: boolean };
+export const NOT_EXERCISED_WHY = "이 입력은 고장이 생기는 조건을 지나지 않아 정상 모델과 시험 대상이 같게 나와요. 이 시험으로는 가를 수 없어요.";
 /** Status of every hypothesis after the given bench runs (later runs override earlier ones). */
 export function hypothesisStatus(caseId: CaseId, runs: BenchRun[]) {
   return SCENARIO_META[caseId].hypotheses.map(h => {
     let status: HypStatus = h.stage1 ? "refuted" : "untested", why = h.stage1 ?? "";
     for (const run of runs) {
       if (run.fixed) continue;
+      if (run.exercised === false) { if (status === "untested") { status = "open"; why = NOT_EXERCISED_WHY; } continue; }
       const hit = h.rules.find(rule => (!rule.levels || rule.levels.includes(run.level)) && Object.entries(rule.need).every(([sig, ok]) => run.obs[sig] !== undefined && ok.includes(run.obs[sig])));
       if (hit) { status = hit.verdict; why = hit.why; }
       else if (status === "untested") { status = "open"; why = "이 시험으로는 판단할 수 없어요. 다른 레벨이나 관측점이 필요해요."; }
@@ -211,7 +214,7 @@ export const HYP_LABEL: Record<HypStatus, string> = { untested: "미시험", ope
 /** What ONE bench run allows the player to conclude about each hypothesis (the answer key for the judgment note). */
 export function judgeRun(caseId: CaseId, run: BenchRun) {
   return SCENARIO_META[caseId].hypotheses.map(h => {
-    const hit = run.fixed ? undefined : h.rules.find(rule => (!rule.levels || rule.levels.includes(run.level)) && Object.entries(rule.need).every(([sig, ok]) => run.obs[sig] !== undefined && ok.includes(run.obs[sig])));
-    return { id: h.id, verdict: (hit?.verdict ?? "open") as "supported" | "refuted" | "open", why: hit?.why ?? "", need: hit ? Object.keys(hit.need) : [] };
+    const hit = run.fixed || run.exercised === false ? undefined : h.rules.find(rule => (!rule.levels || rule.levels.includes(run.level)) && Object.entries(rule.need).every(([sig, ok]) => run.obs[sig] !== undefined && ok.includes(run.obs[sig])));
+    return { id: h.id, verdict: (hit?.verdict ?? "open") as "supported" | "refuted" | "open", why: hit?.why ?? (run.exercised === false ? NOT_EXERCISED_WHY : ""), need: hit ? Object.keys(hit.need) : [] };
   });
 }

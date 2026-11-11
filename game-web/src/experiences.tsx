@@ -19,6 +19,7 @@ import { EeBlueprint, type EeLayer } from "./features/garage/EeBlueprint";
 import { VehicleLayoutRig, flowLegend } from "./features/garage/VehicleLayout";
 import { DRIVER, DUO, ENGINEER } from "./game/cast";
 import { Icon, type IconName } from "./ui/Icon";
+import { CAR_CONTACT, TRACK_LENGTH, resetTrafficStall, stallTraffic, trafficStateFor } from "./game/traffic";
 import { StageIntro } from "./ui/Verdict";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
@@ -1343,7 +1344,6 @@ function PoliceInterceptor({ spin = 0 }: { spin?: number }) {
 // The final escape starts at 1,050 m. Keep a full road approach after that
 // hand-off so the player sees the existing chase continue toward the dock
 // instead of spawning halfway up the ramp.
-const TRACK_LENGTH = 1380;
 const RAMP_START = TRACK_LENGTH - 170;
 const RAMP_END = RAMP_START + 52;
 const RAMP_RISE = 3.55;
@@ -1421,21 +1421,6 @@ function CivilianCar({ color, spin = 0 }: { color: string; spin?: number }) {
     {[-.56,.56].map(x => <mesh key={x} position={[x,.62,-1.82]}><sphereGeometry args={[.15,18,12]} /><meshStandardMaterial color="#fff1c2" emissive="#ffe5a0" emissiveIntensity={1.2} /></mesh>)}
     {[-.78,.78].flatMap(x => [-1.1,1.1].map(z => <RaceWheel key={`${x}-${z}`} x={x} z={z} steer={0} spin={spin} />))}
   </group>;
-}
-
-function trafficStateFor(sim: DriveSim, index: number) {
-  const opposite = index % 2 === 1;
-  const speedKph = 38 + index * 3.5;
-  const start = 105 + index * 148;
-  const travel = sim.elapsed * speedKph / 3.6;
-  const distance = opposite
-    ? THREE.MathUtils.euclideanModulo(TRACK_LENGTH - start - travel, TRACK_LENGTH - 40)
-    : THREE.MathUtils.euclideanModulo(start + travel, TRACK_LENGTH - 40);
-  let lane = opposite ? (index % 4 === 1 ? -1.72 : -5.1) : index % 4 === 0 ? 1.68 : 5.05;
-  const playerLane = 3.35 + sim.lane;
-  const approachingPlayer = !opposite && distance > sim.distance && distance - sim.distance < 17;
-  if (approachingPlayer && Math.abs(lane - playerLane) < 1.38) lane = lane < 3.35 ? 5.05 : 1.68;
-  return { opposite, distance, lane, speedKph };
 }
 
 function TrafficFleet({ sim }: { sim: DriveSim }) {
@@ -1550,8 +1535,11 @@ const TrackStatic = React.memo(function TrackStatic({ ship, signalRed }: { ship:
   </>;
 });
 
-function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: DriveSim; ship: boolean; policeVisible: boolean; waterFall?: boolean }) {
+function RaceWorldScene({ sim, ship, policeVisible, waterFall = false, celebrate = false }: { sim: DriveSim; ship: boolean; policeVisible: boolean; waterFall?: boolean; celebrate?: boolean }) {
   const player = useRef<THREE.Group>(null!);
+  // Ship arrival: the chase camera orbits from behind the car to its front (0 → π) to show the cheering cats.
+  const orbit = useRef(0);
+  const orbitTmp = useRef({ forward: new THREE.Vector3(), cam: new THREE.Vector3() });
   const police = useRef<THREE.Group>(null!);
   const lookTarget = useRef(new THREE.Vector3());
   // The simulation and Three.js render loops are independent. Keep a monotonic
@@ -1592,19 +1580,67 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
     lookTarget.current.x = THREE.MathUtils.damp(lookTarget.current.x, look.x, 6.5, delta);
     lookTarget.current.y = THREE.MathUtils.damp(lookTarget.current.y, .78 + boarding.y, 6.5, delta);
     lookTarget.current.z = THREE.MathUtils.damp(lookTarget.current.z, look.z, 6.5, delta);
+    orbit.current = THREE.MathUtils.damp(orbit.current, celebrate ? Math.PI : 0, 1.6, delta);
+    if (orbit.current > .01) {
+      const k = orbit.current / Math.PI, yaw = player.current.rotation.y, { forward, cam } = orbitTmp.current;
+      forward.set(-Math.sin(yaw), 0, -Math.cos(yaw)); // car front is -Z
+      const radius = THREE.MathUtils.lerp(9, 3.1, k), angle = orbit.current; // offset = −forward·r rotated by the orbit: behind at 0, in front at π
+      cam.set(forward.x * Math.cos(angle) - forward.z * Math.sin(angle), 0, forward.x * Math.sin(angle) + forward.z * Math.cos(angle)).multiplyScalar(-radius);
+      cam.add(player.current.position); cam.y = player.current.position.y + THREE.MathUtils.lerp(3.9, 2.05, k);
+      camera.position.copy(cam);
+      lookTarget.current.set(player.current.position.x, player.current.position.y + THREE.MathUtils.lerp(.8, 1.12, k), player.current.position.z);
+    }
     camera.lookAt(lookTarget.current);
   });
   return <>
     <TrackStatic ship={ship} signalRed={sim.distance >= 540 && sim.distance <= 612.5} />
     <TrafficFleet sim={sim} />
-    <group ref={player}>{DEV_LEGACY_CAR ? <Convertible steer={sim.steer} spin={sim.distance * .11} /> : <HeroConvertible steer={sim.steer} spin={sim.distance * .11} speed={sim.speed} />}</group>
+    <group ref={player}>{DEV_LEGACY_CAR ? <Convertible steer={sim.steer} spin={sim.distance * .11} /> : <HeroConvertible steer={sim.steer} spin={sim.distance * .11} speed={sim.speed} cheer={celebrate} />}</group>
     <group ref={police} visible={policeVisible}><PoliceInterceptor spin={sim.distance * .11} /></group>
     {import.meta.env.DEV && <DevRenderProbe name="race" />}
   </>;
 }
 
-function RaceWorld({ sim, ship, policeVisible = true, waterFall = false }: { sim: DriveSim; ship: boolean; policeVisible?: boolean; waterFall?: boolean }) {
-  return <div className="raceWorldCanvas"><Canvas shadows camera={{ position: [0, 3.6, 10.5], fov: 54 }} dpr={[1, 1.08]} gl={{ antialias: true, powerPreference: "high-performance" }}><RaceWorldScene sim={sim} ship={ship} policeVisible={policeVisible} waterFall={waterFall} /></Canvas></div>;
+/** Arrival fireworks: light 2D bursts over the race view (pointer-transparent), each with its own pop. */
+function Fireworks() {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const el = canvas.current; if (!el) return;
+    const ctx = el.getContext("2d"); if (!ctx) return;
+    const colors = ["#ff5a4a", "#ffb000", "#ff7ab0", "#ffd23f", "#2fb38f", "#ff8c42"];
+    type Spark = { x: number; y: number; vx: number; vy: number; life: number; color: string };
+    const sparks: Spark[] = [];
+    let frame = 0, last = performance.now(), nextBurst = 0, bursts = 0;
+    const start = performance.now();
+    const loop = (now: number) => {
+      const dt = Math.min(.05, (now - last) / 1000); last = now;
+      const w = el.width = el.clientWidth * devicePixelRatio, h = el.height = el.clientHeight * devicePixelRatio;
+      if (now - start > nextBurst && bursts < 9) {
+        const cx = w * (.18 + Math.random() * .64), cy = h * (.12 + Math.random() * .3), color = colors[bursts % colors.length];
+        for (let i = 0; i < 90; i++) { const a = Math.PI * 2 * i / 90 + Math.random() * .05, v = (220 + Math.random() * 230) * devicePixelRatio; sparks.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, color }); }
+        play("firework"); bursts++; nextBurst += 380 + Math.random() * 260;
+      }
+      ctx.clearRect(0, 0, w, h);
+      ctx.lineCap = "round";
+      for (const p of sparks) {
+        if (p.life <= 0) continue;
+        const px = p.x, py = p.y;
+        p.vy += 200 * devicePixelRatio * dt; p.vx *= .982; p.vy *= .982; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * .62;
+        const a = Math.max(0, p.life);
+        // streak (motion trail) + bright head with a soft glow so it reads against the light sky
+        ctx.globalAlpha = a * .85; ctx.strokeStyle = p.color; ctx.lineWidth = 3.2 * devicePixelRatio; ctx.beginPath(); ctx.moveTo(px - (p.x - px) * 2.5, py - (p.y - py) * 2.5); ctx.lineTo(p.x, p.y); ctx.stroke();
+        ctx.globalAlpha = a; ctx.shadowColor = p.color; ctx.shadowBlur = 10 * devicePixelRatio; ctx.fillStyle = "#fffaf0"; ctx.beginPath(); ctx.arc(p.x, p.y, 2.4 * devicePixelRatio, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+      }
+      if (now - start < 6500) frame = requestAnimationFrame(loop);
+    };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  return <canvas ref={canvas} className="tbFireworks" aria-hidden="true" />;
+}
+
+function RaceWorld({ sim, ship, policeVisible = true, waterFall = false, celebrate = false }: { sim: DriveSim; ship: boolean; policeVisible?: boolean; waterFall?: boolean; celebrate?: boolean }) {
+  return <div className="raceWorldCanvas"><Canvas shadows camera={{ position: [0, 3.6, 10.5], fov: 54 }} dpr={[1, 1.08]} gl={{ antialias: true, powerPreference: "high-performance" }}><RaceWorldScene sim={sim} ship={ship} policeVisible={policeVisible} celebrate={celebrate} waterFall={waterFall} /></Canvas></div>;
 }
 
 function RearMirror3D({ gap, visible }: { gap: number; visible: boolean }) {
@@ -1650,6 +1686,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const collisionCooldown = useRef(0);
   const zoneThrottle = useRef(0); // seconds of full throttle inside the overtake zone
   useEffect(() => { if (impact) play("crash"); }, [impact]);
+  useEffect(() => { resetTrafficStall(); }, []);
   // EV sound only at power-on and pull-away (a continuous motor drone sounded unnatural);
   // a hard brake at speed squeals once per press. engineSet is kept for later use.
   const skidRef = useRef(false);
@@ -1658,7 +1695,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   useEffect(() => {
     const k = keys.current;
     const braking = k.has("s") || k.has("arrowdown") || k.has(" ");
-    if (!movingRef.current && sim.speed > 3) { movingRef.current = true; play("depart"); }
+    if (!movingRef.current && sim.speed > 3) { movingRef.current = true; play("vroom"); }
     if (sim.speed < 1) movingRef.current = false;
     if (braking && sim.speed > 32 && !skidRef.current) { skidRef.current = true; play("skid"); }
     if (!braking) skidRef.current = false;
@@ -1785,12 +1822,15 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
           speed = THREE.MathUtils.damp(speed, 0, 8.5, dt);
         }
         const playerRoadLane = 3.35 + lane;
-        const trafficHit = dockApproach ? undefined : Array.from({ length: 7 }, (_, index) => trafficStateFor({ ...previous, lane, steer, distance, speed }, index)).find(traffic => !traffic.opposite && Math.abs(traffic.distance - distance) < 3.35 && Math.abs(traffic.lane - playerRoadLane) < 1.18);
+        const trafficHit = dockApproach ? undefined : Array.from({ length: 7 }, (_, index) => trafficStateFor(previous, index)).find(traffic => !traffic.opposite && Math.abs(traffic.distance - distance) < CAR_CONTACT.longitudinal && Math.abs(traffic.lane - playerRoadLane) < CAR_CONTACT.lateral);
         if (trafficHit) {
-          speed = Math.min(speed, trafficHit.speedKph) * .42;
+          // both cars hesitate once per contact: the player loses about a third of its speed (never below the other car)
+          // and the hit car slows for 0.7 s; while the bodies still overlap they are only pushed apart
+          const nowSeconds = now / 1000;
+          if (nowSeconds > collisionCooldown.current) speed = Math.max(trafficHit.speedKph, speed * .65);
           distance = Math.max(previous.distance, distance - .45);
           lane = THREE.MathUtils.clamp(lane + (playerRoadLane <= trafficHit.lane ? -.3 : .3), -9.9, 3.45);
-          const nowSeconds = now / 1000;
+          stallTraffic(trafficHit.index, previous.elapsed, trafficHit.speedKph);
           if (nowSeconds > collisionCooldown.current) {
             collisionCooldown.current = nowSeconds + 1.1;
             setImpactMessage("일반 차량과 접촉 · 상대 속도 반영 및 차체 반발");
@@ -1836,9 +1876,17 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const hasTouchedDeck = mode === "ship" && sim.distance >= DECK_TOUCH;
   useEffect(() => {
     if (!hasTouchedDeck) { setDeckSettled(false); return; }
+    play("fanfare");
     const timer = window.setTimeout(() => setDeckSettled(true), 2100);
     return () => window.clearTimeout(timer);
   }, [hasTouchedDeck]);
+  // After the car settles on the deck the camera turns to the cheering cats; the result opens about 3 s later.
+  const [celebrated, setCelebrated] = useState(false);
+  useEffect(() => {
+    if (!deckSettled) { setCelebrated(false); return; }
+    const timer = window.setTimeout(() => setCelebrated(true), 3200);
+    return () => window.clearTimeout(timer);
+  }, [deckSettled]);
   const fired = useRef(false);
   // CHASE_RESUME and SHIP_ESCAPE intentionally reuse the same RaceExperience
   // instance so speed/camera continuity is preserved. Reset only the segment
@@ -1855,13 +1903,13 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       fired.current = true; send({ type: "FAULT_CUE", caseId: "thermal", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
     } else if (mode === "resume" && state.caseId === "thermal" && sim.distance >= 1050) {
       fired.current = true; send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "START_FINAL_ESCAPE" });
-    } else if (mode === "ship" && deckSettled) {
+    } else if (mode === "ship" && celebrated) {
       fired.current = true;
       // A single reducer event commits the car to the ramp and prevents stale
       // distance, water fall or a 0 m pursuit tick from stealing the ending.
       send({ type: "FINISH_ESCAPE", distance: sim.distance, gap: Math.max(10, sim.gap), elapsed: sim.elapsed });
     }
-  }, [deckSettled, mode, send, sim.distance, sim.elapsed, sim.gap, state.caseId, state.lastRepairDistance, state.lastRepairElapsedSeconds]);
+  }, [celebrated, mode, send, sim.distance, sim.elapsed, sim.gap, state.caseId, state.lastRepairDistance, state.lastRepairElapsedSeconds]);
   const symptom = (mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80);
   // Regression drive after a repair: the same condition that exposed the fault is measured on the live race model.
   // propulsion: full pedal for 1.5 s → measured acceleration vs this model's healthy value (46·min(1, 70/v) km/h/s; the fault scaled it by 0.45)
@@ -1913,8 +1961,17 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const mapPolice = mapPoint(policeProgress);
   const policeJoined = mode !== "normal" || (sim.elapsed >= 3 && sim.distance >= 45);
   const policeInWorld = policeJoined && !(mode === "ship" && sim.distance >= TRACK_LENGTH - 82);
+  // soft siren: once when the interceptor comes within 40 m, then every 5 s while it is within 25 m
+  const sirenAt = useRef(0), sirenNear = useRef(false);
+  useEffect(() => {
+    const near = policeInWorld && sim.gap > 0 && sim.gap < 40 && !symptom;
+    const now = performance.now();
+    if (near && (!sirenNear.current || (sim.gap < 25 && now - sirenAt.current > 5000))) { play("police"); sirenAt.current = now; }
+    sirenNear.current = near;
+  }, [policeInWorld, sim.gap, symptom]);
   return <div className={`raceV2 raceMode-${mode} ${impact ? "raceImpact" : ""} ${waterFall ? "waterFall" : ""}`} data-race-mode={mode} data-race-distance={sim.distance.toFixed(2)} data-race-speed={sim.speed.toFixed(2)} data-race-gap={sim.gap.toFixed(2)}>
-    <RaceWorld sim={sim} ship={mode === "ship"} policeVisible={policeInWorld} waterFall={waterFall} />
+    <RaceWorld sim={sim} ship={mode === "ship"} policeVisible={policeInWorld} waterFall={waterFall} celebrate={deckSettled} />
+    {hasTouchedDeck && <Fireworks />}
     <JourneyProgress scene={mode === "ship" ? "SHIP_ESCAPE" : "CHASE_NORMAL"} />
     <div className="raceTopHud">
       <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button></div>
@@ -1937,7 +1994,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       { icon: "warning", text: "경고와 증상이 나타나면 무엇이 달라졌는지 기억하기" },
     ]} onClose={() => setIntroOpen(false)} />}
     {(countdown > 0 || goFlash) && <div className="startCountdown"><small>출발 준비</small><b>{goFlash ? "GO!" : countdown}</b></div>}
-    {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="경찰 차량 접근" sound="siren" />}
+    {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="경찰 차량 접근" />}
     {symptom && <ComicBurst tone="fault" side="right" image="/assets/ending-thumbs/accel_pedal.png" title="가속 저하 발생" sound="alarm" />}
     {/* every message card lives in one column under the mirror, so cards never overlap */}
     <div className="raceFeed">

@@ -154,19 +154,29 @@ function BakedMeshes({ geometries, materials, castShadow = false }: { geometries
 }
 
 /** Values read every frame without re-rendering React. */
-export type CatLiveInput = { steer: number; speed: number };
+export type CatLiveInput = { steer: number; speed: number; /** arrival celebration: smiling eyes, both arms up */ cheer?: boolean };
 
 export type SeatedCatProps = {
   variant: CatVariant;
   /** Objects on the steering-wheel rim that the front paws hold. */
   pawTargets?: [React.RefObject<THREE.Object3D | null>, React.RefObject<THREE.Object3D | null>];
   live: React.RefObject<CatLiveInput>;
+  /** Arms are posed every frame (rest pose, or raised when cheering) instead of being baked into the body. */
+  armsFree?: boolean;
 };
+const REST_PAWS: [V3, V3] = [[-.1, .12, -.15], [.1, .12, -.15]];
+const EYE_KEYS: MatKey[] = ["eye", "eyeGlint"];
+// "^^" smiling eye: a thin upper half-ring
+let happyEyeGeometry: THREE.TorusGeometry | undefined;
+const happyEye = () => (happyEyeGeometry ??= new THREE.TorusGeometry(.024, .0065, 8, 18, Math.PI));
 
 /** Cat sitting on a seat. Local origin = seat surface under the hips, facing -Z. */
-export const SeatedCat = React.memo(function SeatedCat({ variant, pawTargets, live }: SeatedCatProps) {
+export const SeatedCat = React.memo(function SeatedCat({ variant, pawTargets, live, armsFree = false }: SeatedCatProps) {
   const materials = useCatMaterials();
-  const baked = bakedCat(variant, Boolean(pawTargets));
+  const posedArms = Boolean(pawTargets) || armsFree;
+  const baked = bakedCat(variant, posedArms);
+  const eyes = useRef<THREE.Group>(null);
+  const happyEyes = useRef<THREE.Group>(null);
   const root = useRef<THREE.Group>(null!);
   const head = useRef<THREE.Group>(null!);
   const scarfTails = useRef<THREE.Group>(null);
@@ -177,21 +187,28 @@ export const SeatedCat = React.memo(function SeatedCat({ variant, pawTargets, li
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
-    const { steer: s, speed: v } = live.current ?? { steer: 0, speed: 0 };
+    const { steer: s, speed: v, cheer = false } = live.current ?? { steer: 0, speed: 0 };
+    if (eyes.current) eyes.current.visible = !cheer;
+    if (happyEyes.current) happyEyes.current.visible = cheer;
+    root.current.position.y = cheer ? Math.abs(Math.sin(t * 7)) * .035 : 0;
     head.current.rotation.z = variant === "lou" ? THREE.MathUtils.lerp(head.current.rotation.z, s * .35, .12) : Math.sin(t * .9) * .05;
     head.current.rotation.y = variant === "ming" ? Math.sin(t * .55) * .38 : THREE.MathUtils.lerp(head.current.rotation.y, -s * .4, .1);
     head.current.position.y = Math.sin(t * 7.5) * .004 * Math.min(1, v / 40);
+    if (cheer) { head.current.rotation.x = THREE.MathUtils.lerp(head.current.rotation.x, .16, .1); head.current.rotation.y = THREE.MathUtils.lerp(head.current.rotation.y, 0, .1); head.current.rotation.z = Math.sin(t * 7) * .08; }
+    else head.current.rotation.x = THREE.MathUtils.lerp(head.current.rotation.x, 0, .1);
     if (scarfTails.current) {
       const flutter = Math.min(1, v / 60);
       scarfTails.current.rotation.x = -.4 - flutter * .9 + Math.sin(t * 17) * .18 * flutter;
       scarfTails.current.rotation.z = Math.sin(t * 11) * .12 * flutter;
     }
-    if (!pawTargets) return;
-    pawTargets.forEach((ref, index) => {
+    if (!posedArms) return;
+    [0, 1].forEach(index => {
       const arm = arms.current[index], paw = paws.current[index];
-      if (!ref.current || !arm || !paw) return;
-      ref.current.getWorldPosition(tmp.target);
-      root.current.worldToLocal(tmp.target);
+      if (!arm || !paw) return;
+      const side = index ? 1 : -1;
+      if (cheer) tmp.target.set(side * (.2 + Math.sin(t * 9 + index) * .035), .62 + Math.sin(t * 9 + index * 1.7) * .03, -.05); // 만세: both paws above the head, waving
+      else if (pawTargets?.[index].current) { pawTargets[index].current!.getWorldPosition(tmp.target); root.current.worldToLocal(tmp.target); }
+      else tmp.target.set(...REST_PAWS[index]);
       const [sx, sy, sz] = SHOULDERS[index];
       tmp.dir.set(tmp.target.x - sx, tmp.target.y - sy, tmp.target.z - sz);
       const length = tmp.dir.length();
@@ -205,10 +222,14 @@ export const SeatedCat = React.memo(function SeatedCat({ variant, pawTargets, li
   return <group ref={root}>
     <BakedMeshes geometries={baked.body} materials={materials} castShadow />
     {baked.scarf && <group ref={scarfTails} position={[.03, .315, .085]}><BakedMeshes geometries={baked.scarf} materials={materials} /></group>}
-    {pawTargets && [0, 1].map(index => <React.Fragment key={index}>
+    {posedArms && [0, 1].map(index => <React.Fragment key={index}>
       <mesh ref={element => { arms.current[index] = element; }} geometry={prim().cylinder} material={armMaterial} />
       <mesh ref={element => { paws.current[index] = element; }} geometry={prim().sphere} material={materials.fur} scale={.05} />
     </React.Fragment>)}
-    <group ref={head}><BakedMeshes geometries={baked.head} materials={materials} castShadow /></group>
+    <group ref={head}>
+      <BakedMeshes geometries={Object.fromEntries(Object.entries(baked.head).filter(([key]) => !EYE_KEYS.includes(key as MatKey)))} materials={materials} castShadow />
+      <group ref={eyes}><BakedMeshes geometries={Object.fromEntries(Object.entries(baked.head).filter(([key]) => EYE_KEYS.includes(key as MatKey)))} materials={materials} /></group>
+      <group ref={happyEyes} visible={false}>{[-1, 1].map(side => <mesh key={side} geometry={happyEye()} material={materials.eye} position={[side * .074, .482, -.203]} rotation={[0, side * .074 * 1.6, 0]} />)}</group>
+    </group>
   </group>;
 });
