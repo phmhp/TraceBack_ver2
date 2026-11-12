@@ -1,0 +1,15 @@
+shot 02-step01/step01-drive-vehicle-system-initial@1280x720 {"sx":0,"sy":0}
+shot 02-step01/step01-drive-vehicle-ready-on@1280x720 {"sx":0,"sy":0}
+shot 02-step01/step01-drive-vehicle-pedal-holding@1280x720 {"sx":0,"sy":0}
+shot 02-step01/step01-drive-vehicle-pedal-done@1280x720 {"sx":0,"sy":0}
+["TraceBack","01Vehicle / System기계 동작 흐름","02E/E Architecture하드웨어·소프트","03Control SoftwareECU 내부 S","전체보기차량 전체","구동파워트레인","제동섀시","조향섀시","전원파워트레인","변속·주차파워트레인","열관리파워트레인","현가섀시","이 도메인","겹쳐 보기","차체 보기","✓READY 켜기","✓D단","3가속 페달 밟기선택됨 · 꾹 해제","다음 스텝","자동재생","1운전자 토크 요청›","2D단 구동 인터록›","3인버터 전류·토크 제어›","4감속기·차동기어 전달›","1가속 페달 조작입력","2가속 의도기능 단계","3가용 토크 판단기능 단계","4전륜 추진력기능 단계","5차량 가속출력","다음 →","←이전 단계","다음 단계→"]
+shot 02-step01/step01-drive-vehicle-signal-step@1280x720 {"sx":0,"sy":0}
+shot 02-step01/step01-drive-vehicle-signal-end@1280x720 {"sx":0,"sy":0}
+TraceBack 1 정비소 범행·도주 주행 도미노 추적 퍼즐 검증 수리 해적선 NOW · 1/8 정비소 차량 기능이 어떤 부품과 신호를 거쳐 동작하는지 확인하세요. 학습 대상: 구동 | Vehicle/System · E/E · Control SW 같은 기능, 세 관점 기계 동작 흐름 시각화 차량 부품의 위치와 작동 경로 01 Vehicle / System 기계 동작 흐름 · 차량 부품 위치 02 E/E Architecture 하드웨어·소프트웨어 연결 · 센서·ECU·통신 03 Control Software ECU 내부 SW 로직 · 제어 판단 전체보기 차량 전체 구동 파워트레인 제동 섀시 조향 섀시 전원 파워트레인 변속·주차 파워트레인 열관리 파워트레인 현가 섀시 Vehicle / System › 구동 › 운전자 토크 요청 Vehicle / System 1 2 4 5 6 7 8 9 10 고전압 전력 · 구동 에너지 전기 신호 · 명령(PWM) · 가용 토크 판단 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동 · 부품 클릭: 선택 · 더블클릭: 자세히 전달하는 것 전기 신호 · 센서 값 CAN 메시지 전기 신호 · 명령(PWM) 고전압 전력 기계 힘·토크 이 도메인 겹쳐 보기 차체 보기 입력이 선택됨 · 다음 스텝으로 신호를 관찰하세요 ✓ READY 켜기 ✓ D단 3 가속 페달 밟기 선택됨 · 꾹 해제 다음 스텝 자동재생 주요 기능 
+shot 02-step01/step01-drive-vehicle-feature2@1280x720 {"sx":0,"sy":0}
+shot 02-step01/step01-drive-ee-initial@1280x720 {"sx":0,"sy":0}
+["TraceBack","01Vehicle / System기계 동작 흐름","02E/E Architecture하드웨어·소프트","03Control SoftwareECU 내부 S","전체보기차량 전체","구동파워트레인","제동섀시","조향섀시","전원파워트레인","변속·주차파워트레인","열관리파워트레인","현가섀시","PRND 센서","VCU Interlock","CAN Permit","인버터 Enable","연결","겹쳐","실제 부품","1READY 켜기","2D단","3가속 페달 밟기꾹 · Space","다음 스텝","자동재생","1운전자 토크 요청›","2D단 구동 인터록›","3인버터 전류·토크 제어›","4감속기·차동기어 전달›","◀","▶","▶ 자동 재생","다음 →","←이전 단계","다음 단계→"]
+shot 02-step01/step01-drive-ee-signal-step@1280x720 {"sx":0,"sy":0}
+shot 02-step01/step01-drive-sw-initial@1280x720 {"sx":0,"sy":0}
+["TraceBack","01Vehicle / System기계 동작 흐름","02E/E Architecture하드웨어·소프트","03Control SoftwareECU 내부 S","전체보기차량 전체","구동파워트레인","제동섀시","조향섀시","전원파워트레인","변속·주차파워트레인","열관리파워트레인","현가섀시","차량 E/E 구조","VCU Interlock 제어기","1READY 켜기","2D단","3가속 페달 밟기꾹 · Space","다음 스텝","자동재생","1운전자 토크 요청›","2D단 구동 인터록›","3인버터 전류·토크 제어›","4감속기·차동기어 전달›","1PRND 센서입력","2인버터 Enable출력","다음 →","←이전 단계","다음 단계→"]
+shot 02-step01/step01-drive-sw-signal-step@1280x720 {"sx":0,"sy":0}

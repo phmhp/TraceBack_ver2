@@ -1,0 +1,35 @@
+shot 03-step02/step02-propulsion-00-stage-intro-modal@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-01-evidence-initial@1280x720 {"sx":0,"sy":0}
+["TraceBack","관찰·계측 증거","추리 보드","오픈북","볼트 진술운전자 체감","계기판가속 출력 저하","가속 페달 센서","브레이크 스위치","기어 위치","VCU 페달 처리값","BMS 허용 출력","온도 보호 제한","회생 제동","CAN 토크 명령","게이트웨이 전달","모터 토크","배터리 방전 전류","인버터 전류","모터 온도","차량 가속","계기판 출력 게이지","다음: 요구사항 기반 퍼즐 →","정답 보기","←이전 단계","다음 단계→"]
+["볼트 진술운전자 체감","계기판가속 출력 저하"]
+shot 03-step02/step02-propulsion-02-evidence-zoom@1280x720 {"sx":0,"sy":0}
+output node 차량 가속
+shot 03-step02/step02-propulsion-04-evidence-all-read@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-05-output-selected@1280x720 {"sx":0,"sy":0}
+TraceBack 정비소 범행·도주 주행 4 도미노 추적 퍼즐 검증 수리 해적선 NOW · 4/8 도미노 추적 START FINISH 추격차 격차 70m 관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요. 출발 증거: 가속 페달을 절반 이상 밟았지만 차가 힘없이 천천히 가속합니다. | 추적 대상: 신호·제어 경로 관찰·계측 증거 실제 획득 기록 · 가속 페달 입력 대비 가속 성능 저하 관찰·계측 증거 추리 보드 오픈북 볼트 진술 운전자 체감 계기판 가속 출력 저하 차량 가속 기준과 다름 중앙 도미노 역추적 지금 출력: 차량 가속 센서 가속 페달 센서 브레이크 스위치 기어 위치 제어기 VCU MCU·인버터 BMS Thermal ECU Brake ECU EPS ECU Gateway VCU 페달 처리값 BMS 허용 출력 온도 보호 제한 회생 제동 CAN CAN 토크 명령 게이트웨이 전달 부품 모터 토크 배터리 방전 전류 인버터 전류 모터 온도 차량 차량 가속 계기판 출력 게이지 지금 출력: 차량 가속 · 60ms에 기준과 달라짐 유력 기준과 다르고 지금 출력보다 먼저 달라짐 · 반박 기준과 같거나(허용 범위 포함) 지금 출력보다 늦게 달라짐(결과) · 후보 3개를 모두 판단해야 넘어가요 ▶ 고장 당시 로그 재생 모터 토크 후보 01 · 부품 미조사 측정하기 회생 제동 후보 02 · 제어기 미조사 측정하기 브레이크 스위치 후보 03 ·
+shot 03-step02/step02-propulsion-06-log-replay-running@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-07-log-replay-done@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-08-trace-start@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-09-trace-first-measured@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-10-trace-wrong-stamp-feedback@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-11-trace-question-2-start@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-11-trace-question-3-start@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-11-trace-question-4-start@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-12-section-question@1280x720 {"sx":0,"sy":0}
+["가속 페달 센서·배선","VCU 내부 (입력 회로·페달 처리·토크 계산)","인버터·구동 모터"]
+shot 03-step02/step02-propulsion-13-section-wrong-feedback@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-14-hypothesis-sort-start@1280x720 {"sx":0,"sy":0}
+TraceBack 정비소 범행·도주 주행 4 도미노 추적 퍼즐 검증 수리 해적선 NOW · 4/8 도미노 추적 START FINISH 추격차 격차 61m 관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요. 출발 증거: 가속 페달을 절반 이상 밟았지만 차가 힘없이 천천히 가속합니다. | 추적 대상: 신호·제어 경로 관찰·계측 증거 실제 획득 기록 · 가속 페달 입력 대비 가속 성능 저하 관찰·계측 증거 추리 보드 오픈북 볼트 진술 운전자 체감 계기판 가속 출력 저하 차량 가속 기준과 다름 모터 토크 기준과 다름 회생 제동 기준과 같음 브레이크 스위치 기준과 같음 이전 묶음 1/3 다음 증거 묶음 중앙 도미노 역추적 센서 → 제어기 → CAN → 부품 → 차량 다시 풀기 센서 가속 페달 센서반박 브레이크 스위치반박 기어 위치반박 제어기 VCU MCU·인버터 BMS Thermal ECU Brake ECU EPS ECU Gateway VCU 페달 처리값유력 BMS 허용 출력반박 온도 보호 제한반박 회생 제동반박 CAN CAN 토크 명령유력 게이트웨이 전달반박 부품 모터 토크유력 배터리 방전 전류반박 인버터 전류반박 모터 온도반박 차량 차량 가속유력 계기판 출력 게이지 출력에서 상류로 거슬러 올라간 경로 VCU 페달 처리값 ↓ CAN 토크 명령 ↓ 모터 토크 ↓ 차량 가속 최초 편차는 의심 구간입니다. 최종 원인은 다음 시험으로 구분합니
+‘가속 페달 센서·배선’ · 지금까지의 측정값으로 반박할 수 있나요? -> 반박
+shot 03-step02/step02-propulsion-15-hypothesis-sort-2@1280x720 {"sx":0,"sy":0}
+‘VCU 페달 처리 SW(계산·보정값)’ · 지금까지의 측정값으로 반박할 수 있나요? -> 보류
+shot 03-step02/step02-propulsion-15-hypothesis-sort-3@1280x720 {"sx":0,"sy":0}
+‘VCU 입력 회로·신호 변환(HW)’ · 지금까지의 측정값으로 반박할 수 있나요? -> 보류
+shot 03-step02/step02-propulsion-15-hypothesis-sort-4@1280x720 {"sx":0,"sy":0}
+‘인버터·구동 모터’ · 지금까지의 측정값으로 반박할 수 있나요? -> 반박
+shot 03-step02/step02-propulsion-16-hypothesis-sorted-pick-next-test@1280x720 {"sx":0,"sy":0}
+TraceBack 정비소 범행·도주 주행 4 도미노 추적 퍼즐 검증 수리 해적선 NOW · 4/8 도미노 추적 START FINISH 추격차 격차 60m 관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요. 출발 증거: 가속 페달을 절반 이상 밟았지만 차가 힘없이 천천히 가속합니다. | 추적 대상: 신호·제어 경로 관찰·계측 증거 실제 획득 기록 · 가속 페달 입력 대비 가속 성능 저하 관찰·계측 증거 추리 보드 오픈북 볼트 진술 운전자 체감 계기판 가속 출력 저하 차량 가속 기준과 다름 모터 토크 기준과 다름 회생 제동 기준과 같음 브레이크 스위치 기준과 같음 이전 묶음 1/3 다음 증거 묶음 중앙 도미노 역추적 센서 → 제어기 → CAN → 부품 → 차량 다시 풀기 센서 가속 페달 센서반박 브레이크 스위치반박 기어 위치반박 제어기 VCU MCU·인버터 BMS Thermal ECU Brake ECU EPS ECU Gateway VCU 페달 처리값유력 BMS 허용 출력반박 온도 보호 제한반박 회생 제동반박 CAN CAN 토크 명령유력 게이트웨이 전달반박 부품 모터 토크유력 배터리 방전 전류반박 인버터 전류반박 모터 온도반박 차량 차량 가속유력 계기판 출력 게이지 출력에서 상류로 거슬러 올라간 경로 VCU 페달 처리값 ↓ CAN 토크 명령 ↓ 모터 토크 ↓ 차량 가속 최초 편차는 의심 구간입니다. 최종 원인은 다음 시험으로 구분합니
+shot 03-step02/step02-propulsion-17-complete-next-enabled@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-18-evidence-panel-reasoning-board-tab@1280x720 {"sx":0,"sy":0}
+shot 03-step02/step02-propulsion-19-replay-confirm-popup@1280x720 {"sx":0,"sy":0}
+TraceBack 정비소 범행·도주 주행 4 도미노 추적 퍼즐 검증 수리 해적선 NOW · 4/8 도미노 추적 START FINISH 추격차 격차 59m 관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요. 출발 증거: 가속 페달을 절반 이상 밟았지만 차가 힘없이 천천히 가속합니다. | 추적 대상: 신호·제어 경로 추리 보드 역추적 스택 관찰·계측 증거 추리 보드 오픈북 역추적 스택 4VCU 페달 처리값 ↓ 3CAN 토크 명령 ↓ 2모터 토크 ↓ 1차량 가속 중앙 도미노 역추적 센서 → 제어기 → CAN → 부품 → 차량 다시 풀기 센서 가속 페달 센서반박 브레이크 스위치반박 기어 위치반박 제어기 VCU MCU·인버터 BMS Thermal ECU Brake ECU EPS ECU Gateway VCU 페달 처리값유력 BMS 허용 출력반박 온도 보호 제한반박 회생 제동반박 CAN CAN 토크 명령유력 게이트웨이 전달반박 부품 모터 토크유력 배터리 방전 전류반박 인버터 전류반박 모터 온도반박 차량 차량 가속유력 계기판 출력 게이지 출력에서 상류로 거슬러 올라간 경로 VCU 페달 처리값 ↓ CAN 토크 명령 ↓ 모터 토크 ↓ 차량 가속 최초 편차는 의심 구간입니다. 최종 원인은 다음 시험으로 구분합니다. 가설 정리 완료 먼저 시험할 가설: VCU 페달 처리 SW(계산·보정값) 반박 2 · 보류 2 · 회귀 시험 5곳 · ★★☆ 너트도미노

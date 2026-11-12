@@ -1,0 +1,8 @@
+shot 00-start/title-menu@1280x720 {"sx":0,"sy":0}
+shot 00-start/title-controls-popup@1280x720 {"sx":0,"sy":0}
+자동차 고장 추적 · 레이싱 추리 TraceBack 증상에서 원인까지, 검증으로 증명하기 새 게임 시작 설정 조작법 ↑ 가속 · ↓ 브레이크 ←→ 조향 1~4 기어 P·R·N·D QE 회생 제동 강·약 R READY(시동) Enter 대화 넘기기 · 시작
+["새 게임 시작","설정","조작법"]
+shot 00-start/title-settings-popup@1280x720 {"sx":0,"sy":0}
+["새 게임 시작","설정","조작법"]
+shot 00-start/prologue-cut-1@1280x720 {"sx":0,"sy":0}
+프롤로그 1/5 우승 건너뛰기 » 이야기 볼트와 너트는 직접 만든 차로 시즌 우승을 하고 최고 상금을 받았다. 계속 Enter ["건너뛰기 »","계속Enter"]

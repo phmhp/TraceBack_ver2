@@ -1,0 +1,4 @@
+shot 04-step03/step03-propulsion-00-stage-intro-modal@1280x720 {"sx":0,"sy":0}
+shot 04-step03/step03-propulsion-01-puzzle-before-assembly@1280x720 {"sx":0,"sy":0}
+["TraceBack","−","맞춤","+","?","?4번 칸","?6번 칸","?7번 칸","?","?","?","?","?","?","?","?","?","?","?","빈칸 3개 남음","정답 보기","←이전 단계","다음 단계→"]
+shot 04-step03/step03-propulsion-02-block-help-bubble@1280x720 {"sx":0,"sy":0}
