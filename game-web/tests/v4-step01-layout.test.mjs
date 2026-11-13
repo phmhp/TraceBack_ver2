@@ -20,9 +20,12 @@ const main = readFileSync(new URL("../src/main.tsx", import.meta.url), "utf8");
 const gameShell = readFileSync(new URL("../src/ui/game-shell.tsx", import.meta.url), "utf8");
 
 test("V4 STEP 01 keeps one stable frame across all three learning views", () => {
-  assert.match(experience, /className="garageViewTools"/);
-  assert.match(experience, /className="garageViewContext"/);
-  assert.match(latestCss, /grid-template-rows:\s*44px minmax\(0, 1fr\) 122px/);
+  // 2026-11-13 STEP01 v3: the left lens column became the StageBar lens segment (g3Lens); one grid keeps the same frame for every view.
+  const stageBarSource = readFileSync(new URL("../src/features/garage/MissionPanel.tsx", import.meta.url), "utf8");
+  const v3Css = readFileSync(new URL("../src/features/garage/step01-v3.css", import.meta.url), "utf8");
+  assert.match(experience, /className=\{`g3Body /);
+  assert.match(stageBarSource, /className="g3Lens"/);
+  assert.match(v3Css, /grid-template-rows:\s*44px 52px minmax\(0, 1fr\) 122px/);
   assert.match(latestCss, /\.garageMechanismCard[^}]*min-height:\s*0/);
   assert.match(latestCss, /\.garageFlowPanel[^}]*height:\s*122px/);
 });
@@ -164,7 +167,7 @@ test("FB-P1-01 selects real Vehicle/System parts without treating camera drags a
   assert.match(vehicleLayout, /garageVehiclePartLabel/);
   assert.match(experience, /const \[selectedVehiclePart, setSelectedVehiclePart\] = useState<number \| null>\(null\)/);
   assert.match(experience, /selectedVehiclePart=\{selectedVehiclePart\}/);
-  assert.match(experience, /onVehiclePartSelect=\{index => \{ setSelectedVehiclePart\(index\); setActiveStep\(index\); play\("pop"\); \}\}/);
+  assert.match(experience, /onVehiclePartSelect=\{index => \{ setSelectedVehiclePart\(index\); setActiveStep\(index\); registerPick\(0, index\); play\("pop"\); \}\}/);
   assert.match(experience, /vehiclePartInfo/);
   assert.match(latestCss, /\.vehiclePartInfo \{/);
 });

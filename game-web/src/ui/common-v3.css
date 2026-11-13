@@ -1,0 +1,93 @@
+/* Shared UI v3 — question card and cat bubble.
+   Design canvas: 1600×900. Text floors: body 16, secondary 14, label 13 (nothing below 13).
+   Colours reuse the note-paper tokens from p3-notepaper-world.css (--np-*); no new palette.
+   Global tag rules in v15.css (.gameStage p/button/small {…!important}) would shrink text, so the few
+   font-size declarations here are !important and scoped under .tbq / .tbCat. */
+.tbq, .tbCat { --tb-paper: var(--np-paper, #fffdf6); --tb-paper2: var(--np-paper-2, #f8f1e3); --tb-ink: var(--np-ink, #33291f); --tb-soft: var(--np-soft, #7b6a5c); --tb-red: var(--np-red, #d4473c); --tb-yellow: var(--np-yellow, #ffdf5e); --tb-ok: #2f7d4f; --tb-ok-bg: #e6f3ea; --tb-no: #a8352b; --tb-no-bg: #fbe8e4; }
+
+/* ── question card ───────────────────────────────────────────── */
+.tbq { color: var(--tb-ink); background: var(--tb-paper); border-radius: 6px; box-shadow: 0 1px 1px rgba(0,0,0,.16), 0 4px 6px rgba(30,15,5,.2), 0 14px 26px rgba(20,10,0,.22); padding: 16px 18px 14px; display: flex; flex-direction: column; min-height: 0; }
+.tbqFlip { display: flex; flex-direction: column; gap: 10px; min-height: 0; transform-origin: 50% 0; animation: tbqFlipIn .28s ease-out both; }
+@keyframes tbqFlipIn { from { opacity: 0; transform: perspective(900px) rotateX(-70deg); } to { opacity: 1; transform: perspective(900px) rotateX(0); } }
+@media (prefers-reduced-motion: reduce) { .tbqFlip { animation: none; } }
+.tbqHead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tbq .tbqTag { background: var(--tb-red); color: #fff; font-weight: 800; letter-spacing: .06em; border-radius: 4px; padding: 3px 8px; font-size: 13px !important; line-height: 1.2; }
+.tbq .tbqStep { color: var(--tb-soft); font-weight: 700; font-size: 14px !important; }
+.tbqDots { display: flex; gap: 4px; list-style: none; margin: 0 0 0 auto; padding: 0; }
+.tbq .tbqDots button { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #cdbda0; background: var(--tb-paper2); color: var(--tb-soft); font-size: 13px !important; font-weight: 800; padding: 0; line-height: 1; cursor: pointer; }
+.tbq .tbqDots button:disabled { cursor: default; opacity: .65; }
+.tbqDots li[data-state="now"] button { background: var(--tb-yellow); border-color: #c9a227; color: var(--tb-ink); box-shadow: 0 0 0 2px #fff6bf; }
+.tbqDots li[data-state="done"] button { background: var(--tb-ok); border-color: var(--tb-ok); color: #fff; }
+.tbq .tbqQ { margin: 2px 0 0; font-size: 22px !important; line-height: 1.38; font-weight: 800; color: var(--tb-ink); }
+.tbq .tbqQ i { font-style: normal; color: var(--tb-red); margin-right: 4px; }
+.tbq .tbqHow { margin: 0; font-size: 14px !important; line-height: 1.4; color: var(--tb-soft); }
+.tbqBody { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.tbq .tbqChoice { text-align: left; border: 2px solid #d9c9aa; background: #fff; color: var(--tb-ink); border-radius: 8px; padding: 10px 12px; font-size: 16px !important; font-weight: 700; line-height: 1.38; cursor: pointer; transition: transform .08s ease, border-color .12s; }
+.tbq .tbqChoice:hover:not(:disabled) { border-color: var(--tb-red); transform: translateY(-1px); }
+.tbq .tbqChoice:disabled { cursor: default; }
+.tbq .tbqChoice[data-state="ok"] { border-color: var(--tb-ok); background: var(--tb-ok-bg); }
+.tbq .tbqChoice[data-state="no"] { border-color: var(--tb-no); background: var(--tb-no-bg); }
+.tbq .tbqChoice[data-state="dim"] { opacity: .55; }
+.tbq .tbqChoice b { display: block; font-weight: 700; }
+.tbq .tbqChoice small { display: block; margin-top: 4px; font-size: 14px !important; font-weight: 600; line-height: 1.4; color: var(--tb-soft); }
+.tbq .tbqChoice[data-state="ok"] small { color: var(--tb-ok); }
+.tbq .tbqChoice[data-state="no"] small { color: var(--tb-no); }
+.tbq .tbqFeedback { margin: 0; padding: 8px 10px; border-radius: 8px; font-size: 15px !important; font-weight: 700; line-height: 1.42; }
+.tbq .tbqFeedback.ok { background: var(--tb-ok-bg); color: var(--tb-ok); }
+.tbq .tbqFeedback.no { background: var(--tb-no-bg); color: var(--tb-no); }
+.tbq .tbqExplainBtn { align-self: flex-start; border: 2px solid var(--tb-red); background: var(--tb-paper); color: var(--tb-red); border-radius: 8px; padding: 6px 12px; font-size: 14px !important; font-weight: 800; cursor: pointer; }
+.tbq .tbqExplain { background: #fff6bf; border: 1.5px dashed #c9a227; border-radius: 8px; padding: 8px 10px; font-size: 14px !important; line-height: 1.45; }
+.tbq .tbqExplain b { display: block; color: var(--tb-red); margin-bottom: 2px; font-size: 13px !important; }
+.tbq .tbqFoot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 2px; }
+.tbq .tbqFoot button { border: 2px solid #a0281e; background: #fff6f3; color: #a0281e; border-radius: 10px; padding: 8px 16px; font-size: 16px !important; font-weight: 800; cursor: pointer; box-shadow: 0 3px 0 rgba(160,40,30,.3); }
+.tbq .tbqFoot button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+
+/* ── cat bubble ──────────────────────────────────────────────── */
+.tbCat { display: flex; align-items: flex-end; gap: 10px; min-width: 0; }
+.tbCat img { width: 56px; height: 56px; object-fit: cover; border-radius: 50%; border: 2.5px solid var(--tb-paper); background: var(--tb-paper2); box-shadow: 0 2px 6px rgba(30,15,5,.3); flex: none; }
+.tbCatBubble { position: relative; background: var(--tb-paper); color: var(--tb-ink); border-radius: 12px; padding: 9px 12px 8px; box-shadow: 0 1px 1px rgba(0,0,0,.16), 0 3px 8px rgba(30,15,5,.22); min-width: 0; animation: tbCatIn .22s ease-out both; }
+.tbCatBubble::before { content: ""; position: absolute; left: -7px; bottom: 16px; width: 12px; height: 12px; background: var(--tb-paper); transform: rotate(45deg); }
+@keyframes tbCatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tbCatBubble { animation: none; } }
+.tbCat .tbCatBubble p { margin: 0; font-size: 16px !important; line-height: 1.4; font-weight: 700; max-width: 100%; }
+.tbCatTools { display: flex; gap: 6px; margin-top: 6px; }
+.tbCat .tbCatTools button { border: 1.5px solid #cdbda0; background: var(--tb-paper2); color: var(--tb-soft); border-radius: 999px; padding: 2px 10px; font-size: 13px !important; font-weight: 800; cursor: pointer; }
+.tbCat .tbCatTools button:hover { border-color: var(--tb-red); color: var(--tb-red); }
+
+/* ── explanation demo (cursor + ring), overlay only ───────────── */
+.tbCoach { position: fixed; z-index: 400; pointer-events: none; }
+.tbCoachRing { position: absolute; inset: -6px; border: 4px solid var(--np-red, #d4473c); border-radius: 12px; box-shadow: 0 0 0 6px rgba(212,71,60,.22); animation: tbCoachPulse 1s ease-in-out infinite; }
+.tbCoachCursor { position: absolute; left: 50%; top: 50%; filter: drop-shadow(0 2px 3px rgba(0,0,0,.4)); animation: tbCoachMove 1.1s cubic-bezier(.3,.7,.3,1) both, tbCoachClick .5s 1.2s ease-in-out 2; }
+@keyframes tbCoachPulse { 50% { box-shadow: 0 0 0 12px rgba(212,71,60,.12); } }
+@keyframes tbCoachMove { from { transform: translate(180px, 140px); opacity: 0; } 20% { opacity: 1; } to { transform: translate(0, 0); opacity: 1; } }
+@keyframes tbCoachClick { 50% { transform: scale(.82); } }
+@media (prefers-reduced-motion: reduce) { .tbCoachCursor, .tbCoachRing { animation: none; } }
+
+/* ── horizontal question bar (STEP02~04): same card, laid out in a row ── */
+.tbq[data-variant="bar"] { padding: 8px 14px; flex-direction: row; align-items: center; }
+.tbq[data-variant="bar"] .tbqFlip { display: grid; grid-template-columns: 188px minmax(0, 1fr) auto; grid-template-areas: "head q act" "head how act" "head fb act"; column-gap: 16px; row-gap: 1px; align-items: center; width: 100%; }
+.tbq[data-variant="bar"] .tbqHead { grid-area: head; flex-direction: column; align-items: flex-start; gap: 4px; }
+.tbq[data-variant="bar"] .tbqDots { margin: 2px 0 0; }
+.tbq[data-variant="bar"] .tbqDots button { width: 22px; height: 22px; }
+.tbq[data-variant="bar"] .tbqQ { grid-area: q; font-size: 20px !important; line-height: 1.3; margin: 0; }
+.tbq[data-variant="bar"] .tbqHow { grid-area: how; }
+.tbq[data-variant="bar"] .tbqFeedback, .tbq[data-variant="bar"] .tbqExplain, .tbq[data-variant="bar"] .tbqExplainBtn { grid-area: fb; }
+.tbq[data-variant="bar"] .tbqFeedback { padding: 3px 8px; font-size: 14px !important; }
+.tbq[data-variant="bar"] .tbqExplain { padding: 4px 8px; }
+.tbq[data-variant="bar"] .tbqFoot { grid-area: act; margin: 0; }
+
+/* ── fit: the footer button always stays visible; the body never paints over it ── */
+.tbq .tbqBody { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.tbq .tbqFoot { flex: none; position: relative; z-index: 2; background: var(--tb-paper, #fffdf6); padding-top: 2px; }
+.tbq[data-dense="1"] { padding: 12px 14px 10px; }
+.tbq[data-dense="1"] .tbqFlip { gap: 6px; }
+.tbq[data-dense="1"] .tbqQ { font-size: 19px !important; }
+.tbq[data-dense="1"] .tbqChoice { padding: 7px 10px; font-size: 15px !important; }
+.tbq[data-dense="1"] .tbqChoice small, .tbq[data-dense="1"] .tbqFeedback { font-size: 13px !important; line-height: 1.3; }
+.tbq[data-dense="2"] { padding: 10px 12px 8px; }
+.tbq[data-dense="2"] .tbqFlip { gap: 4px; }
+.tbq[data-dense="2"] .tbqQ { font-size: 17px !important; line-height: 1.3; }
+.tbq[data-dense="2"] .tbqHow, .tbq[data-dense="2"] .tbqStep { display: none; }
+.tbq[data-dense="2"] .tbqChoice { padding: 5px 9px; font-size: 14px !important; line-height: 1.3; }
+.tbq[data-dense="2"] .tbqChoice small, .tbq[data-dense="2"] .tbqFeedback { font-size: 13px !important; line-height: 1.25; }
+.tbq[data-dense="2"] .tbqBody { gap: 4px; }

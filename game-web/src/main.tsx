@@ -1,7 +1,7 @@
 import { RefPuzzle } from "./features/wiring/RefPuzzle";
 import { DRIVER, ENGINEER, CAST } from "./game/cast";
 const VILLAIN = CAST.villain.name;
-import React, { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
@@ -1496,12 +1496,14 @@ function Overlay({
     </div>
   );
 }
+// DEV-ONLY shared answer viewer: the dynamic import sits behind a build-time constant, so production drops it entirely.
+const DevAnswerViewer = import.meta.env.DEV ? lazy(() => import("./ui/dev/DevAnswerViewer")) : null;
 function App() {
   const [state, send] = useCampaign();
   const canGoBack = ["GARAGE_L1", "GARAGE_L2", "GARAGE_L3", "GARAGE_L4", "DRIVE_BRIEFING", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR"].includes(state.scene);
   // STEP01~04 always show both history buttons in the same slot; unavailable moves are disabled, never hidden.
   const stageNav = state.scene.startsWith("GARAGE") || ["BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL"].includes(state.scene);
-  const frame = (view: React.ReactNode) => <JourneyNavigationProvider campaign={state} navigate={stage => send({ type: "NAV_STAGE", stage })}>{view}{(stageNav || canGoBack || state.forwardScene) && <nav className="stageHistoryNav" aria-label="단계 이동">{(stageNav || canGoBack) && <button className="stageBackButton" disabled={!canGoBack} onClick={() => send({ type: "NAV_BACK" })}><i>←</i><span>이전 단계</span></button>}{(stageNav || state.forwardScene) && <button className="stageForwardButton" disabled={!state.forwardScene} onClick={() => send({ type: "NAV_FORWARD" })}><span>다음 단계</span><i>→</i></button>}</nav>}<VerdictLayer /></JourneyNavigationProvider>;
+  const frame = (view: React.ReactNode) => <JourneyNavigationProvider campaign={state} navigate={stage => send({ type: "NAV_STAGE", stage })}>{view}{(stageNav || canGoBack || state.forwardScene) && <nav className="stageHistoryNav" aria-label="단계 이동">{(stageNav || canGoBack) && <button className="stageBackButton" disabled={!canGoBack} onClick={() => send({ type: "NAV_BACK" })}><i>←</i><span>이전 단계</span></button>}{(stageNav || state.forwardScene) && <button className="stageForwardButton" disabled={!state.forwardScene} onClick={() => send({ type: "NAV_FORWARD" })}><span>다음 단계</span><i>→</i></button>}</nav>}<VerdictLayer />{import.meta.env.DEV && DevAnswerViewer && <Suspense fallback={null}><DevAnswerViewer state={state} /></Suspense>}</JourneyNavigationProvider>;
   if (state.scene === "TITLE") return <Title state={state} send={send} />;
   if (state.scene === "PROLOGUE") return frame(<Prologue send={send} />);
   if (state.scene.startsWith("GARAGE"))

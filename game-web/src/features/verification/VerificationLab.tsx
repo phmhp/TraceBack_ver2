@@ -13,6 +13,11 @@ import { Icon } from "../../ui/Icon";
 import { contractStorageKey, fallbackVerificationContract, validateVerificationContract, type VerificationContract, type VerificationExecution } from "../../game/verificationContract";
 import { ReplayConfirm } from "../../ui/ReplayConfirm";
 import { CASES as TRACE_CASES } from "../board/DominoTrace";
+import { CatSay } from "../../ui/CatSay";
+import { useDevAnswerCurrent } from "../../ui/dev/devAnswerStore";
+import { useCoach } from "../../ui/CoachCursor";
+import { canExplain } from "../garage/garageProgress.ts";
+import "./step04-v3.css";
 
 type Send = React.Dispatch<any>;
 type ProbeId = "input" | "control" | "output";
@@ -1489,6 +1494,10 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [answers, setAnswers] = useState<Record<string, { answer: Answer; why: string; evidence: string }>>(savedProgress.answers ?? {});
   const [cost, setCost] = useState<number>(savedProgress.cost ?? 0);
   const [mistakes, setMistakes] = useState<number>(savedProgress.mistakes ?? 0);
+  // wrong answers per question (saved with the stage progress): the explanation opens after 2 on the same question
+  const [wrongBy, setWrongBy] = useState<Record<string, number>>(savedProgress.wrongBy ?? {});
+  const bump = (key: string) => setWrongBy(previous => ({ ...previous, [key]: (previous[key] ?? 0) + 1 }));
+  const coachDemo = useCoach();
   const [fix, setFix] = useState<number | null>(savedProgress.fix ?? null);
   const [viewTab, setViewTab] = useState<"sw" | "ecu" | "plant" | "graph">(savedProgress.viewTab ?? requestedView);
   const [bubble, setBubble] = useState(savedProgress.bubble ?? `${DRIVER_NAME}의 질문에 시험 결과로 답하세요. 시험 수준과 입력 조건을 고르고 '시험 실행'을 누르세요.`);
@@ -1592,7 +1601,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     { label: "입력 유지 시간", value: activeContract.execution.stimulus.holdSeconds, unit: "s" },
   ];
   const observationGoal = hypothesisSignals.length ? hypothesisSignals.join(" · ") : contract.observations.map(item => item.label).join(" · ");
-  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ qi, phase, level, u, runs, seen, answers, cost, mistakes, fix, viewTab, bubble, pickedDeriv, show3d, runLog, held, cause, abDone })); } catch { /* ignore */ } }, [qi, phase, level, u, runs, seen, answers, cost, mistakes, fix, viewTab, bubble, pickedDeriv, show3d, runLog, held, cause, abDone, progressKey]);
+  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ qi, phase, level, u, runs, seen, answers, cost, mistakes, fix, viewTab, bubble, pickedDeriv, show3d, runLog, held, cause, abDone, wrongBy })); } catch { /* ignore */ } }, [qi, phase, level, u, runs, seen, answers, cost, mistakes, fix, viewTab, bubble, pickedDeriv, show3d, runLog, held, cause, abDone, wrongBy, progressKey]);
   const resetStage = () => { setQi(0); setPhase("pick"); setLevel(requestedLevel); setU(0); setRunning(false); setRuns({}); setSeen({ tc: false, log: false }); setAnswers({}); setCost(0); setMistakes(0); setFix(null); setViewTab(requestedView); setPickedDeriv(null); setShow3d("run"); setHeld({}); setFeedback(null); setCause(null); setAbDone(false); setBubble(`${DRIVER_NAME}의 질문에 시험 결과로 답하세요. 시험 수준과 입력 조건을 고르고 '시험 실행'을 누르세요.`); try { sessionStorage.removeItem(progressKey); } catch { /* ignore */ } };
 
   // choosing a test level = choosing its simulation view; every level keeps its own result
@@ -1645,7 +1654,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     if (!lastRun || !q) return;
     const keyAns = judgeRun(caseId, { level: lastRun.level, fixed: false, obs: lastRun.obs, exercised: lastRun.exercised }).find(item => item.id === q.hyp)!;
     if (pick !== keyAns.verdict) {
-      setMistakes(n => n + 1); showVerdict(false);
+      setMistakes(n => n + 1); bump(`judge:${q.hyp}:${lastRun.level}`); showVerdict(false);
       const text = keyAns.verdict === "open" ? (lastRun.exercised === false ? NOT_EXERCISED_WHY : `이 시험만으로는 가를 수 없어요. ${PREDICT[q.hyp] ?? ""}`) : `다시 비교해 보세요. ${keyAns.why}`;
       setFeedback({ ok: false, text }); setBubble(text);
       return;
@@ -1699,7 +1708,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const pickFix = (i: number) => {
     setFix(i);
     const item = FIXES[caseId][i];
-    if (!item.ok) { setMistakes(n => n + 1); setBubble(item.why); showVerdict(false); return; }
+    if (!item.ok) { setMistakes(n => n + 1); bump("fix"); setBubble(item.why); showVerdict(false); return; }
     showVerdict(true, "조치 요청"); setBubble(`${item.why} 같은 시험으로 다시 확인하세요.`);
     const expectedProgram = caseId === "propulsion" ? "nominal" : caseId === "thermal" ? "thermal_closed_loop" : "blended_brake";
     if (state.program[caseId] !== expectedProgram) send({ type: "COMPILE", program: expectedProgram });
@@ -1726,6 +1735,8 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const realChips = <span className="qaReal"><i className="on">SW 실물</i><i className={ecuReal ? "on" : ""}>제어기 {ecuReal ? "실물" : "없음"}</i><i className={plantReal ? "on" : ""}>부품·차량 {plantReal ? "실물" : "모델"}</i></span>;
 
   const coach = state.completedCases.length ? "" : phase === "lab" && !shown ? "run" : phase === "lab" ? "answer" : "";
+  // DEV-only answer for the question on screen (read-only)
+  import.meta.env.DEV && useDevAnswerCurrent({ stage: `STEP04 · ${phase}`, question: phase === "lab" && shown ? "시험 결과가 선택한 고장 원인 가설을 뒷받침합니까?" : ({ pick: "고장 원인 가설을 고르세요", lab: "시험 입력·수준을 고르고 실행하세요", report: "시험 결과 보고", ab: "A/B 비교", repair: "수리 적용", retest: "수리한 SW로 같은 조건을 재시험하세요", done: "정상 범위 확인 완료" } as Record<string, string>)[phase] ?? phase, rows: phase === "lab" && shown && lastRun && q ? (() => { const j = judgeRun(caseId, { level: lastRun.level, fixed: false, obs: lastRun.obs, exercised: lastRun.exercised }).find(item => item.id === q.hyp); return [{ k: "가설", v: meta.hypotheses.find(h => h.id === q.hyp)?.label ?? q.hyp }, { k: "정답", v: j ? `${ANSWER_BTN[j.verdict as Answer][0]} — ${j.why}` : "판정 없음", tone: "ok" as const }]; })() : [{ k: "원인 가설(참)", v: meta.hypotheses.find(h => h.truth)?.label ?? "", tone: "ok" as const }] });
   return <div className="vbBench v7 qa qa2" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="검증" title="시뮬레이션 검증" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
@@ -1904,6 +1915,11 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               {(() => {
                 const matBtn = (kind: "tc" | "log", label: string) => <button key={kind} className={`qaChoice ${seen[kind] ? "on" : ""}`} onClick={() => openMaterial(kind)}>{seen[kind] ? "✓ " : ""}{label}</button>;
                 let question = "", sub = "", choices: React.ReactNode = null;
+                const qKey = phase === "lab" && shown ? `judge:${q?.hyp}:${lastRun?.level}` : phase;
+                const qWrong = wrongBy[qKey] ?? 0;
+                const correctJudge = phase === "lab" && shown && lastRun && q ? judgeRun(caseId, { level: lastRun.level, fixed: false, obs: lastRun.obs, exercised: lastRun.exercised }).find(item => item.id === q.hyp) : undefined;
+                const explainJudge = correctJudge ? `${ANSWER_BTN[correctJudge.verdict as Answer][0]} — ${correctJudge.why || "이 시험에서 볼 수 있는 신호로는 가를 수 없어요."}` : "";
+                const qExplain = qWrong >= 2 && correctJudge ? <button type="button" className="qaExplainBtn" onClick={() => { setBubble(explainJudge); coachDemo.show(document.querySelector(`.qaChoice.ans-${correctJudge.verdict}`)); }}>해설 보기</button> : null;
                 if (!contractReady) { question = "시험 설계서를 불러올 수 없어요"; sub = "STEP03에서 테스트 설계서를 다시 발급하세요."; }
                 else if (phase === "lab" && running) { question = "시험을 실행하고 있어요"; sub = "정상 기준과 같은 입력이 고장 모델에도 들어갑니다."; }
                 else if (phase === "lab" && shown) {
@@ -1922,17 +1938,17 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
                   question = "수리한 SW로 같은 조건을 다시 시험할까요?"; sub = shown ? "아직 정상 범위를 벗어난 신호가 있어요. 오른쪽 표를 확인하고 다시 실행하세요." : "초기 조건과 입력은 처음 시험과 같습니다.";
                   choices = <button className="vbGo qaChoice qaRunButton" disabled={running} onClick={run}>▶ 동일 조건 기준선 비교 실행</button>;
                 } else { question = "정상 범위를 확인했어요"; sub = "정상 범위 충족 여부 표시됨 · 아래 안내에서 수리 적용 후 주행으로 복귀하세요."; }
-                return <><div className={`qaQuestion ${feedback ? feedback.ok ? "fb-ok" : "fb-bad" : ""}`}><small>{phase === "lab" && shown ? "원인 판정" : phase === "lab" && !materialsReady ? "시험 자료 확인" : phase === "lab" && needsInputPick ? "입력 조건" : phase === "retest" ? "재시험" : "시험"}</small><b>{question}</b><span>{sub}</span></div><div className="qaChoices" role="group" aria-label="선택지">{choices}</div></>;
+                return <><div className={`qaQuestion ${feedback ? feedback.ok ? "fb-ok" : "fb-bad" : ""}`}><small><span className="qaMission">MISSION 04</span> {phase === "lab" && shown ? "원인 판정" : phase === "lab" && !materialsReady ? "시험 자료 확인" : phase === "lab" && needsInputPick ? "입력 조건" : phase === "retest" ? "재시험" : "시험"}</small><b><i className="qaQ">Q.</i> {question}</b><span>{sub}</span>{qExplain}</div><div className="qaChoices" role="group" aria-label="선택지">{choices}</div></>;
               })()}
             </section>
           </section>}
     </main>
     <footer className="qaCatDock" aria-live="polite" aria-label="안내">
-      <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />
-      <p><b>{ENGINEER}</b><span className="qaCatAct">{numify(guidance)}</span>{!bubble.startsWith(`${DRIVER_NAME}의 질문에 시험 결과로`) && <small className="qaCatNote">{numify(bubble)}</small>}</p>
+      <CatSay lines={[guidance, !bubble.startsWith(`${DRIVER_NAME}의 질문에 시험 결과로`) ? bubble : ""].filter(Boolean)} resetKey={guidance + "|" + bubble} />
       {phase === "done" && <button className="qaFinishBtn stageProgressAction" onClick={finish}>수리 적용 · 주행 복귀 →</button>}
     </footer>
-    <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
+    {coachDemo.overlay}
+    {import.meta.env.DEV && <button className="secretSolve" title="개발용: 정답을 실제로 적용(상태 변경)" onClick={reveal}>정답 적용</button>}
     {replayOpen && <ReplayConfirm onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); resetStage(); }} />}
   </div>;
 }

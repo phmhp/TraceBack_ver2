@@ -1,0 +1,121 @@
+/* STEP01 v3 layout (design canvas 1600×900). New class names only (g3*); the 3D / E-E / SW viewers and the
+   footer flow panel keep their existing leaf styles. Text floors: body 16 / secondary 14 / label 13. */
+.garageV3 .g3Body {
+  position: absolute; left: 18px; right: 16px; top: 142px; bottom: 14px; z-index: 10;
+  display: grid; grid-template-columns: minmax(0, 1fr) 380px; grid-template-rows: 44px 52px minmax(0, 1fr) 122px; gap: 10px;
+}
+/* domain strip (what the function group is) */
+.garageV3 .g3Domains { grid-column: 1 / 3; grid-row: 1; display: flex; gap: 6px; min-width: 0; }
+.garageV3 .g3Dom { flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: 22px 1fr; grid-template-rows: auto auto; column-gap: 6px; align-items: center; text-align: left; padding: 2px 10px; border: 2px solid #d8c8a8; border-radius: 6px; background: var(--np-paper, #fffdf6); color: var(--np-ink, #33291f); cursor: pointer; box-shadow: 0 1px 1px rgba(0,0,0,.14), 0 3px 6px rgba(30,15,5,.16); }
+.garageV3 .g3Dom > :first-child { grid-row: 1 / 3; width: 22px; height: 22px; }
+.garageV3 .g3Dom b { font-size: 15px !important; font-weight: 800; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.garageV3 .g3Dom small { font-size: 13px !important; font-weight: 700; color: var(--np-soft, #7b6a5c); line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.garageV3 .g3Dom.on { background: var(--np-yellow, #ffdf5e); border-color: #c9a227; }
+.garageV3 .g3Dom:hover:not(.on) { border-color: var(--np-red, #d4473c); }
+/* function chips + lens segment (two different controls, two different shapes) */
+.garageV3 .g3Bar { grid-column: 1; grid-row: 2; display: flex; align-items: stretch; justify-content: space-between; gap: 14px; min-width: 0; }
+.garageV3 .g3BarLabel { align-self: center; font-size: 13px !important; font-weight: 800; letter-spacing: .08em; color: var(--np-red, #d4473c); margin-right: 2px; white-space: nowrap; text-shadow: 0 1px 0 #fffdf6, 0 0 6px #fffdf6; }
+.garageV3 .g3Funcs { display: flex; gap: 6px; min-width: 0; flex: 1 1 auto; }
+.garageV3 .g3BarHint { align-self: center; font-style: normal; font-size: 14px !important; font-weight: 700; color: var(--np-ink, #33291f); background: #fffdf6e8; border-radius: 6px; padding: 4px 8px; }
+.garageV3 .g3Func { flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: 24px 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center; text-align: left; padding: 3px 10px 3px 6px; border: 2px solid #d8c8a8; border-radius: 26px; background: var(--np-paper, #fffdf6); color: var(--np-ink, #33291f); cursor: pointer; box-shadow: 0 1px 1px rgba(0,0,0,.14), 0 3px 6px rgba(30,15,5,.16); }
+.garageV3 .g3Func i { grid-row: 1 / 3; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 14px !important; font-weight: 800; background: var(--np-paper-2, #f8f1e3); border: 1.5px solid #cdbda0; color: var(--np-soft, #7b6a5c); }
+.garageV3 .g3Func b { font-size: 14px !important; font-weight: 800; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.garageV3 .g3Func small { font-size: 13px !important; font-weight: 700; line-height: 1.1; color: var(--np-soft, #7b6a5c); }
+.garageV3 .g3Func[aria-pressed="true"] { background: var(--np-yellow, #ffdf5e); border-color: #c9a227; }
+.garageV3 .g3Func[data-state="done"] i { background: #2f7d4f; border-color: #2f7d4f; color: #fff; }
+.garageV3 .g3Func[data-state="done"] small { color: #2f7d4f; }
+.garageV3 .g3Func[data-state="open"] small, .garageV3 .g3Func[data-state="part"] small { color: var(--np-red, #d4473c); }
+.garageV3 .g3Func[data-state="info"] { background: #f3eee3; }
+.garageV3 .g3Lens { display: flex; align-items: center; gap: 0; flex: none; }
+.garageV3 .g3LensBtn { height: 44px; padding: 0 14px; border: 2px solid #8b7a66; background: var(--np-paper, #fffdf6); color: var(--np-ink, #33291f); font-size: 15px !important; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.garageV3 .g3LensBtn:first-of-type { border-radius: 8px 0 0 8px; }
+.garageV3 .g3LensBtn:last-of-type { border-radius: 0 8px 8px 0; }
+.garageV3 .g3LensBtn + .g3LensBtn { border-left-width: 0; }
+.garageV3 .g3LensBtn[aria-pressed="true"] { background: #4d3b2c; color: #fff; border-color: #4d3b2c; }
+.garageV3 .g3LensBtn[data-done="true"]:not([aria-pressed="true"]) { color: #2f7d4f; }
+.garageV3 .g3LensBtn[data-locked="true"] { opacity: .5; cursor: not-allowed; }
+/* stage */
+.garageV3 .g3Stage { grid-column: 1; grid-row: 3; min-height: 0; position: relative; }
+.garageV3 .g3Crumb { position: absolute; left: 10px; top: 8px; z-index: 6; background: #fffdf6e8; border-radius: 6px; padding: 3px 8px; }
+.garageV3 .g3Crumb small { font-size: 13px !important; font-weight: 800; color: var(--np-red, #d4473c); }
+.garageV3 .g3Toast { position: absolute; z-index: 12; left: 50%; bottom: 62px; transform: translateX(-50%); max-width: 86%; padding: 8px 14px; border-radius: 10px; font-size: 16px !important; font-weight: 800; line-height: 1.35; box-shadow: 0 4px 14px rgba(30,15,5,.3); animation: g3ToastIn .2s ease-out both; pointer-events: none; }
+.garageV3 .g3Toast.ok { background: #e6f3ea; color: #2f7d4f; border: 2px solid #2f7d4f; }
+.garageV3 .g3Toast.no { background: #fbe8e4; color: #a8352b; border: 2px solid #a8352b; }
+@keyframes g3ToastIn { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+/* mission column */
+.garageV3 .g3Mission { grid-column: 2; grid-row: 2 / 4; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.garageV3 .g3Mission > .tbq { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.garageV3 .g3Plain { gap: 10px; }
+.garageV3 .g3Plain .tbqQ { margin-top: 6px; }
+.garageV3 .g3Mission .g3Note { margin: 0; font-size: 14px !important; line-height: 1.5; color: var(--np-soft, #7b6a5c); }
+.garageV3 .g3Mission .g3PickHint { margin: 0; padding: 8px 10px; border-radius: 8px; background: #fff6bf; border: 1.5px dashed #c9a227; font-size: 15px !important; font-weight: 700; line-height: 1.42; }
+.garageV3 .g3PickHint[data-ready="true"] { background: #e6f3ea; border-color: #2f7d4f; color: #2f7d4f; }
+.garageV3 .g3CatSlot { flex: none; min-height: 84px; }
+/* footer keeps the existing flow panel (garageFooterRow) */
+.garageV3 .garageFooterRow { grid-column: 1 / 3; grid-row: 4; }
+.garageV3 .garageProceed:disabled { opacity: .72; cursor: not-allowed; filter: grayscale(.25); }
+/* the folder line no longer needs room for the old left lens column */
+.garageV2.garageV3 .garageStageFolder { left: 16px; right: 16px; }
+
+/* hub (nothing selected): no empty info panel — the whole vehicle gets the space, only the locked "next" button stays */
+.garageV3 .g3Hub .g3Stage { grid-row: 3 / 5; }
+.garageV3 .g3Hub .garageFooterRow { pointer-events: none; z-index: 14; }
+.garageV3 .g3Hub .garageFooterRow > .garageFlowPanel { display: none !important; } /* the old empty "신호 흐름" box (legacy rules force display) */
+.garageV3 .g3Hub .garageFooterRow > .garageProceed { pointer-events: auto; grid-column: 2; }
+
+/* E/E step card: logical signal (name, unit, kind) vs physical connection, sender → receiver; registry vs structure-only */
+.garageV3 .flowStepBody .eeUnit { font-weight: 700; color: var(--np-soft, #7b6a5c); }
+.garageV3 .flowStepBody .fsIn em, .garageV3 .flowStepBody .fsOut em { display: block; font-size: 13px !important; line-height: 1.25; font-style: normal; }
+.garageV3 .flowStepBody .eeHopRoute { font-size: 13px !important; font-weight: 800; color: #2f7d4f; background: #e6f3ea; border-radius: 999px; padding: 1px 8px; display: block; width: fit-content; font-style: normal; margin-top: 2px; }
+.garageV3 .flowStepBody .eeHopRoute.structure { color: var(--np-soft, #7b6a5c); background: var(--np-paper-2, #f8f1e3); }
+
+/* Control SW five-part panel (Input / Parameter / State / Decision / Output) replaces the flow panel in the SW view */
+.garageV3 .g3Body.g3SwTall { grid-template-rows: 44px 52px minmax(0, 1fr) 176px; }
+.garageV3 .g3SwPanel { grid-column: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; background: var(--np-paper, #fffdf6); border-radius: 6px; padding: 8px 10px 6px; box-shadow: 0 1px 1px rgba(0,0,0,.16), 0 4px 6px rgba(30,15,5,.2); }
+.garageV3 .g3SwCols { flex: 1; display: grid; grid-template-columns: 1.2fr 1fr .9fr 1.2fr 1fr; gap: 8px; min-height: 0; }
+.garageV3 .g3SwCol { min-width: 0; border-radius: 6px; background: var(--np-paper-2, #f8f1e3); padding: 4px 8px 6px; border-top: 4px solid #8b7a66; overflow: hidden; }
+.garageV3 .g3SwCol[data-col="input"] { border-top-color: #4d90a7; } .garageV3 .g3SwCol[data-col="parameter"] { border-top-color: #8b8f89; }
+.garageV3 .g3SwCol[data-col="state"] { border-top-color: #c9a227; } .garageV3 .g3SwCol[data-col="decision"] { border-top-color: #8b73ad; } .garageV3 .g3SwCol[data-col="output"] { border-top-color: #e78755; }
+.garageV3 .g3SwCol h3 { margin: 0 0 2px; font-size: 13px !important; color: var(--np-soft, #7b6a5c); font-weight: 700; }
+.garageV3 .g3SwCol h3 b { color: var(--np-ink, #33291f); font-weight: 800; font-size: 14px !important; }
+.garageV3 .g3SwCol ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.garageV3 .g3SwChip { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; font-size: 13px !important; line-height: 1.25; }
+.garageV3 .g3SwChip span { color: var(--np-soft, #7b6a5c); font-weight: 700; }
+.garageV3 .g3SwChip b { color: var(--np-ink, #33291f); font-weight: 800; font-size: 14px !important; }
+.garageV3 .g3SwChip small { flex-basis: 100%; font-size: 13px !important; color: var(--np-soft, #7b6a5c); }
+.garageV3 .g3SwChip i { font-style: normal; font-size: 13px !important; font-weight: 800; color: #8a5a00; background: #fff1b8; border-radius: 999px; padding: 0 6px; }
+.garageV3 .g3SwChip[data-kind="rule"] b { font-style: italic; }
+.garageV3 .g3SwSlider label { display: flex; justify-content: space-between; font-size: 13px !important; font-weight: 700; color: var(--np-soft, #7b6a5c); }
+.garageV3 .g3SwSlider label b { color: var(--np-ink, #33291f); font-size: 14px !important; }
+.garageV3 .g3SwSlider input { width: 100%; accent-color: #d4473c; margin: 0; }
+.garageV3 .g3SwToggle { border: 1.5px solid #cdbda0; background: #fff; border-radius: 999px; padding: 1px 10px; font-size: 13px !important; font-weight: 800; cursor: pointer; }
+.garageV3 .g3SwToggle[aria-pressed="true"] { background: #e6f3ea; border-color: #2f7d4f; color: #2f7d4f; }
+.garageV3 .g3SwNote { margin: 4px 0 0; font-size: 13px !important; color: var(--np-soft, #7b6a5c); line-height: 1.25; }
+
+/* hub integration missions */
+.garageV3 .g3Mission .g3Cross { list-style: none; margin: 0; padding: 6px 8px; background: var(--np-paper-2, #f8f1e3); border-radius: 8px; display: flex; flex-direction: column; gap: 3px; }
+.garageV3 .g3Mission .g3Cross li { font-size: 13px !important; line-height: 1.3; color: var(--np-ink, #33291f); }
+.garageV3 .g3Mission .g3Cross em { display: block; font-style: normal; font-weight: 800; color: #2f7d4f; }
+.garageV3 .g3Mission .g3Cmp { background: var(--np-paper-2, #f8f1e3); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; gap: 6px; }
+.garageV3 .g3Mission .g3CmpTabs { display: flex; gap: 4px; }
+.garageV3 .g3Mission .g3CmpTabs button, .garageV3 .g3Mission .g3CmpSwitch button { flex: 1; border: 1.5px solid #cdbda0; background: #fff; border-radius: 999px; padding: 3px 6px; font-size: 13px !important; font-weight: 800; cursor: pointer; color: var(--np-ink, #33291f); }
+.garageV3 .g3Mission .g3CmpTabs button[aria-selected="true"], .garageV3 .g3Mission .g3CmpSwitch button[aria-pressed="true"] { background: var(--np-yellow, #ffdf5e); border-color: #c9a227; }
+.garageV3 .g3Mission .g3CmpSwitch { display: flex; gap: 4px; }
+.garageV3 .g3Mission .g3CmpVal { margin: 0; font-size: 15px !important; font-weight: 800; line-height: 1.35; }
+.garageV3 .g3Mission .g3CmpVal[data-on="false"] { color: #a8352b; }
+.garageV3 .g3Mission .g3CmpVal small { display: block; font-size: 13px !important; font-weight: 700; color: var(--np-soft, #7b6a5c); }
+.garageV3 .g3Mission .g3Path { display: flex; flex-direction: column; gap: 8px; }
+.garageV3 .g3Mission .g3PathDone { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 0; padding: 0; min-height: 24px; }
+.garageV3 .g3Mission .g3PathDone li { background: #e6f3ea; border: 1.5px solid #2f7d4f; border-radius: 999px; padding: 1px 8px; font-size: 13px !important; color: #2f7d4f; }
+.garageV3 .g3Mission .g3PathDone small { margin-left: 4px; }
+.garageV3 .g3Mission .g3PathChips { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.garageV3 .g3Mission .g3PathChips .tbqChoice { padding: 6px 8px; }
+/* STEP01 clear summary */
+.garageV3 .g3Mission .g3Clear { display: flex; flex-direction: column; gap: 6px; font-size: 14px !important; line-height: 1.4; }
+.garageV3 .g3Mission .g3Clear h3 { margin: 0; font-size: 13px !important; color: var(--np-red, #d4473c); }
+.garageV3 .g3Mission .g3Clear ul { margin: 0; padding-left: 18px; }
+.garageV3 .g3Mission .g3Clear li { margin: 2px 0; }
+
+.garageV3 .g3HubMission .tbq .tbqChoice { padding: 6px 10px; }
+.garageV3 .g3HubMission .tbq .tbqQ { font-size: 19px !important; }
+.garageV3 .g3HubMission .tbq .tbqChoice b { font-size: 15px !important; }

@@ -21,6 +21,12 @@ import { DRIVER, DUO, ENGINEER } from "./game/cast";
 import { Icon, type IconName } from "./ui/Icon";
 import { CAR_CONTACT, TRACK_LENGTH, resetTrafficStall, stallTraffic, trafficStateFor } from "./game/traffic";
 import { StageIntro } from "./ui/Verdict";
+import { MissionPanel, StageBar, domainProgress, type PickEvent, type StageFeedback } from "./features/garage/MissionPanel";
+import { coreQuestionIds, initialGarageProgress, isCoreComplete } from "./features/garage/garageProgress";
+import type { Lens } from "./features/garage/missions";
+import { eeHops, type EeHop } from "./features/garage/eeLinks.ts";
+import { SwPanel } from "./features/garage/SwPanel";
+import { hasSwView } from "./features/garage/swModel.ts";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
 
@@ -688,6 +694,7 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
   const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "grid" : "one");
   const [inspect, setInspect] = useState<number | null>(null);
   useEffect(() => setInspect(null), [domain, feature, level]);
+  useEffect(() => { const close = () => setInspect(null); window.addEventListener("tb-garage-close-inspector", close); return () => window.removeEventListener("tb-garage-close-inspector", close); }, []);
   const allDomains = view3d !== "one";
   const sourceLevel = garageLayerSource[level] ?? 3;
   const vehicleChain = getFeatureLayer(domain, feature, 1);
@@ -795,7 +802,7 @@ const ROLE_DOES: Record<PartRole, (out: string) => string> = {
   result: out => `차량 거동으로 나타남: ‘${out}’`,
 };
 
-function FlowStepCard({ chain, signals, step, onStep }: { chain: string[]; signals: string[]; step: number; onStep: (index: number) => void }) {
+function FlowStepCard({ chain, signals, step, onStep, links }: { chain: string[]; signals: string[]; step: number; onStep: (index: number) => void; links?: (EeHop | undefined)[] }) {
   const [auto, setAuto] = useState(false);
   useEffect(() => {
     if (!auto) return;
@@ -815,11 +822,19 @@ function FlowStepCard({ chain, signals, step, onStep }: { chain: string[]; signa
       </div>
     </div>
     <div className="flowStepBody">
-      <div className="fsIn"><small>받는 값</small><b>{input}</b>{step > 0 && <em>{unitOf(input)}</em>}</div>
-      <i>→</i>
-      <div className="fsDo"><small>하는 일</small><b>{ROLE_DOES[role](output)}</b></div>
-      <i>→</i>
-      <div className={`fsOut ${step === chain.length - 1 ? "final" : ""}`}><small>{step === chain.length - 1 ? "최종 출력" : "보내는 값"}</small><b>{output}</b><em>{unitOf(output)}</em></div>
+      {(() => {
+        const hopIn = step > 0 ? links?.[step - 1] : undefined, hopOut = links?.[step];
+        const cell = (hop: EeHop | undefined, fallback: string, fallbackUnit: string) => hop
+          ? <><b>{hop.signal} <span className="eeUnit">({hop.unit})</span></b><em>논리 {hop.logical} · 물리 {hop.physical}</em></>
+          : <><b>{fallback}</b>{fallbackUnit && <em>{fallbackUnit}</em>}</>;
+        return <>
+          <div className="fsIn"><small>받는 값</small>{step === 0 && !hopIn ? <b>{input}</b> : cell(hopIn, input, step > 0 ? unitOf(input) : "")}</div>
+          <i>→</i>
+          <div className="fsDo"><small>하는 일</small><b>{ROLE_DOES[role](output)}</b>{links?.[step] && <em className={`eeHopRoute ${links[step]!.source}`}>송신 {links[step]!.sender} → 수신 {links[step]!.receiver} · {links[step]!.source === "structure" ? "구조 설명" : "신호 레지스트리"}</em>}</div>
+          <i>→</i>
+          <div className={`fsOut ${step === chain.length - 1 ? "final" : ""}`}><small>{step === chain.length - 1 ? "최종 출력" : "보내는 값"}</small>{cell(hopOut, output, unitOf(output))}</div>
+        </>;
+      })()}
     </div>
   </div>;
 }
@@ -1035,7 +1050,15 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     const timer = window.setInterval(() => setActiveStep(value => (value + 1) % flowLength), 1450);
     return () => window.clearInterval(timer);
   }, [domain, feature, routeLevel]);
-  return <div className="garageV2">
+  // STEP01 missions: progress is saved in Campaign.garage; the 3D/E-E views report picks through registerPick.
+  const garage = state.garage ?? initialGarageProgress();
+  const garageCleared = garage.cleared || isCoreComplete(garage);
+  const coreLeft = coreQuestionIds().filter(id => !garage.solved.includes(id)).length;
+  const [pickEvent, setPickEvent] = useState<PickEvent | null>(null);
+  const [stageFeedback, setStageFeedback] = useState<StageFeedback>(null);
+  const registerPick = (lens: Lens, index: number) => { const label = getFeatureLayer(domain, feature, 1)[index]; if (label) setPickEvent(previous => ({ lens, label, n: (previous?.n ?? 0) + 1 })); };
+  useEffect(() => { if (!stageFeedback) return; const timer = window.setTimeout(() => setStageFeedback(null), 4200); return () => window.clearTimeout(timer); }, [stageFeedback]);
+  return <div className="garageV2 garageV3">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
     <GameHeader chapter="정비소" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <StageFolderSubtitle className="garageStageFolder" action="차량 기능이 어떤 부품과 신호를 거쳐 동작하는지 확인하세요." detail={<>학습 대상: {chosen ? content.label : "전체 도메인"} <i>|</i> Vehicle/System · E/E · Control SW</>} />
@@ -1044,21 +1067,16 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       { icon: "layers", text: "왼쪽 세 관점으로 같은 기능을 비교하기 (부품 · E/E 연결 · Control SW)" },
       { icon: "signal", text: "입력 부품을 길게 눌러 신호가 한 단계씩 전달되는 과정 보기" },
     ]} />
-    <nav className="garageLayerNav" aria-label="설계 추상화 단계">
-      <small className="viewAxisLabel">같은 기능, 세 관점</small>
-      <div className="garageViewTools">
-        <div className="garageViewContext"><b>{routeLevel === 0 ? "기계 동작 흐름 시각화" : routeLevel === 1 ? "하드웨어·소프트웨어 연결 시각화" : "ECU 내부 SW 로직"}</b><span>{routeLevel === 0 ? "차량 부품의 위치와 작동 경로" : routeLevel === 1 ? "센서·ECU·통신 경로를 확인합니다" : "입력 조건부터 제어 출력까지 확인합니다"}</span></div>
-      </div>
-      {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={`${routeLevel === index ? "active" : ""} ${!chosen && index > 0 ? "needsDomain" : ""}`} title={!chosen && index > 0 ? "도메인을 먼저 고르면 열려요" : ""}>
-        <span>{String(index + 1).padStart(2, "0")}</span><b>{layer.name}</b><small>{!chosen && index > 0 ? "도메인을 고르면 열려요" : layer.tag}</small>
-      </button>)}
-    </nav>
-    <main className="garageStudio">
-      <nav className="domainTabs"><button className={`allDomains ${!chosen ? "active" : ""}`} onClick={showAllDomains}><span><Icon name="car" /></span><b>전체보기</b><small>차량 전체</small></button>{(Object.keys(domainContent) as DomainId[]).map(id => { const learned = Array.from(completedLessons).some(key => key.startsWith(`${id}-`)); return <button key={id} className={`${chosen && domain === id ? "active" : ""} ${learned ? "learned" : ""}`} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span><Icon name={DOMAIN_ICON[id]} /></span><b>{domainContent[id].label}</b><small>{learned ? "✓ 정상 동작 확인" : DOMAIN_GROUP[id]}</small></button>; })}</nav>
-      <section className="garageMechanismCard">
-        {chosen ? <header className="garageVizTag"><small>{learningLayers[routeLevel].name} › {content.label} › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
-          : <header className="garageVizTag"><small>{learningLayers[routeLevel].name} › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "E/E와 Control SW는 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위 탭에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레이어로 같은 기능을 다른 관점에서 봅니다."}</p></header>}
-        <MechanismViewer key={chosen ? "domain" : "all"} inputOn={signalVisible} eeLayer={eeLayer} onEeLayerChange={layer => { setEeLayer(layer); play("pop"); }} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} selectedVehiclePart={selectedVehiclePart} onVehiclePartSelect={index => { setSelectedVehiclePart(index); setActiveStep(index); play("pop"); }} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
+    <main className={`g3Body ${chosen ? "" : "g3Hub"} ${chosen && routeLevel === 2 && hasSwView(domain, feature) ? "g3SwTall" : ""}`}>
+      <nav className="g3Domains" aria-label="도메인 선택">
+        <button type="button" className={`g3Dom ${!chosen ? "on" : ""}`} onClick={showAllDomains}><Icon name="car" /><b>전체보기</b><small>차량 전체</small></button>
+        {(Object.keys(domainContent) as DomainId[]).map(id => { const progress = domainProgress(garage, id); return <button type="button" key={id} className={`g3Dom ${chosen && domain === id ? "on" : ""}`} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><Icon name={DOMAIN_ICON[id]} /><b>{domainContent[id].label}</b><small>{progress.total ? (progress.solved === progress.total ? "✓ 미션 완료" : `미션 ${progress.solved}/${progress.total}`) : DOMAIN_GROUP[id]}</small></button>; })}
+      </nav>
+      <StageBar domain={domain} domainLabel={content.label} functions={content.functions} feature={feature} onFeature={setFeature} lens={routeLevel as Lens} onLens={selectLevel} progress={garage} chosen={chosen} />
+      <section className="garageMechanismCard g3Stage">
+        <header className="garageVizTag g3Crumb"><small>{learningLayers[routeLevel].name} › {chosen ? `${content.label} › ${content.functions[feature]}` : "전체 도메인"}</small></header>
+        {stageFeedback && <div className={`g3Toast ${stageFeedback.ok ? "ok" : "no"}`} role="status">{stageFeedback.ok ? "✓ " : "✗ "}{stageFeedback.text}</div>}
+        <MechanismViewer key={chosen ? "domain" : "all"} inputOn={signalVisible} eeLayer={eeLayer} onEeLayerChange={layer => { setEeLayer(layer); play("pop"); }} noDomain={!chosen} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} selectedVehiclePart={selectedVehiclePart} onVehiclePartSelect={index => { setSelectedVehiclePart(index); setActiveStep(index); registerPick(0, index); play("pop"); }} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); registerPick(1, index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {chosen && <div className="inputBar" aria-label="입력 넣기">
           <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (inputSelected ? "입력이 선택됨 · 다음 스텝으로 신호를 관찰하세요" : cleared ? NORMAL_RESPONSE[domain] : missing.length ? `${conds.size ? "준비 중" : "차량 OFF"} · ${missing[0].label}부터 켜세요` : READY_RESPONSE[domain])}</p>
@@ -1110,18 +1128,13 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
           </div>;
         })()}
       </section>
-      {!chosen && <aside className="domainFunctionShelf"><small>주요 기능</small><h2>도메인을 골라 보세요</h2><div className="functionNote"><b>주요 기능</b><p>위 탭에서 도메인을 고르면 그 도메인의 주요 기능과 신호 흐름이 여기에 나와요.</p></div></aside>}
-      {!chosen && <div className="garageFooterRow"><section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → ECU → 출력 순서가 여기에 나와요.</b><div /></section><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "START_RACE" })}>다음 →</button></div>}
-      {chosen && <aside className="domainFunctionShelf">
-        <small>주요 기능</small><h2>{content.label}의 주요 기능</h2>
-        {content.functions.map((item, index) => <button key={item} className={feature === index ? "active" : ""} onClick={() => setFeature(index)}><span>{index + 1}</span><b>{item}</b><i>›</i></button>)}
-        <div className="functionNote"><b>{content.functions[feature]}</b><p>{selectedFeature.summary}</p><small>기능마다 입력·제어기·출력 경로가 달라요.</small></div>
-      </aside>}
-      {chosen && <div className="garageFooterRow"><section className="garageFlowPanel">
+      <MissionPanel chosen={chosen} domain={domain} domainLabel={content.label} functionName={content.functions[feature]} functionSummary={selectedFeature.summary} feature={feature} lens={routeLevel as Lens} inputSelected={inputSelected} progress={garage} pick={pickEvent} onSolve={id => send({ type: "GARAGE_SOLVE", id })} onWrong={id => send({ type: "GARAGE_WRONG", id })} onLens={selectLevel} onFeedback={setStageFeedback} onStart={id => setDomain(id)} onFeature={setFeature} onHub={showAllDomains} />
+      {!chosen && <div className="garageFooterRow"><section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → ECU → 출력 순서가 여기에 나와요.</b><div /></section><button className="garageProceed primary stageProgressAction" disabled={!garageCleared} title={garageCleared ? "" : "필수 미션을 모두 풀면 열려요"} onClick={() => send({ type: "START_RACE" })}>{garageCleared ? "다음 →" : `필수 미션 ${coreLeft}개 남음`}</button></div>}
+      {chosen && <div className="garageFooterRow">{routeLevel === 2 && hasSwView(domain, feature) ? <SwPanel domain={domain} feature={feature} ready={conds.has("ready")} gearD={conds.has("d")} /> : <section className="garageFlowPanel">
         <small>{content.functions[feature]} · {learningLayers[routeLevel].tag}</small>
         <b className="flowRelationship">{routeLevel === 2 ? "핵심 제어 SW를 물리 입력·출력 경계와 함께 추적" : "선택한 기능에 필요한 경계만 표시 · 단계 수는 기능마다 달라집니다"}</b>
-        {routeLevel === 1 ? <FlowStepCard chain={chain} signals={flowSignals(domain, feature, chain.length)} step={Math.min(activeStep, chain.length - 1)} onStep={i => { setActiveStep(i); play("pop", 1 + i * .08); }} /> : <div>{(routeLevel === 2 ? [getFeatureLayer(domain, feature, 1)[0], getFeatureLayer(domain, feature, 1).at(-1)!] : getFeatureLayer(domain, feature, garageLayerSource[routeLevel])).map((node, index, flow) => { const step = index ? (routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length - 1 : index) : 0; return <React.Fragment key={`${node}-${index}`}><button onClick={() => inspectStep(index, step)} className={`${index === 0 || index === flow.length - 1 ? "focus" : ""} ${(activeStep === index || routeLevel === 2 && index === 1 && activeStep === getFeatureLayer(domain, feature, 3).length - 1) ? "activeStep" : ""}`}><i>{index + 1}</i><b>{node}</b><span>{index === 0 ? "입력" : index === flow.length - 1 ? "출력" : routeLevel === 0 ? "기능 단계" : "부품·제어기"}</span></button>{index < flow.length - 1 && <em>→</em>}</React.Fragment>; })}</div>}
-      </section><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "START_RACE" })}>다음 →</button></div>}
+        {routeLevel === 1 ? <FlowStepCard chain={chain} signals={flowSignals(domain, feature, chain.length)} step={Math.min(activeStep, chain.length - 1)} links={eeHops(domain, feature)} onStep={i => { setActiveStep(i); play("pop", 1 + i * .08); }} /> : <div>{(routeLevel === 2 ? [getFeatureLayer(domain, feature, 1)[0], getFeatureLayer(domain, feature, 1).at(-1)!] : getFeatureLayer(domain, feature, garageLayerSource[routeLevel])).map((node, index, flow) => { const step = index ? (routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length - 1 : index) : 0; return <React.Fragment key={`${node}-${index}`}><button onClick={() => inspectStep(index, step)} className={`${index === 0 || index === flow.length - 1 ? "focus" : ""} ${(activeStep === index || routeLevel === 2 && index === 1 && activeStep === getFeatureLayer(domain, feature, 3).length - 1) ? "activeStep" : ""}`}><i>{index + 1}</i><b>{node}</b><span>{index === 0 ? "입력" : index === flow.length - 1 ? "출력" : routeLevel === 0 ? "기능 단계" : "부품·제어기"}</span></button>{index < flow.length - 1 && <em>→</em>}</React.Fragment>; })}</div>}
+      </section>}<button className="garageProceed primary stageProgressAction" disabled={!garageCleared} title={garageCleared ? "" : "필수 미션을 모두 풀면 열려요"} onClick={() => send({ type: "START_RACE" })}>{garageCleared ? "다음 →" : `필수 미션 ${coreLeft}개 남음`}</button></div>}
     </main>
   </div>;
 }

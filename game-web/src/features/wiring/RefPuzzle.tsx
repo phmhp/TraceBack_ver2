@@ -18,12 +18,18 @@ import { StageIntro, showVerdict } from "../../ui/Verdict";
 import { Canvas } from "@react-three/fiber";
 import { PartModel } from "../parts/PartModel";
 import { SCENARIOS, SCENARIO_META } from "../../game/scenarios";
+import { QuestionCard, type QuestionDot } from "../../ui/QuestionCard";
+import { CatSay } from "../../ui/CatSay";
+import { useCoach } from "../../ui/CoachCursor";
+import { canExplain } from "../garage/garageProgress.ts";
+import "./step03-v3.css";
 import { buildVerificationContract, contractSignalLabel, contractStorageKey, type VerificationContract } from "../../game/verificationContract";
 import { ReplayConfirm } from "../../ui/ReplayConfirm";
+import { useDevAnswerCurrent } from "../../ui/dev/devAnswerStore";
 
 type Send = React.Dispatch<any>;
-type Blk = { id: string; label: string; kind: Kind | "hw"; ee?: boolean; spec?: string; img?: string; tag?: string; out?: string; bad?: string; why?: string; from: string; does?: string };
-type Ref = {
+export type Blk = { id: string; label: string; kind: Kind | "hw"; ee?: boolean; spec?: string; img?: string; tag?: string; out?: string; bad?: string; why?: string; from: string; does?: string };
+export type Ref = {
   domain: string; feature: string; ecu: string; program: string;
   board: string[]; gaps: number[]; spares: string[]; joints: Nub[];
   side: { pieces: string[]; into: number; value: string; label: string };
@@ -40,7 +46,7 @@ const SCOPE: Record<CaseId, { unit: { name: string; ids: string[] }; swc: { name
 };
 
 const T = "/assets/ending-thumbs/", P = "/assets/board-photos/";
-const REF: Record<CaseId, Ref> = {
+export const REF: Record<CaseId, Ref> = {
   propulsion: {
     domain: "구동", feature: "페달 → 토크 요청", ecu: "VCU", program: "nominal",
     board: ["aps", "corr", "filter", "map", "permit", "min", "ramp", "out", "inv"], gaps: [3, 5, 6],
@@ -463,6 +469,10 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const [check, setCheck] = useState<{ step: number; status: "running" | "fail" | "pass"; failAt?: number } | null>(() => saved.check?.status === "running" ? null : saved.check ?? null);
   const [x, setX] = useState(saved.x ?? spec.input?.min ?? 0);
   const [confirmed, setConfirmed] = useState(Boolean(saved.confirmed));
+  // wrong answers per question (saved with the stage progress): the explanation opens after 2 on the same question
+  const [wrongBy, setWrongBy] = useState<Record<string, number>>(saved.wrongBy ?? {});
+  const bump = (key: string) => setWrongBy(previous => ({ ...previous, [key]: (previous[key] ?? 0) + 1 }));
+  const coachDemo = useCoach();
   const [msg, setMsg] = useState(saved.msg ?? `빈칸 ${ref.gaps.length}곳에 조각을 끌어 넣고 '연결 확인'을 누르세요. 조각의 ? 버튼으로 하는 일과 표 값을 볼 수 있어요.`);
   const [zoom, setZoomState] = useState<{ b: Blk; x: number; y: number; up: boolean } | null>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -474,7 +484,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const [replayOpen, setReplayOpen] = useState(false);
   const [scale, setScale] = useState(.8);
   const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ref.ecu; } catch { return ref.ecu; } })();
-  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ place, picked, check: check?.status === "running" ? null : check, x, confirmed, msg, contract })); } catch { /* ignore */ } }, [place, picked, check, x, confirmed, msg, contract, progressKey]);
+  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ place, picked, check: check?.status === "running" ? null : check, x, confirmed, msg, contract, wrongBy })); } catch { /* ignore */ } }, [place, picked, check, x, confirmed, msg, contract, wrongBy, progressKey]);
   // the board keeps a 44px toolbar strip (title + 정비소 노트) on top, so the puzzle fits into the space below it
   const fitStage = () => { const r = stage.current?.getBoundingClientRect(); if (r && r.width) setScale(Math.min(r.width / W, (r.height - 44) / H, 1.1)); };
   useLayoutEffect(() => {
@@ -518,7 +528,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     const timer = window.setTimeout(() => {
       const slot = check.step, id = pieceAt(slot)!, b = ref.blocks[id], want = ref.blocks[ref.board[slot]];
       if (b.label !== want.label) {
-        setCheck({ step: slot, status: "fail", failAt: slot }); showVerdict(false, "연결 안 됨");
+        setCheck({ step: slot, status: "fail", failAt: slot }); bump("assemble"); showVerdict(false, "연결 안 됨");
         const prevOut = slot > 0 ? unitOf(ref.blocks[ref.board[slot - 1]].out) : "", out = unitOf(want.out);
         setMsg(b.why && !b.bad ? b.why : `${slot + 1}번 칸에는 ${prevOut ? `${prevOut}가 들어와 ` : ""}${out ? `${out}${out === prevOut ? "로 나가는" : "로 바뀌어 나가는"}` : "다음으로 넘기는"} 블록이 필요해요. '${b.label}'${eunNeun(b.label)} "${doesOf(b)}" 블록이에요.`);
         return;
@@ -547,7 +557,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   // 3) the player confirms the reference against the requirement
   const confirm = () => {
     const wrong = ref.gaps.find(g => place[g] !== ref.board[g]);
-    if (wrong !== undefined) { const b = ref.blocks[place[wrong]!]; showVerdict(false); setReaction("weak"); setMsg(`${spec.input ? `예시 입력을 요구사항 값(${spec.input.at}${spec.input.unit})에 두고 출력을 보세요. ` : ""}${(b.why ?? "요구사항과 다른 칸이 있어요.").replace("실행 결과", "결과가")}`); return; }
+    if (wrong !== undefined) { const b = ref.blocks[place[wrong]!]; bump("confirm"); showVerdict(false); setReaction("weak"); setMsg(`${spec.input ? `예시 입력을 요구사항 값(${spec.input.at}${spec.input.unit})에 두고 출력을 보세요. ` : ""}${(b.why ?? "요구사항과 다른 칸이 있어요.").replace("실행 결과", "결과가")}`); return; }
     setConfirmed(true); setReaction(null); showVerdict(true, "기준 확정"); play("success");
     const hypothesisId = state.hypothesis[caseId];
     const hypothesisLabel = SCENARIO_META[caseId].hypotheses.find(item => item.id === hypothesisId)?.label
@@ -579,6 +589,36 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       <PieceFace b={b} />
       <button className="rpHelp" aria-label="블록 설명" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); setZoom(zoom?.b.id === b.id ? null : b, event.currentTarget.parentElement as HTMLElement); }}>?</button>
     </div>;
+
+  // ── common question bar (same card as STEP01/02) ─────────────────────────────────────────
+  const MILESTONES = ["요구사항 읽기", "로직 조립", "연결 확인", "입력 확인", "기준 확정"];
+  const gapsLeft = ref.gaps.filter(g => !place[g]).length;
+  const milestone = confirmed ? 4 : connected ? 3 : filled ? 2 : 1;
+  const qKey = confirmed ? "done" : connected ? "confirm" : filled ? "check" : "assemble";
+  const qText = confirmed ? "정상 기준이 STEP04 시험 설계서에 담겼어요. 무엇을 시험할지 확인했나요?"
+    : connected ? "예시 입력에서 칸마다 나온 값이 요구사항과 같을까요?"
+    : filled ? "이 조립이 요구사항의 흐름과 맞을까요?"
+    : `요구사항을 만족하려면 빈칸 ${gapsLeft}곳에 어떤 블록이 들어가야 할까요?`;
+  const qHow = confirmed ? "설계서를 열어 입력 조건·기대 결과·관측 신호를 확인하세요"
+    : connected ? "입력 슬라이더를 움직여 값을 본 뒤 ‘기준 확정’을 누르세요"
+    : filled ? "‘연결 확인’을 눌러 칸마다 값이 이어지는지 보세요"
+    : "오른쪽 요구사항을 읽고 조각을 빈칸에 끌어 넣으세요 (? 버튼: 조각 설명)";
+  const wrongSlot = check?.failAt;
+  const needBlock = wrongSlot !== undefined ? ref.blocks[ref.board[wrongSlot]] : undefined;
+  const explainText = qKey === "assemble" || qKey === "check" ? (needBlock ? `${(wrongSlot ?? 0) + 1}번 칸에는 ‘${needBlock.label}’ 블록이 필요해요. ${doesOf(needBlock)}` : "요구사항 순서대로 입력 → 확인 → 필터 → 계산 → 출력 흐름을 떠올리며 맞는 하는 일의 블록을 넣어 보세요.")
+    : qKey === "confirm" ? "같은 이름의 블록이라도 표 값이 달라요. 요구사항의 값(예: 60% → 204 Nm)과 같은 표를 쓴 조립인지 확인하세요." : "";
+  const runCoach = () => {
+    const root = stage.current;
+    let el: Element | null | undefined = null;
+    if (needBlock && wrongSlot !== undefined) el = [...(root?.querySelectorAll(".rpPiece") ?? [])].find(piece => (piece.getAttribute("title") ?? "").startsWith(needBlock.label) && !piece.classList.contains("locked"));
+    el ??= root?.querySelector(".rpGap") ?? root;
+    coachDemo.show(el);
+  };
+  const qDots: QuestionDot[] = MILESTONES.map((name, index) => ({ id: name, label: name, state: index < milestone ? "done" : index === milestone ? "now" : "todo" }));
+  const qWrong = wrongBy[qKey] ?? (qKey === "check" ? wrongBy.assemble ?? 0 : 0);
+  // DEV-only answer for the question on screen (read-only)
+  import.meta.env.DEV && useDevAnswerCurrent({ stage: `STEP03 · ${MILESTONES[milestone]}`, question: qText, rows: [...ref.gaps.map(g => ({ k: `빈칸 ${g + 1}`, v: ref.blocks[ref.board[g]]?.label ?? ref.board[g], tone: "ok" as const })), { k: "요구사항", v: ref.req.map(r => r.text).join(" / ") }, { k: "STEP04 기대값", v: contract?.expected.value ?? "" }] });
+  const nextReason = confirmed ? "" : !filled ? `빈칸 ${gapsLeft}개를 채우면 열려요` : !connected ? "연결 확인을 통과하면 열려요" : "기준 확정을 누르면 열려요";
 
   return <div className="refPuzzle v2" data-coach={coach}>
     {reaction && <ActuatorReaction key={reaction} caseId={caseId} ok={reaction === "ok"} />}
@@ -639,15 +679,22 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
         </div>}
       </section>
     </main>
-    <footer className="rpFoot">
-      <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(msg)}</p></div>
-      {connected && spec.input && !confirmed && <label className="rpSlider"><small>예시 입력 · {spec.input.label}</small><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label>}
+    <footer className="rpFoot g3Foot3">
+      <QuestionCard variant="bar" flipKey={`${caseId}:${qKey}`} mission="MISSION 03" order={milestone + 1} total={5} dots={qDots} step={MILESTONES[milestone]}
+        question={qText} how={qHow} status={confirmed ? "solved" : qWrong ? "wrong" : "idle"}
+        canExplain={canExplain({ solved: [], wrong: { [qKey]: qWrong }, cleared: false }, qKey) && Boolean(explainText)} explanation={<span>{explainText}</span>} onExplain={runCoach} />
+      <div className="g3FootCat"><CatSay lines={[msg]} resetKey={msg} /></div>
+      <div className="g3FootAct">
+        {connected && spec.input && !confirmed && <label className="rpSlider"><small>예시 입력 · {spec.input.label}</small><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label>}
       {confirmed && <button className="rpExpect" onClick={() => setContractOpen(true)}><small><Icon name="clipboard" /> STEP04 테스트 설계서 · 보기</small><b>{spec.expect}</b></button>}
-      {confirmed ? <button className="rpNext stageProgressAction" onClick={goBench}>다음: 시뮬레이션 검증 →</button>
+        {confirmed ? <button className="rpNext stageProgressAction" onClick={goBench}>다음: 시뮬레이션 검증 →</button>
         : connected ? <button className="rpRun" onClick={confirm}>요구사항과 같아요 · 기준 확정</button>
           : <button className="rpRun" disabled={!filled || check?.status === "running"} onClick={startCheck}>{!filled ? `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음` : check?.status === "running" ? "확인 중…" : "연결 확인"}</button>}
+        {nextReason && <small className="g3FootReason">{nextReason}</small>}
+      </div>
     </footer>
-    <button className="secretSolve" title="개발용 정답 적용" onClick={solve}>정답 보기</button>
+    {coachDemo.overlay}
+    {import.meta.env.DEV && <button className="secretSolve" title="개발용: 정답을 실제로 적용(상태 변경)" onClick={solve}>정답 적용</button>}
     {contractOpen && contract && <div className="verificationContractModal" onClick={() => setContractOpen(false)}><article className="receiptPrinting specSheet" onClick={event => event.stopPropagation()} aria-label="테스트 설계서">
       <button className="contractClose" aria-label="테스트 설계서 닫기" onClick={() => setContractOpen(false)}>×</button>
       <div className="specSheetPaper">

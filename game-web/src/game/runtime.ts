@@ -1,3 +1,5 @@
+import { hydrateGarageProgress, initialGarageProgress, solveQuestion, wrongAnswer, type GarageProgress } from "../features/garage/garageProgress.ts";
+
 export type CaseId = "propulsion" | "thermal" | "brake";
 
 export type InvestigationStep = "locked" | "board" | "wiring" | "bench" | "repair" | "done";
@@ -49,6 +51,8 @@ export type Campaign = {
   policeGapMeters: number;
   gapJudgements: Partial<Record<CaseId, "correct" | "wrong">>;
   hintClaims: Record<string, boolean>;
+  /** STEP01 learning progress (saved with the run; older saves get the default through hydrateCampaign). */
+  garage: GarageProgress;
   lastError?: string;
 };
 
@@ -78,6 +82,7 @@ export const initialCampaign = (): Campaign => ({
   policeGapMeters: 185,
   gapJudgements: {},
   hintClaims: {},
+  garage: initialGarageProgress(),
 });
 
 export function hydrateCampaign(saved: Partial<Campaign>): Campaign {
@@ -91,6 +96,7 @@ export function hydrateCampaign(saved: Partial<Campaign>): Campaign {
     investigationProgress: { ...base.investigationProgress, ...(saved.investigationProgress ?? {}) },
     gapJudgements: { ...(saved.gapJudgements ?? {}) },
     hintClaims: { ...(saved.hintClaims ?? {}) },
+    garage: hydrateGarageProgress(saved.garage),
   };
   hydrated.completedCases.forEach(caseId => { hydrated.investigationProgress[caseId] = "done"; });
   const inferred = investigationStepForScene(hydrated.scene);
@@ -216,6 +222,12 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       const level = Math.max(1, Math.min(4, Number(event.level) || 1));
       return enter(s, `GARAGE_L${level}` as Scene);
     }
+    case "GARAGE_SOLVE":
+      s.garage = solveQuestion(s.garage ?? initialGarageProgress(), String(event.id));
+      return s;
+    case "GARAGE_WRONG":
+      s.garage = wrongAnswer(s.garage ?? initialGarageProgress(), String(event.id));
+      return s;
     case "GARAGE_ADVANCE": {
       const queue: Scene[] = ["GARAGE_L1", "GARAGE_L2", "GARAGE_L3"];
       const index = queue.indexOf(s.scene);

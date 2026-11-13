@@ -1,0 +1,15 @@
+/* STEP02 v3: bottom row becomes the common question bar + cat + progress button; the board keeps its own layout. */
+.eeTrace .dtLayout.etLayout { grid-template-rows: minmax(0, 1fr) 196px 128px !important; }
+.eeTrace .etLayout > .g3Q { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: minmax(0, 1fr) 360px 232px; gap: 10px; min-height: 0; align-items: stretch; }
+.eeTrace .g3Q > .tbq { min-height: 0; overflow: hidden; }
+.eeTrace .g3QCat { display: flex; align-items: center; min-width: 0; }
+.eeTrace .g3QCat .tbCat img { width: 48px; height: 48px; }
+.eeTrace .g3QCat .tbCatBubble { padding: 6px 10px; }
+.eeTrace .g3QCat .tbCat .tbCatBubble p { font-size: 15px !important; line-height: 1.32; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.eeTrace .g3Q .etProgressSlot { display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 4px; }
+.eeTrace .g3Q .dtNext { height: 48px; font-size: 16px !important; }
+.eeTrace .g3Q .g3QReason { font-size: 13px !important; color: var(--np-soft, #7b6a5c); text-align: center; line-height: 1.25; }
+/* the question now lives in the bar: hide the duplicated question headings inside the dock */
+.eeTrace .etDockAsk > h3, .eeTrace .etDockAsk:has(.etDockChoices) > .etDockLine:first-of-type, .eeTrace .etDockSection > h3 { display: none; }
+/* first deviation: shown only after the player reached the section question */
+.eeTrace .etNode em.first { background: #d4473c; color: #fff; font-style: normal; font-weight: 800; border-radius: 4px; padding: 0 5px; margin-left: 4px; }
