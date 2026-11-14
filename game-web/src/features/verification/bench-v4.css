@@ -1,0 +1,106 @@
+/* STEP04 v4: mission row, test stage, 360px side panel (조건 / 결과 / 자료), 150px dock, next button under the panel. */
+.vbBench.bench4.qa2 .b4Work {
+  position: absolute !important; left: 16px !important; right: 16px !important; top: 140px !important; bottom: 14px !important;
+  display: grid !important; gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-rows: 56px minmax(0, 1fr) 150px;
+  word-break: keep-all; overflow-wrap: normal;
+}
+.vbBench.bench4.qa2 .b4Work > .missionBar { grid-column: 1 / -1; grid-row: 1; }
+.vbBench.bench4.qa2 .b4Work > .b4Stage { grid-column: 1; grid-row: 2; position: relative; min-width: 0; min-height: 0; overflow: hidden; border-radius: 16px; background: rgba(255, 250, 240, .92); border: 3px solid #e7d3a4; box-sizing: border-box; padding: 8px; }
+.vbBench.bench4.qa2 .b4Work > .b4Panel { grid-column: 2; grid-row: 2; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; box-sizing: border-box; overflow: hidden; border-radius: 16px; background: #fffdf5f0; border: 3px solid #e7d3a4; }
+.vbBench.bench4.qa2 .b4Work > .b4Dock { grid-column: 1; grid-row: 3; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; box-sizing: border-box; overflow: hidden; border-radius: 16px; background: #fffaf0f2; border: 3px solid #e7d3a4; }
+.vbBench.bench4.qa2 .b4Work > .b4NextCell { grid-column: 2; grid-row: 3; min-height: 0; display: flex; }
+.vbBench.bench4.qa2 .b4NextCell button { flex: 1; width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; position: static !important; font: 800 18px/1 Pretendard, system-ui !important; white-space: nowrap; }
+
+/* dock */
+.vbBench.bench4.qa2 .b4Say { margin: 0; flex: none; display: flex; align-items: center; gap: 8px; min-height: 34px; }
+.vbBench.bench4.qa2 .b4Say img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex: none; }
+.vbBench.bench4.qa2 .b4Say b { font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; flex: none; }
+.vbBench.bench4.qa2 .b4Say span { font: 500 13px/1.3 Pretendard, system-ui; color: #4a3a36; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vbBench.bench4.qa2 .b4Hint { font: 700 14px/1.3 Pretendard, system-ui; color: #5a4440; }
+.vbBench.bench4.qa2 .b4Dock .qaActionDock { position: static !important; width: auto !important; height: auto !important; margin: 0 !important; flex: 1 1 0; min-height: 0; display: flex !important; align-items: center; gap: 14px; padding: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; transform: none !important; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion { flex: 1 1 0; min-width: 0; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion small { font: 800 12px/1 Pretendard, system-ui; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion b { font: 800 15px/1.2 Pretendard, system-ui; display: block; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion span { font: 600 13px/1.3 Pretendard, system-ui; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vbBench.bench4.qa2 .b4Dock .qaChoices { flex: none; display: flex; gap: 8px; }
+.vbBench.bench4.qa2 .b4Dock .qaChoices button { min-height: 40px; white-space: nowrap; }
+
+/* hypothesis strip */
+.vbBench.bench4.qa2 .b4Col { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
+.vbBench.bench4.qa2 .b4Hyps { flex: none; display: flex; gap: 8px; }
+.vbBench.bench4.qa2 .b4Hyps button { all: unset; box-sizing: border-box; flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: 24px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 6px 10px; border-radius: 10px; border: 2px solid #e0cfa6; background: #fff; cursor: pointer; }
+.vbBench.bench4.qa2 .b4Hyps button.now { border-color: #9b6b64; background: #fff4ee; }
+.vbBench.bench4.qa2 .b4Hyps button:disabled { cursor: default; opacity: .75; }
+.vbBench.bench4.qa2 .b4Hyps button i { grid-row: 1 / span 2; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #9b6b64; color: #fff8f2; font: 800 12px/1 Pretendard, system-ui; font-style: normal; }
+.vbBench.bench4.qa2 .b4Hyps button b { font: 800 13px/1.2 Pretendard, system-ui; color: #3f302c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vbBench.bench4.qa2 .b4Hyps button small { font: 700 12px/1.2 Pretendard, system-ui; color: #8a6a63; }
+.vbBench.bench4.qa2 .b4Hyps button.a-supported small { color: #3f7a55; }
+.vbBench.bench4.qa2 .b4Hyps button.a-refuted small { color: #a0281e; }
+
+/* panel */
+.vbBench.bench4.qa2 .b4Panel > header { flex: none; display: flex; align-items: center; gap: 8px; }
+.vbBench.bench4.qa2 .b4Panel > header nav { display: flex; gap: 4px; flex: 1 1 0; min-width: 0; }
+.vbBench.bench4.qa2 .b4Panel > header nav button { flex: 1 1 0; min-height: 30px; white-space: nowrap; font: 800 13px/1 Pretendard, system-ui; border-radius: 10px; border: 2px solid #e0cfa6; background: #fff; color: #5a4440; cursor: pointer; }
+.vbBench.bench4.qa2 .b4Panel > header nav button.on { background: #9b6b64; border-color: #9b6b64; color: #fff8f2; }
+.vbBench.bench4.qa2 .b4Panel > header nav button:disabled { opacity: .45; cursor: not-allowed; }
+.vbBench.bench4.qa2 .b4PanelBody { flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
+.vbBench.bench4.qa2 .b4PanelBody > aside, .vbBench.bench4.qa2 .b4PanelBody > .b4Mat { position: static !important; width: auto !important; height: auto !important; max-height: none !important; margin: 0 !important; inset: auto !important; flex: 1 1 0; min-height: 0; overflow: hidden; background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+.vbBench.bench4.qa2 .b4Mat { display: flex; flex-direction: column; gap: 6px; }
+.vbBench.bench4.qa2 .b4MatTabs { display: flex; gap: 4px; flex: none; }
+.vbBench.bench4.qa2 .b4MatTabs button { flex: 1 1 0; min-height: 28px; white-space: nowrap; font: 700 12px/1 Pretendard, system-ui; border-radius: 8px; border: 1.5px solid #e0cfa6; background: #fff; cursor: pointer; color: #5a4440; }
+.vbBench.bench4.qa2 .b4MatTabs button.on { background: #f1e3df; border-color: #9b6b64; }
+.vbBench.bench4.qa2 .b4MatBody { flex: 1 1 0; min-height: 0; overflow: hidden; font-size: 12px; }
+.vbBench.bench4.qa2 .b4Help { flex: none; font: 600 12px/1.3 Pretendard, system-ui; }
+
+/* stage content: level tabs on top, simulation fills the rest */
+.vbBench.bench4.qa2 .b4Stage .v7View { position: relative !important; inset: auto !important; width: 100% !important; height: 100% !important; min-height: 0; display: flex !important; flex-direction: column; gap: 6px; margin: 0 !important; padding: 0 !important; overflow: hidden; }
+.vbBench.bench4.qa2 .b4Col > .v7View { flex: 1 1 0; height: auto !important; }
+.vbBench.bench4.qa2 .b4Stage .v7View > nav { flex: none; }
+.vbBench.bench4.qa2 .b4Stage .v7View > .vbSimView { flex: 1 1 0; min-height: 0; position: relative !important; width: 100% !important; height: auto !important; overflow: hidden; }
+.vbBench.bench4.qa2 .b4Stage .v7View > .qaSimCaption { flex: none; margin: 0; font: 600 12px/1.2 Pretendard, system-ui; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vbBench.bench4.qa2 .b4Stage .v7View > .v3dToggle { position: absolute !important; right: 10px; bottom: 30px; z-index: 5; }
+.vbBench.bench4.qa2 .b4Stage .vbStage { position: static !important; width: auto !important; height: 100% !important; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 8px; padding: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; }
+.vbBench.bench4.qa2 .b4Stage .v7View > .vbSimView { flex: 1 1 0 !important; aspect-ratio: auto !important; min-height: 0 !important; height: auto !important; width: 100% !important; max-height: none !important; }
+.vbBench.bench4.qa2 .b4Stage .v7View > .qaSimCaption { position: static !important; flex: none !important; width: auto !important; height: auto !important; transform: none !important; }
+.vbBench.bench4.qa2 .b4Stage .v7View > .qaLevelTabs { position: static !important; flex: none !important; }
+
+/* ---- fit fixes: no clamped text, compact panel tables, single-line labels ---- */
+.vbBench.bench4.qa2 .b4Say span, .vbBench.bench4.qa2 .b4Dock .qaQuestion span { display: block !important; -webkit-line-clamp: unset !important; overflow: visible !important; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion { display: flex; flex-direction: column; gap: 2px; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion span { font-size: 12.5px; line-height: 1.25; }
+.vbBench.bench4.qa2 .qaResultBlock { overflow: hidden !important; padding: 0 !important; }
+.vbBench.bench4.qa2 .b4PanelBody table { width: 100%; border-collapse: collapse; }
+.vbBench.bench4.qa2 .b4PanelBody th, .vbBench.bench4.qa2 .b4PanelBody td { padding: 3px 4px !important; font-size: 12px !important; line-height: 1.2 !important; }
+.vbBench.bench4.qa2 .b4PanelBody th { white-space: nowrap; }
+.vbBench.bench4.qa2 .b4PanelBody .qaPickedInput small, .vbBench.bench4.qa2 .b4PanelBody .qaSetupNote b, .vbBench.bench4.qa2 .b4PanelBody h3 { white-space: nowrap; }
+.vbBench.bench4.qa2 .b4PanelBody .qaVerdictNote, .vbBench.bench4.qa2 .b4PanelBody .qaProof small { font-size: 12px !important; }
+.vbBench.bench4.qa2 .b4Doc { flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 6px; }
+.vbBench.bench4.qa2 .b4Doc .v7Report, .vbBench.bench4.qa2 .b4Doc .finalJudge { position: static !important; width: auto !important; max-height: none !important; overflow: hidden !important; margin: 0 !important; padding: 8px !important; font-size: 12px; }
+.vbBench.bench4.qa2 .b4Doc li, .vbBench.bench4.qa2 .b4Doc p, .vbBench.bench4.qa2 .b4Doc small { font-size: 12px !important; line-height: 1.3 !important; }
+.vbBench.bench4.qa2 .b4MatBody .qaMatRole { display: none; }
+.vbBench.bench4.qa2 .b4MatBody h4 { white-space: normal; font-size: 13px; margin: 0 0 4px; }
+.vbBench.bench4.qa2 .b4MatBody .qaMatLine { display: block !important; margin: 0 0 4px !important; font-size: 12px !important; line-height: 1.3 !important; }
+.vbBench.bench4.qa2 .b4MatBody .qaMatLine > b { display: block; white-space: nowrap; font-size: 12px; color: #7a4a44; }
+.vbBench.bench4.qa2 .b4MatBody .qaMatList { margin: 0; padding-left: 16px; font-size: 12px; line-height: 1.3; }
+.vbBench.bench4.qa2 .b4MatBody details { display: none; }
+.vbBench.bench4.qa2 .rpFace { white-space: nowrap !important; font-size: 10.5px !important; letter-spacing: -.2px; max-width: 100% !important; }
+.vbBench.bench4.qa2 .abPane header b, .vbBench.bench4.qa2 .abPane header small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.vbBench.bench4.qa2 .b4Stage .vbChoices { flex: 1 1 0; min-height: 0; }
+.vbBench.bench4.qa2 .b4Stage .vbStage > h2 { flex: none; margin: 0; font-size: 17px; }
+
+/* A/B: two simulation panes side by side */
+.vbBench.bench4.qa2 .b4Stage .v7View.abView { flex-direction: row !important; gap: 8px; }
+.vbBench.bench4.qa2 .abPane { flex: 1 1 0; min-width: 0; min-height: 0; display: flex !important; flex-direction: column; gap: 4px; position: relative; }
+.vbBench.bench4.qa2 .abPane > header { flex: none; }
+.vbBench.bench4.qa2 .abPane .vbSimView { flex: 1 1 0 !important; min-height: 0 !important; aspect-ratio: auto !important; height: auto !important; width: 100% !important; }
+/* dock: only the question and the answer, the small label above it is redundant next to the mission bar */
+.vbBench.bench4.qa2 .b4Dock .qaQuestion > small { display: none; }
+.vbBench.bench4.qa2 .b4Doc header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.vbBench.bench4.qa2 .b4Doc header small, .vbBench.bench4.qa2 .b4Doc header b, .vbBench.bench4.qa2 .b4Doc header em { white-space: nowrap; }
+.vbBench.bench4.qa2 .b4MatBody .qaMatTable td:first-child { min-width: 128px; white-space: nowrap; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion b { height: auto !important; max-height: none !important; overflow: visible !important; line-height: 1.3 !important; white-space: normal !important; }
+.vbBench.bench4.qa2 .b4Doc .finalJudge header { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.vbBench.bench4.qa2 .b4Doc .finalJudge header * { white-space: nowrap !important; }
+.vbBench.bench4.qa2 .rpFace.tight { white-space: normal !important; font-size: 9.5px !important; line-height: 1.1; text-align: center; letter-spacing: 0; }
