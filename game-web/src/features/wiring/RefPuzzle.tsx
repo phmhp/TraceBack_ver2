@@ -10,6 +10,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
 import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
 import { useReportSubStep } from "../../ui/stepRoadmap";
+import { useDevActions } from "../../ui/dev/devActions";
 import { play } from "../../ui/sfx";
 import { KIND_TAG, Picto, blockKind, plainText, type Kind } from "../garage/SimulinkDiagram";
 import { PursuitRouteBar, getFeatureLayer, piecePath, type DomainId, type Nub } from "../../experiences";
@@ -582,6 +583,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       <button className="rpHelp" aria-label="블록 설명" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); setZoom(zoom?.b.id === b.id ? null : b, event.currentTarget.parentElement as HTMLElement); }}>?</button>
     </div>;
 
+  useDevActions({ solve, label: "STEP03" });
   return <div className="refPuzzle v2" data-coach={coach}>
     {reaction && <ActuatorReaction key={reaction} caseId={caseId} ok={reaction === "ok"} />}
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
@@ -649,7 +651,6 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
         : connected ? <button className="rpRun" onClick={confirm}>요구사항과 같아요 · 기준 확정</button>
           : <button className="rpRun" disabled={!filled || check?.status === "running"} onClick={startCheck}>{!filled ? `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음` : check?.status === "running" ? "확인 중…" : "연결 확인"}</button>}
     </footer>
-    <button className="secretSolve" title="개발용 정답 적용" onClick={solve}>정답 보기</button>
     {contractOpen && contract && <div className="verificationContractModal" onClick={() => setContractOpen(false)}><article className="receiptPrinting specSheet" onClick={event => event.stopPropagation()} aria-label="테스트 설계서">
       <button className="contractClose" aria-label="테스트 설계서 닫기" onClick={() => setContractOpen(false)}>×</button>
       <div className="specSheetPaper">

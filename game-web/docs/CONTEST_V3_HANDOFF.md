@@ -16,5 +16,10 @@
 - 개발 서버: 부모 `.claude/launch.json`의 `game-web-v3`(포트 5183). 기본 `game-web`(5180)은 옛 TraceBack_ver2를 서빙하므로 쓰지 말 것.
 - 검증: 초기 상태 6화면×4해상도 문서 스크롤·버튼 이탈 0, STEP01 H1 1건 잘림. **미검증: 정답/오답/해설 후 최대 콘텐츠 상태, 실제 클릭 흐름.**
 
+## WP2 완료 (DEV 메뉴)
+- `src/ui/dev/` — `DevMenu`(좌하단 DEV 토글: 정답 적용 / 다음 단계 / 전체 초기화 / 사건 선택 / 장면 이동), `devActions.ts`(`useDevActions`로 활성 STEP이 정답 적용 동작을 등록). 정답 팝업 없음, 기존 `reveal`/`solve` 상태 전이 재사용. STEP02·03·04에 연결, 숨은 `secretSolve` 버튼은 활성 컴포넌트에서 제거(레거시 미사용 컴포넌트엔 남음).
+- 프로덕션 번들 미포함 확인(dist에 devToggle 0). 검증: STEP03 정답 적용→연결 확인→기준 확정→DEV 다음 단계→STEP04 진입, STEP02 정답 적용→가설 정리, STEP04 정답 적용, 장면 이동 정상.
+- 미구현: STEP01 자동 진행(WP3에서 STEP01 재설계 때 연결), 레이싱 중 DEV 도구.
+
 ## 다음
 WP1 잔여(동적 상태 잘림 점검·STEP01 H1) → WP2 DEV 메뉴 → WP3 STEP01.

@@ -12,6 +12,7 @@ import type { Campaign } from "../../game/runtime";
 import { SCENARIOS, SCENARIO_META } from "../../game/scenarios";
 import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
 import { useReportSubStep } from "../../ui/stepRoadmap";
+import { useDevActions } from "../../ui/dev/devActions";
 import { play } from "../../ui/sfx";
 import { PursuitRouteBar } from "../../experiences";
 import { DRIVER, ENGINEER } from "../../game/cast";
@@ -231,6 +232,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const mugStatus = (id: string): keyof typeof STAMP_KO => stamps[id] ?? (measured.includes(id) ? "measured" : "untested");
   const stackCandidates = [...new Set([...chain, ...measured, ...Object.keys(stamps)])].map(dom);
 
+  useDevActions({ solve: reveal, label: "STEP02" });
   return <div className="dtBoard eeTrace" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="원인 추적" title="도미노 역추적" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
@@ -300,7 +302,6 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       {zoomed.id === "lamp" && <p>{LAMP[caseId].label} · {LAMP[caseId].note}<small>경고등은 결과로 켜진 것일 수 있어요.</small></p>}
       {zoomed.dom && <p><span className="polRow"><em>원본 기록</em>기준 <code>{refText(zoomed.dom)}</code> · 이번 <code>{fmt(zoomed.dom.run)}{zoomed.dom.unit ? ` ${zoomed.dom.unit}` : ""}</code></span>{zoomed.dom.t !== undefined && <span className="polRow"><em>달라진 시각</em><code>{fmt(zoomed.dom.t)} {unit}</code></span>}<span className="polRow"><em>위치</em>{zoomed.dom.zone}</span><Gauge dom={zoomed.dom} /></p>}
     </article></div>}
-    <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
     {replayOpen && <ReplayConfirm impact="STEP03 퍼즐과 STEP04 시험 계약·실행 기록도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); resetStage(); }} />}
   </div>;
 }

@@ -8,6 +8,7 @@ import { StageIntro, showVerdict } from "../../ui/Verdict";
 import { SAMPLES, assessContractRun, divergeIndex, firstMismatch, simulate, type ContractRunAssessment, type Lv, type Series, type Tech } from "./simModel";
 import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
 import { useReportSubStep } from "../../ui/stepRoadmap";
+import { useDevActions } from "../../ui/dev/devActions";
 import { play } from "../../ui/sfx";
 import { DRIVER as DRIVER_NAME, ENGINEER } from "../../game/cast";
 import { Icon } from "../../ui/Icon";
@@ -1720,6 +1721,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     send({ type: "BENCH_RESULT", pass: retestPassed, causeCorrect });
   };
   const reveal = () => { setAnswers(Object.fromEntries(questions.map(item => { const h = meta.hypotheses.find(x => x.id === item.hyp)!; return [item.hyp, { answer: h.truth ? "supported" as Answer : "refuted" as Answer, why: h.rules[0]?.why ?? h.stage1 ?? "", evidence: "개발용 정답" }]; }))); setPhase("report"); };
+  useDevActions({ solve: reveal, label: "STEP04" });
 
   const tabVisual = viewTab === "graph" ? <OverlayGraph list={list} upto={shown ? 1 : running ? u : 0} look={lookAt} note={lookAt.size ? "빨간 이름이 이 가설을 가를 신호예요. 점선(정상)과 실선(이번 시험)이 처음 갈라지는 곳을 보세요." : "이 수준에는 이 가설을 가를 신호가 없어요. 어떤 신호가 정상과 갈라지는지만 확인하세요."} />
     : viewTab === "sw" ? <RefPuzzleTrack key={`sw-${level}-${fixed}`} mode={level === "unit" ? "unit" : "swint"} caseId={caseId} progress={u} fixed={fixed} same={fixed || swSame} running={running} />
@@ -1934,7 +1936,6 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       <p><b>{ENGINEER}</b><span className="qaCatAct">{numify(guidance)}</span>{!bubble.startsWith(`${DRIVER_NAME}의 질문에 시험 결과로`) && <small className="qaCatNote">{numify(bubble)}</small>}</p>
       {phase === "done" && <button className="qaFinishBtn stageProgressAction" onClick={finish}>수리 적용 · 주행 복귀 →</button>}
     </footer>
-    <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
     {replayOpen && <ReplayConfirm onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); resetStage(); }} />}
   </div>;
 }
