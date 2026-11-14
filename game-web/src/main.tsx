@@ -58,6 +58,7 @@ import "./p2-notepaper.css";
 import "./p3-notepaper-world.css";
 import "./p4-fix-1109.css";
 import "./ui/stepRoadmap.css";
+import "./features/garage/pedal-lab.css";
 const DevMenu = import.meta.env.DEV ? lazy(() => import("./ui/dev/DevMenu").then(m => ({ default: m.DevMenu }))) : null;
 import { BustedEnding, WantedEnding } from "./ui/CaseFileEnding";
 import { SoundToggle } from "./ui/ComicBurst";

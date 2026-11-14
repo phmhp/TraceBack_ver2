@@ -7,6 +7,8 @@ import type { Campaign, CaseId } from "./game/runtime";
 import { SCENARIOS } from "./game/scenarios";
 import { GameHeader, JourneyProgress, SceneBackdrop, StageFolderSubtitle } from "./ui/game-shell";
 import { useReportSubStep } from "./ui/stepRoadmap";
+import { PedalLab } from "./features/garage/PedalLab";
+import { useDevActions } from "./ui/dev/devActions";
 import { HeroConvertible } from "./features/vehicle/HeroConvertible";
 import { DevRenderProbe } from "./features/vehicle/DevRenderProbe";
 import { FittedPart } from "./features/parts/PartModel";
@@ -715,11 +717,11 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
   }
   if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={inputOn ? activeStep : -1} onJump={onJump} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
   return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
-    <Canvas key={`${domain}-${view3d}`} shadows camera={{ position: view3d === "grid" ? [7.2, 7.4, 9.4] : view3d === "overlay" ? [6.4, 4.6, 7.6] : (domain === "power" || domain === "suspension" ? [4.6, 2.9, 5.2] : [2.9, 1.9, 3.3]), fov: 38 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
+    <Canvas key={`${domain}-${view3d}`} shadows={!allDomains} camera={{ position: view3d === "grid" ? [7.2, 7.4, 9.4] : view3d === "overlay" ? [6.4, 4.6, 7.6] : (domain === "power" || domain === "suspension" ? [4.6, 2.9, 5.2] : [2.9, 1.9, 3.3]), fov: 38 }} dpr={allDomains ? [1, 1] : [1, 1.3]} gl={{ antialias: !allDomains, powerPreference: "high-performance" }}>
       {import.meta.env.DEV && <DevRenderProbe name="garage" />}
       <color attach="background" args={["#eef5ef"]} />
       <hemisphereLight intensity={2.25} color="#fff8e5" groundColor="#6d8c7b" />
-      <directionalLight castShadow position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
+      <directionalLight castShadow={!allDomains} position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
       {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} selectedIndex={selectedVehiclePart} onSelect={onVehiclePartSelect} />}
       <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={allDomains ? 2.5 : .8} maxDistance={allDomains ? 22 : 10} maxPolarAngle={Math.PI * .49} target={allDomains ? [0, .65, 0] : [0, .55, 0]} />
     </Canvas>
@@ -1037,6 +1039,11 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     const timer = window.setInterval(() => setActiveStep(value => (value + 1) % flowLength), 1450);
     return () => window.clearInterval(timer);
   }, [domain, feature, routeLevel]);
+  useDevActions({ label: "STEP01", solve: () => {
+    if (!chosen) { setChosen(true); return; }
+    setConds(new Set(mission.needs.map(item => item.id))); setInputSelected(true); setActiveStep(flowLength - 1); setCleared(true);
+    setCompletedLessons(previous => new Set(previous).add(`${domain}-${feature}`));
+  } });
   return <div className="garageV2">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
     <GameHeader chapter="정비소" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
@@ -1114,10 +1121,11 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       </section>
       {!chosen && <aside className="domainFunctionShelf"><small>주요 기능</small><h2>도메인을 골라 보세요</h2><div className="functionNote"><b>주요 기능</b><p>위 탭에서 도메인을 고르면 그 도메인의 주요 기능과 신호 흐름이 여기에 나와요.</p></div></aside>}
       {!chosen && <div className="garageFooterRow"><section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → ECU → 출력 순서가 여기에 나와요.</b><div /></section><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "START_RACE" })}>다음 →</button></div>}
-      {chosen && <aside className="domainFunctionShelf">
+      {chosen && <aside className={`domainFunctionShelf ${domain === "drive" && feature === 0 ? "withPedalLab" : ""}`}>
         <small>주요 기능</small><h2>{content.label}의 주요 기능</h2>
         {content.functions.map((item, index) => <button key={item} className={feature === index ? "active" : ""} onClick={() => setFeature(index)}><span>{index + 1}</span><b>{item}</b><i>›</i></button>)}
         <div className="functionNote"><b>{content.functions[feature]}</b><p>{selectedFeature.summary}</p><small>기능마다 입력·제어기·출력 경로가 달라요.</small></div>
+        {domain === "drive" && feature === 0 && <PedalLab />}
       </aside>}
       {chosen && <div className="garageFooterRow"><section className="garageFlowPanel">
         <small>{content.functions[feature]} · {learningLayers[routeLevel].tag}</small>

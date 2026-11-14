@@ -21,5 +21,12 @@
 - 프로덕션 번들 미포함 확인(dist에 devToggle 0). 검증: STEP03 정답 적용→연결 확인→기준 확정→DEV 다음 단계→STEP04 진입, STEP02 정답 적용→가설 정리, STEP04 정답 적용, 장면 이동 정상.
 - 미구현: STEP01 자동 진행(WP3에서 STEP01 재설계 때 연결), 레이싱 중 DEV 도구.
 
+## WP3 (부분 완료) STEP01
+- 성능: 이 PC(빠른 GPU)에서는 FPS 저하 재현 불가(rAF 8.3ms 고정). 대신 `DevRenderProbe`(GPU 동기)로 측정 — 전체/겹쳐 보기 draw call 592→406, 삼각형 36.3만→24.9만(-31%): 전체 도메인 보기에서 그림자·AA 끄고 dpr 1 고정(`experiences.tsx` MechanismViewer Canvas). 단일 도메인 111 call/6.5만 삼각형. 약한 GPU(사무용 노트북) 실측은 미실시. 남은 큰 비용 = AllDomainsSystem 부품 모델 약 400 call(지오메트리 병합 미적용).
+- 조작형 체험: `features/garage/PedalLab.tsx` — 구동›운전자 토크 요청에서 페달 0~100% 슬라이더 → `stepVehicle` 계산값(토크 요청·모터·바퀴·가속도)이 실시간 반영. 60% → 204 Nm로 STEP03 요구사항과 일치. 우측 컬럼에 맞춰 넘침 0.
+- 이미 stable에 있던 것(재사용): 3관점 공유 신호 단계(activeStep/inputSelected), 선행 조건 미션(READY→D→페달), 5단계 신호 흐름 카드, 부품 길게 누르기.
+- DEV: STEP01 정답 적용 연결(조건·입력·마지막 단계·완료 처리).
+- 미구현: 페달 값을 3D·E/E·SW 뷰 그래픽에 직접 반영, 구동 외 도메인 값 체험, 5단계(기능 체험→기계→E/E→SW→통합) 중 '통합' 단계, 필수/선택 구분 표시.
+
 ## 다음
 WP1 잔여(동적 상태 잘림 점검·STEP01 H1) → WP2 DEV 메뉴 → WP3 STEP01.
