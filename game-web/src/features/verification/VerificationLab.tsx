@@ -816,7 +816,7 @@ export function TwinBenchV6({ state, send }: { state: Campaign; send: Send }) {
 
   return <div className="vbBench">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="검증" title="시뮬레이션 검증" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="실험대" title="실험대" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main className="vbLayout">
       <header className="vbHead">
@@ -1125,7 +1125,7 @@ export function TwinBenchV7({ state, send }: { state: Campaign; send: Send }) {
 
   return <div className="vbBench v7">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="검증" title="시뮬레이션 검증" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="실험대" title="실험대" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageIntro id="bench" title="시뮬레이션 검증" goal="의심 구간을 실제로 시험해서 원인을 증명하는 단계예요." steps={[
       { icon: "monitor", text: "레벨·입력·관측점을 골라 시험해요. 왼쪽 탭으로 같은 결과를 SW·제어기·부품 관점에서 볼 수 있어요." },
@@ -1341,7 +1341,7 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
 
   return <div className="vbBench v7 qa">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="검증" title="시뮬레이션 검증" distanceMeters={state.policeGapMeters} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="실험대" title="실험대" distanceMeters={state.policeGapMeters} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageFolderSubtitle className="benchStageFolder" action="의심한 SW를 시험·수정하고 정상 차량과 결과를 비교하세요." detail={<>이전 결과: 테스트 설계서 <i>|</i> 비교: 정상 기준선 ↔ 수정 후 차량</>} />
     <StageIntro id="bench-qa" title="시뮬레이션 검증" goal={`${DRIVER_NAME}의 질문에 시험 결과로 답해요. 무엇이 고장이고 무엇은 멀쩡한지 근거로 설명하는 단계예요.`} steps={[
@@ -1732,10 +1732,10 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const coach = state.completedCases.length ? "" : phase === "lab" && !shown ? "run" : phase === "lab" ? "answer" : "";
   return <div className="vbBench v7 qa qa2" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="검증" title="시뮬레이션 검증" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="실험대" title="실험대" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageFolderSubtitle step="bench" className="benchStageFolder" action="의심한 SW를 시험·수정하고 정상 차량과 결과를 비교하세요." detail={<>이전 결과: 테스트 설계서 <i>|</i> 비교: 정상 기준선 ↔ 수정 후 차량</>} />
-    <StageIntro id="bench-qa2" stage="STEP 04 · 실험 검증" title="실험 검증" goal="추리한 고장 원인 가설이 실제 원인인지 시험으로 확인합니다." steps={[
+    <StageIntro id="bench-qa2" stage="STEP 04 · 실험대" title="실험대" goal="추리한 고장 원인 가설이 실제 원인인지 시험으로 확인합니다." steps={[
       { icon: "clipboard", text: "정상 동작 기준(STEP03)과 고장 당시 기록(STEP02)을 비교합니다." },
       { icon: "monitor", text: "고장 당시 조건을 재현할 시험 입력을 고르고 실행합니다." },
       { icon: "search", text: "실행 결과와 신호 변화를 관찰합니다." },

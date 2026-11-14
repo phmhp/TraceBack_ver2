@@ -132,7 +132,7 @@ const journeyStages = [
   { id: "race", label: "주행", detail: "코스 지점까지 도주" },
   { id: "board", label: "도미노 추적", detail: "의심 구간 좁히기·영향도 분석" },
   { id: "wiring", label: "퍼즐", detail: "요구사항 기반 퍼즐" },
-  { id: "bench", label: "검증", detail: "레벨·기법 선택, 정상 vs 현장 비교" },
+  { id: "bench", label: "실험대", detail: "가설 실험·A/B 비교·재시험" },
   { id: "repair", label: "수리", detail: "검증 설계 적용" },
   { id: "escape", label: "해적선", detail: "최종 승선" },
 ] as const;
