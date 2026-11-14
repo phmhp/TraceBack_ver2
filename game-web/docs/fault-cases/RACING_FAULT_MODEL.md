@@ -34,7 +34,7 @@
 
 ## 4. 레이싱에 연결된 곳 (`src/experiences.tsx` RaceExperience)
 - 루프 안에서 `FaultContext`를 만들어 `stepFault` → `mergeEffects` → 가속·코스팅·제동·조향·상한·READY 반영.
-- 개발 스위치 `?faultdemo=release|stationary|prestart` (`DEMO_FAULTS`). 예: `/?embed=1&qa=CHASE_NORMAL&case=propulsion&faultdemo=release`
+- 개발 스위치 `?faultdemo=release|stationary|prestart|reverse|limit` (`DEMO_FAULTS`). 예: `/?embed=1&qa=CHASE_NORMAL&case=propulsion&faultdemo=release`
 - 시동 전: R을 `readyBlockedTries`번 눌러야 READY. 정차: 4초 정지 시 래치 정전, R로 해제.
 - 기존 사건(구동 추월 구간·열관리 연속 고부하)은 아직 하드코딩 상태(`OVERTAKE_ZONE`/`CLIMB_ZONE`). 새 사건부터 스펙으로 등록하고, 기존 둘은 같은 모양의 스펙으로 옮기는 작업이 남아 있습니다.
 
@@ -45,7 +45,7 @@
 4. 정상 동작(충돌 시 HV 차단 등)과 고장을 혼동하지 않도록 R17 표를 채운다.
 
 ## 6. 아직 안 된 것
-- 후진(`reverseOnly`)의 실제 주행: 현재 레이스는 속도 0 이상만 허용, R 기어는 정지로 처리. 모델·테스트만 있음.
-- `environment` 구간 태그(`zones`)는 항상 빈 배열. 맵 구간 정의가 생기면 채움.
+- 후진(`reverseOnly`): `?faultdemo=reverse`로 동작(페달=후진, 최대 -25 km/h, 추격차 빠르게 감소). 일반 R 기어 주행은 아직 정지 처리.
+- `environment`: 구간 표(`ROAD_ZONES` in `src/game/situations.ts`, 태그 wet/tunnel/night/slope/cold/glare + 시작·끝 m)를 `zonesAt`으로 읽어 `FaultContext.zones`에 넣는 배선은 끝났고, 표는 비어 있음. **같은 표가 지도 연출(비·젖은 노면·터널·야간 톤)과 고장 트리거를 함께 구동**해서 맵과 고장이 어긋나지 않게 함. 지도 연출은 아직 없음(2차).
 - `event` 중 `restart`는 컨텍스트에 연결 안 됨(collision·gearChange만 연결).
 - 경고등 `cluster` 표시는 HUD에 아직 안 그림.

@@ -27,8 +27,8 @@ import { ArchitectureOverview } from "./features/garage/ArchitectureOverview";
 import { DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainId } from "./features/garage/evData";
 import { CAR_CONTACT, TRACK_LENGTH, resetTrafficStall, stallTraffic, trafficHitVisual, trafficStateFor } from "./game/traffic";
 import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
-import { CYCLE_JUNCTIONS, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
-import { DEMO_FAULTS, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
+import { CYCLE_JUNCTIONS, zonesAt, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
+import { DEMO_FAULTS, policeSpeedKph, secondsToCatch, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
 import { StageIntro } from "./ui/Verdict";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
@@ -1490,7 +1490,7 @@ const TrackStatic = React.memo(function TrackStatic({ ship, signalRed, signals }
 
 function RaceWorldScene({ sim, ship, policeVisible, waterFall = false, celebrate = false, hit }: { sim: DriveSim; ship: boolean; policeVisible: boolean; waterFall?: boolean; celebrate?: boolean; hit?: { id: number; level: ImpactLevel } }) {
   const player = useRef<THREE.Group>(null!);
-  // crash reaction: the body squashes and the camera shakes for a moment, harder for bigger hits
+  // crash reaction: the car squashes and jolts for a moment (the camera stays steady), harder for bigger hits
   const hitAt = useRef(-10), hitPower = useRef(1);
   useEffect(() => { if (hit?.id) { hitAt.current = performance.now() / 1000; hitPower.current = hit.level; } }, [hit?.id, hit?.level]);
   // Ship arrival: the chase camera orbits from behind the car to its front (0 → π) to show the cheering cats.
@@ -1550,9 +1550,11 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false, celebrate
     if (hitAge < 1.3) {
       const k = Math.exp(-hitAge * 4) * (1 - hitAge / 1.3), power = hitPower.current;
       player.current.scale.set(1 + .045 * power * k, 1 - .1 * power * k, 1 - .07 * power * k);
-      camera.position.x += Math.sin(hitAge * 55) * .16 * power * k;
-      camera.position.y += Math.cos(hitAge * 47) * .12 * power * k;
-    } else if (player.current.scale.x !== 1) player.current.scale.set(1, 1, 1);
+      // only the car jolts (roll, pitch, a small hop); the camera and the world stay steady
+      player.current.rotation.z = Math.sin(hitAge * 42) * .09 * power * k;
+      player.current.rotation.x = Math.cos(hitAge * 35) * .05 * power * k;
+      player.current.position.y += Math.abs(Math.sin(hitAge * 24)) * .1 * power * k;
+    } else if (player.current.scale.x !== 1) { player.current.scale.set(1, 1, 1); player.current.rotation.z = 0; player.current.rotation.x = 0; }
     camera.lookAt(lookTarget.current);
   });
   return <>
@@ -1754,7 +1756,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         let fx: FaultEffect = {};
         if (FAULT_DEMO) {
           const nowS = now / 1000;
-          const faultCtx: FaultContext = { speedKph: previous.speed, pedal: allowed && gear === "D" && (k.has("w") || k.has("arrowup")) ? 1 : 0, braking, gear, steerAbs: Math.abs(previous.steer) / .43, distanceM: previous.distance, elapsedS: previous.elapsed, sinceEvent: { collision: nowS - lastHitAt.current, gearChange: nowS - lastGearAt.current }, zones: [], ready: driveMission !== "restart" };
+          const faultCtx: FaultContext = { speedKph: previous.speed, pedal: allowed && gear === "D" && (k.has("w") || k.has("arrowup")) ? 1 : 0, braking, gear, steerAbs: Math.abs(previous.steer) / .43, distanceM: previous.distance, elapsedS: previous.elapsed, sinceEvent: { collision: nowS - lastHitAt.current, gearChange: nowS - lastGearAt.current }, zones: zonesAt(previous.distance), ready: driveMission !== "restart" };
           const step = stepFault(FAULT_DEMO, faultRuntime.current, faultCtx, dt, Math.random, faultRestarted.current);
           faultRestarted.current = false; faultRuntime.current = step.runtime; fx = mergeEffects([step.effect]); faultFx.current = fx;
           if (fx.shutdown && driveMission === "idle") setDriveMission("restart");
@@ -1762,13 +1764,13 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         // Motor characteristic: full torque at low speed, then constant power (accel falls with speed).
         const topSpeed = 165;
         let speed = previous.speed;
-        const driveAccel = throttle && !fx.driveCut && !fx.shutdown ? 46 * Math.min(1, 70 / Math.max(speed, 1)) * (fx.pedalScale ?? 1) : 0;
-        if (throttle) speed += driveAccel * dt;
-        else speed -= (gear === "N" ? 1.6 : [2.15, 5.5, 9, 13][regen]) * dt; // coasting: regen level sets the deceleration (none in N)
+        const driveAccel = throttle && !fx.driveCut && !fx.shutdown && !fx.reverseOnly ? 46 * Math.min(1, 70 / Math.max(speed, 1)) * (fx.pedalScale ?? 1) : 0;
+        if (throttle) speed += driveAccel * dt - (fx.reverseOnly ? 14 * dt : 0); // reverse-only fault: the pedal pulls the car backwards
+        else { const coast = (gear === "N" ? 1.6 : [2.15, 5.5, 9, 13][regen]) * dt; speed = speed > 0 ? speed - coast : Math.min(0, speed + coast); } // coasting: regen level sets the deceleration (none in N)
         if (!throttle && fx.coastAccelKphPerS) speed += fx.coastAccelKphPerS * dt;
-        if (braking) speed -= 62 * (fx.brakeScale ?? 1) * dt;
+        if (braking) { const brakeStep = 62 * (fx.brakeScale ?? 1) * dt; speed = speed > 0 ? speed - brakeStep : Math.min(0, speed + brakeStep); }
         if (fx.speedCapKph !== undefined) speed = Math.min(speed, fx.speedCapKph);
-        speed = THREE.MathUtils.clamp(speed, 0, topSpeed);
+        speed = THREE.MathUtils.clamp(speed, fx.reverseOnly ? -25 : 0, topSpeed);
         if (!allowed || parking || driveMission === "restart" || waterFall || gear === "P" || gear === "R") speed = THREE.MathUtils.damp(speed, 0, 6.2, dt);
         if (mode === "assist") speed = Math.min(speed || (allowed && !parking ? 27 : 0), 30);
         // Faults appear only under the driving condition that exposes them
@@ -1824,7 +1826,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
             lastHitAt.current = nowSeconds; send({ type: "COLLISION", level: railEffect.level, gapPenalty: railEffect.gapPenalty });
           }
         }
-        let distance = previous.distance + speed * dt / 3.6;
+        let distance = Math.max(0, previous.distance + speed * dt / 3.6);
         if (mode === "ship" && distance > DECK_STOP) distance = DECK_STOP;
         if (driveMission === "red" && distance >= 612) {
           distance = 612;
@@ -1881,7 +1883,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         }
         const floor = state.completedCases.length < 2 ? 10 : 0;
         const policeHasJoined = mode !== "normal" || (previous.elapsed >= 3 && previous.distance >= 45);
-        const policeSpeed = speed < 4 ? 24 : THREE.MathUtils.clamp(68 + speed * .12, 68, 88);
+        const policeSpeed = policeSpeedKph(speed); // one source for the chase numbers (faultSchedule.ts)
         const finalBoardingZone = mode === "ship" && distance >= RAMP_START;
         const gap = finalBoardingZone
           ? Math.max(10, previous.gap)
@@ -1963,6 +1965,9 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     }
     const junction = junctionAhead(sim.distance, sim.elapsed);
     if (junction && junction.phase !== "green") return { kind: "signal", title: junction.phase === "red" ? "적색 신호" : "황색 신호", text: junction.crossing ? `${Math.max(0, Math.round(junction.distanceM))}m 앞 횡단보도 보행자 · 정지선 앞에서 정차` : `${Math.max(0, Math.round(junction.distanceM))}m 앞 정지선` };
+    // chase: how long until the police catch up at the current speed (stopping, reversing or an output limit all show up here)
+    const eta = secondsToCatch(sim.gap, sim.speed);
+    if (sim.gap > 0 && eta < 40) return { kind: "chase", title: "경찰 접근", text: `이 속도로는 약 ${Math.max(1, Math.round(eta))}초 뒤 따라잡혀요 · ${sim.speed < 0 ? "후진 중" : sim.speed < 4 ? "다시 출발하세요" : "속도를 올리세요"}` };
     return null;
   })();
   const symptom = (mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80);
@@ -2053,7 +2058,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     {symptom && <ComicBurst tone="fault" side="right" image="/assets/ending-thumbs/accel_pedal.png" title="가속 저하 발생" sound="alarm" />}
     {/* every message card lives in one column under the mirror, so cards never overlap */}
     <div className="raceFeed">
-      {situationHint && <div className={`situationHint ${situationHint.kind}`} role="status" key={situationHint.kind}><small>{situationHint.kind === "lead" ? "앞차" : situationHint.kind === "rear" ? "후방" : "교차로"}</small><b>{situationHint.title}</b><em>{situationHint.text}</em></div>}
+      {situationHint && <div className={`situationHint ${situationHint.kind}`} role="status" key={situationHint.kind}><small>{situationHint.kind === "lead" ? "앞차" : situationHint.kind === "rear" ? "후방" : situationHint.kind === "chase" ? "추격" : "교차로"}</small><b>{situationHint.title}</b><em>{situationHint.text}</em></div>}
       {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>↓</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
       {gearToast && <div className="gearToast" key={gearToast.id}>{gearToast.text}</div>}
       {impact > 0 && <div className={`impactToast impactToastL${impactLevel}`} key={impact}>{impactMessage}</div>}
@@ -2082,6 +2087,7 @@ const raceKey = (event: KeyboardEvent) => {
 const MINIMAP_PATH = Array.from({ length: 51 }, (_, i) => { const progress = i * 2; const d = progress / 100 * TRACK_LENGTH; return `${i ? "L" : "M"}${(45 + trackFrame(d).x * 3.4).toFixed(1)} ${(94 - progress * .86).toFixed(1)}`; }).join(" ");
 // Driving zones on the existing course where each fault shows up [start, fallback trigger] in metres.
 /** Dev switch `?faultdemo=release|stationary|prestart` runs one generic fault spec from src/game/faultSchedule.ts on top of the level (see docs/fault-cases/RACING_FAULT_MODEL.md). */
+/** `?faultdemo=release|stationary|prestart|reverse|limit` */
 const FAULT_DEMO: FaultSpec | null = import.meta.env.DEV && typeof location !== "undefined" ? (DEMO_FAULTS as Record<string, FaultSpec>)[new URLSearchParams(location.search).get("faultdemo") ?? ""] ?? null : null;
 const OVERTAKE_ZONE = [150, 330] as const;
 const CLIMB_ZONE = [760, 960] as const; // sustained high-load section (cooling must keep up)

@@ -256,7 +256,7 @@ export const secondsToCatch = (gapM: number, speedKph: number): number => {
  * Ready-made specs for the three first trigger types (docs/fault-cases/RACING_FAULT_MODEL.md).
  * They are generic demos used by the dev switch `?faultdemo=` and by tests; real cases register their own spec.
  */
-export const DEMO_FAULTS: Record<"release" | "stationary" | "prestart", FaultSpec> = {
+export const DEMO_FAULTS: Record<"release" | "stationary" | "prestart" | "reverse" | "limit", FaultSpec> = {
   release: {
     id: "demo-release", caseId: "N01",
     trigger: { phase: "release", minSpeedKph: 40, holdSec: .4 },
@@ -277,5 +277,19 @@ export const DEMO_FAULTS: Record<"release" | "stationary" | "prestart", FaultSpe
     persistence: "permanent",
     effect: { readyBlockedTries: 3 },
     chase: { note: "The race starts only after READY is established; every failed try costs time but the gap is fixed until departure." },
+  },
+  reverse: {
+    id: "demo-reverse", caseId: "C12",
+    trigger: { phase: "always" },
+    persistence: "permanent",
+    effect: { reverseOnly: true },
+    chase: { note: "Only reverse is possible: the car rolls back towards the police, the gap closes faster than when standing still." },
+  },
+  limit: {
+    id: "demo-limit", caseId: "C08",
+    trigger: { phase: "elapsed", afterElapsedS: 10 },
+    persistence: "permanent",
+    effect: { speedCapKph: 55, cluster: { lamps: ["출력 제한"] } },
+    chase: { note: "Output limited to 55 km/h: below the police speed (68-88 km/h), so the gap shrinks steadily until repaired." },
   },
 };

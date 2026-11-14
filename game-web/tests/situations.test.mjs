@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { nearJunction, signalPhase, redAge, pedestriansAt, pedestrianContact, junctionAhead, stoppingDistanceM, LEAD_BRAKES, leadBrakeScale, leadBrakeLagM, leadBraking, newRearState, stepRear, REAR_HIT, SIGNAL_CYCLE } from "../src/game/situations.ts";
+import { zonesAt, nearJunction, signalPhase, redAge, pedestriansAt, pedestrianContact, junctionAhead, stoppingDistanceM, LEAD_BRAKES, leadBrakeScale, leadBrakeLagM, leadBraking, newRearState, stepRear, REAR_HIT, SIGNAL_CYCLE } from "../src/game/situations.ts";
 
 test("signal cycles green -> yellow -> red and repeats", () => {
   const seen = new Set(); for (let t = 0; t < 48; t += .5) seen.add(signalPhase(300, t));
@@ -83,4 +83,11 @@ test("a stop at a junction does not arm the rear-end follower", () => {
   for (let t = 0; t < 20; t += .05) { const r = stepRear(s, t < 2 ? 80 : 0, t, .05, true); s = r.state; if (r.state.follower !== null) armed = true; }
   assert.equal(armed, false);
   assert.equal(nearJunction(300), true); assert.equal(nearJunction(600), true); assert.equal(nearJunction(450), false); assert.equal(nearJunction(225), true);
+});
+
+test("zonesAt returns the tags of the zones that contain the distance", () => {
+  const zones = [{ tag: "wet", fromM: 100, toM: 200 }, { tag: "tunnel", fromM: 150, toM: 300 }];
+  assert.deepEqual(zonesAt(120, zones), ["wet"]);
+  assert.deepEqual(zonesAt(170, zones), ["wet", "tunnel"]);
+  assert.deepEqual(zonesAt(50, zones), []);
 });

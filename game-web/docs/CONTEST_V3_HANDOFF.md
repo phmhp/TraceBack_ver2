@@ -101,3 +101,4 @@ WP1 잔여(동적 상태 잘림 점검·STEP01 H1) → WP2 DEV 메뉴 → WP3 ST
 - 규칙: 레이싱 레이아웃을 크게 바꾸기 전에 사용자에게 HUD/충돌 시안을 먼저 보여 준다. 모든 승인 설계는 DESIGN_DECISIONS_V3.md에 추가. 검증은 1600x900 브라우저 + `npm test`(현재 109 통과).
 - 2026-11-14 추가 완료: 상황 세트 1(신호 주기·횡단보도 보행자·앞차 급제동·뒤차 추돌) `src/game/situations.ts` + 레이싱 연결, 상세 `docs/ROAD_SITUATIONS_CATALOG.md` 하단 "구현 현황". 개발 도구 `tb-dev-seek`, `tb-dev-hit`, `?faultdemo=`.
 - 남은 순서: 추격 연동 실제 반영(고장→추격차: 정지/후진/출력 제한 곡선·후진 주행), 교통 밀도·정체, 기존 두 사건을 `FaultSpec`으로 이전, 사건 N01 시트 승인 후 구현, 레이싱 HUD/충돌 시안을 사용자에게 먼저 제시.
+- 2026-11-14 추격 연동 반영: 추격 속도 계산 단일화(`policeSpeedKph`), 후진 주행(`reverseOnly`), 출력 제한은 속도 상한으로 자동 반영, 경찰 접근 예상 시간 카드(`situationHint` chase). 충돌 연출은 차체만 흔들림(카메라 고정). 구간 표 `ROAD_ZONES`는 배선만 완료.

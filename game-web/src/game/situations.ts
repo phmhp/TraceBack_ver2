@@ -142,3 +142,14 @@ export function stepRear(s: RearState, playerSpeedKph: number, elapsedS: number,
 
 /** True within `range` metres of any junction stop line (cycle junctions and the 620 m mission junction). */
 export const nearJunction = (distanceM: number, range = 90): boolean => [...CYCLE_JUNCTIONS, 620].some(j => Math.abs(distanceM - j) <= range);
+
+// ---------------------------------------------------------------- map zones (environment)
+
+/**
+ * A stretch of the map with a condition. The SAME table drives the map visuals (rain, wet road, tunnel, night ...) and the
+ * `environment` fault trigger (`FaultContext.zones`), so the world and the fault can never disagree.
+ * Empty until the level maps are defined (docs/fault-cases/RACING_FAULT_MODEL.md section 6).
+ */
+export type RoadZone = { tag: "wet" | "tunnel" | "night" | "slope" | "cold" | "glare"; fromM: number; toM: number };
+export const ROAD_ZONES: readonly RoadZone[] = [];
+export const zonesAt = (distanceM: number, zones: readonly RoadZone[] = ROAD_ZONES): string[] => zones.filter(z => distanceM >= z.fromM && distanceM <= z.toM).map(z => z.tag);

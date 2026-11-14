@@ -86,3 +86,12 @@ test("chase coupling: stopped or reversing closes the gap faster than driving", 
   assert.equal(secondsToCatch(100, 120), Infinity);
   assert.ok(secondsToCatch(100, 0) < 20);
 });
+
+test("demo specs for reverse-only and output limit couple to the chase", () => {
+  assert.equal(run(DEMO_FAULTS.reverse, seconds(1, ctx())).effect.reverseOnly, true);
+  assert.equal(run(DEMO_FAULTS.limit, seconds(5, ctx({ elapsedS: 5 }))).active, false);
+  const limited = run(DEMO_FAULTS.limit, seconds(1, ctx({ elapsedS: 12 })));
+  assert.equal(limited.effect.speedCapKph, 55);
+  assert.ok(gapRateMps(55) < 0, "55 km/h is slower than the police");
+  assert.ok(secondsToCatch(60, 55) < Infinity);
+});
