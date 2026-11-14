@@ -262,3 +262,15 @@
 .cfPageNav .cfBtn { min-width: 76px; padding: 8px 11px; font-size: 12px; }.cfPageNav .cfBtn:disabled { opacity: .42; cursor: default; transform: none; }
 @media (max-width: 1054px) { .is-escaped .cfSheet { height: min(660px, 94vh); gap: 12px 14px; padding: 14px 16px 12px; grid-template-columns: minmax(242px, 31%) 1fr; }.is-escaped .cfPoster { gap: 7px; padding: 13px 11px; }.is-escaped .cfWanted h1 { font-size: 48px; }.is-escaped .cfSub, .is-escaped .cfNote { font-size: 11px; }.is-escaped .cfPhotos figcaption b { font-size: 15px; }.is-escaped .cfPhotos figcaption span { font-size: 10px; }.cfReportGrid { gap: 5px; }.cfReportGrid div { padding: 5px 6px; }.cfReportGrid dd { font-size: 10px; }.cfTypedLead { font-size: 11px; } }
 @media (prefers-reduced-motion: reduce) { .cfTypedLead i, .cfReportGrid div { animation: none; } }
+
+/* ending cat faces: the expression image fills the portrait window; the epilogue is one short line under the note */
+.cfPhoto { position: relative; overflow: hidden; }
+.cfPhoto .cfExpr { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cfEpilogue { margin: 6px 0 0; font-size: 14px; font-weight: 500; line-height: 1.5; color: #5a3d38; }
+/* the stamp sits in the flow under the text (it used to cover the last lines) */
+.cfPoster .cfStamp { position: static; align-self: center; margin-top: 6px; transform: rotate(-4deg); font-size: 16px; padding: 2px 12px; }
+.is-caught .cfPoster .cfStamp { transform: rotate(-6deg); }
+.cfPoster .cfNote, .cfPoster .cfEpilogue, .cfPoster .cfTip { margin-top: 2px; }
+.cfPoster .cfEpilogue { font-size: 13px; line-height: 1.4; }
+.cfPoster .cfPhotos figure { width: 88%; margin-inline: auto; }
+.cfPoster .cfStamp { margin-top: 0; }

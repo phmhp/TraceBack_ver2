@@ -26,6 +26,16 @@ const cropStyle = ([x, y, w, h]: readonly number[]): React.CSSProperties => ({
   aspectRatio: `${w} / ${h}`,
 });
 
+import { EXPRESSION_DIR, MOOD_LABEL, endingMoods, type CatMood } from "../game/endingMoods";
+
+/** One cat face: the expression image when it exists, otherwise the portrait crop. */
+function CatFace({ cat, mood }: { cat: (typeof CATS)[number]; mood: CatMood }) {
+  const [missing, setMissing] = React.useState(false);
+  return <div className={`cfPhoto cfMood-${mood}`} style={missing ? cropStyle(cat.crop) : { aspectRatio: `${cat.crop[2]} / ${cat.crop[3]}` }}>
+    {!missing && <img className="cfExpr" src={`${EXPRESSION_DIR}${cat.id}-${mood}.png`} alt="" onError={() => setMissing(true)} />}
+  </div>;
+}
+
 type CaseStatus = "solved" | "open" | "skipped" | "none";
 const STATUS_LABEL: Record<CaseStatus, string> = { solved: "해결", open: "미해결", skipped: "건너뜀", none: "미발생" };
 
@@ -332,6 +342,7 @@ function CaseBrief({ state, escaped }: { state: Campaign; escaped: boolean }) {
 
 export function WantedEnding({ state, send }: { state: Campaign; send: React.Dispatch<any> }) {
   const bounty = 2_000_000 + score(state) * 50_000;
+  const moods = endingMoods(state, true);
   return <div className="caseFileScreen is-escaped">
     <SceneBackdrop image={`${A}stitch23/ship-escape.png`} position="center" shade="deep" />
     <div className="cfSheet">
@@ -339,11 +350,12 @@ export function WantedEnding({ state, send }: { state: Campaign; send: React.Dis
         <h1>WANTED</h1>
         <p className="cfSub">전기차 도주 2인조 · 생포 시 포상</p>
         <div className="cfPhotos">{CATS.map(cat => <figure key={cat.id}>
-          <div className="cfPhoto" style={cropStyle(cat.crop)} />
-          <figcaption><b>{cat.name}</b><span>{cat.role}</span></figcaption>
+          <CatFace cat={cat} mood={moods[cat.id]} />
+          <figcaption><b>{cat.name}</b><span>{cat.role} · 표정 {MOOD_LABEL[moods[cat.id]]}</span></figcaption>
         </figure>)}</div>
         <div className="cfBounty"><small>현상금</small><b>₩ {bounty.toLocaleString()}</b></div>
         <p className="cfNote">고장 난 차를 달리면서 고쳐 부두에서 배로 탈출함. 최종 목격 지점: 네오 베이 항만 램프.</p>
+        <p className="cfEpilogue">{moods.epilogue}</p>
         <span className="cfStamp">탈출 성공</span>
       </section>
       <CaseBrief state={state} escaped />
@@ -357,6 +369,7 @@ export function WantedEnding({ state, send }: { state: Campaign; send: React.Dis
 
 export function BustedEnding({ state, send }: { state: Campaign; send: React.Dispatch<any> }) {
   const scenario = SCENARIOS[state.caseId];
+  const moods = endingMoods(state, false);
   return <div className="caseFileScreen is-caught">
     <SceneBackdrop image={`${A}stitch23/fail-rain.png`} position="center" shade="deep" />
     <div className="cfSheet">
@@ -364,13 +377,14 @@ export function BustedEnding({ state, send }: { state: Campaign; send: React.Dis
         <header><small>네오베이 경찰서</small><h1>체포 기록</h1></header>
         <div className="cfPhotos">{CATS.map((cat, index) => <figure key={cat.id}>
           <div className="cfMug">
-            <div className="cfPhoto" style={cropStyle(cat.crop)} />
+            <CatFace cat={cat} mood={moods[cat.id]} />
             <span className="cfStripes" />
             <span className="cfPlacard">TB-16-00{index + 1}<br />{cat.name}</span>
           </div>
-          <figcaption><b>{cat.name}</b><span>{cat.role}</span></figcaption>
+          <figcaption><b>{cat.name}</b><span>{cat.role} · 표정 {MOOD_LABEL[moods[cat.id]]}</span></figcaption>
         </figure>)}</div>
         <p className="cfNote">체포 지점: {Math.round(state.raceDistance).toLocaleString()} m · 진행 중이던 사건: {scenario.chapter}</p>
+        <p className="cfEpilogue">{moods.epilogue}</p>
         <p className="cfTip">고장 원인을 더 빨리 좁힐수록 추격차와의 격차가 덜 줄어요. 증거를 다시 확인해 보세요.</p>
         <span className="cfStamp">체포</span>
       </section>
