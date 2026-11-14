@@ -68,3 +68,6 @@
 .refPuzzle.v2 .rp3Work .rpTray > span { white-space: nowrap !important; width: auto !important; }
 .refPuzzle.v2 .rp3Work .rpPiece .flowBlock .rpFace.tight { font-size: 9.5px !important; letter-spacing: -.45px; padding: 1px 2px; }
 .refPuzzle.v2 .rp3Work .rpPiece .flowBlock .rpFace.tight { white-space: normal !important; line-height: 1.1; text-align: center; letter-spacing: 0; }
+.rpFromLine { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.rpGarageLink { all: unset; box-sizing: border-box; cursor: pointer; padding: 3px 10px; border-radius: 999px; background: #9b6b64; color: #fff8f2; font: 700 12px/1.2 Pretendard, system-ui; white-space: nowrap; }
+.rpGarageLink:focus-visible { outline: 3px solid #4a3a36; outline-offset: 2px; }

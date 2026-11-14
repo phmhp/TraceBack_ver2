@@ -18,18 +18,20 @@ export type LevelDef = {
   phase: string;
   learn: string;
   difficulty: 1 | 2 | 3;
+  /** shown on the card after the level is cleared ("배운 원리"); plain statements, no case-specific answers */
+  principles: string[];
   garage: { domain: DomainId; feature: number }[];
 };
 
 export const LEVELS: LevelDef[] = [
   { level: 1, kind: "required", caseId: "propulsion", title: "가속이 약해요", domainLabel: "구동", icon: "gear",
-    teaser: "페달을 밟아도 차가 힘없이 나가요.", phase: "추월 구간 가속", learn: "SW만 따로 실행해 계산 오류를 가르는 시험", difficulty: 1, garage: [{ domain: "drive", feature: 0 }] },
+    teaser: "페달을 밟아도 차가 힘없이 나가요.", phase: "추월 구간 가속", learn: "SW만 따로 실행해 계산 오류를 가르는 시험", difficulty: 1, principles: ["페달 입력은 필터와 맵을 거쳐 토크 요청이 돼요.", "SW만 따로 실행하면 입력 회로 없이 계산 오류를 가를 수 있어요.", "원인은 결과보다 먼저 달라진 신호에서 찾아요."], garage: [{ domain: "drive", feature: 0 }] },
   { level: 2, kind: "required", caseId: "thermal", title: "오래 달리면 힘이 빠져요", domainLabel: "열관리", icon: "thermo",
-    teaser: "고속으로 오래 달리자 경고등이 켜지고 출력이 줄어요.", phase: "연속 고부하 주행", learn: "제어기 출력과 실제 동작을 비교해 실행 누락을 찾는 시험", difficulty: 2, garage: [{ domain: "thermal", feature: 1 }, { domain: "thermal", feature: 3 }] },
+    teaser: "고속으로 오래 달리자 경고등이 켜지고 출력이 줄어요.", phase: "연속 고부하 주행", learn: "제어기 출력과 실제 동작을 비교해 실행 누락을 찾는 시험", difficulty: 2, principles: ["열 요구는 제어기가 PWM 출력으로 바꿔 팬을 돌려요.", "요청은 정상인데 출력이 없으면 출력 어댑터를 의심해요.", "출력 제한은 고장이 아니라 과열을 막는 보호 동작이에요."], garage: [{ domain: "thermal", feature: 1 }, { domain: "thermal", feature: 3 }] },
   { level: 3, kind: "bonus", caseId: "brake", title: "브레이크가 덜 들어요", domainLabel: "제동", icon: "disc",
-    teaser: "브레이크를 밟았는데 생각보다 덜 서요.", phase: "정차 구간 제동", learn: "내부 계산값과 출력값의 차이로 변환 오류를 찾는 시험", difficulty: 2, garage: [{ domain: "brake", feature: 1 }] },
+    teaser: "브레이크를 밟았는데 생각보다 덜 서요.", phase: "정차 구간 제동", learn: "내부 계산값과 출력값의 차이로 변환 오류를 찾는 시험", difficulty: 2, principles: ["회생으로 줄인 몫의 나머지를 마찰 압력이 채워요.", "내부 계산값과 전송값이 다르면 변환 단계를 의심해요.", "같은 입력으로 수리 전후를 비교하면 원인 제거를 확인할 수 있어요."], garage: [{ domain: "brake", feature: 1 }] },
   { level: 4, kind: "finale", caseId: null, title: "최종 탈출", domainLabel: "해적선", icon: "flag",
-    teaser: "수리한 차로 부두까지 달려 해적선에 올라타요.", phase: "부두 구간 주행", learn: "수리 후에도 정상 동작이 이어지는지 확인", difficulty: 1, garage: [] },
+    teaser: "수리한 차로 부두까지 달려 해적선에 올라타요.", phase: "부두 구간 주행", learn: "수리 후에도 정상 동작이 이어지는지 확인", difficulty: 1, principles: ["수리 후에도 같은 시험으로 정상 동작을 확인해요.", "정상 기준은 요구사항에서 나오고 시험 기준이 돼요.", "추리, 시험, 수리, 재시험이 검증의 기본 흐름이에요."], garage: [] },
 ];
 
 export type LevelStatus = "cleared" | "open" | "locked";

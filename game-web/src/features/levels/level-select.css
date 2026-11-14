@@ -47,3 +47,18 @@
 .lvStart button { flex: 1; width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; position: static !important; font: 800 22px/1 Pretendard, system-ui !important; white-space: nowrap; }
 .lvStart button:disabled { opacity: .55; cursor: not-allowed; }
 .levelSelect .lvWork .lvStart button.stageProgressAction { font: 800 22px/1 Pretendard, system-ui !important; width: 100% !important; height: 100% !important; position: static !important; }
+
+/* open book layer tabs and highlights */
+.openBook .obTabs { display: flex; gap: 6px; margin: 4px 0 8px; }
+.openBook .obTabs button { flex: 1 1 0; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; font: 800 13px/1 Pretendard, system-ui; border-radius: 10px; border: 2px solid #e0cfa6; background: #fff; color: #5a4440; cursor: pointer; }
+.openBook .obTabs button i { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #9b6b64; color: #fff8f2; font: 800 11px/1 Pretendard, system-ui; font-style: normal; }
+.openBook .obTabs button.on { background: #9b6b64; border-color: #9b6b64; color: #fff8f2; }
+.openBook .obTabs button.on i { background: #fff8f2; color: #9b6b64; }
+.openBook .obCat { font: 700 12px/1 Pretendard, system-ui; font-style: normal; padding: 3px 8px; border-radius: 999px; background: rgba(155, 107, 100, .14); color: #7a4a44; margin-left: 6px; white-space: nowrap; }
+.openBook .obNote { margin: 6px 0 0; font: 600 13px/1.4 Pretendard, system-ui; color: #4a3a36; }
+.openBook .obPath span.focus, .openBook .rpNoteCard.focus { outline: 3px solid #c4553a; outline-offset: 2px; }
+.lvPrinciples { padding: 8px 10px; border-radius: 12px; background: #e8eddf; }
+.lvPrinciples > small { display: flex; align-items: center; gap: 6px; font: 800 13px/1 Pretendard, system-ui; color: #3f7a55; margin-bottom: 6px; white-space: nowrap; }
+.lvPrinciples ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.lvPrinciples li { font: 600 13px/1.35 Pretendard, system-ui; color: #2f5a42; padding-left: 12px; position: relative; }
+.lvPrinciples li::before { content: ""; position: absolute; left: 0; top: .55em; width: 5px; height: 5px; border-radius: 50%; background: #5b9a76; }

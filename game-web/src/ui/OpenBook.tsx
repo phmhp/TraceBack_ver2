@@ -3,7 +3,8 @@
 import { numify } from "./numify";
 import React, { useState } from "react";
 import type { CaseId } from "../game/runtime";
-import { getFeatureLayer, type DomainId } from "../experiences";
+import { getFeatureLayer, ownerController, type DomainId } from "../experiences";
+import { EV_DOMAINS } from "../features/garage/evData";
 import { KIND_TAG, Picto, blockKind, plainText } from "../features/garage/SimulinkDiagram";
 import { Icon } from "./Icon";
 import { play } from "./sfx";
@@ -17,22 +18,31 @@ const BOOK: Record<CaseId, { domain: DomainId; feature: number; name: string; re
   brake: [{ domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조", req: "페달 55% → 목표 감속 3.2 m/s². 회생은 배터리가 받을 수 있는 만큼, 나머지는 마찰(1 m/s²당 20 bar)." }],
 };
 
+const LAYER_TABS = ["기능 흐름", "부품·E/E", "SW 구성", "SW 로직"] as const;
+
+/** 정비소 노트: the normal-behaviour material of the case's functions in the garage's four layers. Never shows case evidence or the answer. */
+export function OpenBookModal({ caseId, onClose, layer = 1, focus }: { caseId: CaseId; onClose: () => void; layer?: number; focus?: string }) {
+  const [tab, setTab] = useState<number>(layer);
+  return <div className="pieceZoom" onClick={onClose}><article className="rpNote openBook" onClick={event => event.stopPropagation()}>
+    <button className="pieceZoomClose" aria-label="닫기" onClick={onClose}>×</button>
+    <small><Icon name="book" /> 오픈북 · 정비소에서 본 정상 동작</small><h2>정상이면 이렇게 동작해요</h2>
+    <p className="pzTip">사건 기록이 아니라 정상 자료예요. 원인은 직접 재고 시험해서 찾아요.</p>
+    <nav className="obTabs" role="tablist" aria-label="정비소 층">{LAYER_TABS.map((name, index) => <button key={name} role="tab" aria-selected={tab === index} className={tab === index ? "on" : ""} onClick={() => { setTab(index); play("pop"); }}><i>{index + 1}</i>{name}</button>)}</nav>
+    {BOOK[caseId].map(note => { const feature = EV_DOMAINS[note.domain].features[note.feature]; const owner = ownerController(note.domain, note.feature); return <section key={note.name}>
+      <b>{note.name} <em className="obCat">{feature.category}</em></b>
+      <p className="obReq"><Icon name="clipboard" /> {numify(note.req)}</p>
+      {tab < 3 ? <div className="obPath">{getFeatureLayer(note.domain, note.feature, tab).map((label, index, all) => <React.Fragment key={`${label}-${index}`}><span className={focus === label ? "focus" : ""}>{label}</span>{index < all.length - 1 && <i>→</i>}</React.Fragment>)}</div>
+        : <div className="rpNoteCards">{getFeatureLayer(note.domain, note.feature, 3).map(label => { const kind = blockKind(label); return <div key={label} className={`rpNoteCard kind-${kind} ${focus === label ? "focus" : ""}`}><div className="flowBlock"><Picto kind={kind} /><small>{KIND_TAG[kind]}</small></div><b>{label}</b><span>{plainText(label, kind)}</span></div>; })}</div>}
+      {tab === 2 && <p className="obNote">{owner ? `이 SW 컴포넌트들은 ${owner.name}에서 실행돼요.` : "여러 제어기가 나눠 실행해요."}</p>}
+      {tab === 0 && <p className="obNote">{feature.summary}</p>}
+    </section>; })}
+  </article></div>;
+}
+
 export function OpenBookButton({ caseId }: { caseId: CaseId }) {
   const [open, setOpen] = useState(false);
   return <>
     <button className="openBookBtn" onClick={() => { setOpen(true); play("pop"); }}><Icon name="book" /> 오픈북</button>
-    {open && <div className="pieceZoom" onClick={() => setOpen(false)}><article className="rpNote openBook" onClick={event => event.stopPropagation()}>
-      <button className="pieceZoomClose" onClick={() => setOpen(false)}>×</button>
-      <small><Icon name="book" /> 오픈북 · 정비소에서 본 정상 동작</small><h2>정상이면 이렇게 동작해요</h2>
-      <p className="pzTip">사건 기록이 아니라 정상 자료예요. 원인은 직접 재고 시험해서 찾아요.</p>
-      {BOOK[caseId].map(note => <section key={note.name}>
-        <b>{note.name}</b>
-        <p className="obReq"><Icon name="clipboard" /> {numify(note.req)}</p>
-        <div className="obPath">{getFeatureLayer(note.domain, note.feature, 1).map((label, index, all) => <React.Fragment key={`${label}-${index}`}><span>{label}</span>{index < all.length - 1 && <i>→</i>}</React.Fragment>)}</div>
-        <div className="rpNoteCards">
-          {getFeatureLayer(note.domain, note.feature, 3).map(label => { const kind = blockKind(label); return <div key={label} className={`rpNoteCard kind-${kind}`}><div className="flowBlock"><Picto kind={kind} /><small>{KIND_TAG[kind]}</small></div><b>{label}</b><span>{plainText(label, kind)}</span></div>; })}
-        </div>
-      </section>)}
-    </article></div>}
+    {open && <OpenBookModal caseId={caseId} onClose={() => setOpen(false)} />}
   </>;
 }

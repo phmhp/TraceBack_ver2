@@ -23,7 +23,7 @@ import { SCENARIOS, SCENARIO_META } from "../../game/scenarios";
 import { buildVerificationContract, contractSignalLabel, contractStorageKey, type VerificationContract } from "../../game/verificationContract";
 import { ReplayConfirm } from "../../ui/ReplayConfirm";
 import { MissionBar } from "../../ui/MissionBar";
-import { OpenBookButton } from "../../ui/OpenBook";
+import { OpenBookButton, OpenBookModal } from "../../ui/OpenBook";
 import "./puzzle-v3.css";
 
 type Send = React.Dispatch<any>;
@@ -475,6 +475,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   useEffect(() => { const key = (e: KeyboardEvent) => { if (["Delete", "Backspace", "Escape"].includes(e.key)) setZoomState(null); }; addEventListener("keydown", key); return () => removeEventListener("keydown", key); }, []);
   const [reaction, setReaction] = useState<"ok" | "weak" | null>(null);
   const [contract, setContract] = useState<VerificationContract | null>(saved.contract ?? null);
+  const [bookFocus, setBookFocus] = useState<string | null>(null);   // block label shown in the 정비소 노트 popup
   const [sheetStep, setSheetStep] = useState(Boolean(saved.sheetStep));   // step 3: the test-design draft is open
   const [panelTab, setPanelTab] = useState<"req" | "sheet">(saved.sheetStep ? "sheet" : "req");
   const [viewStep, setViewStep] = useState<number | null>(null);          // roadmap chip pointing back; null = follow progress
@@ -651,7 +652,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
           <b>{zoom.b.label}{zoom.b.tag ? ` · ${zoom.b.tag}` : ""}</b>
           <p>{doesOf(zoom.b)}</p>
           {zoom.b.spec && <p className="rpSpec">{zoom.b.spec}</p>}
-          <p className="rpFromLine">정비소에서 본 곳: {zoom.b.from}</p>
+          <p className="rpFromLine">정비소에서 본 곳: {zoom.b.from} <button className="rpGarageLink" onClick={() => { setBookFocus(zoom.b.label); setZoomState(null); play("pop"); }}>정비소 노트에서 보기</button></p>
         </div>}
       </section>
       <aside className="rpPanel">
@@ -691,6 +692,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       </footer>
       <div className="rpNextCell"><button className="rpNext stageProgressAction" disabled={!confirmed} onClick={goBench}>다음 →</button></div>
     </div>
+    {bookFocus !== null && <OpenBookModal caseId={caseId} layer={3} focus={bookFocus} onClose={() => setBookFocus(null)} />}
     {replayOpen && <ReplayConfirm impact="기존 시험 계약과 STEP04의 실행 기록·판정도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); reset(); }} />}
   </div>;
 }

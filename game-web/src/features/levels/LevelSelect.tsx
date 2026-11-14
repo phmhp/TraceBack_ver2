@@ -60,6 +60,7 @@ function LevelCard({ def, status, stars }: { def: LevelDef; status: "cleared" | 
       <div><dt>난이도</dt><dd className="lvDots">{[1, 2, 3].map(i => <i key={i} className={i <= def.difficulty ? "on" : ""} />)}</dd></div>
       {status === "cleared" && <div><dt>결과</dt><dd><Stars n={stars} /></dd></div>}
     </dl>
+    {status === "cleared" && <div className="lvPrinciples"><small><Icon name="bulb" /> 배운 원리</small><ul>{def.principles.map(line => <li key={line}>{line}</li>)}</ul></div>}
     {def.garage.length > 0 && <div className="lvGarage"><small><Icon name="book" /> 정비소에서 본 내용</small><ul>{def.garage.map(item => <li key={`${item.domain}-${item.feature}`}><b>{EV_DOMAINS[item.domain].label}</b><span>{EV_DOMAINS[item.domain].features[item.feature].name}</span></li>)}</ul></div>}
   </div>;
 }

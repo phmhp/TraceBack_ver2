@@ -87,3 +87,9 @@ WP1 잔여(동적 상태 잘림 점검·STEP01 H1) → WP2 DEV 메뉴 → WP3 ST
 ## STEP04 v4 (2026-11-14)
 - 4단계 + 우측 360px 패널(조건/결과/자료) + 150px 도크, 다음 버튼 패널 아래. 상세는 `DESIGN_DECISIONS_V3.md` 8절.
 - 검수 스크립트(브라우저 localStorage): `s3Src`(STEP03), `s4Src`(STEP04 전 과정). 개발 모드 TWIN_BENCH 직행 시 STEP03 계약 자동 생성.
+
+## 레벨 선택·상단바·학습 연결 (2026-11-14)
+- 레벨 선택 `features/levels/LevelSelect.tsx`, 데이터 `game/levels.ts`. 흐름: 정비소 "다음" → `LEVEL_SELECT` → 레벨 시작(`START_LEVEL`) → 주행·STEP02~04·수리 → 다시 `LEVEL_SELECT`. 레벨 4(탈출)는 구동·열관리 클리어 후 열림, 제동은 선택 레벨.
+- 상단바: `PursuitHud`(game-shell.tsx)가 모든 장면에서 상단 우측 같은 자리. `PursuitRouteBar`는 호환용 래퍼. 버튼 공통 스타일 `ui/buttons-unified.css`.
+- 학습 연결: `ui/OpenBook.tsx` `OpenBookModal`(4층 탭, focus 하이라이트), STEP03 `rpGarageLink`, 레벨 카드 `principles`.
+- 기존 사건 규칙 검수: `docs/fault-cases/AUDIT_EXISTING_2026-11-14.md`.
