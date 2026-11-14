@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DEMO_FAULTS, newFaultRuntime, stepFault, mergeEffects, applyEffectToSpeed, gapRateMps, policeSpeedKph, secondsToCatch, triggerHolds } from "../src/game/faultSchedule.ts";
+import { PROPULSION_FAULT, THERMAL_FAULT, levelFaults, DEMO_FAULTS, newFaultRuntime, stepFault, mergeEffects, applyEffectToSpeed, gapRateMps, policeSpeedKph, secondsToCatch, triggerHolds } from "../src/game/faultSchedule.ts";
 
 const ctx = (o = {}) => ({ speedKph: 0, pedal: 0, braking: false, gear: "D", steerAbs: 0, distanceM: 0, elapsedS: 0, sinceEvent: {}, zones: [], ready: true, ...o });
 const run = (spec, frames, rand = () => 0.5) => {
@@ -94,4 +94,22 @@ test("demo specs for reverse-only and output limit couple to the chase", () => {
   assert.equal(limited.effect.speedCapKph, 55);
   assert.ok(gapRateMps(55) < 0, "55 km/h is slower than the police");
   assert.ok(secondsToCatch(60, 55) < Infinity);
+});
+
+test("migrated cases: propulsion fault needs the zone and the pedal, keeps its throttle seconds; thermal needs distance and heat", () => {
+  assert.deepEqual(levelFaults("normal", "propulsion").map(s => s.id), ["case-propulsion"]);
+  assert.deepEqual(levelFaults("resume", "propulsion").map(s => s.id), ["case-thermal"]);
+  assert.deepEqual(levelFaults("resume", "thermal"), []);
+  assert.deepEqual(levelFaults("ship", "thermal"), []);
+  const before = run(PROPULSION_FAULT, seconds(1, ctx({ speedKph: 80, pedal: 1, distanceM: 100 })));
+  assert.equal(before.active, false);
+  const inZone = run(PROPULSION_FAULT, seconds(2, ctx({ speedKph: 80, pedal: 1, distanceM: 200 })));
+  assert.equal(inZone.active, true);
+  assert.equal(inZone.effect.pedalScale, .45); assert.equal(inZone.effect.accelCapKph, 55);
+  assert.ok(Math.abs(inZone.runtime.heldSec - 2) < .01, "throttle seconds accumulate");
+  const released = run(PROPULSION_FAULT, [...seconds(2, ctx({ speedKph: 80, pedal: 1, distanceM: 200 })), ...seconds(1, ctx({ speedKph: 80, pedal: 0, distanceM: 210 }))]);
+  assert.ok(released.runtime.heldSec > 1.9, "kept while the pedal is released (decay 0)");
+  assert.equal(run(THERMAL_FAULT, seconds(1, ctx({ distanceM: 800, heat: 70 }))).active, false);
+  assert.equal(run(THERMAL_FAULT, seconds(1, ctx({ distanceM: 700, heat: 90 }))).active, false);
+  assert.equal(run(THERMAL_FAULT, seconds(1, ctx({ distanceM: 800, heat: 85 }))).effect.speedCapKph, 55);
 });

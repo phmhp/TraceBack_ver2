@@ -28,7 +28,7 @@ import { DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainI
 import { CAR_CONTACT, TRACK_LENGTH, TRAFFIC_COUNT, resetTrafficStall, stallTraffic, trafficHitVisual, trafficStateFor } from "./game/traffic";
 import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
 import { CYCLE_JUNCTIONS, zoneBrakeFactor, zonesAt, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
-import { DEMO_FAULTS, policeSpeedKph, secondsToCatch, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
+import { DEMO_FAULTS, PROPULSION_FAULT, levelFaults, policeSpeedKph, secondsToCatch, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
 import { StageIntro } from "./ui/Verdict";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
@@ -1661,7 +1661,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const collisionCooldown = useRef(0);
   const zoneThrottle = useRef(0); // seconds of full throttle inside the overtake zone
   // fault schedule model: runtime state per spec, merged effect of the last frame, event clocks, R-restart tries
-  const faultRuntime = useRef<FaultRuntime>(newFaultRuntime());
+  const faultRuntime = useRef<Record<string, FaultRuntime>>({});
   const faultFx = useRef<FaultEffect>({});
   const faultRestarted = useRef(false);
   const lastHitAt = useRef(-Infinity);
@@ -1759,13 +1759,20 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         const allowed = countdown === 0;
         const throttle = allowed && gear === "D" && (k.has("w") || k.has("arrowup"));
         const braking = k.has("s") || k.has("arrowdown");
-        // fault schedule model: evaluate the generic spec (if any) and apply its effect to this frame
+        // fault schedule model (src/game/faultSchedule.ts): the level's specs plus the dev demo spec, merged into one effect for this frame
         let fx: FaultEffect = {};
-        if (FAULT_DEMO) {
+        const faultSpecs = FAULT_DEMO ? [...levelFaults(mode, state.caseId), FAULT_DEMO] : levelFaults(mode, state.caseId);
+        if (faultSpecs.length) {
           const nowS = now / 1000;
-          const faultCtx: FaultContext = { speedKph: previous.speed, pedal: allowed && gear === "D" && (k.has("w") || k.has("arrowup")) ? 1 : 0, braking, gear, steerAbs: Math.abs(previous.steer) / .43, distanceM: previous.distance, elapsedS: previous.elapsed, sinceEvent: { collision: nowS - lastHitAt.current, gearChange: nowS - lastGearAt.current }, zones: zonesAt(previous.distance), ready: driveMission !== "restart" };
-          const step = stepFault(FAULT_DEMO, faultRuntime.current, faultCtx, dt, Math.random, faultRestarted.current);
-          faultRestarted.current = false; faultRuntime.current = step.runtime; fx = mergeEffects([step.effect]); faultFx.current = fx;
+          const faultCtx: FaultContext = { speedKph: previous.speed, pedal: allowed && gear === "D" && (k.has("w") || k.has("arrowup")) ? 1 : 0, braking, gear, steerAbs: Math.abs(previous.steer) / .43, heat: previous.heat, distanceM: previous.distance, elapsedS: previous.elapsed, sinceEvent: { collision: nowS - lastHitAt.current, gearChange: nowS - lastGearAt.current }, zones: zonesAt(previous.distance), ready: driveMission !== "restart" };
+          const effects: FaultEffect[] = [];
+          for (const spec of faultSpecs) {
+            const demo = spec === FAULT_DEMO;
+            const step = stepFault(spec, faultRuntime.current[spec.id] ?? newFaultRuntime(), faultCtx, dt, Math.random, demo && faultRestarted.current);
+            faultRuntime.current[spec.id] = step.runtime; effects.push(step.effect);
+            if (spec.id === PROPULSION_FAULT.id) zoneThrottle.current = step.runtime.heldSec; // seconds of throttle inside the zone (symptom / FAULT_CUE)
+          }
+          faultRestarted.current = false; fx = mergeEffects(effects); faultFx.current = fx;
           if (fx.shutdown && driveMission === "idle") setDriveMission("restart");
         }
         // Motor characteristic: full torque at low speed, then constant power (accel falls with speed).
@@ -1782,16 +1789,9 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         if (mode === "assist") speed = Math.min(speed || (allowed && !parking ? 27 : 0), 30);
         // Faults appear only under the driving condition that exposes them
         // (= the reproduction condition the player later carries to the board).
-        const inOvertakeZone = mode === "normal" && previous.distance >= OVERTAKE_ZONE[0];
+        // (the former hard-coded overtake / climb faults are now PROPULSION_FAULT / THERMAL_FAULT in faultSchedule.ts)
+        if (fx.accelCapKph !== undefined && throttle) speed = Math.min(speed, Math.max(previous.speed, fx.accelCapKph));
         const inClimbZone = mode === "resume" && state.caseId === "propulsion" && previous.distance >= CLIMB_ZONE[0];
-        if (inOvertakeZone && throttle) {
-          zoneThrottle.current += dt;
-          speed = Math.min(previous.speed + (speed - previous.speed) * .45, Math.max(previous.speed, 55)); // pedal signal scaled to 45%
-        }
-        const derating = inClimbZone && previous.heat >= 80;
-        if (derating) speed = Math.min(speed, 55);
-        const firstSymptom = inOvertakeZone && zoneThrottle.current > .25;
-        const secondSymptom = derating;
         const steerInput = (k.has("a") || k.has("arrowleft") ? -1 : 0) + (k.has("d") || k.has("arrowright") ? 1 : 0);
         const steerTarget = steerInput * (fx.steerScale ?? 1) * THREE.MathUtils.clamp(.14 + speed / 220, .14, .43);
         const steer = THREE.MathUtils.damp(previous.steer, steerTarget, steerInput ? 7.5 : 4.8, dt);
@@ -1942,7 +1942,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   // instance so speed/camera continuity is preserved. Reset only the segment
   // gate when the mode changes; otherwise the resume fault event permanently
   // blocks the later deck-arrival event.
-  useEffect(() => { fired.current = false; zoneThrottle.current = 0; }, [mode]);
+  useEffect(() => { fired.current = false; zoneThrottle.current = 0; faultRuntime.current = {}; }, [mode]);
   useEffect(() => {
     if (fired.current) return;
     if (sim.gap <= 0) {

@@ -24,10 +24,10 @@
 | always | 설정·구성 오류, 처음부터 | 없음 |
 
 지속성: `permanent`(조건 동안) / `latched`(한 번 켜지면 R 재시동까지) / `intermittent`(`burst` 켜짐·쉼 반복).
-추가 필드: `holdSec`(조건 유지 시간), `delaySec`(발현 지연), `pedal`/`gear`/속도 창.
+추가 필드: `afterDistanceM`/`beforeDistanceM`/`afterElapsedS`/`heatMinC`(어느 시점과도 AND로 결합), `holdSec`(조건 유지 시간), `delaySec`(발현 지연), `pedal`/`gear`/속도 창.
 
 ## 2. 효과(FaultEffect) = 사건이 플레이어에게서 빼앗는 것
-`pedalScale`, `speedCapKph`, `coastAccelKphPerS`(페달 없이 가속), `brakeScale`, `steerScale`, `shutdown`(READY 상실, R 재시동), `readyBlockedTries`(시동 전 R 반복), `driveCut`, `reverseOnly`, `cluster`(계기판 정전·경고등). 여러 고장은 `mergeEffects`로 합칩니다(제한은 가장 강한 쪽, 가속은 합산).
+`pedalScale`, `accelCapKph`(가속으로 올릴 수 있는 한계), `speedCapKph`, `coastAccelKphPerS`(페달 없이 가속), `brakeScale`, `steerScale`, `shutdown`(READY 상실, R 재시동), `readyBlockedTries`(시동 전 R 반복), `driveCut`, `reverseOnly`, `cluster`(계기판 정전·경고등). 여러 고장은 `mergeEffects`로 합칩니다(제한은 가장 강한 쪽, 가속은 합산).
 
 ## 3. 추격 연동 (R17)
 `policeSpeedKph(speed)` / `gapRateMps(speed)` / `secondsToCatch(gap, speed)`. 정지·후진일수록 경찰이 빨리 붙고, 후진 속도(음수)는 정지보다 불리합니다. 사건 시트의 "추격차 변화" 표는 이 함수의 결과와 일치해야 합니다.
@@ -36,7 +36,7 @@
 - 루프 안에서 `FaultContext`를 만들어 `stepFault` → `mergeEffects` → 가속·코스팅·제동·조향·상한·READY 반영.
 - 개발 스위치 `?faultdemo=release|stationary|prestart|reverse|limit` (`DEMO_FAULTS`). 예: `/?embed=1&qa=CHASE_NORMAL&case=propulsion&faultdemo=release`
 - 시동 전: R을 `readyBlockedTries`번 눌러야 READY. 정차: 4초 정지 시 래치 정전, R로 해제.
-- 기존 사건(구동 추월 구간·열관리 연속 고부하)은 아직 하드코딩 상태(`OVERTAKE_ZONE`/`CLIMB_ZONE`). 새 사건부터 스펙으로 등록하고, 기존 둘은 같은 모양의 스펙으로 옮기는 작업이 남아 있습니다.
+- 기존 두 사건은 스펙으로 이전 완료(2026-11-14): `PROPULSION_FAULT`(150 m 이후 페달 신호 45 %, 가속으로는 55 km/h 위로 못 올림, `heldSec` = 구간 안 가속 시간 → 증상 0.25초, 고장 컷신 1.8초) · `THERMAL_FAULT`(760 m 이후 수온 80 C 이상이면 출력 55 km/h 제한). 어느 모드에서 무엇이 도는지는 `levelFaults(mode, caseId)`. 새 사건은 스펙을 만들어 이 함수에 등록한다. 고장 컷신 시점(`FAULT_CUE` 조건)과 열 누적(`heat`)은 아직 레이스 루프 쪽에 남아 있다.
 
 ## 5. 새 사건을 추가하는 법
 1. 사건 시트(`TEMPLATE_CASE_SHEET.md`)에 시점·트리거·지속성·효과·추격 영향을 적고 승인받는다.

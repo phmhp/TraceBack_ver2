@@ -46,7 +46,7 @@ export type FaultTrigger = {
   steerMin?: number;
   /** the condition must hold continuously this long before the fault arms (seconds). */
   holdSec?: number;
-  /** "sustained": the hold timer decays at this fraction of real time while the condition is off (heat). */
+  /** the hold timer decays at this fraction of real time while the condition is off: 0 = it is kept, undefined = it resets. */
   decay?: number;
   /** phase "environment": the map zone tag that must be active (see `zones` in FaultContext). */
   zone?: string;
@@ -56,6 +56,10 @@ export type FaultTrigger = {
   /** phase "event": the event kind and how long after it the condition stays true. */
   afterEvent?: FaultEventKind;
   withinSec?: number;
+  /** any phase: the level distance window in which the condition counts (AND with the phase condition). */
+  beforeDistanceM?: number;
+  /** any phase: coolant / motor temperature (C) must be at least this. */
+  heatMinC?: number;
   /** phase "random": probability per second while the base condition holds. */
   probabilityPerSec?: number;
 };
@@ -64,6 +68,8 @@ export type FaultTrigger = {
 export type FaultEffect = {
   /** multiplier on the pedal signal (0.45 = scaled to 45 percent). */
   pedalScale?: number;
+  /** acceleration cannot raise the speed above max(current speed, this) (km/h): the car keeps what it has but cannot gain more. */
+  accelCapKph?: number;
   /** absolute output speed limit (km/h) = derating. */
   speedCapKph?: number;
   /** speed increase with NO pedal input (km/h per s): runaway / wrong-sign regen. */
@@ -111,6 +117,8 @@ export type FaultContext = {
   braking: boolean;
   gear: "P" | "R" | "N" | "D";
   steerAbs: number;
+  /** coolant / motor temperature (C), when the level simulates it. */
+  heat?: number;
   distanceM: number;
   elapsedS: number;
   /** seconds since the last event of each kind (Infinity if never). */
@@ -140,6 +148,10 @@ export function triggerHolds(t: FaultTrigger, c: FaultContext): boolean {
   if (t.minSpeedKph !== undefined && c.speedKph < t.minSpeedKph) return false;
   if (t.maxSpeedKph !== undefined && c.speedKph > t.maxSpeedKph) return false;
   if (t.gear && c.gear !== t.gear) return false;
+  if (t.afterDistanceM !== undefined && c.distanceM < t.afterDistanceM) return false;
+  if (t.beforeDistanceM !== undefined && c.distanceM >= t.beforeDistanceM) return false;
+  if (t.afterElapsedS !== undefined && c.elapsedS < t.afterElapsedS) return false;
+  if (t.heatMinC !== undefined && (c.heat ?? 0) < t.heatMinC) return false;
   const pedalOk = t.pedal === undefined || t.pedal === "any"
     || (t.pedal === "released" && c.pedal < .05)
     || (t.pedal === "applied" && c.pedal >= .05)
@@ -174,7 +186,7 @@ export function stepFault(spec: FaultSpec, previous: FaultRuntime, ctx: FaultCon
   const t = spec.trigger;
   const holds = triggerHolds(t, ctx);
   if (holds) rt.heldSec += dt;
-  else rt.heldSec = t.decay ? Math.max(0, rt.heldSec - dt * t.decay) : 0;
+  else rt.heldSec = t.decay === undefined ? 0 : Math.max(0, rt.heldSec - dt * t.decay);
 
   if (!rt.armed && rt.heldSec >= (t.holdSec ?? 0) && holds) { rt.armed = true; rt.armedAtSec = 0; }
   if (rt.armed) rt.armedAtSec += dt;
@@ -205,6 +217,7 @@ export function stepFault(spec: FaultSpec, previous: FaultRuntime, ctx: FaultCon
 export function mergeEffects(effects: readonly FaultEffect[]): FaultEffect {
   const out: FaultEffect = {};
   for (const e of effects) {
+    if (e.accelCapKph !== undefined) out.accelCapKph = Math.min(out.accelCapKph ?? Infinity, e.accelCapKph);
     if (e.pedalScale !== undefined) out.pedalScale = (out.pedalScale ?? 1) * e.pedalScale;
     if (e.speedCapKph !== undefined) out.speedCapKph = Math.min(out.speedCapKph ?? Infinity, e.speedCapKph);
     if (e.coastAccelKphPerS !== undefined) out.coastAccelKphPerS = (out.coastAccelKphPerS ?? 0) + e.coastAccelKphPerS;
@@ -293,3 +306,31 @@ export const DEMO_FAULTS: Record<"release" | "stationary" | "prestart" | "revers
     chase: { note: "Output limited to 55 km/h: below the police speed (68-88 km/h), so the gap shrinks steadily until repaired." },
   },
 };
+
+/**
+ * The two original cases expressed as specs (migrated from hard-coded zones, 2026-11-14).
+ * propulsion: after 150 m the pedal signal is scaled to 45 % and acceleration cannot take the car above 55 km/h.
+ *             `heldSec` of this spec = seconds of throttle inside the zone (symptom after .25 s, FAULT_CUE after 1.8 s).
+ * thermal:    after 760 m, once the coolant reaches 80 C the output is limited to 55 km/h.
+ */
+export const PROPULSION_FAULT: FaultSpec = {
+  id: "case-propulsion", caseId: "propulsion",
+  trigger: { phase: "sustained", afterDistanceM: 150, decay: 0 },
+  persistence: "permanent",
+  effect: { pedalScale: .45, accelCapKph: 55 },
+  chase: { note: "Weak acceleration: the car cannot reach the police speed, so the gap shrinks while the pedal is pressed." },
+};
+export const THERMAL_FAULT: FaultSpec = {
+  id: "case-thermal", caseId: "thermal",
+  trigger: { phase: "always", afterDistanceM: 760, heatMinC: 80 },
+  persistence: "permanent",
+  effect: { speedCapKph: 55, cluster: { lamps: ["출력 제한"] } },
+  chase: { note: "Output limited to 55 km/h below the police speed: the gap shrinks until the cooling fault is repaired." },
+};
+
+/** Fault specs that run in a race mode. `caseId` is the case of the campaign (the case that was repaired last when resuming). */
+export function levelFaults(mode: "normal" | "resume" | "assist" | "ship", caseId: string): FaultSpec[] {
+  if (mode === "normal") return [PROPULSION_FAULT];
+  if (mode === "resume" && caseId === "propulsion") return [THERMAL_FAULT];
+  return [];
+}
