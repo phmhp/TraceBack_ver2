@@ -23,6 +23,7 @@ import { EeBlueprint, type EeLayer } from "./features/garage/EeBlueprint";
 import { VehicleLayoutRig, flowLegend } from "./features/garage/VehicleLayout";
 import { DRIVER, DUO, ENGINEER } from "./game/cast";
 import { Icon, type IconName } from "./ui/Icon";
+import { DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainId } from "./features/garage/evData";
 import { CAR_CONTACT, TRACK_LENGTH, resetTrafficStall, stallTraffic, trafficStateFor } from "./game/traffic";
 import { StageIntro } from "./ui/Verdict";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
@@ -30,11 +31,11 @@ const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.searc
 
 const A = "/assets/";
 type Send = React.Dispatch<any>;
-export type DomainId = "drive" | "brake" | "steer" | "gear" | "power" | "thermal" | "suspension";
+export type { DomainId };
 
 // "도메인" here follows E/E architecture practice (not an ISO 26262 term): functions grouped by domain controller.
-const DOMAIN_GROUP: Record<DomainId, string> = { drive: "파워트레인", power: "파워트레인", gear: "파워트레인", thermal: "파워트레인", brake: "섀시", steer: "섀시", suspension: "섀시" };
-const DOMAIN_ICON: Record<DomainId, IconName> = { drive: "bolt", brake: "disc", steer: "wheel", power: "battery", gear: "shift", thermal: "thermo", suspension: "spring" };
+const DOMAIN_GROUP: Record<DomainId, string> = Object.fromEntries(DOMAIN_ORDER.map(id => [id, EV_DOMAINS[id].group])) as Record<DomainId, string>;
+const DOMAIN_ICON: Record<DomainId, IconName> = { drive: "gear", power: "battery", charge: "bolt", thermal: "thermo", brake: "disc", steer: "wheel", suspension: "spring", gear: "shift", comm: "signal" };
 const SHOW_PULL_TABS = false; // "빼 보기"·"범인 찾기" hidden: they added tabs without a clear task (code kept)
 const SHOW_EE_TABS = false; // E/E "흐름 따라가기/부품 소개" strip: replaced by the node popup (kept for reference)
 const garageAutoTour = false; // the old 1.45 s background tour fought the pause button
@@ -51,164 +52,15 @@ const learningLayers = [
 // presenting two nearly identical SW pages.
 const garageLayerSource = [0, 1, 3] as const;
 
-const domainContent = {
-  drive: {
-    label: "구동",
-    icon: "⚡",
-    accent: "#ef6b54",
-    purpose: "운전자 가속 의도를 모터 토크와 바퀴 구동력으로 바꿉니다.",
-    functions: ["운전자 토크 요청", "D단 구동 인터록", "인버터 전류·토크 제어", "감속기·차동기어 전달"],
-    paths: [
-      ["가속 의도", "요구 토크", "전륜 구동력", "차량 가속"],
-      ["APS 센서", "VCU", "CAN", "인버터", "PMSM 모터"],
-      ["Signal Adapter", "Driver Request", "Drive Permit", "Torque Command"],
-      ["입력 제한", "페달 맵", "가용 토크 MIN", "허용 조건 GATE"],
-    ],
-  },
-  brake: {
-    label: "제동",
-    icon: "◉",
-    accent: "#5a86b8",
-    purpose: "감속 요구를 회생제동과 마찰제동으로 나눠 안전하게 멈춥니다.",
-    functions: ["제동력 요구 계산", "회생·마찰 협조", "ABS·EBD 휠 제어", "ESC 차체 안정 제어"],
-    paths: [
-      ["감속 의도", "제동력 요구", "휠 제동력", "차량 감속"],
-      ["페달 센서", "Brake ECU", "CAN", "인버터·캘리퍼"],
-      ["Brake Request", "Blend Manager", "Wheel Control", "Actuator Cmd"],
-      ["슬립 판단", "회생 한계", "마찰 보상", "압력 제어"],
-    ],
-  },
-  steer: {
-    label: "조향",
-    icon: "↔",
-    accent: "#8a72b5",
-    purpose: "핸들 입력과 EPS 보조를 앞바퀴 각도와 차량 방향으로 바꿉니다.",
-    functions: ["전륜 각도 요청", "EPS 보조 토크", "랙·타이로드 전달", "요레이트 안정 협조"],
-    paths: [
-      ["조향 의도", "보조 토크", "전륜 각도", "진로 변경"],
-      ["토크·각도 센서", "EPS ECU", "모터", "랙·타이로드"],
-      ["Input Plausibility", "Assist Map", "Current Control", "Angle Feedback"],
-      ["속도별 맵", "토크 제한", "전류 PI", "진단 폴백"],
-    ],
-  },
-  power: {
-    label: "전원",
-    icon: "⏻",
-    accent: "#4a9a82",
-    purpose: "고전압을 안전하게 연결하고 각 도메인에 사용 가능한 전력을 알립니다.",
-    functions: ["Pack Safe 판단", "프리차지·접촉기", "출력 가용량 계산", "OBC·DC/DC·12V 공급"],
-    paths: [
-      ["START 요청", "전원 안전 판단", "HV 연결", "READY"],
-      ["전압·절연 센서", "BMS·VCU", "접촉기", "인버터·부하"],
-      ["Pack Monitor", "Power State", "Limit Manager", "Power Enable"],
-      ["절연 조건", "프리차지 상태기", "토크 상한", "고장 차단"],
-    ],
-  },
-  gear: {
-    label: "변속·주차", icon: "PRND", accent: "#b17752", purpose: "운전자 변속 의도를 검증해 주행 방향과 주차 잠금을 안전하게 결정합니다.",
-    functions: ["PRND 입력 판독", "방향 전환 인터록", "P단 잠금 제어", "기어 상태 표시"],
-    paths: [["변속 의도", "안전 조건", "주행 방향", "차량 이동"], ["PRND 센서", "VCU", "Park ECU", "구동 허용"], ["Gear Adapter", "Shift Arbiter", "Park Control", "State Output"], ["입력 디바운스", "차속 조건", "브레이크 조건", "상태 래치"]],
-  },
-  thermal: {
-    label: "열관리", icon: "♨", accent: "#d77857", purpose: "배터리·모터·인버터 온도를 목표 범위로 유지해 성능과 수명을 보호합니다.",
-    functions: ["온도 상태 추정", "펌프·팬 제어", "냉각 회로 배분", "열 한계 출력 제한"],
-    paths: [["발열·외기", "열 요구", "냉각 동작", "온도 유지"], ["온도 센서", "Thermal ECU", "펌프·밸브", "팬"], ["Temp Adapter", "Thermal State", "Actuator Manager", "Feedback"], ["범위 검증", "히스테리시스", "목표 유량", "고장 디레이팅"]],
-  },
-  suspension: {
-    label: "현가", icon: "↕", accent: "#6f8d7c", purpose: "노면 충격을 흡수하고 타이어 접지와 차체 자세를 안정적으로 유지합니다.",
-    functions: ["노면 충격 흡수", "댐핑력 제어", "차고·자세 유지", "접지 상태 감시"],
-    paths: [["노면 입력", "휠 상하 운동", "스프링·댐퍼", "차체 안정"], ["가속도·높이 센서", "Chassis ECU", "댐퍼 밸브", "현가 장치"], ["Motion Input", "Damping Map", "Valve Command", "Ride Feedback"], ["센서 필터", "차속별 맵", "전류 제한", "폴백 댐핑"]],
-  },
-} satisfies Record<DomainId, {
-  label: string;
-  icon: string;
-  accent: string;
-  purpose: string;
-  functions: string[];
-  paths: string[][];
-}>;
+const domainContent = Object.fromEntries(DOMAIN_ORDER.map(id => {
+  const meta = EV_DOMAINS[id];
+  return [id, { label: meta.label, accent: meta.accent, purpose: meta.purpose, functions: meta.features.map(feature => feature.name), categories: meta.features.map(feature => feature.category), group: meta.group }];
+})) as unknown as Record<DomainId, { label: string; accent: string; purpose: string; functions: string[]; categories: string[]; group: DomainGroup }>;
 
 type FeatureFlow = { summary: string; layers: [string[], string[], string[], string[]] };
-const featureFlows: Record<DomainId, FeatureFlow[]> = {
-  drive: [
-    { summary: "페달 요구를 차량이 낼 수 있는 안전한 토크 요청으로 변환합니다.", layers: [["운전자 가속", "차량 토크 요구", "전륜 추진력", "차량 가속"], ["APS 이중 센서", "VCU", "CAN Torque", "인버터·모터"], ["Signal Adapter", "Driver Request SWC", "Torque Arbiter", "Command Port"], ["입력 상관성", "페달 맵", "가용 토크 MIN", "출력 제한"]] },
-    { summary: "D단과 READY 조건이 모두 맞을 때만 구동 토크를 허용합니다.", layers: [["D단 선택", "구동 허용", "토크 전달", "안전 출발"], ["PRND 센서", "VCU Interlock", "CAN Permit", "인버터 Enable"], ["Gear Adapter", "Drive Permit SWC", "Safety Gate", "Enable Port"], ["Gear==D", "READY 확인", "고장 래치", "Permit Gate"]] },
-    { summary: "토크 명령을 전륜 PMSM·감속기 어셈블리의 모터 축 토크로 정밀하게 만듭니다.", layers: [["토크 요구", "전류 변환", "모터 회전", "축 토크"], ["VCU", "인버터 ECU", "3상 전력", "PMSM 모터"], ["Torque Command", "Current Control", "PWM Service", "Rotor Feedback"], ["dq 변환", "전류 PI", "PWM 제한", "토크 추정"]] },
-    { summary: "모터 회전을 전륜 감속기와 차동기어로 나누어 양쪽 바퀴에 전달합니다.", layers: [["모터 회전", "감속", "좌우 분배", "노면 구동력"], ["모터", "감속기", "차동기어", "전륜 속도센서"], ["Speed Observer", "Slip Monitor", "Torque Vector", "Wheel Feedback"], ["기어비", "차동 보정", "슬립 제한", "피드백 필터"]] },
-  ],
-  brake: [
-    { summary: "페달 입력을 목표 감속도와 총 제동력 요구로 변환합니다.", layers: [["페달 조작", "감속 요구", "제동력 계산", "차량 감속"], ["페달 센서", "Brake ECU", "압력 명령", "캘리퍼"], ["Pedal Adapter", "Brake Request", "Force Target", "Command Port"], ["입력 유효성", "감속 맵", "힘 제한", "출력 램프"]] },
-    { summary: "가능한 회생제동을 먼저 쓰고 부족분을 마찰제동으로 보충합니다.", layers: [["총 제동 요구", "회생 배분", "마찰 보상", "일관된 감속"], ["Brake ECU", "VCU·인버터", "Hydraulic ECU", "모터·캘리퍼"], ["Blend Manager", "Regen Limit", "Friction Comp", "Actuator Ports"], ["배터리 수용량", "회생 MIN", "잔여력 계산", "압력 변환"]] },
-    { summary: "휠 슬립을 감시해 잠김 직전의 바퀴 압력을 빠르게 조절합니다.", layers: [["휠 잠김 징후", "슬립 판단", "압력 조절", "조향 가능 제동"], ["휠속 센서", "ABS ECU", "유압 모듈레이터", "캘리퍼"], ["Wheel Adapter", "Slip Estimator", "ABS State", "Valve Command"], ["차속 추정", "슬립 임계", "감압·유지·증압", "밸브 PWM"]] },
-    { summary: "차량의 요 움직임을 감지해 바퀴별 제동력으로 자세를 안정화합니다.", layers: [["회전 불안정", "요 오차", "개별 휠 제동", "차체 안정"], ["요·가속도 센서", "ESC ECU", "Brake ECU", "4륜 캘리퍼"], ["Motion Observer", "Yaw Control", "Wheel Allocator", "Pressure Ports"], ["목표 요율", "오차 PI", "휠 선택", "압력 제한"]] },
-  ],
-  steer: [
-    { summary: "운전자 핸들 각을 목표 전륜 각도로 바꾸고 실제 각도를 추종합니다.", layers: [["핸들 회전", "전륜각 요구", "랙 이동", "진로 변경"], ["각도 센서", "EPS ECU", "랙 위치센서", "전륜"], ["Angle Adapter", "Steer Target", "Rack Command", "Angle Feedback"], ["비율 맵", "각도 제한", "추종 PI", "오차 진단"]] },
-    { summary: "차속과 운전자 토크에 맞춰 자연스러운 EPS 보조 토크를 만듭니다.", layers: [["운전자 힘", "보조량 계산", "EPS 모터", "가벼운 조향"], ["토크 센서", "EPS ECU", "모터 인버터", "조향축"], ["Torque Adapter", "Assist Map", "Current Control", "Motor Port"], ["센터 보정", "속도별 맵", "전류 PI", "토크 제한"]] },
-    { summary: "EPS 모터의 회전을 랙과 타이로드를 통해 양쪽 전륜에 전달합니다.", layers: [["모터 회전", "랙 직선 이동", "타이로드", "전륜 각도"], ["EPS 모터", "감속기", "랙 센서", "타이로드"], ["Rack Observer", "Travel Limit", "Angle Convert", "Feedback Port"], ["기어비", "스트로크 제한", "좌우 기하", "센서 필터"]] },
-    { summary: "요율과 횡가속도를 이용해 불안정한 조향 요구를 보정합니다.", layers: [["조향 요구", "차체 반응", "안정 보정", "진로 유지"], ["조향각 센서", "ESC ECU", "EPS ECU", "전륜"], ["Motion Input", "Stability Coord", "Overlay Torque", "EPS Port"], ["요율 오차", "보정 게인", "개입 제한", "폴백"]] },
-  ],
-  power: [
-    { summary: "전압·절연·온도를 확인해 고전압 팩이 사용 가능한지 판단합니다.", layers: [["START 요청", "팩 안전 확인", "전원 허용", "READY 준비"], ["전압·절연 센서", "BMS", "VCU", "HV 부하"], ["Pack Monitor", "Safety State", "PackSafe Port", "Power Coordinator"], ["전압 범위", "절연 임계", "온도 제한", "Safe Latch"]] },
-    { summary: "인버터 커패시터를 먼저 충전한 뒤 주 접촉기를 안전하게 닫습니다.", layers: [["전원 요청", "프리차지", "주 접촉기", "HV 연결"], ["팩 전압센서", "BMS", "프리차지 릴레이", "Main Contactor"], ["Voltage Adapter", "Precharge State", "Contactor Driver", "HV Feedback"], ["전압비 계산", "타임아웃", "용착 진단", "상태 전이"]] },
-    { summary: "배터리 상태와 열 한계로 각 도메인이 쓸 수 있는 출력 상한을 계산합니다.", layers: [["팩 상태", "출력 한계", "도메인 배분", "가용 성능"], ["BMS", "VCU", "CAN Limit", "인버터·부하"], ["Limit Receiver", "Power Budget", "Domain Allocator", "Limit Ports"], ["SOC 보정", "온도 디레이팅", "합계 제한", "램프율"]] },
-    { summary: "고전압과 저전압 부하를 변환·충전해 차량 전장품을 계속 공급합니다.", layers: [["외부·팩 전력", "전력 변환", "12V 공급", "전장품 동작"], ["충전 인렛", "OBC", "DC/DC", "12V 배터리"], ["Charge Control", "DCDC Manager", "LV Monitor", "Supply Port"], ["충전 인터록", "전압 목표", "전류 제한", "저전압 보호"]] },
-  ],
-  gear: [
-    { summary: "PRND 스위치의 접점과 통신 신호를 서로 검증해 운전자 의도를 확정합니다.", layers: [["PRND 조작", "변속 의도", "유효 상태"], ["PRND 센서", "VCU", "Cluster"], ["Gear Adapter", "Plausibility", "Gear State"], ["디바운스", "상관성", "상태 래치"]] },
-    { summary: "차량이 움직이는 중 반대 방향 선택을 막고 브레이크 조건을 확인합니다.", layers: [["방향 요청", "차속·브레이크 확인", "방향 허용"], ["PRND", "VCU", "Brake ECU", "Inverter"], ["Shift Request", "Safety Interlock", "Direction Permit"], ["차속 임계", "브레이크 조건", "거부 진단"]] },
-    { summary: "P단에서 파킹 폴 또는 전동 파킹 액추에이터를 안전하게 체결합니다.", layers: [["P 요청", "정지 확인", "잠금 체결", "차량 고정"], ["VCU", "Park ECU", "Lock Actuator", "Position Sensor"], ["Park Request", "Actuator Control", "Lock Feedback"], ["차속 0", "전류 제한", "체결 확인"]] },
-    { summary: "확정된 기어 상태를 계기판과 관련 제어기에 일관되게 전달합니다.", layers: [["기어 상태", "네트워크 배포", "표시·제어"], ["VCU", "CAN", "Cluster·ECU"], ["State Publisher", "Timeout Monitor", "Consumers"], ["상태 인코딩", "E2E 확인", "타임아웃"]] },
-  ],
-  thermal: [
-    { summary: "여러 온도 센서를 검증·필터링해 보호에 사용할 열 상태를 만듭니다.", layers: [["부품 발열", "온도 측정", "열 상태"], ["NTC 센서", "Thermal ECU", "VCU"], ["Temp Adapter", "Plausibility", "State Estimator"], ["범위 검사", "필터", "최대값 선택"]] },
-    { summary: "목표 온도에 따라 펌프 유량과 팬 회전수를 폐루프로 제어합니다.", layers: [["열 요구", "유량·풍량", "온도 저감"], ["Thermal ECU", "Pump·Fan", "RPM Feedback"], ["Target Manager", "PWM Control", "Feedback Monitor"], ["히스테리시스", "PI 제어", "무응답 진단"]] },
-    { summary: "배터리·구동계·실내 회로 사이에서 냉각수 경로와 밸브를 배분합니다.", layers: [["열원 우선순위", "회로 선택", "밸브 전환"], ["VCU", "Valve Manifold", "Coolant Loop"], ["Mode Manager", "Valve Command", "Position Feedback"], ["모드 상태기", "전환 지연", "피드백 확인"]] },
-    { summary: "냉각 능력이 부족할 때 구동 출력을 단계적으로 낮춰 부품을 보호합니다.", layers: [["온도 초과", "출력 제한", "부품 보호"], ["Thermal ECU", "VCU", "Inverter"], ["Derate Request", "Torque Limit", "Recovery"], ["단계 임계", "램프 제한", "복귀 히스테리시스"]] },
-  ],
-  suspension: [
-    { summary: "스프링과 댐퍼가 노면 충격을 흡수해 차체로 전달되는 진동을 줄입니다.", layers: [["노면 요철", "휠 운동", "스프링·댐퍼", "차체 진동 저감"], ["타이어", "스프링", "댐퍼", "차체"], ["Road Input", "Ride Model", "Body Response"], ["변위", "속도", "감쇠력"]] },
-    { summary: "전자제어 댐퍼가 차속과 차체 운동에 맞춰 감쇠력을 조절합니다.", layers: [["차체 운동", "댐핑 목표", "밸브 전류", "감쇠력"], ["IMU", "Chassis ECU", "Damper Valve", "Damper"], ["Motion Adapter", "Damping Map", "Current Command"], ["필터", "맵 보간", "전류 제한"]] },
-    { summary: "차고 센서와 공기 스프링을 이용하는 사양에서는 높이와 자세를 유지합니다.", layers: [["차고 오차", "압력 조절", "차고 복원"], ["Height Sensor", "Chassis ECU", "Compressor·Valve", "Air Spring"], ["Height Control", "Pressure Command", "Feedback"], ["목표 차고", "밸브 상태기", "누설 진단"]] },
-    { summary: "휠 가속도와 차고 변화를 감시해 접지 저하 또는 센서 고장을 판별합니다.", layers: [["휠 운동", "접지 추정", "보호 모드"], ["Wheel Sensor", "Chassis ECU", "ESC"], ["Contact Observer", "Fault Monitor", "Fallback"], ["스펙트럼", "임계 판단", "고정 댐핑"]] },
-  ],
-};
+const featureFlows = Object.fromEntries(DOMAIN_ORDER.map(id => [id, EV_DOMAINS[id].features.map(feature => ({ summary: feature.summary, layers: feature.layers }))])) as unknown as Record<DomainId, FeatureFlow[]>;
 
-// A vehicle function does not magically have four stages.  Each learning
-// lens exposes the number of boundaries that actually matter for that
-// function, while retaining the compact source data above as a fallback.
-const featureLayerOverrides: Record<DomainId, Record<number, Partial<Record<number, string[]>>>> = {
-  drive: {
-    0: { 0: ["가속 페달 조작", "가속 의도", "가용 토크 판단", "전륜 추진력", "차량 가속"], 1: ["APS A/B 가속 페달", "VCU", "CAN 토크", "MCU·인버터 ECU", "인버터", "전륜 PMSM 모터", "전륜 감속기", "차동기어", "드라이브 샤프트", "전륜"], 3: ["A/B 상관성", "입력 필터", "페달 맵", "구동 허용", "가용 토크 MIN", "램프율", "토크 출력"] },
-    1: { 0: ["D단 선택", "READY 확인", "구동 허용", "안전 출발"], 1: ["PRND 센서", "VCU Interlock", "CAN Permit", "인버터 Enable"], 3: ["Gear==D", "HV READY", "브레이크 인터록", "고장 래치", "Permit Gate"] },
-    2: { 0: ["토크 요구", "전류 목표", "dq 제어", "PWM", "모터 회전", "축 토크"], 1: ["VCU", "CAN", "인버터 MCU", "3상 브리지", "PMSM", "리졸버"], 3: ["명령 수신", "dq 변환", "전류 PI", "전압 제한", "PWM 생성", "리졸버 피드백", "토크 추정"] },
-    3: { 0: ["모터 회전", "1단 감속", "차동 분배", "전륜 반축", "노면 구동력"], 1: ["PMSM", "전륜 감속기", "차동기어", "좌·우 드라이브샤프트", "전륜"], 3: ["회전속도", "기어비", "차동 보정", "슬립 제한", "휠 피드백"] },
-  },
-  brake: {
-    0: { 0: ["페달 조작", "감속 의도", "목표 감속도", "총 제동력", "차량 감속"], 1: ["페달 A/B 센서", "Brake ECU", "압력 제어기", "유압 라인", "4륜 캘리퍼"], 3: ["입력 상관성", "페달 필터", "감속 맵", "힘 제한", "압력 변환", "출력 램프"] },
-    1: { 0: ["총 제동 요구", "배터리 수용량", "회생 한계", "마찰 보상", "전·후륜 배분", "일관된 감속"], 1: ["Brake ECU", "VCU", "BMS", "인버터", "Hydraulic ECU", "모터·캘리퍼"], 3: ["요구 수신", "회생 가용량", "회생 MIN", "잔여력 계산", "마찰 압력", "블렌딩 피드백"] },
-    2: { 0: ["휠 잠김 징후", "차속 추정", "슬립 계산", "밸브 조절", "조향 가능 제동"], 1: ["4륜 속도센서", "ABS ECU", "유압 모듈레이터", "솔레노이드 밸브", "캘리퍼"], 3: ["휠속 필터", "기준 차속", "슬립 임계", "감압·유지·증압", "밸브 PWM", "재평가"] },
-    3: { 0: ["회전 불안정", "목표 요율", "요 오차", "개별 휠 제동", "차체 안정"], 1: ["요·횡가속 센서", "ESC ECU", "Brake ECU", "유압 모듈", "4륜 캘리퍼"], 3: ["센서 융합", "목표 요율", "오차 PI", "휠 선택", "압력 제한", "개입 종료"] },
-  },
-  steer: {
-    0: { 0: ["핸들 회전", "운전자 조향 의도", "목표 전륜각", "랙 이동", "진로 변경"], 1: ["핸들각 센서", "EPS ECU", "EPS 모터", "랙·타이로드", "전륜"], 3: ["각도 보정", "조향비 맵", "목표 랙 위치", "추종 PI", "각도 제한", "피드백 진단"] },
-    1: { 0: ["운전자 토크", "차속 보정", "보조 토크", "EPS 모터", "가벼운 조향"], 1: ["토크 센서", "차속 CAN", "EPS ECU", "모터 인버터", "조향축"], 3: ["센터 보정", "토크 필터", "속도별 맵", "복원 토크", "전류 PI", "보호 제한"] },
-    2: { 0: ["EPS 모터", "웜 감속", "피니언", "랙 직선 이동", "타이로드", "좌·우 전륜각"], 1: ["EPS 모터", "감속기", "피니언", "랙", "타이로드", "전륜 너클"], 3: ["모터각", "기어비", "랙 변환", "스트로크 제한", "아커만 보정", "각도 피드백"] },
-    3: { 0: ["조향 요구", "차체 요 반응", "안정도 판단", "오버레이 토크", "진로 유지"], 1: ["조향각 센서", "IMU", "ESC ECU", "EPS ECU", "전륜"], 3: ["요율 오차", "횡가속 검증", "안정 협조", "보정 게인", "개입 제한", "폴백"] },
-  },
-  power: {
-    0: { 0: ["시동 버튼", "START 요청", "팩 안전 확인", "전원 허용", "READY"], 1: ["START 버튼", "전압·절연·온도 센서", "BMS", "VCU", "HV 부하"], 3: ["START 입력", "전압 범위", "절연 임계", "온도 제한", "Crash 신호", "PackSafe 래치"] },
-    1: { 0: ["전원 요청", "부하측 전압 확인", "프리차지", "전압 동기화", "주 접촉기", "HV 연결"], 1: ["팩 전압센서", "BMS", "프리차지 저항", "릴레이", "주 접촉기", "HV 버스"], 3: ["전압비 계산", "Precharge 상태기", "타임아웃", "주 접촉기 명령", "용착 진단", "HV 피드백"] },
-    2: { 0: ["팩 상태", "열·SOC 한계", "출력 예산", "도메인 배분", "가용 성능"], 1: ["BMS", "VCU", "Power Coordinator", "CAN Limit", "인버터·부하"], 3: ["SOC 보정", "온도 디레이팅", "충방전 한계", "합계 제한", "도메인 우선순위", "램프율"] },
-    3: { 0: ["외부·팩 전력", "OBC", "HV 버스", "DC/DC", "12V 배터리", "전장품 공급"], 1: ["충전 인렛", "OBC", "HV Junction", "DC/DC", "12V 배터리", "LV 부하"], 3: ["충전 인터록", "전압 목표", "전류 제한", "DCDC 제어", "LV 모니터", "저전압 보호"] },
-  },
-  gear: {},
-  thermal: {},
-  suspension: {},
-};
-
-export const getFeatureLayer = (domain: DomainId, feature: number, layer: number) =>
-  featureLayerOverrides[domain]?.[feature]?.[layer] ?? featureFlows[domain][feature].layers[layer];
+export const getFeatureLayer = (domain: DomainId, feature: number, layer: number) => featureFlows[domain][feature].layers[layer];
 
 function Tire({ position, steer = false, spin = 0 }: { position: [number, number, number]; steer?: boolean; spin?: number }) {
   return (
@@ -285,6 +137,8 @@ const domainHardware: Record<DomainId, { kinds: HardwareKind[]; labels: string[]
   power: { kinds: ["startbutton", "ecu", "contactor", "battery"], labels: ["START 시동 버튼", "BMS·VCU", "프리차지·접촉기", "고전압 배터리"] },
   thermal: { kinds: ["sensor", "ecu", "hydraulic", "fan"], labels: ["온도·유량 센서", "Thermal ECU", "냉각 펌프·밸브", "라디에이터 팬"] },
   suspension: { kinds: ["sensor", "ecu", "hydraulic", "rack"], labels: ["차고·가속도 센서", "Chassis ECU", "전자 댐퍼 밸브", "스프링·댐퍼"] },
+  charge: { kinds: ["sensor", "ecu", "contactor", "battery"], labels: ["충전 인렛·CP/PP 신호", "EVCC·OBC", "충전 접촉기", "고전압 배터리"] },
+  comm: { kinds: ["ecu", "ecu", "ecu", "ecu"], labels: ["송신 제어기", "CAN 버스", "게이트웨이", "수신 제어기"] },
 };
 
 // Garage/bench label → code-built part model (src/features/parts). Labels without a
@@ -607,7 +461,7 @@ function FullVehicleSystem({ domain, feature, activeStep, shell = false, inputOn
 // Whole vehicle: every domain's chain side by side (selected domain runs, others idle)
 function AllDomainsSystem({ domain, overlay = false }: { domain: DomainId | null; overlay?: boolean }) {
   const ids = Object.keys(domainContent) as DomainId[];
-  const slot = (index: number): [number, number, number] => { const col = index % 4, row = Math.floor(index / 4); return [(col - (row ? 1 : 1.5)) * 3.4, 0, row * 3.3 - 1.65]; };
+  const slot = (index: number): [number, number, number] => { const col = index % 3, row = Math.floor(index / 3); return [(col - 1) * 3.7, 0, (row - 1) * 3.3]; };
   // labels live outside the rigs so a slow part model never hides a name
   const labels = ids.map((id, index) => {
     const position: [number, number, number] = overlay ? [-3.6 + index * 1.2, 2.3 + (index % 2) * .35, 0] : [slot(index)[0], 1.7, slot(index)[2]];
@@ -657,7 +511,7 @@ function MechanismModel({ domain, level, feature, activeStep, removed = null, sh
 // Rule: the first controller in the E/E chain; explicit entries where the chain lists the
 // requesting ECU first but the logic runs in the next one. null = not tied to one controller.
 const CONTROLLER_RE = /ECU|VCU|BMS|OBC|MCU/;
-const OWNER_OVERRIDE: Partial<Record<string, string>> = { "drive-2": "인버터 ECU" };
+const OWNER_OVERRIDE: Partial<Record<string, string>> = { "drive-3": "인버터 ECU" };
 export function ownerController(domain: DomainId, feature: number): { name: string; index: number } | null {
   const chain = getFeatureLayer(domain, feature, 1);
   const forced = OWNER_OVERRIDE[`${domain}-${feature}`];
@@ -763,6 +617,8 @@ const DOMAIN_SYMPTOM: Record<DomainId, string> = {
   gear: "변속이 안 되거나 P에서 안 풀려요",
   thermal: "온도가 올라 출력이 제한돼요(파워다운)",
   suspension: "승차감이 나빠지고 자세 제어가 약해져요",
+  charge: "충전이 시작되지 않거나 중간에 멈춰요",
+  comm: "신호가 끊겨 제어기들이 안전 값으로 동작해요",
 };
 
 function PullOutBubble({ domain, label, role }: { domain: DomainId; label: string; role: PartRole }) {
@@ -1157,8 +1013,10 @@ const INPUT_MISSION: Record<DomainId, { needs: { id: string; label: string; why:
   gear: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 변속할 수 없어요." }, { id: "brake", label: "브레이크 밟기", why: "브레이크를 밟아야 P에서 다른 단으로 바뀌어요(변속 잠금)." }] },
   thermal: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 냉각 펌프·팬 제어가 시작되지 않아요." }] },
   suspension: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 전자제어 댐퍼가 동작하지 않아요." }] },
+  charge: { needs: [{ id: "park", label: "P단 정차", why: "충전 중에는 차량이 움직이지 않도록 P단이어야 해요." }] },
+  comm: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 대부분의 제어기 통신이 쉬고 있어요." }] },
 };
-const INPUT_ACTION: Record<DomainId, string> = { drive: "가속 페달 밟기", brake: "브레이크 밟기", steer: "핸들 돌리기", power: "시동 버튼 누르기", gear: "D단 고르기", thermal: "고속 주행 열 부하", suspension: "요철 지나가기" };
+const INPUT_ACTION: Record<DomainId, string> = { drive: "가속 페달 밟기", brake: "브레이크 밟기", steer: "핸들 돌리기", power: "시동 버튼 누르기", gear: "D단 고르기", thermal: "고속 주행 열 부하", suspension: "요철 지나가기", charge: "충전 커넥터 꽂기", comm: "진단 요청 보내기" };
 const NORMAL_RESPONSE: Record<DomainId, string> = {
   drive: "토크 명령이 모터와 전륜까지 전달돼 차량이 가속해요.",
   brake: "회생·마찰 제동 명령이 합쳐져 차량이 안정적으로 감속해요.",
@@ -1167,6 +1025,8 @@ const NORMAL_RESPONSE: Record<DomainId, string> = {
   gear: "변속 인터록을 통과한 D단 상태가 구동계와 계기판에 전달돼요.",
   thermal: "펌프·팬 명령이 출력되고 냉각수가 순환해 온도를 낮춰요.",
   suspension: "댐퍼 명령과 스프링 변위가 노면 충격을 흡수해 차체를 안정시켜요.",
+  charge: "연결과 잠금을 확인하고 협상한 전류로 OBC가 팩을 충전해요.",
+  comm: "메시지가 정해진 주기로 전달되고 수신 제어기가 값을 반영해요.",
 };
 const READY_RESPONSE: Record<DomainId, string> = {
   drive: "구동 조건 완료 · 가속 입력을 꾹 누르세요",
@@ -1176,6 +1036,8 @@ const READY_RESPONSE: Record<DomainId, string> = {
   gear: "변속 조건 완료 · D단 입력을 꾹 누르세요",
   thermal: "열관리 준비 완료 · 열 부하 입력을 꾹 누르세요",
   suspension: "현가 제어 준비 완료 · 요철 입력을 꾹 누르세요",
+  charge: "충전 조건 완료 · 커넥터 입력을 꾹 누르세요",
+  comm: "통신 준비 완료 · 진단 입력을 꾹 누르세요",
 };
 
 function HeistCat3D({ groupRef, coat, role }: { groupRef: React.RefObject<THREE.Group | null>; coat: string; role: "driver" | "engineer" }) {

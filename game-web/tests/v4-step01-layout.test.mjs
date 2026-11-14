@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const experience = readFileSync(new URL("../src/experiences.tsx", import.meta.url), "utf8");
+const evData = readFileSync(new URL("../src/features/garage/evData.ts", import.meta.url), "utf8");
 const latestCss = readFileSync(new URL("../src/p4-fix-1109.css", import.meta.url), "utf8");
 const capture = readFileSync(new URL("../scripts/capture-ui.mjs", import.meta.url), "utf8");
 const vehicleLayout = readFileSync(new URL("../src/features/garage/VehicleLayout.tsx", import.meta.url), "utf8");
@@ -82,11 +83,11 @@ test("K-4 keeps a manually inspected signal stage shared across the three views"
 });
 
 test("the representative propulsion lesson separates control, HV energy and mechanical torque to the wheel", () => {
-  assert.match(experience, /MCU·인버터 ECU/);
-  assert.match(experience, /전륜 PMSM 모터/);
-  assert.match(experience, /전륜 감속기/);
-  assert.match(experience, /차동기어/);
-  assert.match(experience, /드라이브 샤프트/);
+  assert.match(evData, /MCU·인버터 ECU/);
+  assert.match(evData, /전륜 PMSM 모터/);
+  assert.match(evData, /전륜 감속기/);
+  assert.match(evData, /차동기어/);
+  assert.match(evData, /드라이브 샤프트/);
   assert.match(vehicleLayout, /hv_battery/);
   assert.match(vehicleLayout, /main_contactor/);
   assert.match(vehicleLayout, /flow="electrical_power"/);

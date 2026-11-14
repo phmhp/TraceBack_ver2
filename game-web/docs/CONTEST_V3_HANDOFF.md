@@ -51,3 +51,10 @@
 
 ## 다음
 WP1 잔여(동적 상태 잘림 점검·STEP01 H1) → WP2 DEV 메뉴 → WP3 STEP01.
+
+## EV 데이터 1차 (2026-11-14)
+- 기준 문서 `docs/EV_DOMAIN_SPEC_DRAFT.md`(3묶음 11도메인, 승인됨). 데이터는 `src/features/garage/evData.ts`(`EV_DOMAINS`, `DOMAIN_ORDER`)가 단일 출처. `experiences.tsx`는 여기서 `domainContent`/`featureFlows`/`getFeatureLayer`를 파생.
+- 이번 단계 도메인 9개: 구동·고전압 전원·충전·열관리 / 제동·조향·현가·변속·주차 / 통신·진단. 기능 4개씩, 4층(기능 흐름·부품 E/E·SW 컴포넌트·SW 로직). 2층 이름은 AUTOSAR식 SWC명(시각화는 아직 없음, 레이아웃 단계에서 연결).
+- 기능 인덱스는 다른 화면이 번호로 참조함: drive0·thermal0/1/3·brake1(오픈북·퍼즐 노트). 구동은 3번=토크 배분·제한, 4번=인버터 제어(`OWNER_OVERRIDE`는 `drive-3`).
+- 남은 것: 차량 통합(VCU)·운전자 지원·HMI 도메인(2차), 협조 신호 맵, STEP01 레이아웃 개편(묶음 가로 내비, 수직 4층, SWC 층, 전체 보기 9칸 배치 — 현재 3×3으로 겹쳐 보임), 새 부품 3D/이미지 연결(`partModelFor`는 이미지 도착 후), 충전·통신 도메인의 3D 장면은 모델 있는 부품만 표시.
+- 기존 문제(기준선에도 있음): 도메인 탭 전환 시 콘솔에 drei Html removeChild / "synchronously unmount a root" 오류(화면은 정상 동작).

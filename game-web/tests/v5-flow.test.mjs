@@ -114,7 +114,7 @@ test("v9 keeps the three-layer garage, automatic recovery, and pirate-ship final
 });
 
 test("v10 uses variable-depth domain flows, route-triggered faults, and explicit board threading", () => {
-  assert.match(experience, /featureLayerOverrides/);
+  assert.match(experience, /EV_DOMAINS/);
   assert.match(experience, /function DomainSignature/);
   assert.match(experience, /function HeistCutsceneScene/);
   assert.match(experience, /previous\.distance >= 45/);
@@ -127,7 +127,7 @@ test("v10 uses variable-depth domain flows, route-triggered faults, and explicit
   assert.match(experience, /<PoliceInterceptor spin=\{gap\*\.08\}/);
   assert.match(experience, /function CivilianCar/);
   assert.match(experience, /START 시동 버튼/);
-  assert.match(experience, /전륜 PMSM·감속기/);
+  assert.match(readFileSync(new URL("../src/features/garage/evData.ts", import.meta.url), "utf8"), /전륜 PMSM·감속기/);
   assert.match(earlyFlowPolish, /@keyframes threadCrawl/);
   assert.match(latestPolish, /\.boardV3 \.investigationBoard\.detectiveLayout/);
   assert.match(latestPolish, /\.faultBeacon\{left:22px/);
