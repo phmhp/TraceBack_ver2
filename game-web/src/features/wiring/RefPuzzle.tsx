@@ -9,6 +9,7 @@ import { numify } from "../../ui/numify";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
 import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
+import { useReportSubStep } from "../../ui/stepRoadmap";
 import { play } from "../../ui/sfx";
 import { KIND_TAG, Picto, blockKind, plainText, type Kind } from "../garage/SimulinkDiagram";
 import { PursuitRouteBar, getFeatureLayer, piecePath, type DomainId, type Nub } from "../../experiences";
@@ -485,6 +486,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const pieceAt = (slot: number) => ref.gaps.includes(slot) ? place[slot] : ref.board[slot];
   const filled = ref.gaps.every(g => place[g]);
   const connected = check?.status === "pass";
+  useReportSubStep("puzzle", confirmed ? 4 : connected ? 3 : filled ? 2 : Object.values(place).some(Boolean) ? 1 : 0);
   const world = (cx: number, cy: number) => { const r = stage.current!.querySelector(".rpWorld")!.getBoundingClientRect(); return { x: (cx - r.left) / scale, y: (cy - r.top) / scale }; };
   const putIn = (id: string, slot: number | null) => {
     setPlace(prev => { const next = { ...prev }; ref.gaps.forEach(g => { if (next[g] === id) next[g] = null; }); if (slot !== null) next[slot] = id; return next; });
@@ -585,7 +587,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="검증 준비" title="요구사항 기반 퍼즐" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
-    <StageFolderSubtitle className="puzzleStageFolder" action="고장 원인을 구별할 시험 조건과 정상 기준을 완성하세요." detail={<>이전 결과: {section} <i>|</i> 의심 구간: {RIG_GOAL[caseId]}</>} />
+    <StageFolderSubtitle step="puzzle" className="puzzleStageFolder" action="고장 원인을 구별할 시험 조건과 정상 기준을 완성하세요." detail={<>이전 결과: {section} <i>|</i> 의심 구간: {RIG_GOAL[caseId]}</>} />
     <StageIntro id="puzzle-v2" stage="STEP 03" title="퍼즐" goal="정상 동작 로직을 구성하고 시험 기준 만들기" steps={[
       { icon: "puzzle", text: "요구사항을 읽고 빈칸에 조각을 넣은 뒤 '연결 확인'" },
       { icon: "monitor", text: "예시 입력을 움직여 칸마다 나오는 값 확인하기" },

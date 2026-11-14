@@ -6,6 +6,7 @@ import * as THREE from "three";
 import type { Campaign, CaseId } from "./game/runtime";
 import { SCENARIOS } from "./game/scenarios";
 import { GameHeader, JourneyProgress, SceneBackdrop, StageFolderSubtitle } from "./ui/game-shell";
+import { useReportSubStep } from "./ui/stepRoadmap";
 import { HeroConvertible } from "./features/vehicle/HeroConvertible";
 import { DevRenderProbe } from "./features/vehicle/DevRenderProbe";
 import { FittedPart } from "./features/parts/PartModel";
@@ -929,6 +930,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   // the garage opens on the whole vehicle: every domain side by side, none selected yet
   const [chosen, setChosen] = useState(Boolean(requestedDomain && requestedDomain in domainContent));
   const [pickNotice, setPickNotice] = useState(false);
+  useReportSubStep("garage", chosen ? 1 + Math.min(2, routeLevel) : 0);
   const setDomain = (id: DomainId) => { setDomainRaw(id); setChosen(true); setPickNotice(false); };
   const showAllDomains = () => { setChosen(false); setPickNotice(false); };
   const [feature, setFeature] = useState(Number.isInteger(requestedFeature) ? Math.max(0, requestedFeature) : 0);
@@ -1038,7 +1040,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   return <div className="garageV2">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
     <GameHeader chapter="정비소" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
-    <StageFolderSubtitle className="garageStageFolder" action="차량 기능이 어떤 부품과 신호를 거쳐 동작하는지 확인하세요." detail={<>학습 대상: {chosen ? content.label : "전체 도메인"} <i>|</i> Vehicle/System · E/E · Control SW</>} />
+    <StageFolderSubtitle step="garage" className="garageStageFolder" action="차량 기능이 어떤 부품과 신호를 거쳐 동작하는지 확인하세요." detail={<>학습 대상: {chosen ? content.label : "전체 도메인"} <i>|</i> Vehicle/System · E/E · Control SW</>} />
     <StageIntro id="garage" stage="STEP 01" title="정비소" goal="차량 기능이 부품·신호·SW를 거쳐 어떻게 동작하는지 이해하기" steps={[
       { icon: "car", text: "위 탭에서 도메인, 오른쪽에서 기능을 고르기" },
       { icon: "layers", text: "왼쪽 세 관점으로 같은 기능을 비교하기 (부품 · E/E 연결 · Control SW)" },

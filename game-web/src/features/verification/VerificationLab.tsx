@@ -7,6 +7,7 @@ import { RefPuzzleTrack, normalScenarioLines } from "../wiring/RefPuzzle";
 import { StageIntro, showVerdict } from "../../ui/Verdict";
 import { SAMPLES, assessContractRun, divergeIndex, firstMismatch, simulate, type ContractRunAssessment, type Lv, type Series, type Tech } from "./simModel";
 import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
+import { useReportSubStep } from "../../ui/stepRoadmap";
 import { play } from "../../ui/sfx";
 import { DRIVER as DRIVER_NAME, ENGINEER } from "../../game/cast";
 import { Icon } from "../../ui/Icon";
@@ -1473,6 +1474,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [qi, setQi] = useState<number>(savedProgress.qi ?? Math.max(0, questions.findIndex(item => item.hyp === state.hypothesis[caseId])));
   // Start with the driver's question and one decision, rather than presenting a dense lab console.
   const [phase, setPhase] = useState<"pick" | "lab" | "report" | "ab" | "repair" | "retest" | "done">(savedProgress.phase ?? "pick");
+  useReportSubStep("bench", ({ pick: 0, lab: 0, report: 1, ab: 2, repair: 3, retest: 4, done: 4 } as const)[phase]);
   // final cause chosen after the report, and the A/B comparison run (normal model vs. cause-removed model)
   const [cause, setCause] = useState<string | null>(savedProgress.cause ?? null);
   const [abDone, setAbDone] = useState<boolean>(Boolean(savedProgress.abDone));
@@ -1730,7 +1732,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="검증" title="시뮬레이션 검증" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
-    <StageFolderSubtitle className="benchStageFolder" action="의심한 SW를 시험·수정하고 정상 차량과 결과를 비교하세요." detail={<>이전 결과: 테스트 설계서 <i>|</i> 비교: 정상 기준선 ↔ 수정 후 차량</>} />
+    <StageFolderSubtitle step="bench" className="benchStageFolder" action="의심한 SW를 시험·수정하고 정상 차량과 결과를 비교하세요." detail={<>이전 결과: 테스트 설계서 <i>|</i> 비교: 정상 기준선 ↔ 수정 후 차량</>} />
     <StageIntro id="bench-qa2" stage="STEP 04 · 실험 검증" title="실험 검증" goal="추리한 고장 원인 가설이 실제 원인인지 시험으로 확인합니다." steps={[
       { icon: "clipboard", text: "정상 동작 기준(STEP03)과 고장 당시 기록(STEP02)을 비교합니다." },
       { icon: "monitor", text: "고장 당시 조건을 재현할 시험 입력을 고르고 실행합니다." },

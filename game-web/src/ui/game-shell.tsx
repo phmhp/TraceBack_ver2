@@ -1,5 +1,6 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { Icon } from "./Icon";
+import { STEP_ROADMAP, useSubStep, type RoadmapStepId } from "./stepRoadmap";
 import { journeyStageAccess, type Campaign, type JourneyStageId } from "../game/runtime";
 
 const JourneyNavigationContext = createContext<{
@@ -103,9 +104,17 @@ export function GameHeader({
 }
 
 /** Shared two-line stage context.  Callers supply only live campaign/scenario data. */
-export function StageFolderSubtitle({ action, detail, className = "" }: { action: string; detail: ReactNode; className?: string }) {
+export function StageFolderSubtitle({ action, detail, className = "", step }: { action: string; detail: ReactNode; className?: string; step?: RoadmapStepId }) {
+  const sub = useSubStep(step ?? "garage");
+  const roadmap = step ? STEP_ROADMAP[step] : null;
   return <section className={`stageFolderSubtitle ${className}`.trim()} aria-label="현재 단계 안내">
-    <p>{action}</p><small>{detail}</small>
+    <p>{action}</p>
+    {roadmap
+      ? <small className="stepRoadmap" aria-label={`${roadmap.no} ${roadmap.alias}, 세부 단계 ${sub + 1}/${roadmap.subs.length}`}>
+        <b>{roadmap.no} · {roadmap.alias}</b>
+        <ol>{roadmap.subs.map((label, index) => <li key={label} className={index < sub ? "done" : index === sub ? "now" : ""} aria-current={index === sub ? "step" : undefined}><i>{index < sub ? "✓" : index + 1}</i>{label}</li>)}</ol>
+      </small>
+      : <small>{detail}</small>}
   </section>;
 }
 

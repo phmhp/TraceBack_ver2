@@ -11,6 +11,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Campaign } from "../../game/runtime";
 import { SCENARIOS, SCENARIO_META } from "../../game/scenarios";
 import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
+import { useReportSubStep } from "../../ui/stepRoadmap";
 import { play } from "../../ui/sfx";
 import { PursuitRouteBar } from "../../experiences";
 import { DRIVER, ENGINEER } from "../../game/cast";
@@ -51,6 +52,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(progressKey) ?? "null") ?? {}; } catch { return {}; } })();
 
   const [phase, setPhase] = useState<"evidence" | "output" | "trace" | "section" | "done">(saved.phase ?? "evidence");
+  useReportSubStep("board", ({ evidence: 0, output: 1, trace: 2, section: 3, done: 4 } as const)[phase]);
   const [chain, setChain] = useState<string[]>(saved.chain ?? []);          // outputs followed so far (symptom → … backward)
   const [measured, setMeasured] = useState<string[]>(saved.measured ?? []);
   const [stamps, setStamps] = useState<Record<string, Stamp>>(saved.stamps ?? {});
@@ -233,7 +235,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="원인 추적" title="도미노 역추적" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
-    <StageFolderSubtitle className="etStageFolder" action="관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요." detail={<>출발 증거: {scenario.symptom} <i>|</i> 추적 대상: 신호·제어 경로</>} />
+    <StageFolderSubtitle step="board" className="etStageFolder" action="관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요." detail={<>출발 증거: {scenario.symptom} <i>|</i> 추적 대상: 신호·제어 경로</>} />
     <StageIntro id="trace-v2" stage="STEP 02" title="도미노 역추적" goal="첫 편차를 찾고 고장 원인 가설 세우기" steps={[
       { icon: "camera", text: "운전자 진술로 증상을 확인하고, 그 증상을 만든 출력을 고르기" },
       { icon: "search", text: "고장 당시 로그를 재생해 후보를 측정하고 반박·유력 판단하기" },
