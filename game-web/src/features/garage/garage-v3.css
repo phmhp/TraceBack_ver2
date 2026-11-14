@@ -108,3 +108,10 @@
 .swcView .swcRow > em { flex: none; align-self: center; display: flex; flex-direction: column; align-items: center; gap: 3px; font: 800 14px/1 Pretendard, system-ui; font-style: normal; color: #9b6b64; }
 .swcView .swcRow > em small { font: 600 11px/1 Pretendard, system-ui; color: #8a6a63; white-space: nowrap; max-width: 72px; overflow: hidden; text-overflow: ellipsis; }
 .swcView .swcEcu > footer { margin-top: 10px; font: 600 12px/1 Pretendard, system-ui; color: #8a6a63; }
+
+/* the 3-column grid: the footer (flow cards + next button) must span every column */
+.garageV2 .gv3Work .garageFooterRow { grid-row: 4 !important; grid-column: 1 / -1 !important; }
+.garageV2 .gv3Work > .missionBar { grid-row: 1 !important; grid-column: 1 / -1 !important; }
+.garageV2 .gv3Work .domainTabs { grid-row: 2 !important; grid-column: 1 / -1 !important; }
+/* the next button sits exactly under the side column (same 360px, same right edge) */
+.garageV2 .gv3Work .garageFooterRow { grid-template-columns: minmax(0, 1fr) 360px !important; }
