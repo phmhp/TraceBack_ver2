@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { zonesAt, nearJunction, signalPhase, redAge, pedestriansAt, pedestrianContact, junctionAhead, stoppingDistanceM, LEAD_BRAKES, leadBrakeScale, leadBrakeLagM, leadBraking, newRearState, stepRear, REAR_HIT, SIGNAL_CYCLE } from "../src/game/situations.ts";
+import { ROAD_ZONES, zoneBrakeFactor, zonesAt, nearJunction, signalPhase, redAge, pedestriansAt, pedestrianContact, junctionAhead, stoppingDistanceM, LEAD_BRAKES, leadBrakeScale, leadBrakeLagM, leadBraking, newRearState, stepRear, REAR_HIT, SIGNAL_CYCLE } from "../src/game/situations.ts";
 
 test("signal cycles green -> yellow -> red and repeats", () => {
   const seen = new Set(); for (let t = 0; t < 48; t += .5) seen.add(signalPhase(300, t));
@@ -90,4 +90,10 @@ test("zonesAt returns the tags of the zones that contain the distance", () => {
   assert.deepEqual(zonesAt(120, zones), ["wet"]);
   assert.deepEqual(zonesAt(170, zones), ["wet", "tunnel"]);
   assert.deepEqual(zonesAt(50, zones), []);
+});
+
+test("wet zone exists, lengthens braking, and feeds the environment fault trigger", () => {
+  assert.ok(ROAD_ZONES.some(z => z.tag === "wet"));
+  assert.ok(zoneBrakeFactor(zonesAt(420)) < 1);
+  assert.equal(zoneBrakeFactor(zonesAt(100)), 1);
 });

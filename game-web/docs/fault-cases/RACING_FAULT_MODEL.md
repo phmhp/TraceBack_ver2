@@ -46,6 +46,6 @@
 
 ## 6. 아직 안 된 것
 - 후진(`reverseOnly`): `?faultdemo=reverse`로 동작(페달=후진, 최대 -25 km/h, 추격차 빠르게 감소). 일반 R 기어 주행은 아직 정지 처리.
-- `environment`: 구간 표(`ROAD_ZONES` in `src/game/situations.ts`, 태그 wet/tunnel/night/slope/cold/glare + 시작·끝 m)를 `zonesAt`으로 읽어 `FaultContext.zones`에 넣는 배선은 끝났고, 표는 비어 있음. **같은 표가 지도 연출(비·젖은 노면·터널·야간 톤)과 고장 트리거를 함께 구동**해서 맵과 고장이 어긋나지 않게 함. 지도 연출은 아직 없음(2차).
+- `environment`: 구간 표(`ROAD_ZONES` in `src/game/situations.ts`, 태그 wet/tunnel/night/slope/cold/glare + 시작·끝 m)를 `zonesAt`으로 읽어 `FaultContext.zones`에 넣는 배선은 끝났고, 표에는 우천 구간(wet, 380~540 m) 하나가 있음: 빗줄기·회색 톤(`.rainOverlay`), 제동 계수 0.72(`zoneBrakeFactor`), 안내 카드 "우천 구간". **같은 표가 지도 연출(비·젖은 노면·터널·야간 톤)과 고장 트리거를 함께 구동**해서 맵과 고장이 어긋나지 않게 함. 터널·야간·경사·저온·눈부심은 태그만 있고 연출은 아직 없음.
 - `event` 중 `restart`는 컨텍스트에 연결 안 됨(collision·gearChange만 연결).
 - 경고등 `cluster` 표시는 HUD에 아직 안 그림.

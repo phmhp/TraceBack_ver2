@@ -29,3 +29,10 @@
 .raceFeed .situationHint b { font-size: 15px; font-weight: 600; }
 .raceFeed .situationHint em { font-size: 12px; font-style: normal; font-weight: 500; }
 .raceFeed .situationHint.lead, .raceFeed .situationHint.signal { border-color: #c9847a; }
+
+/* wet zone: rain streaks and a cool grey wash over the 3D view (below the HUD cards) */
+.rainOverlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(180deg, rgba(86, 104, 122, .22), rgba(86, 104, 122, .1)); }
+.rainOverlay::before, .rainOverlay::after { content: ""; position: absolute; inset: -100px 0 0 0; background-image: repeating-linear-gradient(100deg, rgba(255, 255, 255, .0) 0 14px, rgba(235, 244, 255, .5) 14px 15px, rgba(255, 255, 255, 0) 15px 34px); background-size: 120px 120px; animation: rainFall .5s linear infinite; opacity: .55; }
+.rainOverlay::after { background-size: 77px 93px; animation-duration: .38s; opacity: .35; }
+@keyframes rainFall { to { background-position: -40px 120px; } }
+@media (prefers-reduced-motion: reduce) { .rainOverlay::before, .rainOverlay::after { animation: none; } }

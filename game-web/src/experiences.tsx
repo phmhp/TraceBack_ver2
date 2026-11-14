@@ -27,7 +27,7 @@ import { ArchitectureOverview } from "./features/garage/ArchitectureOverview";
 import { DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainId } from "./features/garage/evData";
 import { CAR_CONTACT, TRACK_LENGTH, TRAFFIC_COUNT, resetTrafficStall, stallTraffic, trafficHitVisual, trafficStateFor } from "./game/traffic";
 import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
-import { CYCLE_JUNCTIONS, zonesAt, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
+import { CYCLE_JUNCTIONS, zoneBrakeFactor, zonesAt, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
 import { DEMO_FAULTS, policeSpeedKph, secondsToCatch, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
 import { StageIntro } from "./ui/Verdict";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
@@ -1771,7 +1771,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         if (throttle) speed += driveAccel * dt - (fx.reverseOnly ? 14 * dt : 0); // reverse-only fault: the pedal pulls the car backwards
         else { const coast = (gear === "N" ? 1.6 : [2.15, 5.5, 9, 13][regen]) * dt; speed = speed > 0 ? speed - coast : Math.min(0, speed + coast); } // coasting: regen level sets the deceleration (none in N)
         if (!throttle && fx.coastAccelKphPerS) speed += fx.coastAccelKphPerS * dt;
-        if (braking) { const brakeStep = 62 * (fx.brakeScale ?? 1) * dt; speed = speed > 0 ? speed - brakeStep : Math.min(0, speed + brakeStep); }
+        if (braking) { const brakeStep = 62 * (fx.brakeScale ?? 1) * zoneBrakeFactor(zonesAt(previous.distance)) * dt; speed = speed > 0 ? speed - brakeStep : Math.min(0, speed + brakeStep); }
         if (fx.speedCapKph !== undefined) speed = Math.min(speed, fx.speedCapKph);
         speed = THREE.MathUtils.clamp(speed, fx.reverseOnly ? -25 : 0, topSpeed);
         if (!allowed || parking || driveMission === "restart" || waterFall || gear === "P" || gear === "R") speed = THREE.MathUtils.damp(speed, 0, 6.2, dt);
@@ -1968,6 +1968,8 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     }
     const junction = junctionAhead(sim.distance, sim.elapsed);
     if (junction && junction.phase !== "green") return { kind: "signal", title: junction.phase === "red" ? "적색 신호" : "황색 신호", text: junction.crossing ? `${Math.max(0, Math.round(junction.distanceM))}m 앞 횡단보도 보행자 · 정지선 앞에서 정차` : `${Math.max(0, Math.round(junction.distanceM))}m 앞 정지선` };
+    const zoneNow = zonesAt(sim.distance), zoneSoon = zonesAt(sim.distance + 40);
+    if (zoneNow.includes("wet") || zoneSoon.includes("wet")) return { kind: "env", title: "우천 구간", text: zoneNow.includes("wet") ? "노면이 젖어 제동 거리가 길어져요 · 속도를 줄이세요" : "곧 노면이 젖은 구간이에요" };
     // chase: how long until the police catch up at the current speed (stopping, reversing or an output limit all show up here)
     const eta = secondsToCatch(sim.gap, sim.speed);
     if (sim.gap > 0 && eta < 40) return { kind: "chase", title: "경찰 접근", text: `이 속도로는 약 ${Math.max(1, Math.round(eta))}초 뒤 따라잡혀요 · ${sim.speed < 0 ? "후진 중" : sim.speed < 4 ? "다시 출발하세요" : "속도를 올리세요"}` };
@@ -2060,8 +2062,9 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="경찰 차량 접근" />}
     {symptom && <ComicBurst tone="fault" side="right" image="/assets/ending-thumbs/accel_pedal.png" title="가속 저하 발생" sound="alarm" />}
     {/* every message card lives in one column under the mirror, so cards never overlap */}
+    {zonesAt(sim.distance).includes("wet") && <div className="rainOverlay" aria-hidden="true" />}
     <div className="raceFeed">
-      {situationHint && <div className={`situationHint ${situationHint.kind}`} role="status" key={situationHint.kind}><small>{situationHint.kind === "lead" ? "앞차" : situationHint.kind === "rear" ? "후방" : situationHint.kind === "chase" ? "추격" : "교차로"}</small><b>{situationHint.title}</b><em>{situationHint.text}</em></div>}
+      {situationHint && <div className={`situationHint ${situationHint.kind}`} role="status" key={situationHint.kind}><small>{situationHint.kind === "env" ? "환경" : situationHint.kind === "lead" ? "앞차" : situationHint.kind === "rear" ? "후방" : situationHint.kind === "chase" ? "추격" : "교차로"}</small><b>{situationHint.title}</b><em>{situationHint.text}</em></div>}
       {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>↓</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
       {gearToast && <div className="gearToast" key={gearToast.id}>{gearToast.text}</div>}
       {impact > 0 && <div className={`impactToast impactToastL${impactLevel}`} key={impact}>{impactMessage}</div>}
