@@ -1331,9 +1331,12 @@ function RoadsideEnvironment() {
     return <group key={index} position={[frame.x,0,frame.z]} rotation={[0,frame.yaw,0]}>
       <group position={[side * 2.4,0,0]} scale={.85 + (index%3)*.08}><StylizedRoadTree tone={["#5d956b","#73a66f","#a28d68"][index%3]} /></group>
       {index % 3 === 0 && <group position={[side * 6.2,0,0]} rotation={[0,side>0?-.1:.1,0]} scale={.72}><CoastalHouse color={["#d88972","#7fafaa","#d8b76c"][index%3]} roof={index%2?"#635869":"#80604c"} /></group>}
-      <group position={[side * 7.55,0,-2.2]}><mesh position={[0,2.1,0]}><cylinderGeometry args={[.07,.1,4.2,12]} /><meshStandardMaterial color="#33413e" metalness={.65} /></mesh><mesh position={[0,4.2,0]}><sphereGeometry args={[.28,18,12]} /><meshStandardMaterial color="#fff0b3" emissive="#ffd76d" emissiveIntensity={2.4} /></mesh></group>
     </group>;
-  })}</>;
+  })}
+  {/* street lamps stand on the road edge (lateral -8.6 from the centre line), every second tree spacing */}
+  {Array.from({ length: 9 }, (_, index) => { const frame = trackFrame(55 + index * 136 + 30, -8.6); return <group key={`lamp-${index}`} position={[frame.x, 0, frame.z]} rotation={[0, frame.yaw, 0]}>
+<group position={[0,0,0]}><mesh position={[0,2.1,0]}><cylinderGeometry args={[.07,.1,4.2,12]} /><meshStandardMaterial color="#33413e" metalness={.65} /></mesh><mesh position={[0,4.2,0]}><sphereGeometry args={[.28,18,12]} /><meshStandardMaterial color="#fff0b3" emissive="#ffd76d" emissiveIntensity={2.4} /></mesh></group>
+  </group>; })}</>;
 }
 
 const trafficPalette = ["#737b7d", "#a8ada9", "#4d5559", "#8b9090", "#646b70", "#b6b4ac", "#555d61"];
@@ -1449,7 +1452,7 @@ const TrackStatic = React.memo(function TrackStatic({ ship, signalRed, signals }
       {s < TRACK_LENGTH - 72 && [-7.7, 7.7].map(x => <React.Fragment key={x}>
         <RoundedBox args={[.24, .48, 20.3]} radius={.06} position={[x, .2, 0]}><meshStandardMaterial color="#f0e5cd" /></RoundedBox>
         {i % 4 === 0 && <group position={[x + Math.sign(x) * 2.15, 0, 0]}><mesh position={[0, 1.1, 0]}><sphereGeometry args={[.88, 18, 14]} /><meshStandardMaterial color={i % 8 ? "#5b9b67" : "#e0ad72"} roughness={.9} /></mesh><mesh position={[0, .35, 0]}><cylinderGeometry args={[.13, .2, .8, 12]} /><meshStandardMaterial color="#74533e" /></mesh></group>}
-        {i % 10 === 0 && <RoundedBox args={[2.5, 1.1 + (i % 3) * .35, 3.1]} radius={.3} position={[x + Math.sign(x) * 4.3, .65, 0]} castShadow><meshStandardMaterial color={["#e98970", "#76b2aa", "#e6bf67", "#8da8c7"][i % 4]} roughness={.72} /></RoundedBox>}
+        {i % 10 === 0 && x < 0 && <RoundedBox args={[2.5, 1.1 + (i % 3) * .35, 3.1]} radius={.3} position={[x + Math.sign(x) * 4.3, .65, 0]} castShadow><meshStandardMaterial color={["#e98970", "#76b2aa", "#e6bf67", "#8da8c7"][i % 4]} roughness={.72} /></RoundedBox>}
       </React.Fragment>)}
     </group>})}
     {[300, 620, 920].map(s => { const f = trackFrame(s); const missionSignalRed = s === 620 && signalRed; const cycleIndex = (CYCLE_JUNCTIONS as readonly number[]).indexOf(s); const cyclePhase = cycleIndex >= 0 ? signals[cycleIndex] : null; return <group key={`junction-${s}`} position={[f.x, .025, f.z]} rotation={[0, f.yaw, 0]}>
