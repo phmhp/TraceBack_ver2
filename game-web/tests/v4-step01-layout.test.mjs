@@ -20,11 +20,14 @@ const main = readFileSync(new URL("../src/main.tsx", import.meta.url), "utf8");
 const gameShell = readFileSync(new URL("../src/ui/game-shell.tsx", import.meta.url), "utf8");
 
 test("V4 STEP 01 keeps one stable frame across all three learning views", () => {
-  assert.match(experience, /className="garageViewTools"/);
-  assert.match(experience, /className="garageViewContext"/);
-  assert.match(latestCss, /grid-template-rows:\s*44px minmax\(0, 1fr\) 122px/);
-  assert.match(latestCss, /\.garageMechanismCard[^}]*min-height:\s*0/);
-  assert.match(latestCss, /\.garageFlowPanel[^}]*height:\s*122px/);
+  // v3: one grid workspace (mission / tabs / stage + side / flow) shared by every view
+  const garageV3 = readFileSync(new URL("../src/features/garage/garage-v3.css", import.meta.url), "utf8");
+  assert.match(experience, /className="gv3Work"/);
+  assert.match(experience, /<MissionBar /);
+  assert.match(experience, /className="garageLayerNav"/);
+  assert.match(garageV3, /grid-template-rows:\s*56px 48px minmax\(0, 1fr\) 150px/);
+  assert.match(garageV3, /\.garageMechanismCard \{[^}]*min-height:\s*0/);
+  assert.match(garageV3, /\.garageFooterRow \{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) 140px/);
 });
 
 test("V4 STEP 01 controls keep fixed geometry and visible sequence numbers", () => {
