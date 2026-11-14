@@ -12,6 +12,8 @@ import type { Campaign } from "../../game/runtime";
 import { SCENARIOS, SCENARIO_META } from "../../game/scenarios";
 import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
 import { useReportSubStep } from "../../ui/stepRoadmap";
+import { MissionBar } from "../../ui/MissionBar";
+import "./step02-v3.css";
 import { useDevActions } from "../../ui/dev/devActions";
 import { play } from "../../ui/sfx";
 import { PursuitRouteBar } from "../../experiences";
@@ -53,7 +55,13 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(progressKey) ?? "null") ?? {}; } catch { return {}; } })();
 
   const [phase, setPhase] = useState<"evidence" | "output" | "trace" | "section" | "done">(saved.phase ?? "evidence");
-  useReportSubStep("board", ({ evidence: 0, output: 1, trace: 2, section: 3, done: 4 } as const)[phase]);
+  const PHASES = ["evidence", "output", "trace", "section", "done"] as const;
+  const phaseIdx = PHASES.indexOf(phase);
+  const [reached, setReached] = useState<number>(saved.reached ?? 0);
+  useEffect(() => { if (phaseIdx > reached) setReached(phaseIdx); }, [phaseIdx, reached]);
+  // going back must not bounce forward again: the trace→section auto-advance is paused until the player judges something
+  const holdTrace = useRef(false);
+  useReportSubStep("board", phaseIdx, { max: Math.max(reached, phaseIdx), goTo: index => { holdTrace.current = index === 2; setPhase(PHASES[index]); } });
   const [chain, setChain] = useState<string[]>(saved.chain ?? []);          // outputs followed so far (symptom → … backward)
   const [measured, setMeasured] = useState<string[]>(saved.measured ?? []);
   const [stamps, setStamps] = useState<Record<string, Stamp>>(saved.stamps ?? {});
@@ -76,8 +84,8 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const suspects = focus ? causesOf(focus) : [];
   const cleared = suspects.length > 0 && suspects.every(id => stamps[id] === "refuted");
   const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
-  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ phase, chain, measured, stamps, mistakes, sectionPick, replayed, evidencePage, attached, sorted, memoTab, bubble, carry })); } catch { /* ignore */ } }, [phase, chain, measured, stamps, mistakes, sectionPick, replayed, evidencePage, attached, sorted, memoTab, bubble, carry, progressKey]);
-  const resetStage = () => { setPhase("evidence"); setChain([]); setMeasured([]); setStamps({}); setMistakes(0); setSectionPick(null); setReplayed(false); setZoomPol(null); setEvidencePage(0); setAttached([]); setSorted({}); setCarry(""); setMemoTab("evidence"); setBubble("운전자 진술과 계기판 정보를 확인해 보세요."); try { sessionStorage.removeItem(progressKey); sessionStorage.removeItem(`tb-impact-${caseId}`); sessionStorage.removeItem(`tb-section-${caseId}`); sessionStorage.removeItem(`tb-step03-progress-${caseId}`); sessionStorage.removeItem(`tb-step04-progress-${caseId}`); sessionStorage.removeItem(`tb-expect-${caseId}`); sessionStorage.removeItem(`tb-verification-contract-${caseId}`); } catch { /* ignore */ } };
+  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ reached, phase, chain, measured, stamps, mistakes, sectionPick, replayed, evidencePage, attached, sorted, memoTab, bubble, carry })); } catch { /* ignore */ } }, [phase, chain, measured, stamps, mistakes, sectionPick, replayed, evidencePage, attached, sorted, memoTab, bubble, carry, progressKey]);
+  const resetStage = () => { setReached(0); holdTrace.current = false; setPhase("evidence"); setChain([]); setMeasured([]); setStamps({}); setMistakes(0); setSectionPick(null); setReplayed(false); setZoomPol(null); setEvidencePage(0); setAttached([]); setSorted({}); setCarry(""); setMemoTab("evidence"); setBubble("운전자 진술과 계기판 정보를 확인해 보세요."); try { sessionStorage.removeItem(progressKey); sessionStorage.removeItem(`tb-impact-${caseId}`); sessionStorage.removeItem(`tb-section-${caseId}`); sessionStorage.removeItem(`tb-step03-progress-${caseId}`); sessionStorage.removeItem(`tb-step04-progress-${caseId}`); sessionStorage.removeItem(`tb-expect-${caseId}`); sessionStorage.removeItem(`tb-verification-contract-${caseId}`); } catch { /* ignore */ } };
   const nope = (id: string, text: string) => { setBubble(text); setShake(id); setMistakes(n => n + 1); showVerdict(false); window.setTimeout(() => setShake(""), 420); };
 
   // 1) initial observations orient the learner; the output polaroid is earned
@@ -101,6 +109,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   };
   // 4) measure one suspect, then the player stamps it
   const measure = (id: string) => {
+    holdTrace.current = false;
     if (!replayed) { setBubble("먼저 '고장 당시 로그 재생'을 눌러야 그때의 신호를 잴 수 있어요."); play("error"); return; }
     if (measured.includes(id)) return;
     setMeasured(previous => [...previous, id]);
@@ -111,6 +120,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       : `${d.label}${josa(d.label, "은", "는")} ${d.status === "tol" ? "조금 다르지만 허용 범위예요" : "기준과 같아요"}. 판단을 고르세요.`);
   };
   const stamp = (id: string, pick: Stamp) => {
+    holdTrace.current = false;
     if (advancing.current || stamps[id]) return;
     const d = dom(id), f = dom(focus);
     const earlier = d.status === "bad" && (d.t ?? 0) < (f.t ?? 0);
@@ -147,13 +157,14 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   };
   // a judged suspect can be reopened until every suspect of the current output is judged
   const unstamp = (id: string) => {
+    holdTrace.current = false;
     if (advancing.current || !suspects.includes(id)) return;
     setStamps(previous => { const next = { ...previous }; delete next[id]; return next; });
     play("pop"); setBubble(`${dom(id).label}의 판단을 다시 고를 수 있어요.`);
   };
   // 5) every suspect cleared → the current output is where it first went wrong
   useEffect(() => {
-    if (phase !== "trace" || !cleared) return;
+    if (phase !== "trace" || !cleared || holdTrace.current) return;
     if (focus !== data.first) return;
     play("success");
     setBubble(`들어오는 값은 모두 정상인데 ${dom(focus).label}만 달라요. 여기가 처음 어긋난 곳이에요. 어느 구간 안쪽인지 고르세요.`);
@@ -232,6 +243,13 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const mugStatus = (id: string): keyof typeof STAMP_KO => stamps[id] ?? (measured.includes(id) ? "measured" : "untested");
   const stackCandidates = [...new Set([...chain, ...measured, ...Object.keys(stamps)])].map(dom);
 
+  const et3Mission = ({
+    evidence: { action: "운전자 진술·계기판 증거를 눌러 확인", question: "어떤 이상 증상이 있었나?" },
+    output: { action: "증상을 만든 출력을 신호 지도에서 고르기", question: "어떤 출력 신호부터 확인할까?" },
+    trace: { action: `${dom(focus ?? data.start).label}의 앞 후보를 측정해 판정`, question: "이 출력의 이상은 어디에서 시작됐을까?" },
+    section: { action: "처음 어긋난 곳의 의심 구간 고르기", question: "최초 편차를 근거로 어느 구간을 의심할까?" },
+    done: { action: allSorted ? "먼저 시험할 가설 확인 후 다음으로" : "가설을 하나씩 반박 또는 보류하기", question: "어떤 가설이 현재 증거를 가장 잘 설명할까?" },
+  } as const)[phase];
   useDevActions({ solve: reveal, label: "STEP02" });
   return <div className="dtBoard eeTrace" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
@@ -244,6 +262,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       { icon: "clipboard", text: "처음 어긋난 곳의 의심 구간을 고르고 가설 정리하기" },
     ]} />
     <main className="dtLayout etLayout">
+      <MissionBar action={et3Mission.action} question={et3Mission.question} progress={{ now: phaseIdx + 1, total: 5 }} />
       {/* right: independent evidence rail */}
       <section className="etEvidence">
         <header><b><Icon name="camera" /> {memoTab === "evidence" ? "관찰·계측 증거" : "추리 보드"}</b><small>{memoTab === "evidence" ? `실제 획득 기록 · ${scenario.title}` : "역추적 스택"}</small><nav className="etEvidenceTabs" role="tablist" aria-label="증거와 추리 기록 보기"><button role="tab" aria-selected={memoTab === "evidence"} className={memoTab === "evidence" ? "on" : ""} onClick={() => setMemoTab("evidence")}>관찰·계측 증거</button><button role="tab" aria-selected={memoTab === "stack"} className={memoTab === "stack" ? "on" : ""} onClick={() => setMemoTab("stack")}>추리 보드</button></nav><OpenBookButton caseId={caseId} /></header>
@@ -268,7 +287,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       <section className="etMugs">
         {phase === "evidence" || phase === "output" ? <div className="etMemoSeed"><p className="etEmpty"><Icon name="detective" /> 출력을 고르면, 그 출력에 영향을 준 부품이 압정 카드로 올라와요.</p><div><span><small>관찰 사실</small><b>{start.label} 기준 이탈</b></span><span><small>최초 편차</small><b>아직 추적 전</b></span><span><small>원인 후보</small><b>검증 전에는 확정하지 않음</b></span></div></div>
           : phase === "trace" ? <div className="etDock etDockTrace">
-            <div className="etDockQ"><p><b>지금 출력: {dom(focus).label}{dom(focus).t !== undefined ? ` · ${fmt(dom(focus).t!)}${unit}에 기준과 달라짐` : ""}</b><small><em>유력</em> 기준과 다르고 지금 출력보다 먼저 달라짐 · <em>반박</em> 기준과 같거나(허용 범위 포함) 지금 출력보다 늦게 달라짐(결과) · 후보 {suspects.length}개를 모두 판단해야 넘어가요</small></p><button className={`etReplay ${replayed ? "on" : ""}`} onClick={replay}>{replayed ? "✓ 로그 재생 중" : "▶ 고장 당시 로그 재생"}</button></div>
+            <div className="etDockQ"><p><b>지금 출력: {dom(focus).label}{dom(focus).t !== undefined ? ` · ${fmt(dom(focus).t!)}${unit}부터 달라짐` : ""}</b><small><em>유력</em> 기준과 다르고 먼저 달라짐 · <em>반박</em> 기준과 같거나 늦게 달라짐 · 후보 {suspects.length}개 모두 판단</small></p><button className={`etReplay ${replayed ? "on" : ""}`} onClick={replay}>{replayed ? "✓ 로그 재생 중" : "▶ 고장 당시 로그 재생"}</button></div>
             <div className="etSuspRow">{suspects.map((id, k) => { const d = dom(id), st = mugStatus(id); return <article key={id} className={`etSusp m-${st} ${shake === id ? "shake" : ""}`}>
               <div className="pol etPol"><i className="pin" /><span className="polPhoto"><Photo src={d.img} /></span><b>{d.label}</b><small>후보 {String(k + 1).padStart(2, "0")} · {d.zone}</small></div>
               <div className="etSuspAct"><em className={`stamp st-${st}`}>{STAMP_KO[st]}</em>

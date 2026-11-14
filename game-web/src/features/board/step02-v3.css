@@ -1,0 +1,55 @@
+/* STEP02 v3: mission row on top, board + evidence, fixed action dock, cat line. Placement overrides legacy rules. */
+.eeTrace .dtLayout.etLayout {
+  grid-template-columns: minmax(0, 1fr) 300px !important;
+  grid-template-rows: 56px minmax(0, 1fr) 278px auto !important;
+  gap: 8px !important;
+  word-break: keep-all; overflow-wrap: normal;
+}
+.eeTrace .etLayout > .missionBar { grid-column: 1 / -1; grid-row: 1; }
+.eeTrace .etLayout > .etBoard { grid-column: 1; grid-row: 2; }
+.eeTrace .etLayout > .etEvidence { grid-column: 2; grid-row: 2; }
+.eeTrace .etLayout > .etMugs { grid-column: 1 / -1; grid-row: 3; }
+.eeTrace .etLayout > .etBubble { grid-column: 1 / -1; grid-row: 4; max-width: none; justify-self: stretch; }
+.eeTrace .etBubble p { font-size: 14px !important; line-height: 1.35 !important; }
+.eeTrace .etBubble .etProgressSlot { margin-left: auto; flex: none; }
+
+/* readable type (>=12px; polaroid captions 11px because the card is a fixed 88x107 photo frame) */
+.eeTrace .etEcus i { font-size: 12px !important; }
+.eeTrace .etZone > small { font-size: 12px !important; }
+.eeTrace .etMemoSeed small, .eeTrace .etMemoSeed span b { font-size: 12px !important; }
+.eeTrace .etEvidence .pol b { font-size: 12px !important; }
+.eeTrace .etEvidence .pol small { font-size: 11px !important; }
+.eeTrace .etEvidence > header > small { font-size: 12px !important; }
+
+/* action dock: header + suspect row must fit the fixed dock height, never slide under the cat line */
+.eeTrace .etMugs { overflow: hidden; padding: 8px 12px !important; }
+.eeTrace .etDockQ p { margin: 0; }
+.eeTrace .etDockQ b { font-size: 14px !important; }
+.eeTrace .etDockQ small { font-size: 12px !important; line-height: 1.3; }
+
+/* evidence rail: single-line header, tighter polaroid grid so two full rows + pager fit without clipping */
+.eeTrace .etEvidence > header > small { display: none !important; }
+.eeTrace .etEvidence .polBoard { gap: 6px 8px !important; overflow: visible !important; }
+.eeTrace .etLayout > .etEvidence { padding: 6px 10px !important; }
+.eeTrace .etEvidence > header { margin-bottom: 2px !important; }
+.eeTrace .etEvidence .polBoard { gap: 4px 8px !important; }
+.eeTrace .etEvidence .polPager { min-height: 0 !important; height: 22px; margin-top: 2px !important; }
+.eeTrace .etEvidenceTabs button { min-height: 0 !important; padding-block: 4px !important; }
+
+/* zone columns: nodes share the column height (8 nodes in the thermal case must fit without clipping) */
+.eeTrace .etZone { display: flex !important; flex-direction: column; gap: 4px !important; min-height: 0; }
+.eeTrace .etZone > .etNode { flex: 1 1 0; min-height: 22px; max-height: 32px; height: auto !important; padding-block: 0 !important; display: flex !important; align-items: center; }
+.eeTrace .etLayout > .etBoard { padding-block: 6px 8px !important; }
+.eeTrace .etBoard > header { margin-bottom: 4px !important; }
+
+/* short screens: suspect cards turn horizontal (photo left, actions right) so the dock needs ~170px instead of 278px */
+@media (max-height: 820px) {
+  .eeTrace .dtLayout.etLayout { grid-template-rows: 46px minmax(0, 1fr) 176px auto !important; gap: 6px !important; }
+  .eeTrace .etLayout > .missionBar { height: 46px; }
+  .eeTrace .etBubble { padding-block: 2px !important; }
+  .eeTrace .etSuspRow { gap: 8px !important; }
+  .eeTrace .etSusp { display: flex !important; flex-direction: row !important; align-items: center; gap: 6px; width: auto !important; min-width: 0; }
+  .eeTrace .etSusp .etSuspAct { display: grid; gap: 3px; width: 92px; align-content: center; }
+  .eeTrace .etZone { gap: 3px !important; }
+  .eeTrace .etZone > .etNode { min-height: 20px; }
+}
