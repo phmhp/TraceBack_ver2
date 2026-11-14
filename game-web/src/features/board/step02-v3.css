@@ -42,14 +42,4 @@
 .eeTrace .etLayout > .etBoard { padding-block: 6px 8px !important; }
 .eeTrace .etBoard > header { margin-bottom: 4px !important; }
 
-/* short screens: suspect cards turn horizontal (photo left, actions right) so the dock needs ~170px instead of 278px */
-@media (max-height: 820px) {
-  .eeTrace .dtLayout.etLayout { grid-template-rows: 46px minmax(0, 1fr) 176px auto !important; gap: 6px !important; }
-  .eeTrace .etLayout > .missionBar { height: 46px; }
-  .eeTrace .etBubble { padding-block: 2px !important; }
-  .eeTrace .etSuspRow { gap: 8px !important; }
-  .eeTrace .etSusp { display: flex !important; flex-direction: row !important; align-items: center; gap: 6px; width: auto !important; min-width: 0; }
-  .eeTrace .etSusp .etSuspAct { display: grid; gap: 3px; width: 92px; align-content: center; }
-  .eeTrace .etZone { gap: 3px !important; }
-  .eeTrace .etZone > .etNode { min-height: 20px; }
-}
+

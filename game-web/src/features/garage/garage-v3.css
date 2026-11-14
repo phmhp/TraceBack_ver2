@@ -61,20 +61,7 @@
 /* E/E and SW diagrams end above the bottom control overlay (input bar + step controls) so nodes are never covered */
 .garageV2 .gv3Work .garageMechanismCard > .mechanismViewer:is(.eeView, .eeBlueprintView, .softwareView) { bottom: 64px !important; }
 
-/* short screens (1280x720 / 1428x800): compact bands so the stage keeps enough height */
-@media (max-height: 820px) {
-  .garageV2 .gv3Work { top: 134px !important; bottom: 14px !important; gap: 6px; grid-template-rows: 46px 40px minmax(0, 1fr) 122px; }
-  .garageV2 .gv3Work > .missionBar { height: 46px; }
-  .garageV2 .gv3Work .domainTabs button { padding-block: 0 !important; }
-  .garageV2 .gv3Work .domainTabs button small { display: none !important; }
-  .garageV2 .gv3Work .garageFooterRow { grid-template-columns: minmax(0, 1fr) 120px; }
-  .garageV2 .gv3Work .domainFunctionShelf > button { height: 30px !important; }
-  .garageV2 .gv3Work .domainFunctionShelf .functionNote { display: none !important; }
-  .garageV2 .gv3Work .domainFunctionShelf h2 { font-size: 15px !important; }
-  .garageV2 .gv3Work .domainFunctionShelf { padding: 8px !important; gap: 4px; }
-  .pedalLab { margin-top: 4px; padding: 6px 8px; gap: 4px; }
-  .pedalLab ol { gap: 2px; }
-}
+
 
 /* the flow panel fills its grid row exactly (legacy min-height:122px used to push it, and the next button, below the workspace) */
 .garageV2 .gv3Work .garageFlowPanel { height: 100% !important; min-height: 0 !important; max-height: none !important; box-sizing: border-box; }

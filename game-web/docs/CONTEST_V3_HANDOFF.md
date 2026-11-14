@@ -44,5 +44,10 @@
 - 교훈: 화면 전체 비례 축소(transform/zoom)는 R3F 캔버스 좌표(offsetX 대비 rect 폭)를 틀어 3D 클릭이 깨질 위험 → 도입 시 캔버스별 pointer 보정 필요. 현재는 세로 낮은 화면용 반응형 규칙으로 대응.
 - 이정표 이동: STEP01·02만 연결. STEP03·04 미연결.
 
+## 고정 캔버스(1600x900 비례 축소, 2026-11-14)
+- `src/entry.tsx`(index.html 진입): 최상위에서는 `ui/ScaledFrame.tsx`가 게임을 **1600x900 iframe**에 넣고 창에 맞춰 통째로 `scale`(레터박스, 중앙). iframe 안(`?embed=1`)에서는 `main.tsx`를 로드. 안에서는 브라우저가 항상 1600x900으로 인식 → 미디어쿼리·vw/vh·드래그·R3F 3D 클릭이 수정 없이 정확(실제 클릭으로 3D 부품 선택 확인). `?noscale`로 우회 가능.
+- 검수 스크립트(auditSrc/sweepSrc/sweep02Src)는 iframe 안에서 실행: `document.querySelector('iframe').contentWindow.eval(localStorage.xxx)`. 더 이상 해상도별 반복 불필요(캔버스 고정). 이전의 `@media (max-height)` 압축 규칙은 제거함.
+- 확인: 1280x720, 900x900, 1800x600 모두 내부 1600x900·중앙 정렬, 프로덕션 빌드·미리보기 동작.
+
 ## 다음
 WP1 잔여(동적 상태 잘림 점검·STEP01 H1) → WP2 DEV 메뉴 → WP3 STEP01.
