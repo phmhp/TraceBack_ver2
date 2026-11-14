@@ -6,6 +6,7 @@ export type JourneyStageId = "garage" | "heist" | "race" | "board" | "wiring" | 
 export type Scene =
   | "TITLE"
   | "PROLOGUE"
+  | "LEVEL_SELECT"
   | "GARAGE_L1"
   | "GARAGE_L2"
   | "GARAGE_L3"
@@ -33,6 +34,8 @@ export type Campaign = {
   forwardScene?: Scene;
   caseId: CaseId;
   completedCases: CaseId[];
+  /** stars earned per cleared level (1~3): cleared / correct root cause / no hints */
+  levelStars: Partial<Record<CaseId, number>>;
   investigationProgress: Record<CaseId, InvestigationStep>;
   optionalBrake: "undecided" | "accepted" | "skipped";
   evidence: Record<CaseId, string[]>;
@@ -58,6 +61,7 @@ export const initialCampaign = (): Campaign => ({
   scene: "TITLE",
   caseId: "propulsion",
   completedCases: [],
+  levelStars: {},
   investigationProgress: { propulsion: "locked", thermal: "locked", brake: "locked" },
   optionalBrake: "undecided",
   checkpoint: "start",
@@ -90,6 +94,7 @@ export function hydrateCampaign(saved: Partial<Campaign>): Campaign {
     program: { ...base.program, ...(saved.program ?? {}) },
     investigationProgress: { ...base.investigationProgress, ...(saved.investigationProgress ?? {}) },
     gapJudgements: { ...(saved.gapJudgements ?? {}) },
+    levelStars: { ...(saved.levelStars ?? {}) },
     hintClaims: { ...(saved.hintClaims ?? {}) },
   };
   hydrated.completedCases.forEach(caseId => { hydrated.investigationProgress[caseId] = "done"; });
@@ -119,7 +124,7 @@ const unlockInvestigation = (s: Campaign, step: InvestigationStep) => {
 
 const journeyStageForScene = (scene: Scene): JourneyStageId => {
   if (scene.startsWith("GARAGE")) return "garage";
-  if (scene === "DRIVE_BRIEFING") return "heist";
+  if (scene === "DRIVE_BRIEFING" || scene === "LEVEL_SELECT") return "heist";
   if (["CHASE_NORMAL", "CHASE_RESUME", "FAULT_CUE", "ASSIST_CHASE"].includes(scene)) return "race";
   if (scene === "BOARD" || scene === "OPTIONAL_FAULT") return "board";
   if (scene === "WIRING") return "wiring";
@@ -223,6 +228,24 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
         ? reject(s, "GARAGE_REQUIRED")
         : enter(s, queue[Math.min(2, index + 1)]);
     }
+    case "OPEN_LEVELS":
+      return s.scene.startsWith("GARAGE") || s.scene === "LEVEL_SELECT"
+        ? enter(s, "LEVEL_SELECT")
+        : reject(s, "GARAGE_TUTORIAL_REQUIRED");
+    case "START_LEVEL": {
+      // Levels follow a fixed order (no random faults): 1 propulsion → 2 thermal → 3 brake (bonus) → 4 final escape.
+      if (s.scene !== "LEVEL_SELECT") return reject(s, "LEVEL_SELECT_REQUIRED");
+      const level = Number(event.level);
+      const done = (id: CaseId) => s.completedCases.includes(id);
+      if (level === 1 && !done("propulsion"))
+        return enter({ ...s, caseId: "propulsion", checkpoint: "city_start", raceDistance: 0, raceElapsedSeconds: 0, lastRepairElapsedSeconds: 0, lastRepairDistance: 0, policeGapMeters: 185 }, "DRIVE_BRIEFING");
+      if (level === 2 && done("propulsion") && !done("thermal")) return enter(s, "CHASE_RESUME");
+      if (level === 3 && done("thermal") && !done("brake"))
+        return enter(unlockInvestigation({ ...s, caseId: "brake", optionalBrake: "accepted" }, "board"), "BOARD");
+      if (level === 4 && done("propulsion") && done("thermal"))
+        return enter({ ...s, optionalBrake: s.optionalBrake === "accepted" ? "accepted" : "skipped" }, "SHIP_ESCAPE");
+      return reject(s, "LEVEL_LOCKED");
+    }
     case "START_RACE":
       return s.scene.startsWith("GARAGE")
         ? enter({ ...s, checkpoint: "city_start", raceDistance: 0, raceElapsedSeconds: 0, lastRepairElapsedSeconds: 0, lastRepairDistance: 0, policeGapMeters: 185 }, "DRIVE_BRIEFING")
@@ -315,21 +338,18 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
     }
     case "RETRY_WIRING":
       return enter(s, "WIRING");
-    case "APPLY_REPAIR":
+    case "APPLY_REPAIR": {
       s.completedCases = Array.from(new Set([...s.completedCases, s.caseId]));
       unlockInvestigation(s, "done");
       s.lastRepairElapsedSeconds = s.raceElapsedSeconds;
       s.lastRepairDistance = s.raceDistance;
-      if (s.caseId === "propulsion") {
-        s.policeGapMeters = Math.max(105, s.policeGapMeters);
-        return enter({ ...s, checkpoint: "harbor_entry" }, "CHASE_RESUME");
-      }
-      if (s.caseId === "thermal") {
-        s.policeGapMeters = Math.max(115, s.policeGapMeters);
-        return enter({ ...s, checkpoint: "dock_approach" }, "CHASE_RESUME");
-      }
-      s.policeGapMeters = Math.max(65, s.policeGapMeters);
-      return enter(s, "SHIP_ESCAPE");
+      s.levelStars = { ...s.levelStars, [s.caseId]: Math.max(s.levelStars?.[s.caseId] ?? 0, 1 + (s.gapJudgements[s.caseId] === "correct" ? 1 : 0) + (s.hints === 0 ? 1 : 0)) };
+      // the chase state the next level continues from is prepared here; the player picks the next level on the level screen
+      if (s.caseId === "propulsion") { s.policeGapMeters = Math.max(105, s.policeGapMeters); s.checkpoint = "harbor_entry"; }
+      else if (s.caseId === "thermal") { s.policeGapMeters = Math.max(115, s.policeGapMeters); s.checkpoint = "dock_approach"; }
+      else s.policeGapMeters = Math.max(65, s.policeGapMeters);
+      return enter(s, "LEVEL_SELECT");
+    }
     case "OPTIONAL_PROMPT":
       return enter({ ...s, optionalBrake: "skipped" }, "SHIP_ESCAPE");
     case "START_FINAL_ESCAPE":

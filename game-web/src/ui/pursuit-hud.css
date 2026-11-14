@@ -1,0 +1,6 @@
+/* One pursuit gap display in the top bar of every scene (steps, level select, repair and the race). */
+body .pursuitHud { position: absolute !important; z-index: 96 !important; top: 10px !important; right: 112px !important; width: 360px !important; height: 44px !important; box-sizing: border-box; display: grid !important; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 0 8px 0 10px; border-left: 0 !important; border-radius: 14px; background: rgba(255, 250, 240, .92) !important; border: 1.5px solid #e1d3c0 !important; box-shadow: 0 3px 0 rgba(141, 128, 108, .35); }
+body:has(.pursuitHud) .stageFolderSubtitle { padding-right: 16px !important; }
+/* the race has no GameHeader: sound buttons take the same top-right slot as in the other scenes */
+body:has(.raceV2) .soundToggle { top: 13px !important; right: 16px !important; bottom: auto !important; gap: 6px; z-index: 97; }
+body:has(.raceV2) .soundToggle button { width: 36px; height: 36px; }

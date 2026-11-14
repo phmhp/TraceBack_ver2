@@ -1,3 +1,5 @@
+import "./pursuit-hud.css";
+import "./buttons-unified.css";
 import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { Icon } from "./Icon";
 import { STEP_ROADMAP, useSubStep, type RoadmapStepId } from "./stepRoadmap";
@@ -64,13 +66,6 @@ export function GameHeader({
   onPause: () => void;
   progressScene?: string;
 }) {
-  const routeProgress = raceDistanceMeters === undefined ? 88 : Math.min(100, raceDistanceMeters / 12);
-  const playerMarker = Math.max(5, routeProgress);
-  const policeMarker = distanceMeters === undefined
-    ? 1
-    : Math.max(1, Math.min(96, playerMarker - Math.max(4, distanceMeters / 12)));
-  // STEP02~04 share one pursuit HUD below the top bar (same component and slot); the header meter is kept for other scenes.
-  const hud = distanceMeters !== undefined && ["BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL"].includes(progressScene ?? "");
   return (
     <>
     <header className="gameHeader">
@@ -82,25 +77,23 @@ export function GameHeader({
         {progressScene && <JourneyProgress scene={progressScene} />}
       </div>
       <span className="gameHeaderSpacer" aria-hidden="true" />
-      {distanceMeters !== undefined && !hud && (
-        <div className="pressureMeter gapOnly" aria-label={`추격 차량과 거리 ${Math.round(distanceMeters)}미터`}>
-          <span>추격차 격차</span>
-          <div className="headerPursuitGraphic" aria-hidden="true">
-            <i className="headerPoliceMarker" style={{ left: `${policeMarker}%` }}><img src="/assets/ui/icons/police-car.svg" alt="" /></i>
-            <i className="headerPlayerMarker" style={{ left: `${playerMarker}%` }}><img src="/assets/ui/icons/getaway-car.svg" alt="" /></i>
-          </div>
-          <b>{Math.round(distanceMeters)}m</b>
-        </div>
-      )}
     </header>
-    {hud && <div className="pursuitHud" role="img" aria-label={`출발에서 도착까지 진행 ${Math.round(playerMarker)}%, 경찰차와 자차의 추격차 격차 ${Math.round(distanceMeters!)}미터`}>
-      <span className="hudFlag"><img src="/assets/ui/icons/flag.svg" alt="" /><small>START</small></span>
-      <div className="hudTrack" aria-hidden="true"><i className="hudCar hudPolice" style={{ left: `${Math.min(92, policeMarker)}%` }}><img src="/assets/ui/icons/police-car.svg" alt="" /></i><i className="hudCar" style={{ left: `${Math.min(96, playerMarker)}%` }}><img src="/assets/ui/icons/getaway-car.svg" alt="" /></i></div>
-      <span className="hudFlag"><img src="/assets/ui/icons/flag.svg" alt="" /><small>FINISH</small></span>
-      <b className="hudGap"><small>추격차 격차</small><code>{Math.round(distanceMeters!)}m</code></b>
-    </div>}
+    {distanceMeters !== undefined && <PursuitHud gap={distanceMeters} distance={raceDistanceMeters ?? 0} />}
     </>
   );
+}
+
+/** One pursuit gap display for every scene (steps, levels, repair and the race): same component, same slot in the top bar. */
+export function PursuitHud({ gap, distance }: { gap: number; distance: number }) {
+  const routeProgress = Math.min(100, distance / 12);
+  const playerMarker = Math.max(5, routeProgress);
+  const policeMarker = Math.max(1, Math.min(96, playerMarker - Math.max(4, gap / 12)));
+  return <div className="pursuitHud" role="img" aria-label={`출발에서 도착까지 진행 ${Math.round(playerMarker)}%, 경찰차와 자차의 추격차 ${Math.round(gap)}미터`}>
+    <span className="hudFlag"><img src="/assets/ui/icons/flag.svg" alt="" /><small>START</small></span>
+    <div className="hudTrack" aria-hidden="true"><i className="hudCar hudPolice" style={{ left: `${Math.min(92, policeMarker)}%` }}><img src="/assets/ui/icons/police-car.svg" alt="" /></i><i className="hudCar hudPlayer" style={{ left: `${Math.min(96, playerMarker)}%` }}><img src="/assets/ui/icons/getaway-car.svg" alt="" /></i></div>
+    <span className="hudFlag"><img src="/assets/ui/icons/flag.svg" alt="" /><small>FINISH</small></span>
+    <b className="hudGap"><small>추격차</small><code>{Math.round(gap)}m</code></b>
+  </div>;
 }
 
 /** Shared two-line stage context.  Callers supply only live campaign/scenario data. */
@@ -139,7 +132,7 @@ const journeyStages = [
 
 const stageForScene = (scene: string) => {
   if (scene.startsWith("GARAGE")) return 0;
-  if (scene === "DRIVE_BRIEFING") return 1;
+  if (scene === "DRIVE_BRIEFING" || scene === "LEVEL_SELECT") return 1;
   if (["CHASE_NORMAL", "CHASE_RESUME", "FAULT_CUE", "ASSIST_CHASE"].includes(scene)) return 2;
   if (scene === "BOARD" || scene === "OPTIONAL_FAULT") return 3;
   if (scene === "WIRING") return 4;

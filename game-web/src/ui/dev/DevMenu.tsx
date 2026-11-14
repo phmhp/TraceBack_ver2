@@ -4,7 +4,7 @@ import { getDevActions, subscribeDevActions } from "./devActions";
 import "./dev-menu.css";
 
 const SCENES: [string, string][] = [
-  ["PROLOGUE", "프롤로그"], ["GARAGE_L1", "STEP01 정비소"], ["DRIVE_BRIEFING", "주행 브리핑"], ["CHASE_NORMAL", "레이싱"],
+  ["PROLOGUE", "프롤로그"], ["GARAGE_L1", "STEP01 정비소"], ["LEVEL_SELECT", "레벨 선택"], ["DRIVE_BRIEFING", "주행 브리핑"], ["CHASE_NORMAL", "레이싱"],
   ["BOARD", "STEP02 도미노"], ["WIRING", "STEP03 퍼즐"], ["TWIN_BENCH", "STEP04 실험대"], ["REPAIR", "수리"],
   ["CHASE_RESUME", "주행 복귀"], ["SHIP_ESCAPE", "해적선"], ["ENDING", "엔딩"],
 ];

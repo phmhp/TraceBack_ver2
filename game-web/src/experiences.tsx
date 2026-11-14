@@ -5,7 +5,7 @@ import { Html, OrbitControls, RoundedBox, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import type { Campaign, CaseId } from "./game/runtime";
 import { SCENARIOS } from "./game/scenarios";
-import { GameHeader, JourneyProgress, SceneBackdrop, StageFolderSubtitle } from "./ui/game-shell";
+import { GameHeader, JourneyProgress, PursuitHud, SceneBackdrop, StageFolderSubtitle } from "./ui/game-shell";
 import { useReportSubStep } from "./ui/stepRoadmap";
 import { PedalLab } from "./features/garage/PedalLab";
 import { MissionBar } from "./ui/MissionBar";
@@ -944,7 +944,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   } });
   return <div className="garageV2">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
-    <GameHeader chapter="정비소" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="정비소" title="차량 도메인 동작 원리" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <StageFolderSubtitle step="garage" className="garageStageFolder" action="차량 기능이 어떤 부품과 신호를 거쳐 동작하는지 확인하세요." detail={<>학습 대상: {chosen ? content.label : "전체 도메인"} <i>|</i> Vehicle/System · E/E · Control SW</>} />
     <StageIntro id="garage" stage="STEP 01" title="정비소" goal="차량 기능이 부품·신호·SW를 거쳐 어떻게 동작하는지 이해하기" steps={[
       { icon: "car", text: "위 탭에서 도메인, 오른쪽에서 기능을 고르기" },
@@ -1022,7 +1022,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         })()}
       </section>
       {!chosen && <aside className="domainFunctionShelf"><small>주요 기능</small><h2>도메인을 골라 보세요</h2><div className="functionNote"><b>주요 기능</b><p>위 탭에서 도메인을 고르면 그 도메인의 주요 기능과 신호 흐름이 여기에 나와요.</p></div></aside>}
-      {!chosen && <div className="garageFooterRow"><section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → ECU → 출력 순서가 여기에 나와요.</b><div /></section><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "START_RACE" })}>다음 →</button></div>}
+      {!chosen && <div className="garageFooterRow"><section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → ECU → 출력 순서가 여기에 나와요.</b><div /></section><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "OPEN_LEVELS" })}>다음 →</button></div>}
       {chosen && <aside className={`domainFunctionShelf ${domain === "drive" && feature === 0 ? "withPedalLab" : ""}`}>
         <small>주요 기능</small><h2>{content.label}의 주요 기능</h2>
         {content.functions.map((item, index) => <button key={item} className={feature === index ? "active" : ""} onClick={() => setFeature(index)}><span>{index + 1}</span><b>{item}</b><em className="featureCat">{content.categories[index]}</em><i>›</i></button>)}
@@ -1033,7 +1033,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         <small>{content.functions[feature]} · {learningLayers[routeLevel].tag}</small>
         <b className="flowRelationship">{routeLevel === 3 ? "핵심 제어 SW를 물리 입력·출력 경계와 함께 추적" : routeLevel === 2 ? "제어기 안 SW 컴포넌트가 포트로 값을 넘기는 순서" : "선택한 기능에 필요한 경계만 표시 · 단계 수는 기능마다 달라집니다"}</b>
         {routeLevel === 1 ? <FlowStepCard chain={chain} signals={flowSignals(domain, feature, chain.length)} step={Math.min(activeStep, chain.length - 1)} onStep={i => { setActiveStep(i); play("pop", 1 + i * .08); }} /> : <div>{(routeLevel === 3 ? [getFeatureLayer(domain, feature, 1)[0], getFeatureLayer(domain, feature, 1).at(-1)!] : getFeatureLayer(domain, feature, garageLayerSource[routeLevel])).map((node, index, flow) => { const step = index ? (routeLevel === 3 ? getFeatureLayer(domain, feature, 3).length - 1 : index) : 0; return <React.Fragment key={`${node}-${index}`}><button onClick={() => inspectStep(index, step)} className={`${index === 0 || index === flow.length - 1 ? "focus" : ""} ${(activeStep === index || routeLevel === 3 && index === 1 && activeStep === getFeatureLayer(domain, feature, 3).length - 1) ? "activeStep" : ""}`}><i>{index + 1}</i><b>{node}</b><span>{index === 0 ? "입력" : index === flow.length - 1 ? "출력" : routeLevel === 0 ? "기능 단계" : routeLevel === 2 ? "SW 컴포넌트" : "부품·제어기"}</span></button>{index < flow.length - 1 && <em>→</em>}</React.Fragment>; })}</div>}
-      </section><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "START_RACE" })}>다음 →</button></div>}
+      </section><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "OPEN_LEVELS" })}>다음 →</button></div>}
     </main>
     </div>
   </div>;
@@ -1181,7 +1181,7 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
   const heistCaptions = ["폭스의 저택 진입", "경보 패널 우회", "금고 발견", "빼앗긴 상금 회수", "경보 발생", "가방 들고 탈출", "직접 만든 차에 탑승", "시동 완료 · 출발 준비"];
   return <div className="driveBriefing heistIntro">
     <SceneBackdrop image={`${A}stitch23/prologue-night-drive.png`} position="center" shade="deep" />
-    <GameHeader chapter="도주 준비" title="부잣집 탈출 작전" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="도주 준비" title="부잣집 탈출 작전" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <main>
       <section className="heistStage">
         <Canvas shadows camera={{position:[0,3.15,9.2],fov:45}} dpr={[1,1.35]} gl={{antialias:true,powerPreference:"high-performance"}}><HeistCutsceneScene onBeat={setHeistFrame} onDone={() => setReady(true)} /></Canvas>
@@ -1201,11 +1201,9 @@ function formatRaceTime(seconds: number) {
   return `${String(Math.floor(whole / 60)).padStart(2, "0")}:${String(whole % 60).padStart(2, "0")}`;
 }
 
+/** Kept for the existing scene code: the gap now lives in the shared top bar (GameHeader) and in the race via PursuitHud. */
 export function PursuitRouteBar({ distance, gap, compact = false }: { distance: number; gap: number; compact?: boolean }) {
-  const routeProgress = Math.min(100, distance / (1200 / 100));
-  const playerMarker = Math.max(5, routeProgress);
-  const policeProgress = Math.max(1, Math.min(96, playerMarker - Math.max(4, gap / 12)));
-  return <div className={`routeTracker ${compact ? "compactRouteTracker" : ""}`}><div className="routeLabels"><span>출발</span><b>추격차와 {Math.round(gap)}m</b><span>도착</span></div><div className="routeLine"><i className="policeIcon" style={{ left: `${policeProgress}%` }}><img src="/assets/ui/icons/police-car.svg" alt="" /></i><i className="playerIcon" style={{ left: `${playerMarker}%` }}><img src="/assets/ui/icons/getaway-car.svg" alt="" /></i><em /></div></div>;
+  return compact ? null : <PursuitHud gap={gap} distance={distance} />;
 }
 
 function CatRider({ color, x }: { color: string; x: number }) {

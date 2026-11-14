@@ -1,0 +1,19 @@
+/* Shared look for in-stage buttons (STEP01~04, level select): primary = the one action to take now, secondary = choices.
+   Clay style (dusty rose, soft bottom edge), 40px tall, one-line labels. The big "다음" button keeps its own style. */
+:root { --btn-rose: #9b6b64; --btn-rose-dark: #6f4b46; --btn-paper: #fffaf5; --btn-ink: #4a3a36; }
+body :is(.gv3Work .inputBar .ctlBtn, .gv3Work .swStepControls .ctlBtn, .eeTrace .etChoices button, .eeTrace .etHyp span button, .bench4 .b4Dock .qaChoice, .bench4 .b4Hyps button, .rp3Work .rpRun, .rp3Work .rpExpect),
+body .b4PanelBody button:not(.openBookBtn):not([role="tab"]) {
+  min-height: 40px; box-sizing: border-box; padding: 0 16px; border-radius: 12px; border: 2px solid var(--btn-rose);
+  background: var(--btn-paper); color: var(--btn-ink); font: 800 14px/1.1 Pretendard, system-ui;
+  box-shadow: 0 3px 0 rgba(111, 75, 70, .35); cursor: pointer; transition: transform .1s, box-shadow .1s;
+}
+body :is(.gv3Work .inputBar .ctlBtn, .gv3Work .swStepControls .ctlBtn, .eeTrace .etChoices button, .eeTrace .etHyp span button, .bench4 .b4Dock .qaChoice, .rp3Work .rpRun, .rp3Work .rpExpect):hover:not(:disabled) { transform: translateY(-1px); }
+body :is(.gv3Work .inputBar .ctlBtn, .gv3Work .swStepControls .ctlBtn, .eeTrace .etChoices button, .eeTrace .etHyp span button, .bench4 .b4Dock .qaChoice, .rp3Work .rpRun, .rp3Work .rpExpect):active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 rgba(111, 75, 70, .35); }
+body :is(.gv3Work .inputBar .ctlBtn, .gv3Work .swStepControls .ctlBtn, .eeTrace .etChoices button, .eeTrace .etHyp span button, .bench4 .b4Dock .qaChoice, .rp3Work .rpRun, .rp3Work .rpExpect):focus-visible { outline: 3px solid var(--btn-ink); outline-offset: 2px; }
+body :is(.gv3Work .inputBar .ctlBtn, .gv3Work .swStepControls .ctlBtn, .eeTrace .etChoices button, .eeTrace .etHyp span button, .bench4 .b4Dock .qaChoice, .rp3Work .rpRun, .rp3Work .rpExpect):disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+/* primary: the single next action */
+body :is(.rp3Work .rpRun, .bench4 .b4Dock .qaRunButton, .bench4 .b4Dock .vbGo, .gv3Work .inputBar .ctlBtn.mainCtl) { background: var(--btn-rose); color: #fff8f2; border-color: var(--btn-rose-dark); box-shadow: 0 3px 0 var(--btn-rose-dark); }
+body :is(.rp3Work .rpRun, .bench4 .b4Dock .qaRunButton, .bench4 .b4Dock .vbGo, .gv3Work .inputBar .ctlBtn.mainCtl):active:not(:disabled) { box-shadow: 0 1px 0 var(--btn-rose-dark); }
+/* answer states */
+body :is(.eeTrace .etChoices, .bench4 .b4Dock .qaChoices) button.right, body .bench4 .b4Dock .qaChoice.ans-supported { background: #e8eddf; border-color: #5b9a76; color: #2f5a42; }
+body :is(.eeTrace .etChoices) button.wrong { background: #f3dcd6; border-color: #a0281e; color: #7a1f17; }

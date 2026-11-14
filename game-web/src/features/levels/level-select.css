@@ -1,0 +1,49 @@
+/* Level select: mission row, road map, 360px level card, 150px dock, start button under the panel. */
+.levelSelect { position: absolute; inset: 0; }
+.levelSelect .lvWork { position: absolute; left: 16px; right: 16px; top: 80px; bottom: 14px; display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: 56px minmax(0, 1fr) 150px; word-break: keep-all; }
+.levelSelect .lvWork > .missionBar { grid-column: 1 / -1; grid-row: 1; }
+.lvMap { grid-column: 1; grid-row: 2; position: relative; min-width: 0; min-height: 0; overflow: hidden; border-radius: 16px; border: 3px solid #e7d3a4; background: linear-gradient(#cfe6dc, #eaf3e4 55%, #f4ead2); }
+.lvMap > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lvRoadEdge { fill: none; stroke: #8f7f6a; stroke-width: 70; stroke-linecap: round; opacity: .55; }
+.lvRoad { fill: none; stroke: #6d675f; stroke-width: 60; stroke-linecap: round; }
+.lvRoadLine { fill: none; stroke: #f4e9c9; stroke-width: 4; stroke-dasharray: 16 14; }
+.lvNode { all: unset; box-sizing: border-box; position: absolute; transform: translate(-50%, -50%); width: 150px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; text-align: center; }
+.lvNode .lvBadge { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: #fff8f2; border: 4px solid #9b6b64; color: #9b6b64; font-size: 30px; box-shadow: 0 4px 0 #6f4b46; transition: transform .12s; }
+.lvNode:hover .lvBadge { transform: translateY(-3px); }
+.lvNode:focus-visible .lvBadge { outline: 4px solid #4a3a36; outline-offset: 3px; }
+.lvNode.sel .lvBadge { background: #9b6b64; color: #fff8f2; transform: scale(1.1); }
+.lvNode.locked .lvBadge { background: #e9e3da; border-color: #b8afa3; color: #9a9186; box-shadow: 0 4px 0 #b8afa3; }
+.lvNode.cleared .lvBadge { border-color: #5b9a76; color: #3f7a55; box-shadow: 0 4px 0 #3f7a55; }
+.lvNode.cleared.sel .lvBadge { background: #5b9a76; color: #fff8f2; }
+.lvNode b { font: 800 16px/1 Pretendard, system-ui; color: #3f302c; background: rgba(255, 250, 240, .9); padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.lvNode small { font: 700 13px/1 Pretendard, system-ui; color: #4a3a36; background: rgba(255, 250, 240, .85); padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.lvStars { display: inline-flex; gap: 2px; background: rgba(255, 250, 240, .9); padding: 2px 8px; border-radius: 999px; }
+.lvStars i { font-style: normal; font-size: 15px; color: #cdbfae; }
+.lvStars i.on { color: #e0a62a; }
+.lvPanel { grid-column: 2; grid-row: 2; min-height: 0; overflow: hidden; border-radius: 16px; border: 3px solid #e7d3a4; background: #fffdf5f0; padding: 12px; box-sizing: border-box; }
+.lvCard { display: flex; flex-direction: column; gap: 8px; height: 100%; }
+.lvCard > small { font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; white-space: nowrap; }
+.lvCard h2 { margin: 0; font: 800 22px/1.2 Pretendard, system-ui; color: #3f302c; }
+.lvTeaser { margin: 0; font: 600 14px/1.4 Pretendard, system-ui; color: #4a3a36; }
+.lvCard dl { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.lvCard dl > div { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; align-items: start; }
+.lvCard dt { font: 800 13px/1.3 Pretendard, system-ui; color: #8a6a63; white-space: nowrap; }
+.lvCard dd { margin: 0; font: 600 14px/1.35 Pretendard, system-ui; color: #3f302c; }
+.lvDots { display: flex; gap: 5px; }
+.lvDots i { width: 14px; height: 14px; border-radius: 50%; background: #e4d9c6; }
+.lvDots i.on { background: #9b6b64; }
+.lvGarage { margin-top: auto; padding: 8px 10px; border-radius: 12px; background: rgba(155, 107, 100, .1); }
+.lvGarage > small { display: flex; align-items: center; gap: 6px; font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; margin-bottom: 6px; white-space: nowrap; }
+.lvGarage ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.lvGarage li { display: flex; gap: 8px; align-items: baseline; font: 600 13px/1.3 Pretendard, system-ui; color: #3f302c; }
+.lvGarage li b { flex: none; font-weight: 800; color: #7a4a44; white-space: nowrap; }
+.lvDock { grid-column: 1; grid-row: 3; min-height: 0; display: flex; flex-direction: column; gap: 8px; justify-content: center; padding: 8px 12px; box-sizing: border-box; border-radius: 16px; border: 3px solid #e7d3a4; background: #fffaf0f2; }
+.lvSay { margin: 0; display: flex; align-items: center; gap: 8px; }
+.lvSay img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex: none; }
+.lvSay b { font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; flex: none; }
+.lvSay span { font: 500 14px/1.35 Pretendard, system-ui; color: #4a3a36; }
+.lvProgress { margin: 0; font: 700 13px/1 Pretendard, system-ui; color: #8a6a63; }
+.lvStart { grid-column: 2; grid-row: 3; min-height: 0; display: flex; }
+.lvStart button { flex: 1; width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; position: static !important; font: 800 22px/1 Pretendard, system-ui !important; white-space: nowrap; }
+.lvStart button:disabled { opacity: .55; cursor: not-allowed; }
+.levelSelect .lvWork .lvStart button.stageProgressAction { font: 800 22px/1 Pretendard, system-ui !important; width: 100% !important; height: 100% !important; position: static !important; }
