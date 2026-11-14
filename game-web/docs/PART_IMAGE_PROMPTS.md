@@ -3,7 +3,7 @@
 > 자동 생성 파일입니다. 수정은 `scripts/image-prompt-data.mjs`에서 하고 `npm run prompts`를 실행하세요.
 > 생성 도구: ChatGPT(GPT 이미지) · 3D 변환: [TRELLIS.2 데모](https://huggingface.co/spaces/microsoft/TRELLIS.2)(MIT) · 부품 ID 기준: `src/sim/components.ts`
 
-부품 94종 + 사건 증거 11종 = **이미지 총 238장**
+부품 99종 + 사건 증거 11종 = **이미지 총 247장**
 
 ## 1. 규칙 — 코드 블록 하나 = 요청 1번 = 이미지 1장
 
@@ -131,14 +131,10 @@ v2에서는 한 번에 여러 스타일을 요청해 비슷한 이미지가 여�
 | `can_harness` | CAN 통신선 | 직접 | 3 | [통신·진단](image-prompts/10-network-diagnostics.md#can_harness) |
 | `diagnostic_port` | 진단 포트 | 2D | 3 | [통신·진단](image-prompts/10-network-diagnostics.md#diagnostic_port) |
 | `diagnostic_tool` | 진단 장비 | 2D | 2 | [통신·진단](image-prompts/10-network-diagnostics.md#diagnostic_tool) |
-| `ac_compressor` | 전동 에어컨 컴프레서 | AI | 2 | [향후 확장 도메인](image-prompts/11-future-domains.md#ac_compressor) |
-| `ptc_heater` | PTC 히터 | AI | 2 | [향후 확장 도메인](image-prompts/11-future-domains.md#ptc_heater) |
 | `headlamp_module` | 헤드램프 | 2D | 1 | [향후 확장 도메인](image-prompts/11-future-domains.md#headlamp_module) |
 | `wiper_motor` | 와이퍼 모터 | 2D | 1 | [향후 확장 도메인](image-prompts/11-future-domains.md#wiper_motor) |
 | `door_latch` | 도어 래치 액추에이터 | 2D | 1 | [향후 확장 도메인](image-prompts/11-future-domains.md#door_latch) |
 | `seat_motor` | 시트 모터 | 2D | 1 | [향후 확장 도메인](image-prompts/11-future-domains.md#seat_motor) |
-| `adas_camera` | 전방 카메라 | 2D | 1 | [향후 확장 도메인](image-prompts/11-future-domains.md#adas_camera) |
-| `adas_radar` | 전방 레이더 | 2D | 1 | [향후 확장 도메인](image-prompts/11-future-domains.md#adas_radar) |
 | `airbag_ecu` | 에어백 제어기 | 2D | 1 | [향후 확장 도메인](image-prompts/11-future-domains.md#airbag_ecu) |
 | `isolation_monitor` | 절연 저항 감시 장치(IMD)·팩 전압 감지 | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#isolation_monitor) |
 | `park_ecu` | 파킹 제어기(Park ECU) | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#park_ecu) |
@@ -150,3 +146,12 @@ v2에서는 한 번에 여러 스타일을 요청해 비슷한 이미지가 여�
 | `air_compressor` | 에어 서스펜션 컴프레서·밸브 블록 | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#air_compressor) |
 | `cdc_damper` | 전자 감쇠 밸브 댐퍼(CDC) | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#cdc_damper) |
 | `eps_power_pack` | EPS 파워팩(모터+인버터 일체) | 직접 | 2 | [차고 화면 보강 부품 (2026-11-08)](image-prompts/13-garage-additions.md#eps_power_pack) |
+| `evcc` | 충전 제어기(EVCC·충전 통신) | 직접 | 2 | [EV 도메인 확장 부품 (2026-11-14)](image-prompts/14-ev-additions.md#evcc) |
+| `charge_lock_actuator` | 충전구 잠금 액추에이터 | 직접 | 2 | [EV 도메인 확장 부품 (2026-11-14)](image-prompts/14-ev-additions.md#charge_lock_actuator) |
+| `ac_compressor` | 전동 에어컨 컴프레서 | AI | 2 | [EV 도메인 확장 부품 (2026-11-14)](image-prompts/14-ev-additions.md#ac_compressor) |
+| `ptc_heater` | PTC 히터 | AI | 2 | [EV 도메인 확장 부품 (2026-11-14)](image-prompts/14-ev-additions.md#ptc_heater) |
+| `eev` | 전자식 팽창 밸브(히트펌프) | 직접 | 2 | [EV 도메인 확장 부품 (2026-11-14)](image-prompts/14-ev-additions.md#eev) |
+| `adas_camera` | 전방 카메라 | 2D | 1 | [EV 도메인 확장 부품 (2026-11-14)](image-prompts/14-ev-additions.md#adas_camera) |
+| `adas_radar` | 전방 레이더 | 2D | 1 | [EV 도메인 확장 부품 (2026-11-14)](image-prompts/14-ev-additions.md#adas_radar) |
+| `adas_ecu` | ADAS 도메인 제어기 | 직접 | 2 | [EV 도메인 확장 부품 (2026-11-14)](image-prompts/14-ev-additions.md#adas_ecu) |
+| `tcu` | 텔레매틱스 제어기(OTA·원격 진단) | 2D | 1 | [EV 도메인 확장 부품 (2026-11-14)](image-prompts/14-ev-additions.md#tcu) |

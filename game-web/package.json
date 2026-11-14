@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test": "NODE_OPTIONS=--import=tsx node --test tests/*.test.mjs",
-    "prompts": "node scripts/build-image-prompts.mjs"
+    "prompts": "node scripts/build-image-prompts.mjs",
+    "assets:check": "node scripts/check-assets.mjs"
   },
   "dependencies": {
     "@react-three/drei": "latest",

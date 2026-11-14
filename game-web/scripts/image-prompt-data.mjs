@@ -19,6 +19,7 @@ export const DOMAINS = [
   { file: "10-network-diagnostics", title: "통신·진단" },
   { file: "11-future-domains", title: "향후 확장 도메인" },
   { file: "13-garage-additions", title: "차고 화면 보강 부품 (2026-11-08)" },
+  { file: "14-ev-additions", title: "EV 도메인 확장 부품 (2026-11-14)" },
 ];
 
 export const PARTS = [
@@ -240,10 +241,6 @@ export const PARTS = [
     subject: "Electric power steering power pack: a cylindrical steering motor with an integrated control and inverter housing on its end, with power and signal connectors" },
 
   // ── 11 Future domains ──
-  { domain: "11-future-domains", id: "ac_compressor", ko: "전동 에어컨 컴프레서", method: "AI", styles: ["REF", "CUT"],
-    subject: "Electric scroll air-conditioning compressor with an integrated inverter housing and refrigerant ports" },
-  { domain: "11-future-domains", id: "ptc_heater", ko: "PTC 히터", method: "AI", styles: ["REF", "CUT"],
-    subject: "High-voltage PTC heater core with ceramic heating elements and aluminum fins in a plastic frame" },
   { domain: "11-future-domains", id: "headlamp_module", ko: "헤드램프", method: "2D", styles: ["CUT"],
     subject: "LED headlamp module with a projector lens and reflector housing, clear outer lens removed" },
   { domain: "11-future-domains", id: "wiper_motor", ko: "와이퍼 모터", method: "2D", styles: ["CUT"],
@@ -252,12 +249,28 @@ export const PARTS = [
     subject: "Door latch actuator with a metal latch plate and a small electric motor housing" },
   { domain: "11-future-domains", id: "seat_motor", ko: "시트 모터", method: "2D", styles: ["CUT"],
     subject: "Power seat adjustment motor with a worm drive and a section of track rail" },
-  { domain: "11-future-domains", id: "adas_camera", ko: "전방 카메라", method: "2D", styles: ["CUT"],
-    subject: "Forward-facing driver-assistance camera module with lens and windshield bracket" },
-  { domain: "11-future-domains", id: "adas_radar", ko: "전방 레이더", method: "2D", styles: ["CUT"],
-    subject: "Front radar sensor module with a flat radome face and mounting bracket" },
   { domain: "11-future-domains", id: "airbag_ecu", ko: "에어백 제어기", method: "2D", styles: ["CUT"],
     subject: "Airbag control unit in a sealed metal housing with a yellow multi-pin connector" },
+
+  // ── 14 EV additions (2026-11-14): parts needed by the full EV domain map (charging, heat pump, ADAS, telematics) ──
+  { domain: "14-ev-additions", folder: "charging", id: "evcc", ko: "충전 제어기(EVCC·충전 통신)", method: "직접", styles: ["REF", "CUT"],
+    subject: "Compact electric vehicle charging communication controller in a dark plastic housing with a metal base plate, one blue multi-pin signal connector on a short side, a second small black connector and two mounting tabs" },
+  { domain: "14-ev-additions", folder: "charging", id: "charge_lock_actuator", ko: "충전구 잠금 액추에이터", method: "직접", styles: ["REF", "CUT"],
+    subject: "Charge inlet lock actuator with a small cylindrical electric motor housing, a retractable polished steel locking pin extending from the front, a mounting flange with two bolt holes and a two-wire connector" },
+  { domain: "14-ev-additions", folder: "thermal", id: "ac_compressor", ko: "전동 에어컨 컴프레서", method: "AI", styles: ["REF", "CUT"],
+    subject: "Electric scroll air-conditioning compressor with an integrated inverter housing, an orange high-voltage connector and refrigerant ports" },
+  { domain: "14-ev-additions", folder: "thermal", id: "ptc_heater", ko: "PTC 히터", method: "AI", styles: ["REF", "CUT"],
+    subject: "High-voltage PTC heater core with ceramic heating elements and aluminum fins in a plastic frame, an orange high-voltage connector at one end" },
+  { domain: "14-ev-additions", folder: "thermal", id: "eev", ko: "전자식 팽창 밸브(히트펌프)", method: "직접", styles: ["REF", "CUT"],
+    subject: "Electronic expansion valve for a heat pump with a small brass valve body, two refrigerant pipe ports, a cylindrical stepper motor coil on top and a four-pin connector" },
+  { domain: "14-ev-additions", folder: "adas", id: "adas_camera", ko: "전방 카메라", method: "2D", styles: ["CUT"],
+    subject: "Forward-facing driver-assistance camera module with a lens, a compact dark housing and a windshield mounting bracket" },
+  { domain: "14-ev-additions", folder: "adas", id: "adas_radar", ko: "전방 레이더", method: "2D", styles: ["CUT"],
+    subject: "Front radar sensor module with a flat radome face, a dark plastic housing and a mounting bracket" },
+  { domain: "14-ev-additions", folder: "adas", id: "adas_ecu", ko: "ADAS 도메인 제어기", method: "직접", styles: ["REF", "CUT"],
+    subject: "Driver-assistance domain controller with a flat die-cast aluminum housing, cooling fins on top and two large multi-pin connectors on one side" },
+  { domain: "14-ev-additions", folder: "network-diagnostics", id: "tcu", ko: "텔레매틱스 제어기(OTA·원격 진단)", method: "2D", styles: ["CUT"],
+    subject: "Telematics control unit with a flat black plastic housing, a short antenna cable stub and a multi-pin connector" },
 ];
 
 // Memo-board case evidence (ids match src/game/scenarios.ts). One neutral photo each.

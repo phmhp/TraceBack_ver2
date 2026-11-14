@@ -97,7 +97,7 @@ for (const domain of DOMAINS) {
     const jobs = partJobs(part);
     totalImages += jobs.length;
     indexRows.push(`| \`${part.id}\` | ${part.ko} | ${part.method} | ${jobs.length} | [${domain.title}](image-prompts/${domain.file}.md#${part.id}) |`);
-    out.push(`<a id="${part.id}"></a>`, `## ${part.id} — ${part.ko}`, "", `3D 방식: ${methodNote[part.method]}`, "");
+    out.push(`<a id="${part.id}"></a>`, `## ${part.id} — ${part.ko}`, "", `3D 방식: ${methodNote[part.method]}`, ...(part.folder ? ["", `저장 폴더: \`public/assets/intake/images/${part.folder}/\` (파일명은 아래 표 그대로)`] : []), "");
     out.push("| 순서 | 생성물 | 파일명 | 대화에 첨부할 이미지 |", "|---|---|---|---|");
     jobs.forEach((job, index) => out.push(`| ${index + 1} | ${job.kind} (${STYLE_KO[job.kind]}) | \`${job.file}\` | ${job.attach.length ? job.attach.map(file => `\`${file}\``).join(", ") : "없음"} |`));
     out.push("");
