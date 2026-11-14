@@ -22,3 +22,10 @@
 .catReact b { font: 800 18px/1 Pretendard, system-ui; color: #7a4a44; }
 @keyframes catPop { 0% { transform: scale(.5); opacity: 0 } 12% { transform: scale(1.12); opacity: 1 } 25% { transform: scale(1) } 80% { opacity: 1 } 100% { opacity: 0; transform: translateY(-8px) } }
 @media (prefers-reduced-motion: reduce) { .raceV2.impactL1 > .raceWorldCanvas, .raceV2.impactL2 > .raceWorldCanvas, .raceV2.impactL3 > .raceWorldCanvas { animation: none; } }
+
+/* situation set 1: hint card for a braking lead car / red signal with pedestrians (same card family as the other feed cards) */
+.raceFeed .situationHint { display: grid; gap: 2px; padding: 8px 12px; border-radius: 12px; background: linear-gradient(180deg, rgba(255, 252, 246, .95), rgba(246, 228, 224, .92)); border: 1.5px solid #dcc3bb; box-shadow: 0 2px 0 rgba(141, 100, 92, .28); color: #5a3d38; }
+.raceFeed .situationHint small { font-size: 11px; font-weight: 500; color: #9b6b64; }
+.raceFeed .situationHint b { font-size: 15px; font-weight: 600; }
+.raceFeed .situationHint em { font-size: 12px; font-style: normal; font-weight: 500; }
+.raceFeed .situationHint.lead, .raceFeed .situationHint.signal { border-color: #c9847a; }

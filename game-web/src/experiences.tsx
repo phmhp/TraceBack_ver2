@@ -27,6 +27,7 @@ import { ArchitectureOverview } from "./features/garage/ArchitectureOverview";
 import { DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainId } from "./features/garage/evData";
 import { CAR_CONTACT, TRACK_LENGTH, resetTrafficStall, stallTraffic, trafficHitVisual, trafficStateFor } from "./game/traffic";
 import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
+import { CYCLE_JUNCTIONS, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
 import { DEMO_FAULTS, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
 import { StageIntro } from "./ui/Verdict";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
@@ -1196,7 +1197,7 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
 }
 
 type RaceMode = "normal" | "assist" | "resume" | "ship";
-type DriveSim = { speed: number; lane: number; steer: number; distance: number; gap: number; heat: number; elapsed: number };
+type DriveSim = { speed: number; lane: number; steer: number; distance: number; gap: number; heat: number; elapsed: number; /** gap (m) of a car about to hit the player from behind; null when none */ rear?: number | null };
 
 function formatRaceTime(seconds: number) {
   const whole = Math.max(0, Math.floor(seconds));
@@ -1348,6 +1349,25 @@ function CivilianCar({ color, spin = 0 }: { color: string; spin?: number }) {
   </group>;
 }
 
+/** People on the signalised crosswalks while the car signal is red. Simple figures; a contact is an emergency stop, never an injury scene. */
+const PED_COLORS = ["#e8a05a", "#6f9fc9", "#c76f86", "#7bb28a", "#d9c25a"];
+function Pedestrians({ elapsed }: { elapsed: number }) {
+  return <>{CYCLE_JUNCTIONS.flatMap(j => pedestriansAt(j, elapsed)).map((p, i) => {
+    const f = trackFrame(p.distance, p.lateral);
+    const bob = Math.abs(Math.sin(elapsed * 7 + i)) * .06;
+    return <group key={p.id} position={[f.x, bob, f.z]} rotation={[0, f.yaw + (p.heading === 1 ? -Math.PI / 2 : Math.PI / 2), 0]}>
+      <mesh position={[0, .55, 0]}><capsuleGeometry args={[.2, .55, 4, 10]} /><meshStandardMaterial color={PED_COLORS[i % PED_COLORS.length]} roughness={.8} /></mesh>
+      <mesh position={[0, 1.12, 0]}><sphereGeometry args={[.17, 14, 10]} /><meshStandardMaterial color="#f1d3b3" roughness={.85} /></mesh>
+      <mesh position={[0, .12, 0]}><boxGeometry args={[.28, .24, .16]} /><meshStandardMaterial color="#3a3f4a" /></mesh>
+    </group>;
+  })}</>;
+}
+/** The car that is about to hit the player from behind (after a hard stop). */
+function RearFollower({ sim }: { sim: DriveSim }) {
+  const f = trackFrame(sim.distance - (sim.rear ?? 0), 3.35 + sim.lane);
+  return <group position={[f.x, .02, f.z]} rotation={[0, f.yaw, 0]} scale={.94}><CivilianCar color="#6a7fa8" spin={sim.distance * .09} /></group>;
+}
+
 function TrafficFleet({ sim }: { sim: DriveSim }) {
   const cars = useRef<THREE.Group[]>([]);
   useFrame((_, delta) => {
@@ -1405,7 +1425,7 @@ function SkyDome() {
 }
 
 // Scenery that never changes during a run: rendered once, not on every sim step.
-const TrackStatic = React.memo(function TrackStatic({ ship, signalRed }: { ship: boolean; signalRed: boolean }) {
+const TrackStatic = React.memo(function TrackStatic({ ship, signalRed, signals }: { ship: boolean; signalRed: boolean; signals: string }) {
   const deckFrame = trackFrame(DECK_TOUCH + 28);
   const harborFrame = trackFrame((RAMP_START + DECK_STOP) / 2);
   return <>
@@ -1432,9 +1452,9 @@ const TrackStatic = React.memo(function TrackStatic({ ship, signalRed }: { ship:
         {i % 10 === 0 && <RoundedBox args={[2.5, 1.1 + (i % 3) * .35, 3.1]} radius={.3} position={[x + Math.sign(x) * 4.3, .65, 0]} castShadow><meshStandardMaterial color={["#e98970", "#76b2aa", "#e6bf67", "#8da8c7"][i % 4]} roughness={.72} /></RoundedBox>}
       </React.Fragment>)}
     </group>})}
-    {[300, 620, 920].map(s => { const f = trackFrame(s); const missionSignalRed = s === 620 && signalRed; return <group key={`junction-${s}`} position={[f.x, .025, f.z]} rotation={[0, f.yaw, 0]}>
+    {[300, 620, 920].map(s => { const f = trackFrame(s); const missionSignalRed = s === 620 && signalRed; const cycleIndex = (CYCLE_JUNCTIONS as readonly number[]).indexOf(s); const cyclePhase = cycleIndex >= 0 ? signals[cycleIndex] : null; return <group key={`junction-${s}`} position={[f.x, .025, f.z]} rotation={[0, f.yaw, 0]}>
       {Array.from({ length: 9 }, (_, index) => <mesh key={index} rotation={[-Math.PI / 2, 0, 0]} position={[-6.4 + index * 1.6, .015, 0]}><planeGeometry args={[.72, 4.2]} /><meshStandardMaterial color="#f5efe2" /></mesh>)}
-      {[-7.1, 7.1].map(x => <group key={x} position={[x, 2.25, -2.8]}><mesh><boxGeometry args={[.15, 4.5, .15]} /><meshStandardMaterial color="#303b39" metalness={.65} /></mesh><RoundedBox args={[.6, 1.45, .35]} radius={.12} position={[0, 1.7, 0]}><meshStandardMaterial color="#25302e" /></RoundedBox>{[.42, 0, -.42].map((y, n) => { const lit = missionSignalRed ? n === 0 : n === 2; const lamp = missionSignalRed ? "#ff3b30" : "#3ee072"; return <mesh key={y} position={[0, 1.7 + y, .2]}><sphereGeometry args={[.17, 18, 12]} /><meshStandardMaterial color={lit ? lamp : "#473f3b"} emissive={lit ? lamp : "#000"} emissiveIntensity={lit ? 2.4 : 0} /></mesh>; })}</group>)}
+      {[-7.1, 7.1].map(x => <group key={x} position={[x, 2.25, -2.8]}><mesh><boxGeometry args={[.15, 4.5, .15]} /><meshStandardMaterial color="#303b39" metalness={.65} /></mesh><RoundedBox args={[.6, 1.45, .35]} radius={.12} position={[0, 1.7, 0]}><meshStandardMaterial color="#25302e" /></RoundedBox>{[.42, 0, -.42].map((y, n) => { const lit = cyclePhase ? n === (cyclePhase === "r" ? 0 : cyclePhase === "y" ? 1 : 2) : missionSignalRed ? n === 0 : n === 2; const lamp = (cyclePhase ? cyclePhase === "r" : missionSignalRed) ? "#ff3b30" : cyclePhase === "y" ? "#ffc533" : "#3ee072"; return <mesh key={y} position={[0, 1.7 + y, .2]}><sphereGeometry args={[.17, 18, 12]} /><meshStandardMaterial color={lit ? lamp : "#473f3b"} emissive={lit ? lamp : "#000"} emissiveIntensity={lit ? 2.4 : 0} /></mesh>; })}</group>)}
     </group>; })}
     <RoadsideEnvironment />
     {ship && <>
@@ -1536,8 +1556,10 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false, celebrate
     camera.lookAt(lookTarget.current);
   });
   return <>
-    <TrackStatic ship={ship} signalRed={sim.distance >= 540 && sim.distance <= 612.5} />
+    <TrackStatic ship={ship} signalRed={sim.distance >= 540 && sim.distance <= 612.5} signals={CYCLE_JUNCTIONS.map(j => signalPhase(j, sim.elapsed)[0]).join("")} />
     <TrafficFleet sim={sim} />
+    <Pedestrians elapsed={sim.elapsed} />
+    {sim.rear != null && <RearFollower sim={sim} />}
     <group ref={player}>{DEV_LEGACY_CAR ? <Convertible steer={sim.steer} spin={sim.distance * .11} /> : <HeroConvertible steer={sim.steer} spin={sim.distance * .11} speed={sim.speed} cheer={celebrate} />}</group>
     <group ref={police} visible={policeVisible}><PoliceInterceptor spin={sim.distance * .11} /></group>
     {import.meta.env.DEV && <DevRenderProbe name="race" />}
@@ -1634,6 +1656,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const faultFx = useRef<FaultEffect>({});
   const faultRestarted = useRef(false);
   const lastHitAt = useRef(-Infinity);
+  const rearState = useRef<RearState>(newRearState());
   const lastGearAt = useRef(-Infinity);
   const [readyTries, setReadyTries] = useState(0); // prestart fault: R presses still needed before READY is established
   const readyTriesRef = useRef(0);
@@ -1649,6 +1672,12 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     addEventListener("tb-dev-hit", onHit); return () => removeEventListener("tb-dev-hit", onHit);
   }, []);
   useEffect(() => { resetTrafficStall(); }, []);
+  // dev only: `dispatchEvent(new CustomEvent("tb-dev-seek", { detail: { distance: 280, elapsed: 15.5 } }))` jumps the race (QA of situations at a known signal phase)
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const onSeek = (event: Event) => { const d = (event as CustomEvent).detail as { distance?: number; elapsed?: number; speed?: number }; setSim(p => ({ ...p, distance: d.distance ?? p.distance, elapsed: d.elapsed ?? p.elapsed, speed: d.speed ?? 0 })); };
+    addEventListener("tb-dev-seek", onSeek); return () => removeEventListener("tb-dev-seek", onSeek);
+  }, []);
   // EV sound only at power-on and pull-away (a continuous motor drone sounded unnatural);
   // a hard brake at speed squeals once per press. engineSet is kept for later use.
   const skidRef = useRef(false);
@@ -1821,6 +1850,35 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
             lastHitAt.current = nowSeconds; send({ type: "COLLISION", level: hitEffect.level, gapPenalty: hitEffect.gapPenalty });
           }
         }
+        // situation set 1: pedestrians on the crosswalk (emergency stop + penalty) and the car that hits from behind after a hard stop
+        const roadSituations = mode !== "ship" && allowed;
+        const pedestrian = roadSituations ? pedestrianContact(distance, playerRoadLane, previous.elapsed) : null;
+        if (pedestrian) {
+          speed = Math.min(speed, 6);
+          distance = Math.max(previous.distance, distance - .6);
+          const nowSeconds = now / 1000;
+          if (nowSeconds > collisionCooldown.current) {
+            collisionCooldown.current = nowSeconds + 1.6;
+            setImpactMessage("보행자 접촉 · 긴급 정지 · 신호와 횡단보도를 확인하세요");
+            setImpactLevel(2); setImpact(value => value + 1); lastHitAt.current = nowSeconds;
+            send({ type: "COLLISION", level: 2, gapPenalty: 25 });
+          }
+        }
+        let rear: number | null = previous.rear ?? null;
+        if (roadSituations && mode !== "assist") {
+          const step = stepRear(rearState.current, speed, previous.elapsed, dt, nearJunction(distance));
+          rearState.current = step.state; rear = step.state.follower;
+          if (step.hitClosingKph !== null) {
+            const rearEffect = impactEffect(step.hitClosingKph);
+            speed += step.hitClosingKph * .22; // pushed forward by the car behind
+            const nowSeconds = now / 1000;
+            collisionCooldown.current = nowSeconds + 1.1; lastHitAt.current = nowSeconds;
+            setImpactMessage(`뒤에서 추돌당함 · ${rearEffect.toast}`);
+            setImpactLevel(rearEffect.level); setImpact(value => value + 1);
+            if (rearEffect.hvCut && (driveMission === "idle" || driveMission === "done")) setDriveMission("restart");
+            send({ type: "COLLISION", level: rearEffect.level, gapPenalty: 0 }); // being hit from behind does not cost chase distance
+          }
+        }
         const floor = state.completedCases.length < 2 ? 10 : 0;
         const policeHasJoined = mode !== "normal" || (previous.elapsed >= 3 && previous.distance >= 45);
         const policeSpeed = speed < 4 ? 24 : THREE.MathUtils.clamp(68 + speed * .12, 68, 88);
@@ -1832,7 +1890,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
             : previous.gap;
         const heat = THREE.MathUtils.clamp(previous.heat + (inClimbZone ? (throttle ? (12 + speed * .2) * dt : -dt * .4) : -dt * .7), 35, 94);
         const elapsed = previous.elapsed + (allowed ? dt : 0);
-        return { speed, lane, steer, distance, gap, heat, elapsed };
+        return { speed, lane, steer, distance, gap, heat, elapsed, rear };
       });
       frame = requestAnimationFrame(loop);
     };
@@ -1893,6 +1951,20 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       send({ type: "FINISH_ESCAPE", distance: sim.distance, gap: Math.max(10, sim.gap), elapsed: sim.elapsed });
     }
   }, [celebrated, mode, send, sim.distance, sim.elapsed, sim.gap, state.caseId, state.lastRepairDistance, state.lastRepairElapsedSeconds]);
+  // situation set 1 hints (the player decides; only contact is enforced): braking lead car, red signal / pedestrians ahead
+  const situationHint = (() => {
+    if (countdown > 0 || mode === "ship" || mode === "assist" || introOpen) return null;
+    const ownLane = 3.35 + sim.lane;
+    if (sim.rear != null && sim.rear < 45) return { kind: "rear", title: "뒤차 접근", text: `${Math.round(sim.rear)}m 뒤 · 정차 중이면 바로 출발하세요` };
+    for (let index = 0; index < 7; index++) {
+      const traffic = trafficStateFor(sim, index);
+      const ahead = traffic.distance - sim.distance;
+      if (!traffic.opposite && ahead > 3 && ahead < 70 && Math.abs(traffic.lane - ownLane) < 3 && leadBraking(index, sim.elapsed)) return { kind: "lead", title: "앞차 급제동", text: `${Math.round(ahead)}m 앞 · 속도를 줄이고 차간 거리를 확보하세요` };
+    }
+    const junction = junctionAhead(sim.distance, sim.elapsed);
+    if (junction && junction.phase !== "green") return { kind: "signal", title: junction.phase === "red" ? "적색 신호" : "황색 신호", text: junction.crossing ? `${Math.max(0, Math.round(junction.distanceM))}m 앞 횡단보도 보행자 · 정지선 앞에서 정차` : `${Math.max(0, Math.round(junction.distanceM))}m 앞 정지선` };
+    return null;
+  })();
   const symptom = (mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80);
   // Regression drive after a repair: the same condition that exposed the fault is measured on the live race model.
   // propulsion: full pedal for 1.5 s → measured acceleration vs this model's healthy value (46·min(1, 70/v) km/h/s; the fault scaled it by 0.45)
@@ -1981,6 +2053,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     {symptom && <ComicBurst tone="fault" side="right" image="/assets/ending-thumbs/accel_pedal.png" title="가속 저하 발생" sound="alarm" />}
     {/* every message card lives in one column under the mirror, so cards never overlap */}
     <div className="raceFeed">
+      {situationHint && <div className={`situationHint ${situationHint.kind}`} role="status" key={situationHint.kind}><small>{situationHint.kind === "lead" ? "앞차" : situationHint.kind === "rear" ? "후방" : "교차로"}</small><b>{situationHint.title}</b><em>{situationHint.text}</em></div>}
       {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>↓</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
       {gearToast && <div className="gearToast" key={gearToast.id}>{gearToast.text}</div>}
       {impact > 0 && <div className={`impactToast impactToastL${impactLevel}`} key={impact}>{impactMessage}</div>}

@@ -1,6 +1,7 @@
 // Race traffic: deterministic positions from the race clock, plus a short hesitation after a crash.
 // Kept free of React so the rules can be unit-tested (tests/feedback-1112.test.mjs).
 import * as THREE from "three";
+import { leadBrakeLagM } from "./situations";
 
 export const TRACK_LENGTH = 1380;
 /** Only the race clock moves traffic. */
@@ -37,7 +38,7 @@ export function trafficStateFor(sim: TrafficSim, index: number) {
   const opposite = index % 2 === 1;
   const speedKph = 38 + index * 3.5;
   const start = 105 + index * 148;
-  const travel = sim.elapsed * speedKph / 3.6 - (opposite ? 0 : trafficLag(index, sim.elapsed, speedKph));
+  const travel = sim.elapsed * speedKph / 3.6 - (opposite ? 0 : trafficLag(index, sim.elapsed, speedKph) + leadBrakeLagM(index, speedKph, sim.elapsed));
   const distance = opposite
     ? THREE.MathUtils.euclideanModulo(TRACK_LENGTH - start - travel, TRACK_LENGTH - 40)
     : THREE.MathUtils.euclideanModulo(start + travel, TRACK_LENGTH - 40);
