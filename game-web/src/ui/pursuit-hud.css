@@ -4,3 +4,9 @@ body:has(.pursuitHud) .stageFolderSubtitle { padding-right: 16px !important; }
 /* the race has no GameHeader: sound buttons take the same top-right slot as in the other scenes */
 body:has(.raceV2) .soundToggle { top: 13px !important; right: 16px !important; bottom: auto !important; gap: 6px; z-index: 97; }
 body:has(.raceV2) .soundToggle button { width: 36px; height: 36px; }
+
+/* time dilation notice: the chase clock runs at 1/30 while the player investigates */
+body .timeDilation { position: absolute; z-index: 96; top: 16px; right: 480px; height: 32px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 16px; font-size: 13px; font-weight: 600; color: #6e4a45; white-space: nowrap; background: linear-gradient(180deg, rgba(255, 252, 246, .96), rgba(246, 228, 224, .92)); border: 1.5px solid #dcc3bb; box-shadow: 0 2px 0 rgba(141, 100, 92, .28); }
+body .timeDilation i { width: 10px; height: 10px; border-radius: 50%; background: #9b6b64; box-shadow: 0 0 0 3px rgba(155, 107, 100, .22); animation: tdPulse 2.4s ease-in-out infinite; }
+@keyframes tdPulse { 50% { transform: scale(.6); opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { body .timeDilation i { animation: none; } }
