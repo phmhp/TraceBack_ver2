@@ -26,7 +26,7 @@ test("V4 STEP 01 keeps one stable frame across all three learning views", () => 
   assert.match(experience, /className="gv3Work"/);
   assert.match(experience, /<MissionBar /);
   assert.match(experience, /className="garageLayerNav"/);
-  assert.match(garageV3, /grid-template-rows:\s*56px 48px minmax\(0, 1fr\) 150px/);
+  assert.match(garageV3, /grid-template-rows:\s*56px 64px minmax\(0, 1fr\) 150px/);
   assert.match(garageV3, /\.garageMechanismCard \{[^}]*min-height:\s*0/);
   assert.match(garageV3, /\.garageFooterRow \{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) 140px/);
 });

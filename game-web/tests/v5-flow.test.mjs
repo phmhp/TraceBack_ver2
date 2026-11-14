@@ -104,7 +104,7 @@ test("v8 curved driving, tangible wiring, hidden QA solves, and 3D validation ar
 });
 
 test("v9 keeps the three-layer garage, automatic recovery, and pirate-ship finale", () => {
-  assert.match(experience, /const garageLayerSource = \[0, 1, 3\]/);
+  assert.match(experience, /const garageLayerSource = \[0, 1, 2, 3\]/);
   assert.match(experience, /VehiclePlatformShell active/);
   assert.doesNotMatch(experience, /이 탭은 왜 통과했나요/);
   assert.match(experience, /초 후 달리던 지점에서 자동 주행 복귀/);

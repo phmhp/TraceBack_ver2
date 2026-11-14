@@ -3,9 +3,9 @@
 .garageV2 .gv3Work {
   position: absolute !important; left: 16px !important; right: 16px !important; top: 140px !important; bottom: 14px !important;
   display: grid !important; gap: 10px;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  grid-template-rows: 56px 48px minmax(0, 1fr) 150px;
-  grid-template-areas: "mission mission" "domains views" "stage side" "flow flow";
+  grid-template-columns: 84px minmax(0, 1fr) 360px;
+  grid-template-rows: 56px 64px minmax(0, 1fr) 150px;
+  grid-template-areas: "mission mission mission" "domains domains domains" "rail stage side" "flow flow flow";
   word-break: keep-all; overflow-wrap: normal;
 }
 .garageV2 .gv3Work > .garageStudio { display: contents !important; }
@@ -14,8 +14,8 @@
   width: auto !important; height: auto !important; max-width: none !important; max-height: none !important; min-width: 0 !important;
 }
 .garageV2 .gv3Work > .missionBar { grid-area: mission; }
-.garageV2 .gv3Work .domainTabs { grid-area: domains; display: grid !important; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
-.garageV2 .gv3Work .garageLayerNav { grid-area: views; display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; }
+.garageV2 .gv3Work .domainTabs { grid-area: domains; display: flex !important; gap: 10px; align-items: stretch; }
+.garageV2 .gv3Work .garageLayerNav { grid-area: rail; display: flex !important; flex-direction: column; gap: 0; padding: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; }
 .garageV2 .gv3Work .garageMechanismCard { grid-area: stage; position: relative !important; min-height: 0; overflow: hidden; }
 .garageV2 .gv3Work .domainFunctionShelf { grid-area: side; overflow: auto; min-height: 0; }
 .garageV2 .gv3Work .garageFooterRow { grid-area: flow; display: grid !important; grid-template-columns: minmax(0, 1fr) 140px; gap: 10px; min-height: 0; }
@@ -23,10 +23,10 @@
 .garageV2 .gv3Work .garageFlowPanel { min-width: 0; min-height: 0; }
 
 /* tab buttons: one line each, 14px+ labels */
-.garageV2 .gv3Work :is(.domainTabs, .garageLayerNav) button { min-width: 0 !important; width: 100% !important; height: 100% !important; white-space: nowrap; overflow: hidden; }
-.garageV2 .gv3Work .garageLayerNav button { display: flex !important; flex-direction: row !important; align-items: center; justify-content: center; gap: 6px; padding: 0 6px !important; }
+.garageV2 .gv3Work :is(.domainTabs, .garageLayerNav) button { min-width: 0 !important; white-space: nowrap; overflow: hidden; }
+.garageV2 .gv3Work .garageLayerNav button { display: flex !important; flex-direction: column !important; align-items: center; justify-content: center; gap: 6px; padding: 0 4px !important; width: 100% !important; flex: 1 1 0; position: relative; }
 .garageV2 .gv3Work .garageLayerNav button span { font: 800 12px/1 Pretendard, system-ui !important; }
-.garageV2 .gv3Work .garageLayerNav button b { font: 700 14px/1 Pretendard, system-ui !important; white-space: nowrap !important; word-break: keep-all !important; }
+.garageV2 .gv3Work .garageLayerNav button b { font: 700 13px/1 Pretendard, system-ui !important; white-space: nowrap !important; word-break: keep-all !important; }
 .garageV2 .gv3Work .garageLayerNav button { white-space: nowrap !important; }
 
 /* side column: compact function list so the pedal lab (or note) always fits without scrolling */
@@ -66,3 +66,45 @@
 /* the flow panel fills its grid row exactly (legacy min-height:122px used to push it, and the next button, below the workspace) */
 .garageV2 .gv3Work .garageFlowPanel { height: 100% !important; min-height: 0 !important; max-height: none !important; box-sizing: border-box; }
 .garageV2 .gv3Work .garageFooterRow > .garageProceed { min-height: 0 !important; }
+
+
+/* domain nav: three groups on one row */
+.garageV2 .gv3Work .domainTabs > .allDomains { flex: 0 0 112px; height: 100% !important; }
+.garageV2 .gv3Work .domainGroup { flex: var(--n) 1 0; min-width: 0; display: flex; flex-direction: column; gap: 3px; position: relative; padding-left: 10px; border-left: 2px solid rgba(155, 107, 100, .28); }
+.garageV2 .gv3Work .domainGroup .groupName { font: 800 12px/1 Pretendard, system-ui; font-style: normal; color: #7a4a44; height: 14px; white-space: nowrap; }
+.garageV2 .gv3Work .domainGroup .groupBtns { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; }
+.garageV2 .gv3Work .domainGroup .groupBtns button { width: 100% !important; height: 100% !important; display: flex !important; flex-direction: row !important; align-items: center; justify-content: center; gap: 6px; padding: 0 6px !important; }
+.garageV2 .gv3Work .domainTabs button > span { flex: none; display: grid; place-items: center; }
+.garageV2 .gv3Work .domainTabs button > b { white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.garageV2 .gv3Work .domainTabs button > small { flex: none; font: 800 12px/1 Pretendard, system-ui !important; }
+.garageV2 .gv3Work .domainTabs > .allDomains { display: flex !important; flex-direction: row !important; align-items: center; justify-content: center; gap: 6px; }
+
+/* layer rail: four stacked levels, deeper going down */
+.garageV2 .gv3Work .garageLayerNav button:not(:last-child)::after { content: "▾"; position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%); z-index: 2; font: 800 12px/1 Pretendard, system-ui; color: #9b6b64; }
+.garageV2 .gv3Work .garageLayerNav button { margin-bottom: 10px !important; overflow: visible; }
+.garageV2 .gv3Work .garageLayerNav button:last-child { margin-bottom: 0 !important; }
+
+/* side column: category tag per function */
+.garageV2 .gv3Work .domainFunctionShelf > button .featureCat { flex: none; font: 700 11px/1 Pretendard, system-ui; font-style: normal; padding: 3px 7px; border-radius: 999px; background: rgba(155, 107, 100, .14); color: #7a4a44; white-space: nowrap; }
+.garageV2 .gv3Work .domainFunctionShelf .functionNote > small { display: block !important; margin-top: 4px; font: 700 12px/1.2 Pretendard, system-ui; color: #7a4a44; white-space: nowrap; }
+
+/* SW architecture view (SWC inside the executing controller) */
+.garageV2 .gv3Work .swcView { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 56px 18px 70px; }
+.swcView .swcIo { flex: none; width: 176px; padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, .7); border: 1px solid rgba(155, 107, 100, .3); text-align: center; }
+.swcView .swcIo small { display: block; font: 700 12px/1 Pretendard, system-ui; color: #8a6a63; margin-bottom: 6px; }
+.swcView .swcIo b { font: 800 14px/1.25 Pretendard, system-ui; color: #4a3a36; white-space: nowrap; }
+.swcView .swcEcu { flex: 1 1 0; min-width: 0; padding: 12px 14px 10px; border-radius: 16px; border: 2px solid #9b6b64; background: rgba(255, 248, 242, .85); }
+.swcView .swcEcu > header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.swcView .swcEcu > header b { font: 800 16px/1 Pretendard, system-ui; color: #4a3a36; white-space: nowrap; }
+.swcView .swcEcu > header small { font: 700 12px/1 Pretendard, system-ui; color: #8a6a63; white-space: nowrap; }
+.swcView .swcRow { display: flex; align-items: stretch; gap: 6px; }
+.swcView .swcBox { all: unset; box-sizing: border-box; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 10px; border: 2px dashed #9b6b64; background: #fffaf5; cursor: pointer; }
+.swcView .swcBox i { font: 800 12px/1 Pretendard, system-ui; font-style: normal; color: #9b6b64; }
+.swcView .swcBox b { font: 800 13px/1.2 ui-monospace, Menlo, monospace; color: #3f302c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.swcView .swcBox span { font: 600 12px/1 Pretendard, system-ui; color: #8a6a63; white-space: nowrap; }
+.swcView .swcBox.done { background: #eef3e8; border-color: #8a9a78; }
+.swcView .swcBox.on { background: #9b6b64; border-style: solid; }
+.swcView .swcBox.on :is(i, b, span) { color: #fff8f2; }
+.swcView .swcRow > em { flex: none; align-self: center; display: flex; flex-direction: column; align-items: center; gap: 3px; font: 800 14px/1 Pretendard, system-ui; font-style: normal; color: #9b6b64; }
+.swcView .swcRow > em small { font: 600 11px/1 Pretendard, system-ui; color: #8a6a63; white-space: nowrap; max-width: 72px; overflow: hidden; text-overflow: ellipsis; }
+.swcView .swcEcu > footer { margin-top: 10px; font: 600 12px/1 Pretendard, system-ui; color: #8a6a63; }

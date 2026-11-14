@@ -75,9 +75,10 @@ export function SimulinkDiagram({ logic, components, inputLabel, outputLabel, ac
   const parallel = kinds[0] === "check";
   const piIndex = kinds.indexOf("pi");
   const n = logic.length;
-  const perRow = n <= 4 ? n : Math.ceil(n / Math.ceil(n / 4));
+  // one row up to 7 blocks keeps the drawing at its real size inside the stage (two rows shrank the text to ~7px)
+  const perRow = n <= 7 ? n : Math.ceil(n / Math.ceil(n / 7));
   const rows = Math.ceil(n / perRow);
-  const colW = 142, rowH = 214, padX = 74, top = 10;
+  const colW = n > 5 ? 128 : 142, rowH = 214, padX = 74, top = 10;
   const W = padX * 2 + colW * perRow, H = top + rows * rowH + 14;
   const bw = 84, bh = 64;
   // snake layout: even rows left→right, odd rows right→left (short arrows between rows)
@@ -146,7 +147,7 @@ export function SimulinkDiagram({ logic, components, inputLabel, outputLabel, ac
           <foreignObject x={p.x - bw / 2} y={p.y - bh / 2} width={bw} height={bh}>
             <div className="flowBlock"><Picto kind={kind} /><small>{KIND_TAG[kind]}</small></div>
           </foreignObject>
-          <foreignObject x={p.x - colW / 2 + 12} y={p.y + bh / 2 + 8} width={colW - 24} height={60}>
+          <foreignObject x={p.x - colW / 2 + 12} y={p.y + bh / 2 + 8} width={colW - 24} height={82}>
             <div className="flowCaption"><b>{label}</b><span>{plainText(label, kind)}</span></div>
           </foreignObject>
         </g>;
