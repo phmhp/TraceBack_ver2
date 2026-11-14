@@ -1348,6 +1348,7 @@ function CivilianCar({ color, spin = 0 }: { color: string; spin?: number }) {
     <mesh position={[0,1.03,-.72]} rotation={[-.2,0,0]}><planeGeometry args={[1.5,.72]} /><meshPhysicalMaterial color="#9cc6ce" transparent opacity={.68} transmission={.35} roughness={.08} /></mesh>
     <RoundedBox args={[1.52,.18,.52]} radius={.08} position={[0,.56,-1.62]}><meshStandardMaterial color="#202828" /></RoundedBox>
     {[-.56,.56].map(x => <mesh key={x} position={[x,.62,-1.82]}><sphereGeometry args={[.15,18,12]} /><meshStandardMaterial color="#fff1c2" emissive="#ffe5a0" emissiveIntensity={1.2} /></mesh>)}
+    {[-.56,.56].map(x => <mesh key={`tail${x}`} name="tail" position={[x,.6,1.8]}><boxGeometry args={[.42,.14,.06]} /><meshStandardMaterial color="#5a1d1d" emissive="#ff2a1a" emissiveIntensity={.15} /></mesh>)}
     {[-.78,.78].flatMap(x => [-1.1,1.1].map(z => <RaceWheel key={`${x}-${z}`} x={x} z={z} steer={0} spin={spin} />))}
   </group>;
 }
@@ -1382,6 +1383,9 @@ function TrafficFleet({ sim }: { sim: DriveSim }) {
       car.position.lerp(target, 1 - Math.exp(-delta * 8));
       const targetYaw = frame.yaw + (traffic.opposite ? Math.PI : 0);
       car.rotation.y = THREE.MathUtils.damp(car.rotation.y, targetYaw, 8, delta);
+      // brake lights: bright while the car brakes hard (scripted lead braking) or hesitates after a hit
+      const lit = leadBraking(index, sim.elapsed) || !!trafficHitVisual(index, sim.elapsed);
+      car.traverse(child => { if (child.name === "tail") ((child as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = lit ? 3.2 : .15; });
       // a hit car is knocked around for a moment: sideways shove, spin and a small hop, bigger for harder hits
       const hit = trafficHitVisual(index, sim.elapsed);
       if (hit) {
