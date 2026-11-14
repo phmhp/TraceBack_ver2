@@ -115,3 +115,38 @@
 .garageV2 .gv3Work .domainTabs { grid-row: 2 !important; grid-column: 1 / -1 !important; }
 /* the next button sits exactly under the side column (same 360px, same right edge) */
 .garageV2 .gv3Work .garageFooterRow { grid-template-columns: minmax(0, 1fr) 360px !important; }
+
+/* overview architecture: inputs | domain groups on one network | outputs */
+.garageV2 .gv3Work .archView { position: absolute !important; inset: 0 !important; display: flex; flex-direction: column; gap: 8px; padding: 44px 18px 10px; box-sizing: border-box; }
+.archView .archCols { flex: 1 1 0; min-height: 0; display: grid; grid-template-rows: 1fr 1fr 0.8fr auto; gap: 8px; }
+.archView .archRow { display: grid; grid-template-columns: 170px 28px minmax(0, 1fr) 28px 170px; align-items: stretch; min-height: 0; }
+.archView .archIo { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0; }
+.archView .archIo li { padding: 5px 8px; border-radius: 8px; background: rgba(255, 255, 255, .78); border: 1px solid rgba(155, 107, 100, .3); font: 700 13px/1.1 Pretendard, system-ui; color: #4a3a36; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.archView .archArrow { align-self: center; height: 2px; background: #9b6b64; position: relative; }
+.archView .archArrow::after { content: ""; position: absolute; right: -1px; top: -4px; border-left: 8px solid #9b6b64; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+.archView .archGroup { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px 10px; border-radius: 14px; border: 2px solid rgba(155, 107, 100, .5); background: rgba(255, 248, 242, .8); }
+.archView .archGroup.g-0 { background: rgba(231, 244, 236, .85); border-color: #6fa08c; }
+.archView .archGroup.g-1 { background: rgba(240, 236, 248, .85); border-color: #8f80b6; }
+.archView .archGroup.g-2 { background: rgba(252, 238, 230, .85); border-color: #d08f78; }
+.archView .archGroup h3 { margin: 0; font: 800 13px/1 Pretendard, system-ui; color: #5a4440; white-space: nowrap; }
+.archView .archDomains { flex: 1 1 0; min-height: 0; display: flex; gap: 8px; }
+.archView .archDomains button { all: unset; box-sizing: border-box; flex: 1 1 0; max-width: 190px; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 10px; background: #fffaf5; border: 2px solid var(--domain, #9b6b64); cursor: pointer; transition: transform .12s; }
+.archView .archDomains button:hover { transform: translateY(-2px); }
+.archView .archDomains button:focus-visible { outline: 3px solid #9b6b64; outline-offset: 2px; }
+.archView .archDomains button > span { display: grid; place-items: center; color: var(--domain, #9b6b64); }
+.archView .archDomains button b { font: 800 15px/1 Pretendard, system-ui; color: #3f302c; white-space: nowrap; }
+.archView .archDomains button small { font: 600 12px/1 Pretendard, system-ui; color: #8a6a63; white-space: nowrap; }
+.archView .archDomains button.from { background: #c4553a; border-color: #c4553a; }
+.archView .archDomains button.from :is(b, small, span) { color: #fff8f2; }
+.archView .archDomains button.to { box-shadow: 0 0 0 3px rgba(196, 85, 58, .55); }
+.archView .archNet { display: flex; align-items: center; gap: 8px; padding: 6px 12px; margin: 0 198px; border-radius: 10px; background: #6b5a55; color: #fff8f2; white-space: nowrap; }
+.archView .archNet b { font: 800 13px/1 Pretendard, system-ui; }
+.archView .archNet span { font: 600 12px/1 Pretendard, system-ui; opacity: .9; overflow: hidden; text-overflow: ellipsis; }
+.archView .archLines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.archView .archLines path { fill: none; stroke: #c4553a; stroke-width: 2.4; stroke-dasharray: 7 5; }
+.archView .archSignals { flex: none; display: flex; align-items: center; gap: 6px; }
+.archView .archSignals > b { font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; margin-right: 4px; white-space: nowrap; }
+.archView .archSignals button { all: unset; box-sizing: border-box; padding: 6px 10px; border-radius: 999px; background: rgba(155, 107, 100, .12); color: #5a4440; font: 700 12px/1 Pretendard, system-ui; white-space: nowrap; cursor: pointer; }
+.archView .archSignals button.on { background: #c4553a; color: #fff8f2; }
+.archView .archSignals .arch3d { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; background: #9b6b64; color: #fff8f2; }
+.archView .archNote { flex: none; margin: 0; font: 600 13px/1.2 Pretendard, system-ui; color: #5a4440; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 16px; }

@@ -338,3 +338,21 @@ export const EV_DOMAINS: Record<DomainId, DomainMeta> = {
     ],
   },
 };
+
+/** Vehicle-level inputs and outputs shown beside each domain group in the overview architecture. */
+export const OVERVIEW_IO: Record<DomainGroup, { inputs: string[]; outputs: string[] }> = {
+  "파워트레인": { inputs: ["가속 페달·시동", "충전 커넥터", "전압·온도 센서"], outputs: ["모터 토크", "팩 충전", "냉각·난방 열"] },
+  "섀시": { inputs: ["브레이크·핸들", "휠·IMU·차고 센서", "변속 레버"], outputs: ["제동력", "조향각", "감쇠·차고·파킹 잠금"] },
+  "차량 제어": { inputs: ["진단 장비"], outputs: ["계기판·경고", "고장 기록"] },
+};
+
+/** Signals one domain sends to another so the whole vehicle behaves consistently. */
+export const COORD_SIGNALS: { name: string; from: DomainId; to: DomainId[]; purpose: string }[] = [
+  { name: "방전·회생 한계", from: "power", to: ["drive", "brake"], purpose: "배터리가 낼 수 있는 출력과 받을 수 있는 회생 전력의 상한" },
+  { name: "열 디레이팅", from: "thermal", to: ["drive"], purpose: "과열 보호를 위해 구동 출력을 단계적으로 제한" },
+  { name: "회생 요청", from: "brake", to: ["drive"], purpose: "제동 요구 중 회생으로 처리할 몫을 구동 제어기에 전달" },
+  { name: "구동 허용", from: "gear", to: ["drive"], purpose: "변속 상태와 인터록을 통과해야 토크를 낼 수 있음" },
+  { name: "충전 중 구동 금지", from: "charge", to: ["drive"], purpose: "충전기가 연결된 동안 차량이 움직이지 않도록 구동을 막음" },
+  { name: "ESC 개입", from: "brake", to: ["steer", "drive"], purpose: "차체 불안정 시 휠 제동과 함께 토크·조향 보조를 조정" },
+  { name: "기어 상태", from: "gear", to: ["comm"], purpose: "확정된 PRND 상태를 네트워크로 배포해 계기판과 제어기가 같은 값을 사용" },
+];
