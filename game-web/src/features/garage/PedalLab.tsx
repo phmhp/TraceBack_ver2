@@ -15,11 +15,11 @@ export function pedalPath(appPct: number) {
 }
 
 const ROWS: { key: "app" | "request" | "motor" | "wheel" | "accel"; label: string; where: string; unit: string; digits: number }[] = [
-  { key: "app", label: "페달 위치", where: "입력 · APP 센서", unit: "%", digits: 0 },
-  { key: "request", label: "토크 요청", where: "제어 SW · VCU", unit: "Nm", digits: 0 },
-  { key: "motor", label: "모터 토크", where: "인버터·모터", unit: "Nm", digits: 0 },
-  { key: "wheel", label: "바퀴 토크", where: "감속기·차동", unit: "Nm", digits: 0 },
-  { key: "accel", label: "가속도", where: "차량 반응", unit: "m/s²", digits: 1 },
+  { key: "app", label: "페달 위치", where: "센서", unit: "%", digits: 0 },
+  { key: "request", label: "토크 요청", where: "VCU", unit: "Nm", digits: 0 },
+  { key: "motor", label: "모터 토크", where: "모터", unit: "Nm", digits: 0 },
+  { key: "wheel", label: "바퀴 토크", where: "구동축", unit: "Nm", digits: 0 },
+  { key: "accel", label: "가속도", where: "차량", unit: "m/s²", digits: 1 },
 ];
 
 export function PedalLab() {

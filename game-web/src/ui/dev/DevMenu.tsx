@@ -1,4 +1,5 @@
 import { useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { getDevActions, subscribeDevActions } from "./devActions";
 import "./dev-menu.css";
 
@@ -31,7 +32,8 @@ export function DevMenu({ scene }: { scene: string }) {
   const solve = () => actions?.solve ? (actions.solve(), say("정답 적용")) : say("이 화면은 정답 적용 없음");
   const next = () => say(clickFirst(".stageProgressAction, .garageProceed") ? "다음 이동" : "활성 다음 버튼 없음");
 
-  return <div className="devMenu" data-open={open}>
+  // portal: the stage CSS (.gameStage > *) stretches direct children to full screen and would block header clicks
+  return createPortal(<div className="devMenu" data-open={open}>
     {open && <div className="devPanel" role="dialog" aria-label="개발자 메뉴">
       <header><b>DEV</b><span>{scene}</span><small>{note}</small></header>
       <div className="devRow">
@@ -46,5 +48,5 @@ export function DevMenu({ scene }: { scene: string }) {
       <p>일반 플레이 검증과 구분: 이 메뉴는 개발 서버에서만 나타납니다.</p>
     </div>}
     <button className="devToggle" onClick={() => setOpen(value => !value)} aria-label="개발자 메뉴">DEV</button>
-  </div>;
+  </div>, document.body);
 }
