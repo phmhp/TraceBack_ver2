@@ -43,3 +43,75 @@
 .eeTrace .etBoard > header { margin-bottom: 4px !important; }
 
 
+
+/* ===== STEP02 v4: 3 sub-steps, 360px side panel, 150px dock, next button under the panel (same spot as STEP01) ===== */
+.eeTrace .dtLayout.etLayout {
+  grid-template-columns: minmax(0, 1fr) 360px !important;
+  grid-template-rows: 56px minmax(0, 1fr) 150px !important;
+  gap: 8px !important;
+}
+.eeTrace .etLayout > .missionBar { grid-column: 1 / -1 !important; grid-row: 1 !important; }
+.eeTrace .etLayout > .etBoard { grid-column: 1 !important; grid-row: 2 !important; }
+.eeTrace .etLayout > .etEvidence { grid-column: 2 !important; grid-row: 2 !important; display: flex !important; flex-direction: column; min-height: 0; overflow: hidden; padding: 8px 10px !important; }
+.eeTrace .etLayout > .etMugs { grid-column: 1 !important; grid-row: 3 !important; display: flex !important; flex-direction: column; gap: 6px; min-height: 0; overflow: hidden; padding: 8px 12px !important; }
+.eeTrace .etLayout > .etNextCell { grid-column: 2; grid-row: 3; min-height: 0; display: flex; }
+.eeTrace .etNextCell .dtNext { flex: 1; width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; font: 800 18px/1 Pretendard, system-ui !important; white-space: nowrap; }
+
+/* side panel */
+.eeTrace .etEvidence > header { display: flex !important; align-items: center; gap: 8px; margin: 0 0 6px !important; flex: none; }
+.eeTrace .etEvidence > header > b, .eeTrace .etEvidence > header > small { display: none !important; }
+.eeTrace .etEvidenceTabs { display: flex !important; gap: 4px; flex: 1 1 0; min-width: 0; }
+.eeTrace .etEvidenceTabs button { flex: 1 1 0; white-space: nowrap; font-size: 13px !important; min-height: 28px !important; }
+.eeTrace .etEvidenceContent { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.eeTrace .etEvidence .polBoard { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
+.eeTrace .etEmpty { margin: 0; font: 600 13px/1.4 Pretendard, system-ui; color: #5a4440; }
+.eeTrace .etCmp { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 6px 10px; align-items: center; padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, .8); border: 1px solid rgba(155, 107, 100, .3); }
+.eeTrace .etCmp .etPol { grid-row: 1 / span 1; }
+.eeTrace .etCmp > div b { display: block; font: 800 15px/1.2 Pretendard, system-ui; color: #3f302c; }
+.eeTrace .etCmp > div small { font: 600 12px/1 Pretendard, system-ui; color: #8a6a63; }
+.eeTrace .etCmp > :nth-child(n+3) { grid-column: 1 / -1; }
+.eeTrace .etCmp p { margin: 0; display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 6px; align-items: center; font: 600 12px/1.2 Pretendard, system-ui; color: #5a4440; }
+.eeTrace .etCmp p code { font: 800 13px/1 ui-monospace, Menlo, monospace; color: #3f302c; }
+.eeTrace .etMeasureTab .etReasonPath small { font: 800 12px/1 Pretendard, system-ui; color: #7a4a44; }
+.eeTrace .etHypTab { display: flex; flex-direction: column; gap: 8px; }
+.eeTrace .etHyp { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .8); border: 1px solid rgba(155, 107, 100, .3); }
+.eeTrace .etHyp b { font: 700 13px/1.3 Pretendard, system-ui; color: #3f302c; }
+.eeTrace .etHyp em { align-self: flex-start; font: 800 12px/1 Pretendard, system-ui; font-style: normal; padding: 4px 8px; border-radius: 999px; background: rgba(155, 107, 100, .16); color: #7a4a44; }
+.eeTrace .etHyp.out em { background: #e8eddf; color: #4a5c3a; }
+.eeTrace .etHyp span { display: flex; gap: 6px; }
+.eeTrace .etHyp span button { flex: 1 1 0; min-height: 28px; white-space: nowrap; font-size: 13px; }
+.eeTrace .etZoomCol { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+.eeTrace .etZoomCol > i { align-self: center; font-style: normal; font-weight: 800; color: #9b6b64; }
+.eeTrace .etZoomCol > span { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .85); border: 1px solid rgba(155, 107, 100, .3); font: 700 13px/1.2 Pretendard, system-ui; color: #3f302c; }
+.eeTrace .etZoomCol > span em { font-style: normal; font-weight: 800; }
+.eeTrace .etZone > .etNode.picked { outline: 3px solid #9b6b64; outline-offset: 1px; }
+
+/* dock */
+.eeTrace .etSay { margin: 0; flex: none; display: flex; align-items: center; gap: 8px; min-height: 34px; }
+.eeTrace .etSay img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex: none; }
+.eeTrace .etSay b { font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; flex: none; }
+.eeTrace .etSay span { font: 500 13px/1.3 Pretendard, system-ui; color: #4a3a36; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.eeTrace .etMugs .etDock { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.eeTrace .etMugs .etDock > b { font: 800 15px/1.2 Pretendard, system-ui; color: #3f302c; }
+.eeTrace .etMugs .etAsk { font: 600 13px/1.3 Pretendard, system-ui; color: #5a4440; }
+.eeTrace .etChoices { display: flex; gap: 8px; min-height: 0; }
+.eeTrace .etChoices button { flex: 1 1 0; min-width: 0; min-height: 38px; padding: 4px 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font: 700 13px/1.2 Pretendard, system-ui; text-align: center; white-space: normal; word-break: keep-all; }
+.eeTrace .etChoices button small { font: 600 12px/1.1 Pretendard, system-ui; color: #8a6a63; white-space: nowrap; }
+.eeTrace .etChoices button.right { background: #e8eddf; }
+.eeTrace .etChoices button.wrong { background: #f3dcd6; }
+/* a candidate judged "먼저 달라짐" stays clickable but reads as marked */
+.eeTrace .etNode.n-mark { color: #7a2e25; border: 1.5px solid #d9a093; background: #fdeee9; cursor: pointer; }
+.eeTrace .etZoomCol > span { white-space: nowrap; }
+.eeTrace .etZoomCol > span em { white-space: normal; text-align: right; }
+.eeTrace .etCmp .gauge, .eeTrace .etCmp [class*="gauge"], .eeTrace .etCmp [class*="Gauge"] { min-width: 0; max-width: 100%; }
+.eeTrace .etCmp .dtGaugeTxt { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; font-size: 13px; }
+.eeTrace .etCmp .dtGauge { overflow: visible; }
+.eeTrace .etMeasureTab .etStack.flow { display: flex !important; flex-direction: row !important; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.eeTrace .etMeasureTab .etStack.flow > span { padding: 3px 8px; font: 700 12px/1.2 Pretendard, system-ui; white-space: nowrap; }
+.eeTrace .etMeasureTab .etStack.flow > i { font-style: normal; font-weight: 800; color: #9b6b64; }
+.eeTrace .etZoomCol > span em { white-space: nowrap; }
+.eeTrace .etZoneTab .etZoom > b { display: block; white-space: nowrap; font: 800 14px/1.2 Pretendard, system-ui; margin-bottom: 8px; }
+.eeTrace .etZoomCol > span { flex-wrap: wrap; row-gap: 2px; }
+.eeTrace .etZoneTab .etZoom > b { white-space: normal; }
+.eeTrace .etZoneTab, .eeTrace .etZoneTab .etZoom { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.eeTrace .etZoneTab .etZoom > b { display: flex !important; align-items: center; gap: 6px; white-space: nowrap !important; font-size: 13px !important; }

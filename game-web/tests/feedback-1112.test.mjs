@@ -25,11 +25,11 @@ test("STEP02: every suspect must be judged before moving to the next output", ()
 
 test("STEP02: change times used by the feedback are shown on the play surface", () => {
   assert.match(live02, /부터 달라짐`/); // shortened copy: "{time}부터 달라짐"
-  assert.match(live02, /className="etWhen"/);
-  assert.match(live02, /<em>유력<\/em> 기준과 다르고 먼저 달라짐/);
+  assert.match(live02, /달라진 시점/);
+  assert.match(live02, /먼저 달라졌나요/);
   assert.doesNotMatch(live02, /재기|재 보세요/);
-  assert.match(live02, /측정하기/);
-  assert.match(live02, /다음 시험에서 먼저 확인할 가설을 선택하세요/);
+  assert.match(live02, /후보 노드를 눌러 측정하세요/);
+  assert.match(live02, /먼저 시험할 가설/);
 });
 
 test("STEP02: polaroids use real part photos instead of icon cards", () => {

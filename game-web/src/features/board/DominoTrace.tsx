@@ -74,9 +74,9 @@ export const CASES: Record<CaseId, CaseData> = {
       OK("gateway", "게이트웨이 전달", GATEWAY, "CAN", 100, "%"),
     ],
     section: { name: "VCU 내부 (입력 회로·페달 처리·토크 계산)", choices: [
-      { label: "가속 페달 센서·배선", ok: false, why: "페달 센서 값은 60%로 기준과 같아요. 센서 쪽이 원인이면 들어오는 값부터 달랐어야 해요." },
       { label: "VCU 내부 (입력 회로·페달 처리·토크 계산)", ok: true, why: "들어오는 값은 모두 정상인데 VCU가 내놓은 값만 달라요. 의심 구간은 VCU 내부예요. 입력 회로인지 계산 SW인지는 검증에서 가려요." },
-      { label: "인버터·구동 모터", ok: false, why: "인버터·모터는 VCU 다음이에요. VCU 출력부터 이미 달랐으니 이쪽은 결과예요." },
+      { label: "가속 페달 센서 (센서 소자·배선·커넥터)", ok: false, why: "페달 센서 값은 60%로 기준과 같아요. 센서 쪽이 원인이면 들어오는 값부터 달랐어야 해요." },
+      { label: "인버터·구동 모터 (전류 제어·모터 토크)", ok: false, why: "인버터·모터는 VCU 다음이에요. VCU 출력부터 이미 달랐으니 이쪽은 결과예요." },
     ] },
     zoom: {
       where: "VCU", kind: "sw",
@@ -110,9 +110,9 @@ export const CASES: Record<CaseId, CaseData> = {
       OK("regen", "회생 제동", B("regen_request"), "제어기", 0, "%"),
     ],
     section: { name: "Thermal ECU 팬 요청→PWM 출력 SW 경계", choices: [
-      { label: "팬 켜기 상태 전이 SW", ok: false, why: "팬 요청은 기준대로 100%였어요. 켜기 판단은 정상이에요." },
+      { label: "Thermal ECU 온도 판단→팬 켜기 상태 SW", ok: false, why: "팬 요청은 기준대로 100%였어요. 켜기 판단은 정상이에요." },
+      { label: "VCU 열 한계→출력 제한 판단 SW", ok: false, why: "출력 제한은 모터 온도가 오른 뒤에 달라졌어요(추적 카드의 달라진 시점 비교). 원인이 아니라 결과 쪽이에요." },
       { label: "Thermal ECU 팬 요청→PWM 출력 SW 경계", ok: true, why: "팬 요청은 100%인데 I/O 어댑터 출력은 0%예요. 어떤 SW 인터페이스 오류인지는 검증에서 가려요." },
-      { label: "출력 제한(보호) SW", ok: false, why: "출력 제한은 모터 온도가 오른 뒤에 달라졌어요(추적 카드의 달라진 시점 비교). 원인이 아니라 결과 쪽이에요." },
     ] },
     zoom: {
       where: "Thermal ECU 출력 SW", kind: "sw",
@@ -139,9 +139,9 @@ export const CASES: Record<CaseId, CaseData> = {
       OK("fluid", "브레이크액 양", ATLAS(8), "부품", 100, "%"),
     ],
     section: { name: "Brake ECU 계산값→I/O 출력 SW 경계", choices: [
-      { label: "회생·마찰 배분 계산 SW", ok: false, why: "내부 압력 계산값은 기준대로 42 bar였어요. 배분 계산은 정상이에요." },
-      { label: "페달 입력 처리 SW", ok: false, why: "처리된 페달 값 55%는 기준과 같아요. 입력 처리는 정상이에요." },
+      { label: "Brake ECU 회생·마찰 배분 계산 SW", ok: false, why: "내부 압력 계산값은 기준대로 42 bar였어요. 배분 계산은 정상이에요." },
       { label: "Brake ECU 계산값→I/O 출력 SW 경계", ok: true, why: "내부 계산은 42 bar인데 전송값은 8 bar예요. 어떤 데이터 처리 오류인지는 검증에서 가려요." },
+      { label: "Brake ECU 페달 입력 처리 SW", ok: false, why: "처리된 페달 값 55%는 기준과 같아요. 입력 처리는 정상이에요." },
     ] },
     zoom: {
       where: "Brake ECU I/O 어댑터", kind: "sw",

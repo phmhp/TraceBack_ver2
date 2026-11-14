@@ -103,10 +103,9 @@ test("FB-P1-01 links the final drive signal to visible vehicle-wheel rotation", 
 });
 
 test("K-5 keeps the reverse trace central, evidence/stack on the right, and candidates below", () => {
-  assert.match(eeTrace, /중앙 도미노 역추적/);
+  assert.match(eeTrace, /도미노 역추적 판/);
   assert.match(eeTrace, /관찰·계측 증거/);
   assert.match(eeTrace, /etEvidenceTabs/);
-  assert.match(eeTrace, /검증 전에는 확정하지 않음/);
   assert.match(latestCss, /\.etLayout > \.etBoard \{ grid-column: 1; grid-row: 1; \}/);
   assert.match(latestCss, /\.etLayout > \.etEvidence \{ grid-column: 2; grid-row: 1 \/ 3; \}/);
   assert.match(latestCss, /\.etLayout > \.etMugs \{ grid-column: 1; grid-row: 2; \}/);
@@ -119,19 +118,17 @@ test("P0 STEP02 keeps initial observations compact and opens earned output polar
   assert.match(liveTrace, /const \[attached, setAttached\]/);
   assert.doesNotMatch(liveTrace, /const attachEvidence/);
   assert.doesNotMatch(liveTrace, /증거판에 붙이기/);
-  assert.match(liveTrace, /item\.id === "quote" && phase === "evidence"/);
   assert.doesNotMatch(liveTrace, /id: "road"/);
   assert.match(latestCss, /grid-template-rows: minmax\(0, 1fr\) 154px 58px/);
 });
 
 test("STEP02 keeps evidence and reasoning stack in the persisted right rail without displacing candidates", () => {
   const liveTrace = eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3"));
-  assert.match(liveTrace, /const \[memoTab, setMemoTab\] = useState<"evidence" \| "stack">\(saved\.memoTab/);
+  assert.match(liveTrace, /const \[memoTab, setMemoTab\] = useState<MemoTab>\(\["evidence", "measure", "zone", "hyp"\]\.includes\(saved\.memoTab\)/);
   assert.match(liveTrace, /attached, sorted, memoTab, bubble/);
   assert.match(liveTrace, /etEvidenceTabs/);
-  assert.match(liveTrace, /추리 보드/);
+  assert.match(liveTrace, /역추적 경로/);
   assert.doesNotMatch(liveTrace, /etEvidenceAttach/);
-  assert.match(liveTrace, /etEvidenceStack/);
   assert.match(liveTrace, /etReasonPath/);
   // N-S02-01 (2026-11-11): the stack shows only the trace; selected candidates and hypotheses stay internal.
   assert.doesNotMatch(liveTrace, /etReasonCandidates/);
@@ -140,8 +137,8 @@ test("STEP02 keeps evidence and reasoning stack in the persisted right rail with
   // T-25: the hypothesis handed to STEP03 is the player's own pick, never the answer key.
   assert.doesNotMatch(liveTrace, /SELECT_HYPOTHESIS", id: scenario\.root/);
   assert.match(liveTrace, /carryId/);
-  // 2026-11-12 STEP02-04: the bottom dock shows one question at a time; suspects are polaroids in .etSuspRow.
-  assert.match(liveTrace, /etSuspRow/);
+  // v4 (2026-11-14): the dock asks one question at a time; candidates are measured by tapping board nodes.
+  assert.match(liveTrace, /etDockTrace/);
   assert.match(latestCss, /\.etEvidence > header > \.etEvidenceTabs/);
   assert.match(latestCss, /\.etMugs \{ display: flex !important/);
   assert.match(latestCss, /\.etCandidateRow \{[\s\S]*overflow: hidden/);
@@ -273,8 +270,8 @@ test("M-01 through M-06 keep the whole view, fixed evidence slots, reverse trace
   assert.match(experience, /전체보기/);
   assert.match(experience, /showAllDomains/);
   assert.match(eeTrace, /visiblePols/);
-  assert.match(eeTrace, /next evidence|다음 증거 묶음/);
-  assert.match(eeTrace, /출력에서 상류로 거슬러 올라간 경로/);
+  assert.match(eeTrace, /polPager/);
+  assert.match(eeTrace, /역추적 경로/);
   assert.doesNotMatch(eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3")), /<DominoFall/);
   assert.match(refPuzzle, /rpZoomTools/);
   assert.match(refPuzzle, /rpTrackZoom/);
@@ -330,10 +327,9 @@ test("latest scenario scope keeps every root cause in software", () => {
 
 test("STEP02 2026-11-12 bottom dock asks one question at a time and shares polaroid rules", () => {
   const liveTrace = eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3"));
-  assert.match(liveTrace, /고장 당시 로그 재생/);
   assert.doesNotMatch(liveTrace, /고장 당시 입력 재생/);
   assert.doesNotMatch(liveTrace, /위가 최근에 찾은 단계|위가 최초 편차 쪽/);
-  assert.match(liveTrace, /const next = meta\.hypotheses\.find\(h => !sorted\[h\.id\]\)/);
+  assert.match(liveTrace, /etDockSymptom/);
   assert.match(liveTrace, /className="pol etPol"/);
   assert.match(latestCss, /\.eeTrace \.etSusp \.etPol \{[^}]*aspect-ratio: 88 \/ 107/);
   assert.match(latestCss, /object-fit: contain !important/);

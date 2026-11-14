@@ -5,7 +5,7 @@ export type RoadmapStepId = "garage" | "board" | "puzzle" | "bench";
 
 export const STEP_ROADMAP: Record<RoadmapStepId, { no: string; alias: string; meaning: string; subs: string[] }> = {
   garage: { no: "STEP 01", alias: "정비소", meaning: "차량 동작 원리", subs: ["차량 전체", "기능 흐름", "부품·E/E", "SW 구성", "SW 로직"] },
-  board: { no: "STEP 02", alias: "도미노 추적", meaning: "원인 역추적", subs: ["증상 확인", "출력 선택", "역방향 추적", "의심 구간", "가설 정리"] },
+  board: { no: "STEP 02", alias: "도미노 추적", meaning: "원인 역추적", subs: ["증상 확인", "역방향 추적", "가설 정리"] },
   puzzle: { no: "STEP 03", alias: "퍼즐", meaning: "정상 기준·시험 준비", subs: ["요구사항", "로직 조립", "연결 확인", "시험 조건", "기준 확정"] },
   bench: { no: "STEP 04", alias: "실험대", meaning: "가설 실험·수리", subs: ["가설 시험", "최종 원인", "A/B 비교", "수리", "재시험"] },
 };
