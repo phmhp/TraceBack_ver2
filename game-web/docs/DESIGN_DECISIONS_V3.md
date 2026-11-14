@@ -222,3 +222,4 @@
 ### 결정 기록 추가 (2026-11-14, 레이싱 1차)
 - 충돌 v2 구현: `src/game/collision.ts`(등급 1~3, 속도 감쇠, 추격차 페널티), L3은 에어백·고전압 차단 후 R 재시동. 효과는 화면 흔들림·번쩍임·파편·고양이 반응(고양이는 다치지 않음).
 - 추리 시간 느림 표시: 추리 장면(BOARD/WIRING/TWIN_BENCH/VERIFY_FAIL/REPAIR) 상단바에 "추리 중 · 시간 1/30" 배지(`.timeDilation`). 실제 값은 `TICK_PURSUIT meters .2 / 1초` 유지.
+- 고장 스케줄 모델(2026-11-14): 고장은 phase(14종)·조건·유지/지연/확률·지속성·효과·추격 영향 데이터로 정의. 코드 `src/game/faultSchedule.ts`, 문서 `docs/fault-cases/RACING_FAULT_MODEL.md`. 레이싱 연출은 시동 전·정차·페달 뗌 세 가지를 먼저 연결하고 나머지 시점은 모델·테스트만 있음(사건별로 연출 추가).

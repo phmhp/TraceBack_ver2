@@ -93,3 +93,9 @@ WP1 잔여(동적 상태 잘림 점검·STEP01 H1) → WP2 DEV 메뉴 → WP3 ST
 - 상단바: `PursuitHud`(game-shell.tsx)가 모든 장면에서 상단 우측 같은 자리. `PursuitRouteBar`는 호환용 래퍼. 버튼 공통 스타일 `ui/buttons-unified.css`.
 - 학습 연결: `ui/OpenBook.tsx` `OpenBookModal`(4층 탭, focus 하이라이트), STEP03 `rpGarageLink`, 레벨 카드 `principles`.
 - 기존 사건 규칙 검수: `docs/fault-cases/AUDIT_EXISTING_2026-11-14.md`.
+
+
+## 2026-11-14 레이싱 1차 진행 (다음 에이전트용)
+- 완료·커밋: 충돌 v2(`src/game/collision.ts`, race-impact.css), 추리 시간 배지 `.timeDilation`(game-shell.tsx), 고장 스케줄 모델(`src/game/faultSchedule.ts`, `docs/fault-cases/RACING_FAULT_MODEL.md`, `tests/fault-schedule.test.mjs`) + 레이스 연결(`?faultdemo=` 개발 스위치).
+- 다음 순서: (1) 상황 세트 1(신호등+횡단보도+보행자, 앞차 급제동, 뒤차 추돌) → (2) 추격 연동 실제 반영(정지/후진/출력 제한 시 추격차 곡선 확인, 교통 밀도·"피하지 않는 차") → (3) 기존 두 사건을 스펙으로 이전 → (4) N01 시트 승인 후 구현.
+- 규칙: 레이싱 레이아웃을 크게 바꾸기 전에 사용자에게 HUD/충돌 시안을 먼저 보여 준다. 모든 승인 설계는 DESIGN_DECISIONS_V3.md에 추가. 검증은 1600x900 브라우저 + `npm test`(현재 109 통과).
