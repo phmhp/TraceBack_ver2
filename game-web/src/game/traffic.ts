@@ -19,10 +19,19 @@ export function trafficLag(index: number, elapsed: number, speedKph: number) {
   const active = hitAt < 0 ? 0 : THREE.MathUtils.clamp(elapsed - hitAt, 0, STALL_SECONDS);
   return trafficStall.base[index] + active * speedKph / 3.6 * STALL_SLOWDOWN;
 }
-export function stallTraffic(index: number, elapsed: number, speedKph: number) {
+const hitLevel = new Uint8Array(7).fill(1);
+export function stallTraffic(index: number, elapsed: number, speedKph: number, level = 1) {
   if (trafficStall.hitAt[index] >= 0 && elapsed - trafficStall.hitAt[index] < STALL_SECONDS) return; // already hesitating
   trafficStall.base[index] = trafficLag(index, elapsed, speedKph);
   trafficStall.hitAt[index] = elapsed;
+  hitLevel[index] = level;
+}
+/** how long ago (s) and how hard this traffic car was hit, while its knock-back animation still plays; null otherwise */
+export function trafficHitVisual(index: number, elapsed: number) {
+  const hitAt = trafficStall.hitAt[index];
+  if (hitAt < 0) return null;
+  const age = elapsed - hitAt;
+  return age >= 0 && age < 1.6 ? { age, level: hitLevel[index] } : null;
 }
 export function trafficStateFor(sim: TrafficSim, index: number) {
   const opposite = index % 2 === 1;

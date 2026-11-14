@@ -1,5 +1,6 @@
 import "./pursuit-hud.css";
 import "./buttons-unified.css";
+import "./race-impact.css";
 import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { Icon } from "./Icon";
 import { STEP_ROADMAP, useSubStep, type RoadmapStepId } from "./stepRoadmap";

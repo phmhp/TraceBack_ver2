@@ -424,9 +424,13 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
     }
     case "TITLE":
       return enter(s, "TITLE");
-    case "COLLISION":
+    case "COLLISION": {
       s.collisions++;
-      return s;
+      // a harder hit also costs pursuit distance at once (level 1 none, 2 small, 3 large)
+      const penalty = Math.max(0, Number(event.gapPenalty) || 0);
+      if (penalty) s.policeGapMeters = clampGap(s, s.policeGapMeters - penalty);
+      return s.policeGapMeters <= 0 ? enter(s, "CAUGHT") : s;
+    }
     case "HINT":
       if (!s.hintClaims[String(event.key)]) {
         s.hints++;

@@ -160,8 +160,8 @@ test("Race traffic: no last-moment dodge, crashes only on body contact, the hit 
   const after = trafficStateFor({ elapsed: 31 }, car.index).distance;
   assert.ok(Math.abs((before - after) - .7 * car.speedKph / 3.6 * .85) < 1e-6, `${before - after}`);
   resetTrafficStall();
-  assert.match(experiences, /stallTraffic\(trafficHit\.index, previous\.elapsed, trafficHit\.speedKph\)/);
-  assert.match(experiences, /if \(nowSeconds > collisionCooldown\.current\) speed = Math\.max\(trafficHit\.speedKph, speed \* \.65\);/);
+  assert.match(experiences, /stallTraffic\(trafficHit\.index, previous\.elapsed, trafficHit\.speedKph(, hitEffect\.level)?\)/);
+  assert.match(experiences, /if \(nowSeconds > collisionCooldown\.current\) speed = speedAfterImpact\(speed, trafficHit\.speedKph, hitEffect\);/);
 });
 
 test("Race and ending sounds: start rev, soft siren near the police, fanfare and fireworks on the ship", () => {

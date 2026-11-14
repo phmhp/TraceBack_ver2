@@ -25,7 +25,8 @@ import { DRIVER, DUO, ENGINEER } from "./game/cast";
 import { Icon, type IconName } from "./ui/Icon";
 import { ArchitectureOverview } from "./features/garage/ArchitectureOverview";
 import { DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainId } from "./features/garage/evData";
-import { CAR_CONTACT, TRACK_LENGTH, resetTrafficStall, stallTraffic, trafficStateFor } from "./game/traffic";
+import { CAR_CONTACT, TRACK_LENGTH, resetTrafficStall, stallTraffic, trafficHitVisual, trafficStateFor } from "./game/traffic";
+import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
 import { StageIntro } from "./ui/Verdict";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
@@ -1357,6 +1358,14 @@ function TrafficFleet({ sim }: { sim: DriveSim }) {
       car.position.lerp(target, 1 - Math.exp(-delta * 8));
       const targetYaw = frame.yaw + (traffic.opposite ? Math.PI : 0);
       car.rotation.y = THREE.MathUtils.damp(car.rotation.y, targetYaw, 8, delta);
+      // a hit car is knocked around for a moment: sideways shove, spin and a small hop, bigger for harder hits
+      const hit = trafficHitVisual(index, sim.elapsed);
+      if (hit) {
+        const k = 1 - hit.age / 1.6, power = hit.level;
+        car.rotation.y += Math.sin(hit.age * 15) * .35 * power * k;
+        car.position.x += Math.sin(hit.age * 9) * .5 * power * k;
+        car.position.y += Math.abs(Math.sin(hit.age * 10)) * .12 * power * k;
+      }
     });
   });
   return <>{Array.from({ length: 7 }, (_, index) => <group key={index} ref={element => { if (element) cars.current[index] = element; }} scale={.94}>
@@ -1458,8 +1467,11 @@ const TrackStatic = React.memo(function TrackStatic({ ship, signalRed }: { ship:
   </>;
 });
 
-function RaceWorldScene({ sim, ship, policeVisible, waterFall = false, celebrate = false }: { sim: DriveSim; ship: boolean; policeVisible: boolean; waterFall?: boolean; celebrate?: boolean }) {
+function RaceWorldScene({ sim, ship, policeVisible, waterFall = false, celebrate = false, hit }: { sim: DriveSim; ship: boolean; policeVisible: boolean; waterFall?: boolean; celebrate?: boolean; hit?: { id: number; level: ImpactLevel } }) {
   const player = useRef<THREE.Group>(null!);
+  // crash reaction: the body squashes and the camera shakes for a moment, harder for bigger hits
+  const hitAt = useRef(-10), hitPower = useRef(1);
+  useEffect(() => { if (hit?.id) { hitAt.current = performance.now() / 1000; hitPower.current = hit.level; } }, [hit?.id, hit?.level]);
   // Ship arrival: the chase camera orbits from behind the car to its front (0 → π) to show the cheering cats.
   const orbit = useRef(0);
   const orbitTmp = useRef({ forward: new THREE.Vector3(), cam: new THREE.Vector3() });
@@ -1513,6 +1525,13 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false, celebrate
       camera.position.copy(cam);
       lookTarget.current.set(player.current.position.x, player.current.position.y + THREE.MathUtils.lerp(.8, 1.12, k), player.current.position.z);
     }
+    const hitAge = performance.now() / 1000 - hitAt.current;
+    if (hitAge < 1.3) {
+      const k = Math.exp(-hitAge * 4) * (1 - hitAge / 1.3), power = hitPower.current;
+      player.current.scale.set(1 + .045 * power * k, 1 - .1 * power * k, 1 - .07 * power * k);
+      camera.position.x += Math.sin(hitAge * 55) * .16 * power * k;
+      camera.position.y += Math.cos(hitAge * 47) * .12 * power * k;
+    } else if (player.current.scale.x !== 1) player.current.scale.set(1, 1, 1);
     camera.lookAt(lookTarget.current);
   });
   return <>
@@ -1562,8 +1581,8 @@ function Fireworks() {
   return <canvas ref={canvas} className="tbFireworks" aria-hidden="true" />;
 }
 
-function RaceWorld({ sim, ship, policeVisible = true, waterFall = false, celebrate = false }: { sim: DriveSim; ship: boolean; policeVisible?: boolean; waterFall?: boolean; celebrate?: boolean }) {
-  return <div className="raceWorldCanvas"><Canvas shadows camera={{ position: [0, 3.6, 10.5], fov: 54 }} dpr={[1, 1.08]} gl={{ antialias: true, powerPreference: "high-performance" }}><RaceWorldScene sim={sim} ship={ship} policeVisible={policeVisible} celebrate={celebrate} waterFall={waterFall} /></Canvas></div>;
+function RaceWorld({ sim, ship, policeVisible = true, waterFall = false, celebrate = false, hit }: { sim: DriveSim; ship: boolean; policeVisible?: boolean; waterFall?: boolean; celebrate?: boolean; hit?: { id: number; level: ImpactLevel } }) {
+  return <div className="raceWorldCanvas"><Canvas shadows camera={{ position: [0, 3.6, 10.5], fov: 54 }} dpr={[1, 1.08]} gl={{ antialias: true, powerPreference: "high-performance" }}><RaceWorldScene hit={hit} sim={sim} ship={ship} policeVisible={policeVisible} celebrate={celebrate} waterFall={waterFall} /></Canvas></div>;
 }
 
 function RearMirror3D({ gap, visible }: { gap: number; visible: boolean }) {
@@ -1599,6 +1618,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const [gear, setGear] = useState<"P" | "R" | "N" | "D">(mode === "normal" ? "P" : "D");
   const [gearToast, setGearToast] = useState<{ text: string; id: number } | null>(null);
   const [impact, setImpact] = useState(0);
+  const [impactLevel, setImpactLevel] = useState<ImpactLevel>(1);
   const [impactMessage, setImpactMessage] = useState("가드레일 접촉 · 속도 감소 및 차체 반발");
   const [parking, setParking] = useState(false);
   const [driveMission, setDriveMission] = useState<"idle" | "red" | "restart" | "done">("idle");
@@ -1609,6 +1629,12 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const collisionCooldown = useRef(0);
   const zoneThrottle = useRef(0); // seconds of full throttle inside the overtake zone
   useEffect(() => { if (impact) play("crash"); }, [impact]);
+  // dev only: `dispatchEvent(new CustomEvent("tb-dev-hit", { detail: 1 | 2 | 3 }))` plays that crash level for visual checks
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const onHit = (event: Event) => { const level = Math.min(3, Math.max(1, Number((event as CustomEvent).detail) || 1)) as ImpactLevel; setImpactMessage(impactEffect(level === 1 ? 10 : level === 2 ? 30 : 70).toast); setImpactLevel(level); setImpact(value => value + 1); };
+    addEventListener("tb-dev-hit", onHit); return () => removeEventListener("tb-dev-hit", onHit);
+  }, []);
   useEffect(() => { resetTrafficStall(); }, []);
   // EV sound only at power-on and pull-away (a continuous motor drone sounded unnatural);
   // a hard brake at speed squeals once per press. engineSet is kept for later use.
@@ -1729,13 +1755,16 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         const hitRail = !dockApproach && Math.abs(roadOffset) > 6.92 && pushingOutward;
         if (hitRail) {
           lane = Math.sign(roadOffset) * 6.78 - 3.35;
-          speed *= .72;
           const nowSeconds = now / 1000;
+          const railEffect = impactEffect(previous.speed); // a fixed object: the closing speed is the whole speed
+          speed *= railEffect.level === 1 ? .78 : railEffect.level === 2 ? .6 : .4;
           if (nowSeconds > collisionCooldown.current) {
             collisionCooldown.current = nowSeconds + .8;
-            setImpactMessage("가드레일 접촉 · 속도 감소 및 차체 반발");
+            setImpactMessage(`가드레일 ${railEffect.toast}`);
+            setImpactLevel(railEffect.level);
             setImpact(value => value + 1);
-            send({ type: "COLLISION" });
+            if (railEffect.hvCut && (driveMission === "idle" || driveMission === "done")) setDriveMission("restart");
+            send({ type: "COLLISION", level: railEffect.level, gapPenalty: railEffect.gapPenalty });
           }
         }
         let distance = previous.distance + speed * dt / 3.6;
@@ -1750,15 +1779,18 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
           // both cars hesitate once per contact: the player loses about a third of its speed (never below the other car)
           // and the hit car slows for 0.7 s; while the bodies still overlap they are only pushed apart
           const nowSeconds = now / 1000;
-          if (nowSeconds > collisionCooldown.current) speed = Math.max(trafficHit.speedKph, speed * .65);
+          const hitEffect = impactEffect(previous.speed - trafficHit.speedKph); // closing speed decides how hard it is
+          if (nowSeconds > collisionCooldown.current) speed = speedAfterImpact(speed, trafficHit.speedKph, hitEffect);
           distance = Math.max(previous.distance, distance - .45);
-          lane = THREE.MathUtils.clamp(lane + (playerRoadLane <= trafficHit.lane ? -.3 : .3), -9.9, 3.45);
-          stallTraffic(trafficHit.index, previous.elapsed, trafficHit.speedKph);
+          lane = THREE.MathUtils.clamp(lane + (playerRoadLane <= trafficHit.lane ? -.3 : .3) * hitEffect.level, -9.9, 3.45);
+          stallTraffic(trafficHit.index, previous.elapsed, trafficHit.speedKph, hitEffect.level);
           if (nowSeconds > collisionCooldown.current) {
             collisionCooldown.current = nowSeconds + 1.1;
-            setImpactMessage("일반 차량과 접촉 · 상대 속도 반영 및 차체 반발");
+            setImpactMessage(`일반 차량과 ${hitEffect.toast}`);
+            setImpactLevel(hitEffect.level);
             setImpact(value => value + 1);
-            send({ type: "COLLISION" });
+            if (hitEffect.hvCut && (driveMission === "idle" || driveMission === "done")) setDriveMission("restart");
+            send({ type: "COLLISION", level: hitEffect.level, gapPenalty: hitEffect.gapPenalty });
           }
         }
         const floor = state.completedCases.length < 2 ? 10 : 0;
@@ -1892,8 +1924,8 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     if (near && (!sirenNear.current || (sim.gap < 25 && now - sirenAt.current > 5000))) { play("police"); sirenAt.current = now; }
     sirenNear.current = near;
   }, [policeInWorld, sim.gap, symptom]);
-  return <div className={`raceV2 raceMode-${mode} ${impact ? "raceImpact" : ""} ${waterFall ? "waterFall" : ""}`} data-race-mode={mode} data-race-distance={sim.distance.toFixed(2)} data-race-speed={sim.speed.toFixed(2)} data-race-gap={sim.gap.toFixed(2)}>
-    <RaceWorld sim={sim} ship={mode === "ship"} policeVisible={policeInWorld} waterFall={waterFall} celebrate={deckSettled} />
+  return <div className={`raceV2 raceMode-${mode} ${impact ? `raceImpact impactL${impactLevel}` : ""} ${waterFall ? "waterFall" : ""}`} data-race-mode={mode} data-race-distance={sim.distance.toFixed(2)} data-race-speed={sim.speed.toFixed(2)} data-race-gap={sim.gap.toFixed(2)}>
+    <RaceWorld sim={sim} ship={mode === "ship"} policeVisible={policeInWorld} waterFall={waterFall} celebrate={deckSettled} hit={{ id: impact, level: impactLevel }} />
     {hasTouchedDeck && <Fireworks />}
     <JourneyProgress scene={mode === "ship" ? "SHIP_ESCAPE" : "CHASE_NORMAL"} />
     <div className="raceTopHud">
@@ -1923,7 +1955,10 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     <div className="raceFeed">
       {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>↓</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
       {gearToast && <div className="gearToast" key={gearToast.id}>{gearToast.text}</div>}
-      {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
+      {impact > 0 && <div className={`impactToast impactToastL${impactLevel}`} key={impact}>{impactMessage}</div>}
+      {impact > 0 && <div className={`impactFlash flashL${impactLevel}`} key={`f${impact}`} aria-hidden="true" />}
+      {impact > 0 && <div className={`impactDebris debrisL${impactLevel}`} key={`d${impact}`} aria-hidden="true">{Array.from({ length: 6 + impactLevel * 4 }, (_, i) => <i key={i} style={{ "--dx": `${Math.cos(i * 2.399) * (80 + impactLevel * 60)}px`, "--dy": `${-40 - Math.abs(Math.sin(i * 1.7)) * (80 + impactLevel * 50)}px`, "--r": `${i * 47}deg`, "--d": `${(i % 4) * .03}s` } as React.CSSProperties} />)}</div>}
+      {impact > 0 && impactLevel >= 2 && <div className="catReact" key={`c${impact}`} role="status"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><b>{impactLevel === 3 ? "으앗!" : "앗!"}</b></div>}
       {regression?.title && <div className={`regressionCard ${regression.ok ? "ok" : "no"}`} role="status"><i><Icon name="repeat" /></i><span><small>같은 조건 재주행</small><b>{regression.title}</b><em>{regression.text}</em></span></div>}
       {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i><Icon name={zone.icon} /></i><span><small>주행 구간</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
       {symptom && <div className="faultBeacon" role="alert"><span /><div><small>차량 경고</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "파워다운 표시등 · 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
