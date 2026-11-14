@@ -65,7 +65,7 @@ test("garage learning lets players pull parts out and the v16 layout protects re
 });
 
 test("the playable race owns the complete dock jump and commits the ending after deck settlement", () => {
-  assert.match(readFileSync(new URL("../src/game/traffic.ts", import.meta.url), "utf8"), /export const TRACK_LENGTH = 1380/);
+  assert.match(readFileSync(new URL("../src/game/traffic.ts", import.meta.url), "utf8"), /export const TRACK_LENGTH = 2200/);
   assert.match(garage, /const DECK_STOP = DECK_TOUCH \+ 12/);
   assert.match(garage, /planeGeometry args=\{\[120,320\]\}/);
   assert.match(garage, /setDeckSettled\(true\)/);

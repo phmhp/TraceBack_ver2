@@ -3,9 +3,9 @@
 import * as THREE from "three";
 import { leadBrakeLagM } from "./situations";
 
-export const TRACK_LENGTH = 1380;
+export const TRACK_LENGTH = 2200;
 /** Cars 0-6 follow the original schedule formula; cars 7+ are explicit entries (a slow platoon = the jam, plus extra oncoming cars). */
-export const TRAFFIC_COUNT = 13;
+export const TRAFFIC_COUNT = 17;
 const EXTRA_TRAFFIC: readonly { opposite: boolean; speedKph: number; start: number; lane: number }[] = [
   { opposite: false, speedKph: 31, start: 470, lane: 1.42 }, // 7-9: slow platoon (jam) over both same-direction lanes
   { opposite: false, speedKph: 29, start: 488, lane: 5.3 },
@@ -13,6 +13,10 @@ const EXTRA_TRAFFIC: readonly { opposite: boolean; speedKph: number; start: numb
   { opposite: true, speedKph: 46, start: 260, lane: -1.72 }, // 10-12: more oncoming traffic
   { opposite: true, speedKph: 52, start: 640, lane: -5.1 },
   { opposite: true, speedKph: 44, start: 1010, lane: -1.72 },
+  { opposite: false, speedKph: 36, start: 1450, lane: 5.3 }, // 13-16: traffic for the long second half
+  { opposite: false, speedKph: 41, start: 1800, lane: 1.42 },
+  { opposite: true, speedKph: 48, start: 1500, lane: -5.1 },
+  { opposite: true, speedKph: 50, start: 1900, lane: -1.72 },
 ];
 /** Only the race clock moves traffic. */
 type TrafficSim = { elapsed: number };

@@ -10,10 +10,10 @@
 export type SignalPhase = "green" | "yellow" | "red";
 
 /** Junctions whose signal runs on the cycle. The 620 m junction belongs to the red-light mission (experiences.tsx). */
-export const CYCLE_JUNCTIONS = [300, 920] as const;
+export const CYCLE_JUNCTIONS = [300, 920, 1560] as const;
 export const SIGNAL_CYCLE = { green: 13, yellow: 2.5, red: 8.5 } as const;
 const CYCLE_LENGTH = SIGNAL_CYCLE.green + SIGNAL_CYCLE.yellow + SIGNAL_CYCLE.red;
-const SIGNAL_OFFSET: Record<number, number> = { 300: 4, 920: 10 };
+const SIGNAL_OFFSET: Record<number, number> = { 300: 4, 920: 10, 1560: 17 };
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 
 /** Signal phase for the player's direction at a cycle junction. */
@@ -84,6 +84,7 @@ export type LeadBrake = { carIndex: number; startS: number; rampS: number; holdS
 export const LEAD_BRAKES: readonly LeadBrake[] = [
   { carIndex: 2, startS: 40, rampS: 1.2, holdS: 2.2, floorScale: .08 },
   { carIndex: 4, startS: 95, rampS: 1, holdS: 2.6, floorScale: .05 },
+  { carIndex: 6, startS: 150, rampS: 1.1, holdS: 2.4, floorScale: .06 },
 ];
 
 /** Speed factor (0..1) of the scripted braking at a moment of the race clock. */
@@ -151,7 +152,7 @@ export const nearJunction = (distanceM: number, range = 90): boolean => [...CYCL
  * Currently one wet (rain) stretch; more are added per level (docs/fault-cases/RACING_FAULT_MODEL.md section 6).
  */
 export type RoadZone = { tag: "wet" | "tunnel" | "night" | "slope" | "cold" | "glare"; fromM: number; toM: number };
-export const ROAD_ZONES: readonly RoadZone[] = [{ tag: "wet", fromM: 380, toM: 540 }];
+export const ROAD_ZONES: readonly RoadZone[] = [{ tag: "wet", fromM: 380, toM: 540 }, { tag: "wet", fromM: 1000, toM: 1140 }];
 /** Grip factor per zone tag for braking (1 = dry road). */
 export const zoneBrakeFactor = (tags: readonly string[]): number => (tags.includes("wet") ? .72 : 1);
 export const zonesAt = (distanceM: number, zones: readonly RoadZone[] = ROAD_ZONES): string[] => zones.filter(z => distanceM >= z.fromM && distanceM <= z.toM).map(z => z.tag);

@@ -11,6 +11,8 @@
  */
 
 /** Operating phase the fault belongs to (what the driver is doing / what state the car is in). */
+import { CLIMB_ZONE, OVERTAKE_ZONE } from "./course";
+
 export type FaultPhase =
   | "prestart"     // key/READY not yet established (before the race starts or after a restart)
   | "stationary"   // vehicle at rest, READY on (traffic light, waiting)
@@ -309,20 +311,20 @@ export const DEMO_FAULTS: Record<"release" | "stationary" | "prestart" | "revers
 
 /**
  * The two original cases expressed as specs (migrated from hard-coded zones, 2026-11-14).
- * propulsion: after 150 m the pedal signal is scaled to 45 % and acceleration cannot take the car above 55 km/h.
+ * propulsion: after OVERTAKE_ZONE[0] (course.ts) the pedal signal is scaled to 45 % and acceleration cannot take the car above 55 km/h.
  *             `heldSec` of this spec = seconds of throttle inside the zone (symptom after .25 s, FAULT_CUE after 1.8 s).
- * thermal:    after 760 m, once the coolant reaches 80 C the output is limited to 55 km/h.
+ * thermal:    after CLIMB_ZONE[0] (course.ts), once the coolant reaches 80 C the output is limited to 55 km/h.
  */
 export const PROPULSION_FAULT: FaultSpec = {
   id: "case-propulsion", caseId: "propulsion",
-  trigger: { phase: "sustained", afterDistanceM: 150, decay: 0 },
+  trigger: { phase: "sustained", afterDistanceM: OVERTAKE_ZONE[0], decay: 0 },
   persistence: "permanent",
   effect: { pedalScale: .45, accelCapKph: 55 },
   chase: { note: "Weak acceleration: the car cannot reach the police speed, so the gap shrinks while the pedal is pressed." },
 };
 export const THERMAL_FAULT: FaultSpec = {
   id: "case-thermal", caseId: "thermal",
-  trigger: { phase: "always", afterDistanceM: 760, heatMinC: 80 },
+  trigger: { phase: "always", afterDistanceM: CLIMB_ZONE[0], heatMinC: 80 },
   persistence: "permanent",
   effect: { speedCapKph: 55, cluster: { lamps: ["출력 제한"] } },
   chase: { note: "Output limited to 55 km/h below the police speed: the gap shrinks until the cooling fault is repaired." },

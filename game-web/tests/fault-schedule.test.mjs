@@ -109,7 +109,7 @@ test("migrated cases: propulsion fault needs the zone and the pedal, keeps its t
   assert.ok(Math.abs(inZone.runtime.heldSec - 2) < .01, "throttle seconds accumulate");
   const released = run(PROPULSION_FAULT, [...seconds(2, ctx({ speedKph: 80, pedal: 1, distanceM: 200 })), ...seconds(1, ctx({ speedKph: 80, pedal: 0, distanceM: 210 }))]);
   assert.ok(released.runtime.heldSec > 1.9, "kept while the pedal is released (decay 0)");
-  assert.equal(run(THERMAL_FAULT, seconds(1, ctx({ distanceM: 800, heat: 70 }))).active, false);
-  assert.equal(run(THERMAL_FAULT, seconds(1, ctx({ distanceM: 700, heat: 90 }))).active, false);
-  assert.equal(run(THERMAL_FAULT, seconds(1, ctx({ distanceM: 800, heat: 85 }))).effect.speedCapKph, 55);
+  assert.equal(run(THERMAL_FAULT, seconds(1, ctx({ distanceM: 1400, heat: 70 }))).active, false);
+  assert.equal(run(THERMAL_FAULT, seconds(1, ctx({ distanceM: 1200, heat: 90 }))).active, false);
+  assert.equal(run(THERMAL_FAULT, seconds(1, ctx({ distanceM: 1400, heat: 85 }))).effect.speedCapKph, 55);
 });

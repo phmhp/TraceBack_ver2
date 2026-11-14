@@ -28,6 +28,7 @@ import { DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainI
 import { CAR_CONTACT, TRACK_LENGTH, TRAFFIC_COUNT, resetTrafficStall, stallTraffic, trafficHitVisual, trafficStateFor } from "./game/traffic";
 import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
 import { CYCLE_JUNCTIONS, zoneBrakeFactor, zonesAt, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
+import { CLIMB_ZONE, FINAL_ESCAPE_M, OVERTAKE_ZONE } from "./game/course";
 import { DEMO_FAULTS, PROPULSION_FAULT, levelFaults, policeSpeedKph, secondsToCatch, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
 import { StageIntro } from "./ui/Verdict";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
@@ -1322,7 +1323,7 @@ function CoastalHouse({ color, roof }: { color: string; roof: string }) {
 }
 
 function RoadsideEnvironment() {
-  return <>{Array.from({ length: 17 }, (_, index) => {
+  return <>{Array.from({ length: Math.ceil((TRACK_LENGTH - 100) / 68) }, (_, index) => {
     const distance = 55 + index * 68;
     // Keep the inhabited coast on the landward side.  The sea side remains
     // visually open instead of growing trees and houses out of the water.
@@ -1334,7 +1335,7 @@ function RoadsideEnvironment() {
     </group>;
   })}
   {/* street lamps stand on the road edge (lateral -8.6 from the centre line), every second tree spacing */}
-  {Array.from({ length: 9 }, (_, index) => { const frame = trackFrame(55 + index * 136 + 30, -8.6); return <group key={`lamp-${index}`} position={[frame.x, 0, frame.z]} rotation={[0, frame.yaw, 0]}>
+  {Array.from({ length: Math.floor((TRACK_LENGTH - 100) / 136) }, (_, index) => { const frame = trackFrame(55 + index * 136 + 30, -8.6); return <group key={`lamp-${index}`} position={[frame.x, 0, frame.z]} rotation={[0, frame.yaw, 0]}>
 <group position={[0,0,0]}><mesh position={[0,2.1,0]}><cylinderGeometry args={[.07,.1,4.2,12]} /><meshStandardMaterial color="#33413e" metalness={.65} /></mesh><mesh position={[0,4.2,0]}><sphereGeometry args={[.28,18,12]} /><meshStandardMaterial color="#fff0b3" emissive="#ffd76d" emissiveIntensity={2.4} /></mesh></group>
   </group>; })}</>;
 }
@@ -1459,7 +1460,7 @@ const TrackStatic = React.memo(function TrackStatic({ ship, signalRed, signals }
         {i % 10 === 0 && x < 0 && <RoundedBox args={[2.5, 1.1 + (i % 3) * .35, 3.1]} radius={.3} position={[x + Math.sign(x) * 4.3, .65, 0]} castShadow><meshStandardMaterial color={["#e98970", "#76b2aa", "#e6bf67", "#8da8c7"][i % 4]} roughness={.72} /></RoundedBox>}
       </React.Fragment>)}
     </group>})}
-    {[300, 620, 920].map(s => { const f = trackFrame(s); const missionSignalRed = s === 620 && signalRed; const cycleIndex = (CYCLE_JUNCTIONS as readonly number[]).indexOf(s); const cyclePhase = cycleIndex >= 0 ? signals[cycleIndex] : null; return <group key={`junction-${s}`} position={[f.x, .025, f.z]} rotation={[0, f.yaw, 0]}>
+    {[300, 620, 920, 1180, 1560].map(s => { const f = trackFrame(s); const missionSignalRed = s === 620 && signalRed; const cycleIndex = (CYCLE_JUNCTIONS as readonly number[]).indexOf(s); const cyclePhase = cycleIndex >= 0 ? signals[cycleIndex] : null; return <group key={`junction-${s}`} position={[f.x, .025, f.z]} rotation={[0, f.yaw, 0]}>
       {Array.from({ length: 9 }, (_, index) => <mesh key={index} rotation={[-Math.PI / 2, 0, 0]} position={[-6.4 + index * 1.6, .015, 0]}><planeGeometry args={[.72, 4.2]} /><meshStandardMaterial color="#f5efe2" /></mesh>)}
       {[-7.1, 7.1].map(x => <group key={x} position={[x, 2.25, -2.8]}><mesh><boxGeometry args={[.15, 4.5, .15]} /><meshStandardMaterial color="#303b39" metalness={.65} /></mesh><RoundedBox args={[.6, 1.45, .35]} radius={.12} position={[0, 1.7, 0]}><meshStandardMaterial color="#25302e" /></RoundedBox>{[.42, 0, -.42].map((y, n) => { const lit = cyclePhase ? n === (cyclePhase === "r" ? 0 : cyclePhase === "y" ? 1 : 2) : missionSignalRed ? n === 0 : n === 2; const lamp = (cyclePhase ? cyclePhase === "r" : missionSignalRed) ? "#ff3b30" : cyclePhase === "y" ? "#ffc533" : "#3ee072"; return <mesh key={y} position={[0, 1.7 + y, .2]}><sphereGeometry args={[.17, 18, 12]} /><meshStandardMaterial color={lit ? lamp : "#473f3b"} emissive={lit ? lamp : "#000"} emissiveIntensity={lit ? 2.4 : 0} /></mesh>; })}</group>)}
     </group>; })}
@@ -1951,7 +1952,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       fired.current = true; send({ type: "FAULT_CUE", caseId: "propulsion", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
     } else if (mode === "resume" && state.caseId === "propulsion" && (sim.heat >= 84 || sim.distance >= CLIMB_ZONE[1])) {
       fired.current = true; send({ type: "FAULT_CUE", caseId: "thermal", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
-    } else if (mode === "resume" && state.caseId === "thermal" && sim.distance >= 1050) {
+    } else if (mode === "resume" && state.caseId === "thermal" && sim.distance >= FINAL_ESCAPE_M) {
       fired.current = true; send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "START_FINAL_ESCAPE" });
     } else if (mode === "ship" && celebrated) {
       fired.current = true;
@@ -2099,8 +2100,6 @@ const MINIMAP_PATH = Array.from({ length: 51 }, (_, i) => { const progress = i *
 /** Dev switch `?faultdemo=release|stationary|prestart` runs one generic fault spec from src/game/faultSchedule.ts on top of the level (see docs/fault-cases/RACING_FAULT_MODEL.md). */
 /** `?faultdemo=release|stationary|prestart|reverse|limit` */
 const FAULT_DEMO: FaultSpec | null = import.meta.env.DEV && typeof location !== "undefined" ? (DEMO_FAULTS as Record<string, FaultSpec>)[new URLSearchParams(location.search).get("faultdemo") ?? ""] ?? null : null;
-const OVERTAKE_ZONE = [150, 330] as const;
-const CLIMB_ZONE = [760, 960] as const; // sustained high-load section (cooling must keep up)
 
 // Warning lamp the driver sees for each case (generic EV cluster behaviour).
 const faultLamp: Record<CaseId, { icon: string; glyph: string; label: string; note: string }> = {

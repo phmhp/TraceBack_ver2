@@ -3,6 +3,7 @@ import "./buttons-unified.css";
 import "./race-impact.css";
 import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { Icon } from "./Icon";
+import { TRACK_LENGTH } from "../game/traffic";
 import { STEP_ROADMAP, useSubStep, type RoadmapStepId } from "./stepRoadmap";
 import { journeyStageAccess, type Campaign, type JourneyStageId } from "../game/runtime";
 
@@ -90,9 +91,10 @@ export function GameHeader({
 
 /** One pursuit gap display for every scene (steps, levels, repair and the race): same component, same slot in the top bar. */
 export function PursuitHud({ gap, distance }: { gap: number; distance: number }) {
-  const routeProgress = Math.min(100, distance / 12);
+  const pct = (TRACK_LENGTH - 170) / 100; // 100 % = the boarding ramp
+  const routeProgress = Math.min(100, distance / pct);
   const playerMarker = Math.max(5, routeProgress);
-  const policeMarker = Math.max(1, Math.min(96, playerMarker - Math.max(4, gap / 12)));
+  const policeMarker = Math.max(1, Math.min(96, playerMarker - Math.max(4, gap / pct)));
   return <div className="pursuitHud" role="img" aria-label={`출발에서 도착까지 진행 ${Math.round(playerMarker)}%, 경찰차와 자차의 추격차 ${Math.round(gap)}미터`}>
     <span className="hudFlag"><img src="/assets/ui/icons/flag.svg" alt="" /><small>START</small></span>
     <div className="hudTrack" aria-hidden="true"><i className="hudCar hudPolice" style={{ left: `${Math.min(92, policeMarker)}%` }}><img src="/assets/ui/icons/police-car.svg" alt="" /></i><i className="hudCar hudPlayer" style={{ left: `${Math.min(96, playerMarker)}%` }}><img src="/assets/ui/icons/getaway-car.svg" alt="" /></i></div>

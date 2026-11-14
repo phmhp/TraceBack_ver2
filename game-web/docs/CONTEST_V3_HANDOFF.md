@@ -111,3 +111,5 @@ WP1 잔여(동적 상태 잘림 점검·STEP01 H1) → WP2 DEV 메뉴 → WP3 ST
 - 2026-11-14 교통 밀도·정체 반영(13대, 서행 군집). 남은 순서: 환경 구간 맵 연출(`ROAD_ZONES`), 기존 두 사건 `FaultSpec` 이전, N01 시트 승인 후 구현.
 - 2026-11-14 환경 구간 1종(우천) 반영. 남은 순서: 터널·야간 연출, 기존 두 사건 `FaultSpec` 이전, N01 시트 승인 후 구현, 엔딩 고양이 얼굴·코스 길이 연장.
 - 2026-11-14 기존 구동·열관리 사건을 `FaultSpec`(`PROPULSION_FAULT`, `THERMAL_FAULT`, `levelFaults`)으로 이전 완료. 동작은 이전과 동일(브라우저로 두 사건 발동 확인, 테스트 123개).
+- 2026-11-14 코스 연장: `TRACK_LENGTH` 1380 → 2200 m(`src/game/traffic.ts`). 이벤트 위치는 `src/game/course.ts` 한 곳(`OVERTAKE_ZONE` 150~330, `CLIMB_ZONE` 1300~1500, `FINAL_ESCAPE_M` 1700, 승선 램프 = TRACK_LENGTH - 170). 신호 교차로 3곳(300·920·1560 m, 620 m 미션, 1180 m 정적 횡단보도), 우천 2곳(380~540, 1000~1140), 교통 17대, 앞차 급제동 3회, 가로수·가로등은 길이에 맞춰 자동 배치. 진행 바·미니맵은 TRACK_LENGTH 기준. 브라우저로 1660 m → 엔딩까지 확인.
+- 코스를 더 늘리거나 이벤트를 옮길 때: `course.ts`와 `TRACK_LENGTH`만 바꾸고 `tests/v16-refactor.test.mjs`(TRACK_LENGTH 값)·`collision.test.mjs`(교통 대수)·`fault-schedule.test.mjs`(열관리 거리) 기대값을 같이 갱신.
