@@ -489,13 +489,13 @@ const WAVES: Record<CaseId, string[]> = {
 type Fix = { label: string; img: string; ok: boolean; why: string };
 const FIXES: Record<CaseId, Fix[]> = {
   propulsion: [
-    { label: "토크 지도 값을 2.2배로 키워 보상", img: "/assets/board-photos/torque_cmd.png", ok: false, why: "증상만 가리는 임시 조치예요. 다른 페달 위치에선 토크가 너무 커져서 새 고장이 생겨!" },
+    { label: "토크 지도 값을 2.2배로 키워 보상", img: "/assets/board-photos/torque_cmd.png", ok: false, why: "증상만 가리는 임시 조치예요. 다른 페달 위치에선 토크가 너무 커져서 새 고장이 생겨요." },
     { label: "끼어든 '보정 계수 ×0.45' 블록 제거", img: "/assets/board-photos/pedal_processed.png", ok: true, why: "원인(설계에 없는 블록)을 없애 기준 설계와 같게 만들었어요." },
     { label: "모터 최대 출력 한계 올리기", img: "/assets/ending-thumbs/traction_motor.png", ok: false, why: "모터 한계는 원인이 아니에요. 안전 여유만 줄어들어요." },
   ],
   thermal: [
     { label: "팬 요청을 항상 100%로 고정", img: "/assets/ending-thumbs/thermal_ecu.png", ok: false, why: "팬 요청 계산은 이미 100%였어요. I/O 출력 누락은 고쳐지지 않아요." },
-    { label: "출력 제한(보호) 기능 끄기", img: "/assets/board-photos/thermal_protection.png", ok: false, why: "보호 기능은 고장이 아니라 과열을 막아 준 거야. 끄면 모터가 손상돼." },
+    { label: "출력 제한(보호) 기능 끄기", img: "/assets/board-photos/thermal_protection.png", ok: false, why: "보호 기능은 고장이 아니라 과열을 막아 주는 동작이에요. 끄면 모터가 손상될 수 있어요." },
     { label: "PWM 출력 어댑터 주기 작업 복원", img: "/assets/ending-thumbs/thermal_ecu.png", ok: true, why: "팬 요청 뒤 빠져 있던 SW 실행 순서를 복원해 PWM 쓰기가 다시 수행돼요." },
   ],
   brake: [
@@ -1200,18 +1200,18 @@ export function TwinBenchV7({ state, send }: { state: Campaign; send: Send }) {
 // All answered → report (auto) → fix request → same test again with the fixed design → regression.
 const QUESTIONS: Record<CaseId, { hyp: string; ask: string }[]> = {
   propulsion: [
-    { hyp: "vcu_sw", ask: "VCU 내부 계산 SW가 잘못된 거야?" },
-    { hyp: "vcu_hw", ask: "아니면 VCU 입력 회로(신호 변환)가 문제야?" },
+    { hyp: "vcu_sw", ask: "VCU 내부 계산 SW가 잘못된 건가요?" },
+    { hyp: "vcu_hw", ask: "아니면 VCU 입력 회로(신호 변환)가 문제인가요?" },
   ],
   thermal: [
-    { hyp: "fan_sw", ask: "PWM 출력 어댑터 SW의 실행 순서가 빠진 거야?" },
-    { hyp: "fan_path", ask: "팬 켜기 상태 전이 SW가 잘못된 거야?" },
-    { hyp: "fan_motor", ask: "팬 회전 피드백 처리 SW가 잘못된 거야?" },
+    { hyp: "fan_sw", ask: "PWM 출력 어댑터 SW의 실행 순서가 빠진 건가요?" },
+    { hyp: "fan_path", ask: "팬 켜기 상태 전이 SW가 잘못된 건가요?" },
+    { hyp: "fan_motor", ask: "팬 회전 피드백 처리 SW가 잘못된 건가요?" },
   ],
   brake: [
-    { hyp: "blend_sw", ask: "회생·마찰 나누는 SW가 잘못된 거야?" },
-    { hyp: "hyd_path", ask: "I/O 어댑터가 압력 명령을 다시 줄인 거야?" },
-    { hyp: "caliper", ask: "압력 피드백 처리 SW가 잘못된 거야?" },
+    { hyp: "blend_sw", ask: "회생·마찰을 나누는 SW가 잘못된 건가요?" },
+    { hyp: "hyd_path", ask: "I/O 어댑터가 압력 명령을 다시 줄인 건가요?" },
+    { hyp: "caliper", ask: "압력 피드백 처리 SW가 잘못된 건가요?" },
   ],
 };
 const TEST_CARD: Record<Lv, { name: string; pic: "chip" | "grid" | "monitor" | "car" }> = {

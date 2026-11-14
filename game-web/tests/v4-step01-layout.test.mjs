@@ -358,7 +358,7 @@ test("STEP04 2026-11-12 verifies each hypothesis with its own runs and simplifie
   assert.match(live, /시험 결과가 선택한 고장 원인 가설을 뒷받침합니까\?/);
   assert.doesNotMatch(live, /검증 결과 보고 · \{DRIVER_NAME\}에게/);
   assert.match(live, /설명: \{a\?\.why\}/);
-  assert.match(verificationLab, /VCU 내부 계산 SW가 잘못된 거야\?/);
+  assert.match(verificationLab, /VCU 내부 계산 SW가 잘못된 건가요\?/);
   // materials: STEP02 then STEP03, no "이번 시험 조건" chip, STEP03 normal scenario shown
   assert.ok(live.indexOf("STEP02 고장 재현 로그 열기") < live.indexOf("STEP03 시험 설계서 열기"));
   assert.doesNotMatch(live, /<Icon name="monitor" \/> 이번 시험 조건/);

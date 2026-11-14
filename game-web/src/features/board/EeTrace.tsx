@@ -236,7 +236,13 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const visiblePols = pols.slice(evidencePage * 6, evidencePage * 6 + 6);
   const coach = state.completedCases.length ? "" : phase === "symptom" ? "output" : phase === "trace" ? "measure" : !sectionDone ? "section" : !allSorted ? "sort" : "next";
   const mugStatus = (id: string): keyof typeof STAMP_KO => stamps[id] ?? (measured.includes(id) ? "measured" : "untested");
-  const symptomChoices = data.doms.filter(d => d.zone === "차량");
+  // symptom cards: the felt symptom plus unaffected outputs only (a wrong card must be clearly wrong: reference = this drive).
+  // Which card is right moves from case to case so the position carries no hint.
+  const symptomChoices = (() => {
+    const pool = [start, ...data.doms.filter(d => d.zone === "차량" && d.id !== data.start && d.status !== "bad").slice(0, 2)];
+    const turn = ({ propulsion: 1, thermal: 2, brake: 0 } as Record<string, number>)[caseId] ?? 0;
+    return pool.map((_, i) => pool[(i + turn) % pool.length]);
+  })();
 
   const et3Mission = (phase === "symptom" ? { action: "기준과 다른 출력을 고르기", question: "운전자가 느낀 증상은 어느 출력일까?" }
     : phase === "trace" ? { action: `${dom(focus ?? data.start).label}의 앞 후보를 눌러 측정하고 판단`, question: "이 출력의 이상은 어디에서 시작됐을까?" }

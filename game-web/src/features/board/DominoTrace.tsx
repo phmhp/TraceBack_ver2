@@ -62,6 +62,8 @@ export const CASES: Record<CaseId, CaseData> = {
       { id: "vcu_in", label: "VCU 페달 처리값", img: B("pedal_processed"), zone: "제어기", ref: 60, run: 27, unit: "%", status: "bad", t: 10, causes: ["aps", "brake_sw", "gear", "bms_lim", "temp_lim"], ev: "pedal_processed" },
       // traps: abnormal, but they changed LATER than the domino they are offered for
       { id: "cluster", label: "계기판 출력 게이지", img: CLUSTER, zone: "차량", ref: 60, run: 27, unit: "%", status: "bad", t: 70 },
+      OK("decel_ok", "제동 감속", CAR, "차량", 3.2, "m/s²"),
+      OK("steer_ok", "조향 반응", CAR, "차량", 100, "%"),
       { id: "batt_i", label: "배터리 방전 전류", img: E("bms"), zone: "부품", ref: 180, run: 85, unit: "A", status: "bad", t: 40 },
       { id: "inv_i", label: "인버터 전류", img: E("mcu"), zone: "부품", ref: 310, run: 140, unit: "A", status: "bad", t: 25 },
       OK("aps", "가속 페달 센서", B("pedal_raw"), "센서", 60, "%"),
@@ -96,6 +98,8 @@ export const CASES: Record<CaseId, CaseData> = {
       { id: "coolant", label: "냉각수 온도", img: E("motor_temp_sensor"), zone: "센서", ref: 65, run: 78, unit: "°C", status: "bad", t: 40, causes: ["batt_temp", "coolant_lv", "fan_rpm"], ev: "motor_temp" },
       { id: "fan_rpm", label: "팬 PWM 출력 어댑터", img: B("fan_actual"), zone: "제어기", ref: 100, run: 0, unit: "%", status: "bad", t: 0, causes: ["fan_cmd", "air_temp", "pump"], ev: "fan_actual" },
       { id: "warn_lamp", label: "파워다운 표시등", img: CLUSTER, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 75 },
+      OK("decel_ok", "제동 감속", CAR, "차량", 3.2, "m/s²"),
+      OK("steer_ok", "조향 반응", CAR, "차량", 100, "%"),
       { id: "batt_out", label: "배터리 출력", img: E("bms"), zone: "부품", ref: 160, run: 100, unit: "kW", status: "bad", t: 71 },
       { id: "inv_temp", label: "인버터 온도", img: E("mcu"), zone: "부품", ref: 60, run: 84, unit: "°C", status: "bad", t: 60 },
       { id: "batt_temp", label: "배터리 온도", img: E("bms"), zone: "센서", ref: 30, run: 41, unit: "°C", status: "bad", t: 50 },
@@ -136,6 +140,7 @@ export const CASES: Record<CaseId, CaseData> = {
       OK("bpp", "브레이크 페달", E("brake_pedal"), "센서", 55, "%"),
       { ...OK("regen", "회생 제동", B("regen_request"), "제어기", 22, "%"), ev: "regen_request" },
       OK("road", "노면 마찰", CAR, "차량", 0.8, "μ"),
+      OK("accel_ok", "차량 가속", CAR, "차량", 2.8, "m/s²"),
       OK("fluid", "브레이크액 양", ATLAS(8), "부품", 100, "%"),
     ],
     section: { name: "Brake ECU 계산값→I/O 출력 SW 경계", choices: [
