@@ -105,14 +105,22 @@ export function GameHeader({
 
 /** Shared two-line stage context.  Callers supply only live campaign/scenario data. */
 export function StageFolderSubtitle({ action, detail, className = "", step }: { action: string; detail: ReactNode; className?: string; step?: RoadmapStepId }) {
-  const sub = useSubStep(step ?? "garage");
+  const { index: sub, nav } = useSubStep(step ?? "garage");
   const roadmap = step ? STEP_ROADMAP[step] : null;
   return <section className={`stageFolderSubtitle ${className}`.trim()} aria-label="현재 단계 안내">
     <p>{action}</p>
     {roadmap
       ? <small className="stepRoadmap" aria-label={`${roadmap.no} ${roadmap.alias}, 세부 단계 ${sub + 1}/${roadmap.subs.length}`}>
         <b>{roadmap.no} · {roadmap.alias}</b>
-        <ol>{roadmap.subs.map((label, index) => <li key={label} className={index < sub ? "done" : index === sub ? "now" : ""} aria-current={index === sub ? "step" : undefined}><i>{index < sub ? "✓" : index + 1}</i>{label}</li>)}</ol>
+        <ol>{roadmap.subs.map((label, index) => {
+          const locked = !nav || index > nav.max;
+          const state = index < sub ? "done" : index === sub ? "now" : "";
+          return <li key={label} className={`${state} ${locked ? "locked" : ""}`.trim()}>
+            <button type="button" disabled={locked || index === sub} aria-current={index === sub ? "step" : undefined}
+              title={locked ? "앞 단계를 먼저 끝내세요" : index === sub ? "현재 단계" : `${label}(으)로 이동`}
+              onClick={() => nav?.goTo(index)}><i>{index < sub ? "✓" : locked && index > sub ? "•" : index + 1}</i>{label}</button>
+          </li>;
+        })}</ol>
       </small>
       : <small>{detail}</small>}
   </section>;

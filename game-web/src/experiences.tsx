@@ -8,6 +8,7 @@ import { SCENARIOS } from "./game/scenarios";
 import { GameHeader, JourneyProgress, SceneBackdrop, StageFolderSubtitle } from "./ui/game-shell";
 import { useReportSubStep } from "./ui/stepRoadmap";
 import { PedalLab } from "./features/garage/PedalLab";
+import { MissionBar } from "./ui/MissionBar";
 import { useDevActions } from "./ui/dev/devActions";
 import { HeroConvertible } from "./features/vehicle/HeroConvertible";
 import { DevRenderProbe } from "./features/vehicle/DevRenderProbe";
@@ -725,7 +726,7 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
       {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} selectedIndex={selectedVehiclePart} onSelect={onVehiclePartSelect} />}
       <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={allDomains ? 2.5 : .8} maxDistance={allDomains ? 22 : 10} maxPolarAngle={Math.PI * .49} target={allDomains ? [0, .65, 0] : [0, .55, 0]} />
     </Canvas>
-    <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동{level === 0 && !allDomains ? " · 부품 클릭: 선택 · 더블클릭: 자세히" : ""}</span>
+    <span className="liveBadge"><i /> 드래그 회전 · 휠 확대{level === 0 && !allDomains ? " · 부품 클릭 선택" : ""}</span>
     {level === 0 && <PartInspector />}
     {level === 0 && !allDomains && !noDomain && <div className="flowLegend" aria-label="배선이 전달하는 것"><b>전달하는 것</b>{flowLegend(domain, feature).map(item => <span key={item.flow}><i style={{ background: item.color }} />{item.label}</span>)}</div>}
     {vehicleSelection && <aside className="vehiclePartInfo" aria-live="polite"><small>{vehicleSelection.role === "input" ? "입력·센서" : vehicleSelection.role === "control" ? "제어기(ECU)" : vehicleSelection.role === "network" ? "통신" : vehicleSelection.role === "actuator" ? "액추에이터·부품" : "차량 반응"}</small><b>{vehicleSelection.label}</b>{vehicleSelection.role === "input" && <strong className={inputOn ? "inputActive" : "inputIdle"}>{inputOn ? "입력이 선택됨 · 다음 스텝으로 신호를 관찰하세요" : "길게 눌러 입력을 선택하세요"}</strong>}<span><em>받는 신호</em>{vehicleSelection.input}</span><span><em>보내는 신호</em>{vehicleSelection.output}</span><p>드래그로 카메라를 움직일 때는 선택되지 않아요.</p></aside>}
@@ -932,7 +933,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   // the garage opens on the whole vehicle: every domain side by side, none selected yet
   const [chosen, setChosen] = useState(Boolean(requestedDomain && requestedDomain in domainContent));
   const [pickNotice, setPickNotice] = useState(false);
-  useReportSubStep("garage", chosen ? 1 + Math.min(2, routeLevel) : 0);
+  useReportSubStep("garage", chosen ? 1 + Math.min(2, routeLevel) : 0, { max: chosen ? 3 : 0, goTo: index => { if (index === 0) showAllDomains(); else selectLevel(index - 1); } });
   const setDomain = (id: DomainId) => { setDomainRaw(id); setChosen(true); setPickNotice(false); };
   const showAllDomains = () => { setChosen(false); setPickNotice(false); };
   const [feature, setFeature] = useState(Number.isInteger(requestedFeature) ? Math.max(0, requestedFeature) : 0);
@@ -1039,6 +1040,17 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
     const timer = window.setInterval(() => setActiveStep(value => (value + 1) % flowLength), 1450);
     return () => window.clearInterval(timer);
   }, [domain, feature, routeLevel]);
+  const viewFlowLength = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, garageLayerSource[routeLevel]).length;
+  const GV3_VIEW_NAMES = ["기계 동작", "E/E 신호", "제어 SW"] as const;
+  const GV3_QUESTIONS = ["어떤 부품이 실제로 움직일까?", "입력은 어떤 경로로 전달될까?", "SW는 어떤 조건으로 출력을 정할까?"] as const;
+  const gv3Mission = {
+    question: chosen ? GV3_QUESTIONS[routeLevel] : "어떤 기능을 체험해 볼까?",
+    action: !chosen ? "도메인을 하나 고르세요"
+      : missing.length ? `다음 조작 · ${missing[0].label}`
+        : !inputSelected && !cleared ? `${INPUT_ACTION[domain]} · 길게 누르기`
+          : !cleared ? "‘다음 스텝’으로 신호 따라가기"
+            : "완료 · 다른 관점으로 같은 신호 확인",
+  };
   useDevActions({ label: "STEP01", solve: () => {
     if (!chosen) { setChosen(true); return; }
     setConds(new Set(mission.needs.map(item => item.id))); setInputSelected(true); setActiveStep(flowLength - 1); setCleared(true);
@@ -1053,13 +1065,11 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       { icon: "layers", text: "왼쪽 세 관점으로 같은 기능을 비교하기 (부품 · E/E 연결 · Control SW)" },
       { icon: "signal", text: "입력 부품을 길게 눌러 신호가 한 단계씩 전달되는 과정 보기" },
     ]} />
-    <nav className="garageLayerNav" aria-label="설계 추상화 단계">
-      <small className="viewAxisLabel">같은 기능, 세 관점</small>
-      <div className="garageViewTools">
-        <div className="garageViewContext"><b>{routeLevel === 0 ? "기계 동작 흐름 시각화" : routeLevel === 1 ? "하드웨어·소프트웨어 연결 시각화" : "ECU 내부 SW 로직"}</b><span>{routeLevel === 0 ? "차량 부품의 위치와 작동 경로" : routeLevel === 1 ? "센서·ECU·통신 경로를 확인합니다" : "입력 조건부터 제어 출력까지 확인합니다"}</span></div>
-      </div>
-      {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={`${routeLevel === index ? "active" : ""} ${!chosen && index > 0 ? "needsDomain" : ""}`} title={!chosen && index > 0 ? "도메인을 먼저 고르면 열려요" : ""}>
-        <span>{String(index + 1).padStart(2, "0")}</span><b>{layer.name}</b><small>{!chosen && index > 0 ? "도메인을 고르면 열려요" : layer.tag}</small>
+    <div className="gv3Work">
+    <MissionBar action={gv3Mission.action} question={gv3Mission.question} progress={chosen ? { now: Math.min(activeStep + 1, viewFlowLength), total: viewFlowLength } : undefined} />
+    <nav className="garageLayerNav" aria-label="관점 선택">
+      {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={`${routeLevel === index ? "active" : ""} ${!chosen && index > 0 ? "needsDomain" : ""}`} title={!chosen && index > 0 ? "도메인을 먼저 고르면 열려요" : layer.tag}>
+        <span>{index + 1}</span><b>{GV3_VIEW_NAMES[index]}</b>
       </button>)}
     </nav>
     <main className="garageStudio">
@@ -1133,6 +1143,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         {routeLevel === 1 ? <FlowStepCard chain={chain} signals={flowSignals(domain, feature, chain.length)} step={Math.min(activeStep, chain.length - 1)} onStep={i => { setActiveStep(i); play("pop", 1 + i * .08); }} /> : <div>{(routeLevel === 2 ? [getFeatureLayer(domain, feature, 1)[0], getFeatureLayer(domain, feature, 1).at(-1)!] : getFeatureLayer(domain, feature, garageLayerSource[routeLevel])).map((node, index, flow) => { const step = index ? (routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length - 1 : index) : 0; return <React.Fragment key={`${node}-${index}`}><button onClick={() => inspectStep(index, step)} className={`${index === 0 || index === flow.length - 1 ? "focus" : ""} ${(activeStep === index || routeLevel === 2 && index === 1 && activeStep === getFeatureLayer(domain, feature, 3).length - 1) ? "activeStep" : ""}`}><i>{index + 1}</i><b>{node}</b><span>{index === 0 ? "입력" : index === flow.length - 1 ? "출력" : routeLevel === 0 ? "기능 단계" : "부품·제어기"}</span></button>{index < flow.length - 1 && <em>→</em>}</React.Fragment>; })}</div>}
       </section><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "START_RACE" })}>다음 →</button></div>}
     </main>
+    </div>
   </div>;
 }
 

@@ -1,0 +1,14 @@
+/* Common mission bar: fixed 56px, one line, no wrapping inside words. */
+.missionBar {
+  display: flex; align-items: center; gap: 14px; min-width: 0; height: 56px; box-sizing: border-box; padding: 0 16px;
+  border-radius: 12px; background: #fffdf6; border: 1px solid #dfcfb6; box-shadow: 0 2px 7px #3b2b1c14;
+  word-break: keep-all; overflow-wrap: normal; white-space: nowrap; overflow: hidden;
+}
+.missionTag { flex: none; padding: 4px 9px; border-radius: 6px; background: #9b6b64; color: #fff8f2; font: 800 12px/1 Pretendard, system-ui; letter-spacing: .04em; }
+.missionAction { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 800 18px/1.2 Pretendard, system-ui; color: #4a3430; }
+.missionQuestion { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 600 14px/1.2 Pretendard, system-ui; color: #7a5a53; }
+.missionQuestion em { margin-right: 6px; font: 800 14px/1 Pretendard, system-ui; font-style: normal; color: #b8524b; }
+.missionProgress { flex: none; display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.missionProgress i { width: 18px; height: 6px; border-radius: 3px; background: rgba(155, 107, 100, .22); }
+.missionProgress i.on { background: #9b6b64; }
+.missionProgress small { margin-left: 6px; font: 700 12px/1 Pretendard, system-ui; color: #7a5a53; }
