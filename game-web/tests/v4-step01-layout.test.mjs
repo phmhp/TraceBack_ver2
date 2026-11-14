@@ -210,9 +210,9 @@ test("FB-P1-04 keeps the race HUD in reserved symmetric lanes", () => {
 
 test("FB-P1-05 keeps the design sheet fixed while its text and confirmation stamp print", () => {
   assert.match(refPuzzle, /className="rpBoardZoom rpZoomTools"/);
-  assert.match(refPuzzle, /STEP04 테스트 설계서 · 보기/);
-  assert.match(refPuzzle, /STEP03 → STEP04 · 테스트 설계서/);
-  assert.match(refPuzzle, /설계서 확정/);
+  assert.match(refPuzzle, /시험 설계서 보기/);
+  assert.match(refPuzzle, /시험 설계서 · STEP04로 넘어가는 기준/);
+  assert.match(refPuzzle, /이 기준으로 확정/);
   assert.match(verificationLab, /STEP03 테스트 설계서/);
   assert.match(latestCss, /\.verificationContractModal > article\.specSheet\.receiptPrinting \{ animation: none; transform: none; \}/);
   assert.match(latestCss, /@keyframes specSheetTextPrint/);
@@ -234,7 +234,7 @@ test("K-6 hands an explicit STEP03 experiment contract to STEP04", () => {
     assert.match(verificationContract, new RegExp(field));
   }
   assert.match(refPuzzle, /contractStorageKey/);
-  assert.match(refPuzzle, /STEP03 → STEP04 · 테스트 설계서/);
+  assert.match(refPuzzle, /시험 설계서 · STEP04로 넘어가는 기준/);
   assert.match(verificationLab, /fallbackVerificationContract/);
   assert.match(verificationLab, /STEP03 테스트 설계서/);
 });
@@ -275,7 +275,6 @@ test("M-01 through M-06 keep the whole view, fixed evidence slots, reverse trace
   assert.doesNotMatch(eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3")), /<DominoFall/);
   assert.match(refPuzzle, /rpZoomTools/);
   assert.match(refPuzzle, /rpTrackZoom/);
-  assert.match(refPuzzle, /receiptPrinting/);
   assert.match(latestCss, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\) !important/);
   assert.match(latestCss, /receiptPrint/);
   assert.match(verificationLab, /모니터링/);
@@ -311,8 +310,6 @@ test("STEP02 through STEP04 reserve one bottom-right progression slot", () => {
   assert.match(latestCss, /\.stageProgressAction \{ position: fixed !important;[\s\S]*right: 112px !important;[\s\S]*bottom: 18px !important;[\s\S]*width: 214px !important/);
   assert.match(latestCss, /\.stageProgressAction \{[\s\S]*border: 2px solid #a0281e !important;[\s\S]*background: #fff6f3 !important/);
   assert.match(latestCss, /\.etMugs \{ padding-right: 236px !important; \}/);
-  assert.match(refPuzzle, /className="primary contractCommit"/);
-  assert.doesNotMatch(refPuzzle, /contractCommit stageProgressAction/);
 });
 
 test("latest scenario scope keeps every root cause in software", () => {

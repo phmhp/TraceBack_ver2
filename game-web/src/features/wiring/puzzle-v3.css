@@ -1,0 +1,70 @@
+/* STEP03 v3: mission row, wide puzzle stage, 360px side panel (requirements / test design), 150px dock, next button under the panel. */
+.refPuzzle.v2 .rp3Work {
+  position: absolute !important; left: 16px !important; right: 16px !important; top: 140px !important; bottom: 14px !important;
+  display: grid !important; gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-rows: 56px minmax(0, 1fr) 150px;
+  word-break: keep-all; overflow-wrap: normal;
+}
+.refPuzzle.v2 .rp3Work > .missionBar { grid-column: 1 / -1; grid-row: 1; }
+.refPuzzle.v2 .rp3Work > .rpStage { grid-column: 1; grid-row: 2; position: relative !important; width: auto !important; height: auto !important; margin: 0 !important; min-width: 0; min-height: 0; overflow: hidden; }
+.refPuzzle.v2 .rp3Work > .rpPanel { grid-column: 2; grid-row: 2; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; box-sizing: border-box; overflow: hidden; border-radius: 16px; background: #fffdf5f0; border: 3px solid #e7d3a4; }
+.refPuzzle.v2 .rp3Work > .rpFoot { grid-column: 1; grid-row: 3; position: static !important; width: auto !important; height: auto !important; margin: 0 !important; padding: 8px 12px !important; min-height: 0; display: flex !important; flex-direction: column; gap: 6px; box-sizing: border-box; overflow: hidden; }
+.refPuzzle.v2 .rp3Work > .rpNextCell { grid-column: 2; grid-row: 3; min-height: 0; display: flex; }
+.refPuzzle.v2 .rp3Work .rpNextCell .rpNext { flex: 1; width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; font: 800 18px/1 Pretendard, system-ui !important; white-space: nowrap; }
+
+/* panel */
+.rpPanel > header { flex: none; display: flex; align-items: center; gap: 8px; }
+.rpPanel > header nav { display: flex; gap: 4px; flex: 1 1 0; min-width: 0; }
+.rpPanel > header nav button { flex: 1 1 0; min-height: 30px; white-space: nowrap; font: 800 13px/1 Pretendard, system-ui; border-radius: 10px; border: 2px solid #e0cfa6; background: #fff; cursor: pointer; color: #5a4440; }
+.rpPanel > header nav button.on { background: #9b6b64; border-color: #9b6b64; color: #fff8f2; }
+.rpPanel > header nav button:disabled { opacity: .45; cursor: not-allowed; }
+.rpPanel > header .openBookBtn { flex: none; white-space: nowrap; }
+.rpPanel .rpReq { flex: 1 1 0; min-height: 0; overflow: hidden !important; padding: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; display: flex !important; flex-direction: column; gap: 5px; }
+.rpPanel .rpReq > small { font: 800 12px/1 Pretendard, system-ui; color: #6d4a2a; }
+.rpPanel .rpReq > div { grid-template-columns: 24px 1fr; }
+.rpPanel .rpReq > div span { font: 700 13px/1.35 Pretendard, system-ui !important; }
+.rpPanel .rpWhy { margin: 4px 0 0; font: 600 13px/1.4 Pretendard, system-ui; color: #4a3a36; }
+.rpSheetTab { flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 5px; }
+.rpSheetTab > small { font: 800 12px/1 Pretendard, system-ui; color: #6d4a2a; }
+.rpSheetTab h3 { margin: 0; font: 800 15px/1.25 Pretendard, system-ui; color: #3f302c; }
+.rpSheetTab h4 { margin: 4px 0 0; font: 800 12px/1 Pretendard, system-ui; color: #7a4a44; }
+.rpSheetTab .ssPurpose { margin: 0; display: flex; gap: 6px; font: 600 12px/1.35 Pretendard, system-ui; color: #4a3a36; }
+.rpSheetTab .ssPurpose span { flex: none; color: #8a6a63; white-space: nowrap; }
+.rpSheetTab table { width: 100%; border-collapse: collapse; }
+.rpSheetTab td { padding: 3px 4px; border-bottom: 1px solid rgba(155, 107, 100, .2); font: 600 12px/1.25 Pretendard, system-ui; color: #3f302c; }
+.rpSheetTab td code { font: 800 12px/1 ui-monospace, Menlo, monospace; white-space: nowrap; }
+.rpSheetTab tr.ssInput td { background: rgba(255, 236, 190, .5); }
+
+/* dock */
+.rp3Work .rpFoot .rpMing { flex: none; display: flex; align-items: center; gap: 8px; min-height: 36px; margin: 0 !important; }
+.rp3Work .rpFoot .rpMing img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex: none; }
+.rp3Work .rpFoot .rpMing b { font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; flex: none; }
+.rp3Work .rpFoot .rpMing span { font: 500 13px/1.3 Pretendard, system-ui; color: #4a3a36; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rp3Work .rpFoot .rpDockRow { flex: 1 1 0; min-height: 0; display: flex; align-items: center; gap: 14px; }
+.rp3Work .rpFoot .rpSlider { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 10px; margin: 0; }
+.rp3Work .rpFoot .rpSlider small { white-space: nowrap; font: 700 13px/1 Pretendard, system-ui; }
+.rp3Work .rpFoot .rpSlider input { flex: 1 1 0; min-width: 0; }
+.rp3Work .rpFoot .rpSlider b { white-space: nowrap; font: 800 14px/1 Pretendard, system-ui; min-width: 56px; }
+.rp3Work .rpFoot .rpRun, .rp3Work .rpFoot .rpExpect { flex: none; margin-left: auto; white-space: nowrap; }
+.rp3Work .rpFoot .rpExpect { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+
+/* the ? help button stays clickable on placed pieces */
+.refPuzzle.v2 .rpPiece { overflow: visible; }
+.refPuzzle.v2 .rpPiece .rpHelp { z-index: 6 !important; }
+
+/* piece faces: labels use the full body width, hardware photos never overflow their frame, tag chips stay inside */
+.refPuzzle.v2 .rpPiece .rpLabel { left: 12px; right: 12px; font-size: 12.5px; line-height: 1.15; }
+.refPuzzle.v2 .rpPic.hw { contain: paint; }
+.refPuzzle.v2 .rpPic.hw img { width: auto; height: auto; max-width: 100%; max-height: 100%; }
+.refPuzzle.v2 .rpPic.hw small { font-size: 10px; line-height: 1.2; white-space: nowrap; }
+.refPuzzle.v2 .rpPic.hw small { position: absolute !important; left: 4px; top: 4px; margin: 0; }
+.refPuzzle.v2 .rpPic.hw img { position: absolute; left: 3px; top: 3px; width: calc(100% - 6px); height: calc(100% - 6px); max-width: none; max-height: none; object-fit: contain; }
+/* a filled gap marker sits under its piece; hide it so no invisible button is left behind */
+.refPuzzle.v2 .rpGap.taken { visibility: hidden; pointer-events: none; }
+.refPuzzle.v2 .rpFace { white-space: nowrap; font-size: 10.5px !important; letter-spacing: -.2px; }
+.refPuzzle.v2 .rpTray > span { white-space: nowrap; font-size: 12px; max-width: 100%; overflow: hidden; text-overflow: clip; }
+.refPuzzle.v2 .rp3Work .rpPiece .flowBlock .rpFace { white-space: nowrap !important; font-size: 10.5px !important; max-width: 100%; padding: 1px 3px; letter-spacing: -.2px; }
+.refPuzzle.v2 .rp3Work .rpTray > span { white-space: nowrap !important; width: auto !important; }
+.refPuzzle.v2 .rp3Work .rpPiece .flowBlock .rpFace.tight { font-size: 9.5px !important; letter-spacing: -.45px; padding: 1px 2px; }
+.refPuzzle.v2 .rp3Work .rpPiece .flowBlock .rpFace.tight { white-space: normal !important; line-height: 1.1; text-align: center; letter-spacing: 0; }

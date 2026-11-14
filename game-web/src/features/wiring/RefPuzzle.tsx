@@ -22,6 +22,9 @@ import { PartModel } from "../parts/PartModel";
 import { SCENARIOS, SCENARIO_META } from "../../game/scenarios";
 import { buildVerificationContract, contractSignalLabel, contractStorageKey, type VerificationContract } from "../../game/verificationContract";
 import { ReplayConfirm } from "../../ui/ReplayConfirm";
+import { MissionBar } from "../../ui/MissionBar";
+import { OpenBookButton } from "../../ui/OpenBook";
+import "./puzzle-v3.css";
 
 type Send = React.Dispatch<any>;
 type Blk = { id: string; label: string; kind: Kind | "hw"; ee?: boolean; spec?: string; img?: string; tag?: string; out?: string; bad?: string; why?: string; from: string; does?: string };
@@ -156,7 +159,7 @@ function PieceFace({ b }: { b: Blk }) {
   return <>
     {b.kind === "hw"
       ? <div className={`rpPic hw ${b.ee ? "ee" : ""}`}><img src={b.img} alt="" draggable={false} /><small>{b.ee ? "E/E" : "부품"}</small></div>
-      : <div className={`rpPic sw kind-${b.kind}`}><div className="flowBlock"><Picto kind={b.kind} />{FACE[b.id] ? <small className="rpFace">{FACE[b.id]}</small> : <small>{KIND_TAG[b.kind]}</small>}</div></div>}
+      : <div className={`rpPic sw kind-${b.kind}`}><div className="flowBlock"><Picto kind={b.kind} />{FACE[b.id] ? <small className={`rpFace ${FACE[b.id].length > 11 ? "tight" : ""}`}>{FACE[b.id]}</small> : <small>{KIND_TAG[b.kind]}</small>}</div></div>}
     {b.tag && !FACE[b.id] && <em className="rpTag">{b.tag}</em>}
     <b className="rpLabel">{b.label}</b>
   </>;
@@ -472,11 +475,13 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   useEffect(() => { const key = (e: KeyboardEvent) => { if (["Delete", "Backspace", "Escape"].includes(e.key)) setZoomState(null); }; addEventListener("keydown", key); return () => removeEventListener("keydown", key); }, []);
   const [reaction, setReaction] = useState<"ok" | "weak" | null>(null);
   const [contract, setContract] = useState<VerificationContract | null>(saved.contract ?? null);
-  const [contractOpen, setContractOpen] = useState(false);
+  const [sheetStep, setSheetStep] = useState(Boolean(saved.sheetStep));   // step 3: the test-design draft is open
+  const [panelTab, setPanelTab] = useState<"req" | "sheet">(saved.sheetStep ? "sheet" : "req");
+  const [viewStep, setViewStep] = useState<number | null>(null);          // roadmap chip pointing back; null = follow progress
   const [replayOpen, setReplayOpen] = useState(false);
   const [scale, setScale] = useState(.8);
   const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ref.ecu; } catch { return ref.ecu; } })();
-  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ place, picked, check: check?.status === "running" ? null : check, x, confirmed, msg, contract })); } catch { /* ignore */ } }, [place, picked, check, x, confirmed, msg, contract, progressKey]);
+  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ place, picked, check: check?.status === "running" ? null : check, x, confirmed, msg, contract, sheetStep })); } catch { /* ignore */ } }, [place, picked, check, x, confirmed, msg, contract, sheetStep, progressKey]);
   // the board keeps a 44px toolbar strip (title + 정비소 노트) on top, so the puzzle fits into the space below it
   const fitStage = () => { const r = stage.current?.getBoundingClientRect(); if (r && r.width) setScale(Math.min(r.width / W, (r.height - 44) / H, 1.1)); };
   useLayoutEffect(() => {
@@ -487,11 +492,13 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const pieceAt = (slot: number) => ref.gaps.includes(slot) ? place[slot] : ref.board[slot];
   const filled = ref.gaps.every(g => place[g]);
   const connected = check?.status === "pass";
-  useReportSubStep("puzzle", confirmed ? 4 : connected ? 3 : filled ? 2 : Object.values(place).some(Boolean) ? 1 : 0);
+  const stepNow = confirmed || sheetStep ? 2 : connected ? 1 : 0;
+  useReportSubStep("puzzle", viewStep ?? stepNow, { max: stepNow, goTo: index => { setViewStep(index === stepNow ? null : index); setPanelTab(index === 2 ? "sheet" : "req"); } });
+  useEffect(() => { setViewStep(null); setPanelTab(stepNow === 2 ? "sheet" : "req"); }, [stepNow]);
   const world = (cx: number, cy: number) => { const r = stage.current!.querySelector(".rpWorld")!.getBoundingClientRect(); return { x: (cx - r.left) / scale, y: (cy - r.top) / scale }; };
   const putIn = (id: string, slot: number | null) => {
     setPlace(prev => { const next = { ...prev }; ref.gaps.forEach(g => { if (next[g] === id) next[g] = null; }); if (slot !== null) next[slot] = id; return next; });
-    setCheck(null); setConfirmed(false);
+    setCheck(null); setConfirmed(false); setSheetStep(false); setContract(null);
     if (slot !== null) { setSnapped(id); window.setTimeout(() => setSnapped(null), 260); }
   };
   // snap by piece centre → slot centre, within about one piece width
@@ -547,27 +554,32 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     return { text: ref.blocks[id].out ?? "", bad: false };
   };
 
-  // 3) the player confirms the reference against the requirement
-  const confirm = () => {
-    const wrong = ref.gaps.find(g => place[g] !== ref.board[g]);
-    if (wrong !== undefined) { const b = ref.blocks[place[wrong]!]; showVerdict(false); setReaction("weak"); setMsg(`${spec.input ? `예시 입력을 요구사항 값(${spec.input.at}${spec.input.unit})에 두고 출력을 보세요. ` : ""}${(b.why ?? "요구사항과 다른 칸이 있어요.").replace("실행 결과", "결과가")}`); return; }
-    setConfirmed(true); setReaction(null); showVerdict(true, "기준 확정"); play("success");
+  // 3) the player checks the reference against the requirement, reads the test-design draft, then commits it
+  const hypothesisLabelOf = () => {
     const hypothesisId = state.hypothesis[caseId];
-    const hypothesisLabel = SCENARIO_META[caseId].hypotheses.find(item => item.id === hypothesisId)?.label
+    const label = SCENARIO_META[caseId].hypotheses.find(item => item.id === hypothesisId)?.label
       ?? SCENARIOS[caseId].hypotheses.find(item => item.id === hypothesisId)?.label
       ?? "선택한 원인 후보";
-    const nextContract = buildVerificationContract(caseId, { hypothesisId, hypothesisLabel, suspectSection: section, expectedValue: spec.expect });
-    setContract(nextContract);
-    setContractOpen(true);
-    play("zip"); window.setTimeout(() => play("stamp"), 240);
+    return { hypothesisId, hypothesisLabel: label };
+  };
+  const confirm = () => {
+    const wrong = ref.gaps.find(g => place[g] !== ref.board[g]);
+    if (wrong !== undefined) { const b = ref.blocks[place[wrong]!]; showVerdict(false); setReaction("weak"); setMsg(`${spec.input ? `예시 입력을 요구사항 값(${spec.input.at}${spec.input.unit})에 두고 출력을 보세요. ` : ""}${(b.why ?? "요구사항과 다른 칸이 있어요.").replace(/\s+/g, " ")}`); window.setTimeout(() => setReaction(null), 1800); return; }
+    const draft = buildVerificationContract(caseId, { ...hypothesisLabelOf(), suspectSection: section, expectedValue: spec.expect });
+    setContract(draft); setSheetStep(true); setReaction(null); play("zip");
+    setMsg("요구사항에서 시험 조건과 기대값을 가져왔어요. 설계서를 확인하고 확정하세요.");
+  };
+  const commit = () => {
+    if (!contract) return;
+    setConfirmed(true); showVerdict(true, "기준 확정"); play("success"); window.setTimeout(() => play("stamp"), 240);
     try {
       sessionStorage.setItem(`tb-expect-${caseId}`, spec.expect);
-      sessionStorage.setItem(contractStorageKey(caseId), JSON.stringify(nextContract));
+      sessionStorage.setItem(contractStorageKey(caseId), JSON.stringify(contract));
     } catch { /* ignore */ }
-    setMsg("정상 기준이 정해졌어요. 이 기대값이 검증 단계의 판정 기준(점선)이 돼요.");
+    setMsg("정상 기준이 정해졌어요. 이 기대값이 실험대의 판정 기준(점선)이 돼요.");
   };
   const solve = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, ref.board[g]]))); setCheck(null); setConfirmed(false); setMsg("정답 배치 완료. 연결 확인을 누르세요."); };
-  const reset = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, null]))); setCheck(null); setConfirmed(false); setPicked(null); setContract(null); setContractOpen(false); setX(spec.input?.min ?? 0); setMsg("초기화했어요."); try { sessionStorage.removeItem(contractStorageKey(caseId)); sessionStorage.removeItem(`tb-expect-${caseId}`); sessionStorage.removeItem(`tb-step04-progress-${caseId}`); } catch { /* ignore */ } play("squish"); };
+  const reset = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, null]))); setCheck(null); setConfirmed(false); setPicked(null); setContract(null); setSheetStep(false); setX(spec.input?.min ?? 0); setMsg("초기화했어요."); try { sessionStorage.removeItem(contractStorageKey(caseId)); sessionStorage.removeItem(`tb-expect-${caseId}`); sessionStorage.removeItem(`tb-step04-progress-${caseId}`); } catch { /* ignore */ } play("squish"); };
   // the 설계서 확정 button and the footer button both go straight to STEP04 (no machine-part animation step)
   const goBench = () => { send({ type: "COMPILE", program: ref.program }); send({ type: "OPEN_BENCH" }); };
   const coach = state.completedCases.length ? "" : !filled ? "gaps" : !connected ? "check" : !confirmed ? "confirm" : "next";
@@ -583,6 +595,10 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       <button className="rpHelp" aria-label="블록 설명" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); setZoom(zoom?.b.id === b.id ? null : b, event.currentTarget.parentElement as HTMLElement); }}>?</button>
     </div>;
 
+  const remainingGaps = ref.gaps.filter(g => !place[g]).length;
+  const mission = (viewStep ?? stepNow) === 0 ? { action: !filled ? `빈칸 ${remainingGaps}개에 조각 넣기` : "연결 확인으로 구성 검증하기", question: "정상이라면 어떤 로직이어야 할까?" }
+    : (viewStep ?? stepNow) === 1 ? { action: "예시 입력을 움직여 값을 요구사항과 비교하기", question: "칸마다 나오는 값이 요구사항과 같을까?" }
+      : { action: confirmed ? "설계서 확인 후 다음으로" : "시험 설계서를 확인하고 기준 확정하기", question: "이 기준으로 무엇을 시험할까?" };
   useDevActions({ solve, label: "STEP03" });
   return <div className="refPuzzle v2" data-coach={coach}>
     {reaction && <ActuatorReaction key={reaction} caseId={caseId} ok={reaction === "ok"} />}
@@ -592,15 +608,11 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     <StageFolderSubtitle step="puzzle" className="puzzleStageFolder" action="고장 원인을 구별할 시험 조건과 정상 기준을 완성하세요." detail={<>이전 결과: {section} <i>|</i> 의심 구간: {RIG_GOAL[caseId]}</>} />
     <StageIntro id="puzzle-v2" stage="STEP 03" title="퍼즐" goal="정상 동작 로직을 구성하고 시험 기준 만들기" steps={[
       { icon: "puzzle", text: "요구사항을 읽고 빈칸에 조각을 넣은 뒤 '연결 확인'" },
-      { icon: "monitor", text: "예시 입력을 움직여 칸마다 나오는 값 확인하기" },
-      { icon: "clipboard", text: "요구사항과 같으면 '기준 확정' → 시험 설계서 발급" },
+      { icon: "monitor", text: "예시 입력을 움직여 칸마다 값이 요구사항과 같은지 확인하기" },
+      { icon: "clipboard", text: "시험 설계서를 확인하고 '기준 확정'" },
     ]} />
-    <main className="rpMain">
-      <aside className="rpReq">
-        <small>요구사항 · 정상이면 이렇게</small>
-        {ref.req.map((r, k) => <div key={r.text} className={`${ref.gaps.includes(r.slot) ? "gap" : ""} ${confirmed ? "done" : ""}`}><i>{confirmed ? "✓" : k + 1}</i><span>{numify(r.text)}</span></div>)}
-        <p className="rpWhy"><b>왜 필요한가</b> {WHY[caseId]}</p>
-      </aside>
+    <div className="rp3Work">
+      <MissionBar action={mission.action} question={mission.question} progress={{ now: (viewStep ?? stepNow) + 1, total: 3 }} />
       <section className="rpStage" ref={stage} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setDrag(null)}>
         <div className="rpStageBar" onPointerDown={event => event.stopPropagation()}>
           <nav className="rpLevels" aria-label="이 퍼즐의 아키텍처 수준">{([["시스템", "차량 시스템"], ["E/E 아키텍처", ref.ecu.split(" → ")[0]], ["도메인", ref.domain], ["기능", ref.feature]] as const).map(([level, value], index, all) => <React.Fragment key={level}><span className={index === all.length - 1 ? "on" : ""} aria-current={index === all.length - 1 ? "location" : undefined}><small>{level}</small><b>{value}</b></span>{index < all.length - 1 && <i aria-hidden="true">›</i>}</React.Fragment>)}</nav>
@@ -619,7 +631,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
           </svg>
           <span className={`rpSidePill ${sideLit ? "lit" : ""}`} style={{ left: slotX(ref.side.into) + 82, top: (SIDE_Y + MAIN_Y + PIECE) / 2 - 12 }}>{ref.side.value}</span>
           {ref.side.pieces.map((id, k) => piece(ref.blocks[id], slotX(sideStart + k), SIDE_Y, { locked: true, io: { in: k > 0 ? "square" : undefined, out: k < ref.side.pieces.length - 1 ? "square" : undefined }, cls: "side" }))}
-          {ref.gaps.map(g => <button key={`gap-${g}`} className={`rpGap ${picked ? "ready" : ""} ${hoverGap === g ? "near" : ""}`} style={{ left: slotX(g), top: MAIN_Y }} onClick={() => clickGap(g)}><b>?</b><small>{g + 1}번 칸</small></button>)}
+          {ref.gaps.map(g => <button key={`gap-${g}`} className={`rpGap ${picked ? "ready" : ""} ${hoverGap === g ? "near" : ""} ${place[g] ? "taken" : ""}`} style={{ left: slotX(g), top: MAIN_Y }} onClick={() => clickGap(g)} tabIndex={place[g] ? -1 : 0}><b>?</b><small>{g + 1}번 칸</small></button>)}
           {ref.board.map((id, slot) => ref.gaps.includes(slot) ? null : piece(ref.blocks[id], slotX(slot), MAIN_Y, { io: jointsIo(slot), locked: true }))}
           {ref.spares.map(id => {
             const b = ref.blocks[id], slot = inSlot(id); const dragging = drag?.id === id && drag.moved;
@@ -642,34 +654,43 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
           <p className="rpFromLine">정비소에서 본 곳: {zoom.b.from}</p>
         </div>}
       </section>
-    </main>
-    <footer className="rpFoot">
-      <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(msg)}</p></div>
-      {connected && spec.input && !confirmed && <label className="rpSlider"><small>예시 입력 · {spec.input.label}</small><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label>}
-      {confirmed && <button className="rpExpect" onClick={() => setContractOpen(true)}><small><Icon name="clipboard" /> STEP04 테스트 설계서 · 보기</small><b>{spec.expect}</b></button>}
-      {confirmed ? <button className="rpNext stageProgressAction" onClick={goBench}>다음: 시뮬레이션 검증 →</button>
-        : connected ? <button className="rpRun" onClick={confirm}>요구사항과 같아요 · 기준 확정</button>
-          : <button className="rpRun" disabled={!filled || check?.status === "running"} onClick={startCheck}>{!filled ? `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음` : check?.status === "running" ? "확인 중…" : "연결 확인"}</button>}
-    </footer>
-    {contractOpen && contract && <div className="verificationContractModal" onClick={() => setContractOpen(false)}><article className="receiptPrinting specSheet" onClick={event => event.stopPropagation()} aria-label="테스트 설계서">
-      <button className="contractClose" aria-label="테스트 설계서 닫기" onClick={() => setContractOpen(false)}>×</button>
-      <div className="specSheetPaper">
-        <div className="ssItem" style={{ animationDelay: "0s" }}><small>STEP03 → STEP04 · 테스트 설계서</small><h2>{contract.stimulus.label}</h2><p className="ssPurpose" title={contract.objective}><span>시험 목적</span><b>{SHEET_PURPOSE[caseId]}</b></p></div>
-        <section className="ssItem" style={{ animationDelay: ".28s" }}><h3>요구사항</h3><ul className="ssReq">{spec.lines.map(line => <li key={line}>{line}</li>)}</ul></section>
-        <section className="ssItem" style={{ animationDelay: ".56s" }}><h3>입력 조건</h3>
-          <table><thead><tr><th>신호</th><th>설정값</th><th>단위</th></tr></thead><tbody>
+      <aside className="rpPanel">
+        <header><nav role="tablist" aria-label="요구사항과 설계서">
+          <button role="tab" aria-selected={panelTab === "req"} className={panelTab === "req" ? "on" : ""} onClick={() => setPanelTab("req")}>요구사항</button>
+          <button role="tab" aria-selected={panelTab === "sheet"} className={panelTab === "sheet" ? "on" : ""} disabled={!contract} onClick={() => setPanelTab("sheet")}>설계서</button>
+        </nav><OpenBookButton caseId={caseId} /></header>
+        {panelTab === "req" || !contract ? <div className="rpReq" role="tabpanel" aria-label="요구사항">
+          <small>요구사항 · 정상이면 이렇게</small>
+        {ref.req.map((r, k) => <div key={r.text} className={`${ref.gaps.includes(r.slot) ? "gap" : ""} ${confirmed ? "done" : ""}`}><i>{confirmed ? "✓" : k + 1}</i><span>{numify(r.text)}</span></div>)}
+          <p className="rpWhy"><b>왜 필요한가</b> {WHY[caseId]}</p>
+        </div> : <div className="rpSheetTab" role="tabpanel" aria-label="시험 설계서">
+          <small>시험 설계서 · STEP04로 넘어가는 기준</small>
+          <h3>{contract.stimulus.label}</h3>
+          <p className="ssPurpose"><span>시험 목적</span><b>{SHEET_PURPOSE[caseId]}</b></p>
+          <h4>입력 조건</h4>
+          <table><tbody>
             {contract.execution.initial.map(item => <tr key={item.signalId}><td>{contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code></td><td>{item.unit}</td></tr>)}
             <tr className="ssInput"><td>{contractSignalLabel(contract.execution.stimulus.signalId)} (입력)</td><td><code>{contract.execution.stimulus.startValue} → {contract.execution.stimulus.endValue}</code></td><td>{contract.execution.stimulus.unit}</td></tr>
-            <tr className="ssInput"><td>입력 변화 시간</td><td><code>{contract.execution.stimulus.rampSeconds}</code></td><td>s</td></tr>
-            <tr className="ssInput"><td>입력 유지 시간</td><td><code>{contract.execution.stimulus.holdSeconds}</code></td><td>s</td></tr>
-          </tbody></table></section>
-        <section className="ssItem" style={{ animationDelay: ".84s" }}><h3>예상 출력 조건</h3>
-          <table><thead><tr><th>신호</th><th>기대값</th><th>허용 오차</th><th>단위</th></tr></thead><tbody>
+            <tr className="ssInput"><td>변화 · 유지</td><td><code>{contract.execution.stimulus.rampSeconds} · {contract.execution.stimulus.holdSeconds}</code></td><td>s</td></tr>
+          </tbody></table>
+          <h4>예상 출력 조건</h4>
+          <table><tbody>
             {contract.execution.expectedOutputs.map((item, index) => <tr key={item.signalId}><td>{index === 0 ? contract.expected.signal : contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code></td><td><code>±{item.tolerance}</code></td><td>{item.unit}</td></tr>)}
-          </tbody></table></section>
-        <div className="ssItem ssActions" style={{ animationDelay: "1.1s" }}><button className="primary contractCommit" onClick={goBench}>설계서 확정 · 시뮬레이션 검증으로</button></div>
-      </div>
-    </article></div>}
+          </tbody></table>
+        </div>}
+      </aside>
+      <footer className="rpFoot">
+        <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><b>{ENGINEER}</b><span>{numify(msg)}</span></div>
+        <div className="rpDockRow">
+          {connected && spec.input && !sheetStep && <label className="rpSlider"><small>예시 입력 · {spec.input.label}</small><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label>}
+          {confirmed ? <button className="rpExpect" onClick={() => setPanelTab("sheet")}><small><Icon name="clipboard" /> 시험 설계서 보기</small><b>{spec.expect}</b></button>
+            : sheetStep ? <button className="rpRun" onClick={commit}>이 기준으로 확정</button>
+              : connected ? <button className="rpRun" onClick={confirm}>요구사항과 같아요 · 설계서 작성</button>
+                : <button className="rpRun" disabled={!filled || check?.status === "running"} onClick={startCheck}>{!filled ? `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음` : check?.status === "running" ? "확인 중…" : "연결 확인"}</button>}
+        </div>
+      </footer>
+      <div className="rpNextCell"><button className="rpNext stageProgressAction" disabled={!confirmed} onClick={goBench}>다음 →</button></div>
+    </div>
     {replayOpen && <ReplayConfirm impact="기존 시험 계약과 STEP04의 실행 기록·판정도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); reset(); }} />}
   </div>;
 }
