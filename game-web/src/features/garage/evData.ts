@@ -7,7 +7,7 @@
  * Index order inside a domain is fixed: other screens (open book, puzzle notes, vehicle layout) address
  * functions by index.
  */
-export type DomainId = "drive" | "power" | "charge" | "thermal" | "brake" | "steer" | "suspension" | "gear" | "comm";
+export type DomainId = "drive" | "power" | "charge" | "thermal" | "brake" | "steer" | "suspension" | "gear" | "vcu" | "comm" | "adas";
 export type DomainGroup = "파워트레인" | "섀시" | "차량 제어";
 export type FeatureCategory = "요구 해석" | "제어·배분" | "실행·보호";
 
@@ -27,7 +27,7 @@ export type DomainMeta = {
   features: [Feature, Feature, Feature, Feature];
 };
 
-export const DOMAIN_ORDER: DomainId[] = ["drive", "power", "charge", "thermal", "brake", "steer", "suspension", "gear", "comm"];
+export const DOMAIN_ORDER: DomainId[] = ["drive", "power", "charge", "thermal", "brake", "steer", "suspension", "gear", "vcu", "comm", "adas"];
 export const DOMAIN_GROUPS: DomainGroup[] = ["파워트레인", "섀시", "차량 제어"];
 
 export const EV_DOMAINS: Record<DomainId, DomainMeta> = {
@@ -303,6 +303,40 @@ export const EV_DOMAINS: Record<DomainId, DomainMeta> = {
         ] },
     ],
   },
+  vcu: {
+    label: "차량 통합", group: "차량 제어", accent: "#c06a5a",
+    purpose: "차량 상태를 관리하고 도메인 요구를 중재해 안전한 동작을 결정합니다.",
+    features: [
+      { name: "차량 상태 관리", category: "제어·배분", summary: "시동 요청과 조건을 보고 SLEEP·READY·DRIVE·FAULT 상태를 전환합니다.",
+        layers: [
+          ["시동 요청", "상태 판단", "상태 전이", "주행 가능"],
+          ["START 버튼", "VCU", "CAN 상태", "BMS"],
+          ["WakeupMgr", "VehicleStateMgr", "StateTx"],
+          ["시동 조건 확인", "상태 전이 표", "브레이크 조건", "READY 래치", "SLEEP 타임아웃"],
+        ] },
+      { name: "도메인 요구 중재", category: "제어·배분", summary: "구동·제동·열 요구가 겹칠 때 우선순위를 정해 최종 요구를 확정합니다.",
+        layers: [
+          ["토크 요구", "제동 요구", "우선순위 판단", "최종 요구"],
+          ["APS 가속 페달", "Brake ECU", "VCU", "MCU·인버터 ECU"],
+          ["RequestCollector", "PriorityArbiter", "RequestTx"],
+          ["요구 수신", "우선순위 선택", "충돌 요구 MIN", "램프율", "최종 요구 확정"],
+        ] },
+      { name: "12V 전원 관리", category: "실행·보호", summary: "DC/DC 출력을 조절해 12V 전장품에 안정적으로 전원을 공급합니다.",
+        layers: [
+          ["저전압 감시", "DC/DC 목표", "12V 공급", "전장품 동작"],
+          ["12V 배터리", "DC/DC", "VCU", "LV 부하"],
+          ["LvMonitor", "DcdcController", "LoadShedding"],
+          ["전압 범위 검사", "DCDC 목표 전압 맵", "전류 제한", "저전압 보호 판단", "부하 차단 상태"],
+        ] },
+      { name: "고장 등급·안전 상태", category: "실행·보호", summary: "제어기 고장을 등급으로 나누고 림프홈 같은 안전 상태로 전이합니다.",
+        layers: [
+          ["고장 감지", "등급 판단", "안전 상태 전이", "경고 요청"],
+          ["각 제어기", "CAN 고장 코드", "VCU", "Cluster"],
+          ["FaultCollector", "SeverityClassifier", "SafeStateMgr", "WarningReq"],
+          ["고장 코드 수신", "디바운스", "등급 분류", "림프홈 조건", "안전 상태 래치"],
+        ] },
+    ],
+  },
   comm: {
     label: "통신·진단", group: "차량 제어", accent: "#5f7fa0",
     purpose: "제어기 사이 신호를 전달하고 건전성을 감시하며 진단·원격 업데이트를 처리합니다.",
@@ -337,13 +371,47 @@ export const EV_DOMAINS: Record<DomainId, DomainMeta> = {
         ] },
     ],
   },
+  adas: {
+    label: "운전자 지원·HMI", group: "차량 제어", accent: "#7a6aa0",
+    purpose: "전방을 인지해 감속과 경고를 요청하고 상태를 운전자에게 알립니다.",
+    features: [
+      { name: "전방 인지", category: "요구 해석", summary: "카메라와 레이더 정보를 융합해 앞 물체와 위험 거리를 판단합니다.",
+        layers: [
+          ["전방 물체", "센서 측정", "물체 융합", "위험 판단"],
+          ["전방 카메라", "전방 레이더", "ADAS ECU", "CAN 물체 정보"],
+          ["CameraIf", "RadarIf", "ObjectFusion"],
+          ["신호 타당성 검사", "시간 동기", "객체 연결", "신뢰도 선택", "위험 거리 계산"],
+        ] },
+      { name: "목표 감속·거리 제어", category: "제어·배분", summary: "충돌 시간을 계산해 필요한 목표 감속도를 제동·구동 쪽에 요청합니다.",
+        layers: [
+          ["전방 거리", "충돌 위험", "목표 감속도", "감속 요청"],
+          ["ADAS ECU", "CAN 감속 요청", "Brake ECU", "VCU"],
+          ["TtcCalculator", "DecelPlanner", "RequestTx"],
+          ["충돌 시간 계산", "개입 임계", "목표 감속 맵", "저크 제한", "요청 출력"],
+        ] },
+      { name: "경고·개입 협조", category: "실행·보호", summary: "경고 단계를 올리고 운전자 조작을 확인하며 제동·조향 개입을 중재합니다.",
+        layers: [
+          ["위험 등급", "경고 단계", "제동·조향 중재", "운전자 개입"],
+          ["ADAS ECU", "Brake ECU", "EPS ECU", "Cluster"],
+          ["WarningStage", "InterventionArbiter", "DriverOverride"],
+          ["경고 단계 상태기", "운전자 조작 확인", "개입 우선순위", "개입 종료 조건"],
+        ] },
+      { name: "클러스터 표시·경고등", category: "실행·보호", summary: "수신한 상태를 점등 조건에 따라 계기판과 경고등에 표시합니다.",
+        layers: [
+          ["상태 수신", "표시 조건", "경고등 점등", "운전자 인지"],
+          ["CAN 상태", "Cluster", "경고등 표시"],
+          ["StateRx", "LampLogic", "DisplayDriver"],
+          ["상태 수신 확인", "타임아웃", "점등 조건", "깜빡임 주기", "기본값 처리"],
+        ] },
+    ],
+  },
 };
 
 /** Vehicle-level inputs and outputs shown beside each domain group in the overview architecture. */
 export const OVERVIEW_IO: Record<DomainGroup, { inputs: string[]; outputs: string[] }> = {
   "파워트레인": { inputs: ["가속 페달·시동", "충전 커넥터", "전압·온도 센서"], outputs: ["모터 토크", "팩 충전", "냉각·난방 열"] },
   "섀시": { inputs: ["브레이크·핸들", "휠·IMU·차고 센서", "변속 레버"], outputs: ["제동력", "조향각", "감쇠·차고·파킹 잠금"] },
-  "차량 제어": { inputs: ["진단 장비"], outputs: ["계기판·경고", "고장 기록"] },
+  "차량 제어": { inputs: ["진단 장비", "전방 카메라·레이더"], outputs: ["계기판·경고", "고장 기록"] },
 };
 
 /** Signals one domain sends to another so the whole vehicle behaves consistently. */
@@ -355,4 +423,6 @@ export const COORD_SIGNALS: { name: string; from: DomainId; to: DomainId[]; purp
   { name: "충전 중 구동 금지", from: "charge", to: ["drive"], purpose: "충전기가 연결된 동안 차량이 움직이지 않도록 구동을 막음" },
   { name: "ESC 개입", from: "brake", to: ["steer", "drive"], purpose: "차체 불안정 시 휠 제동과 함께 토크·조향 보조를 조정" },
   { name: "기어 상태", from: "gear", to: ["comm"], purpose: "확정된 PRND 상태를 네트워크로 배포해 계기판과 제어기가 같은 값을 사용" },
+  { name: "안전 상태", from: "vcu", to: ["drive", "brake", "steer"], purpose: "제어기 고장 등급에 따라 출력 제한이나 림프홈으로 전환하도록 알림" },
+  { name: "ADAS 감속 요청", from: "adas", to: ["brake", "drive"], purpose: "충돌 위험 때 목표 감속도를 제동과 구동에 요청" },
 ];

@@ -36,7 +36,7 @@ export type { DomainId };
 
 // "도메인" here follows E/E architecture practice (not an ISO 26262 term): functions grouped by domain controller.
 const DOMAIN_GROUP: Record<DomainId, string> = Object.fromEntries(DOMAIN_ORDER.map(id => [id, EV_DOMAINS[id].group])) as Record<DomainId, string>;
-const DOMAIN_ICON: Record<DomainId, IconName> = { drive: "gear", power: "battery", charge: "bolt", thermal: "thermo", brake: "disc", steer: "wheel", suspension: "spring", gear: "shift", comm: "signal" };
+const DOMAIN_ICON: Record<DomainId, IconName> = { drive: "gear", power: "battery", charge: "bolt", thermal: "thermo", brake: "disc", steer: "wheel", suspension: "spring", gear: "shift", vcu: "chip", comm: "signal", adas: "eye" };
 const SHOW_PULL_TABS = false; // "빼 보기"·"범인 찾기" hidden: they added tabs without a clear task (code kept)
 const SHOW_EE_TABS = false; // E/E "흐름 따라가기/부품 소개" strip: replaced by the node popup (kept for reference)
 const garageAutoTour = false; // the old 1.45 s background tour fought the pause button
@@ -141,6 +141,8 @@ const domainHardware: Record<DomainId, { kinds: HardwareKind[]; labels: string[]
   suspension: { kinds: ["sensor", "ecu", "hydraulic", "rack"], labels: ["차고·가속도 센서", "Chassis ECU", "전자 댐퍼 밸브", "스프링·댐퍼"] },
   charge: { kinds: ["sensor", "ecu", "contactor", "battery"], labels: ["충전 인렛·CP/PP 신호", "EVCC·OBC", "충전 접촉기", "고전압 배터리"] },
   comm: { kinds: ["ecu", "ecu", "ecu", "ecu"], labels: ["송신 제어기", "CAN 버스", "게이트웨이", "수신 제어기"] },
+  vcu: { kinds: ["startbutton", "ecu", "contactor", "battery"], labels: ["START 시동 버튼", "VCU 제어기", "12V·DC/DC", "도메인 제어기들"] },
+  adas: { kinds: ["sensor", "ecu", "ecu", "ecu"], labels: ["전방 카메라·레이더", "ADAS ECU", "Brake ECU", "Cluster 경고등"] },
 };
 
 // Garage/bench label → code-built part model (src/features/parts). Labels without a
@@ -645,6 +647,8 @@ const DOMAIN_SYMPTOM: Record<DomainId, string> = {
   suspension: "승차감이 나빠지고 자세 제어가 약해져요",
   charge: "충전이 시작되지 않거나 중간에 멈춰요",
   comm: "신호가 끊겨 제어기들이 안전 값으로 동작해요",
+  vcu: "READY가 안 되거나 고장 후 림프홈으로 전환돼요",
+  adas: "경고나 자동 감속이 늦거나 불필요하게 걸려요",
 };
 
 function PullOutBubble({ domain, label, role }: { domain: DomainId; label: string; role: PartRole }) {
@@ -1047,8 +1051,10 @@ const INPUT_MISSION: Record<DomainId, { needs: { id: string; label: string; why:
   suspension: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 전자제어 댐퍼가 동작하지 않아요." }] },
   charge: { needs: [{ id: "park", label: "P단 정차", why: "충전 중에는 차량이 움직이지 않도록 P단이어야 해요." }] },
   comm: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 대부분의 제어기 통신이 쉬고 있어요." }] },
+  vcu: { needs: [{ id: "brake", label: "브레이크 밟기", why: "브레이크를 밟은 상태에서 시동 요청이 들어와야 READY로 전환돼요." }] },
+  adas: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 전방 인지와 개입 로직이 동작하지 않아요." }] },
 };
-const INPUT_ACTION: Record<DomainId, string> = { drive: "가속 페달 밟기", brake: "브레이크 밟기", steer: "핸들 돌리기", power: "시동 버튼 누르기", gear: "D단 고르기", thermal: "고속 주행 열 부하", suspension: "요철 지나가기", charge: "충전 커넥터 꽂기", comm: "진단 요청 보내기" };
+const INPUT_ACTION: Record<DomainId, string> = { drive: "가속 페달 밟기", brake: "브레이크 밟기", steer: "핸들 돌리기", power: "시동 버튼 누르기", gear: "D단 고르기", thermal: "고속 주행 열 부하", suspension: "요철 지나가기", charge: "충전 커넥터 꽂기", comm: "진단 요청 보내기", vcu: "시동 버튼 누르기", adas: "앞차에 가까워지기" };
 const NORMAL_RESPONSE: Record<DomainId, string> = {
   drive: "토크 명령이 모터와 전륜까지 전달돼 차량이 가속해요.",
   brake: "회생·마찰 제동 명령이 합쳐져 차량이 안정적으로 감속해요.",
@@ -1059,6 +1065,8 @@ const NORMAL_RESPONSE: Record<DomainId, string> = {
   suspension: "댐퍼 명령과 스프링 변위가 노면 충격을 흡수해 차체를 안정시켜요.",
   charge: "연결과 잠금을 확인하고 협상한 전류로 OBC가 팩을 충전해요.",
   comm: "메시지가 정해진 주기로 전달되고 수신 제어기가 값을 반영해요.",
+  vcu: "시동 조건을 확인해 상태가 전환되고 도메인 요구가 중재돼요.",
+  adas: "전방 물체를 판단해 경고하고 필요하면 감속을 요청해요.",
 };
 const READY_RESPONSE: Record<DomainId, string> = {
   drive: "구동 조건 완료 · 가속 입력을 꾹 누르세요",
@@ -1070,6 +1078,8 @@ const READY_RESPONSE: Record<DomainId, string> = {
   suspension: "현가 제어 준비 완료 · 요철 입력을 꾹 누르세요",
   charge: "충전 조건 완료 · 커넥터 입력을 꾹 누르세요",
   comm: "통신 준비 완료 · 진단 입력을 꾹 누르세요",
+  vcu: "상태 전환 조건 완료 · 시동 입력을 꾹 누르세요",
+  adas: "지원 기능 준비 완료 · 접근 입력을 꾹 누르세요",
 };
 
 function HeistCat3D({ groupRef, coat, role }: { groupRef: React.RefObject<THREE.Group | null>; coat: string; role: "driver" | "engineer" }) {
