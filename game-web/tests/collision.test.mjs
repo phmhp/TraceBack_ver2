@@ -22,3 +22,14 @@ test("speed after impact falls with level and never drops below the other car", 
   assert.ok(speeds[0] > speeds[1] && speeds[1] > speeds[2]);
   assert.ok(speedAfterImpact(30, 25, impactEffect(5)) >= 25 * .6);
 });
+
+test("traffic: 13 cars, a slow same-direction platoon (jam) and extra oncoming cars", async () => {
+  const { TRAFFIC_COUNT, trafficStateFor } = await import("../src/game/traffic.ts");
+  assert.equal(TRAFFIC_COUNT, 13);
+  const cars = Array.from({ length: TRAFFIC_COUNT }, (_, i) => trafficStateFor({ elapsed: 20 }, i));
+  const platoon = cars.slice(7, 10);
+  assert.ok(platoon.every(c => !c.opposite && c.speedKph < 35), "jam cars are slow and same direction");
+  assert.ok(Math.max(...platoon.map(c => c.distance)) - Math.min(...platoon.map(c => c.distance)) < 60, "platoon stays together");
+  assert.ok(cars.slice(10).every(c => c.opposite), "extra oncoming cars");
+  assert.ok(cars.every(c => c.distance >= 0 && c.distance < 1380));
+});

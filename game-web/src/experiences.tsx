@@ -25,7 +25,7 @@ import { DRIVER, DUO, ENGINEER } from "./game/cast";
 import { Icon, type IconName } from "./ui/Icon";
 import { ArchitectureOverview } from "./features/garage/ArchitectureOverview";
 import { DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainId } from "./features/garage/evData";
-import { CAR_CONTACT, TRACK_LENGTH, resetTrafficStall, stallTraffic, trafficHitVisual, trafficStateFor } from "./game/traffic";
+import { CAR_CONTACT, TRACK_LENGTH, TRAFFIC_COUNT, resetTrafficStall, stallTraffic, trafficHitVisual, trafficStateFor } from "./game/traffic";
 import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
 import { CYCLE_JUNCTIONS, zonesAt, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
 import { DEMO_FAULTS, policeSpeedKph, secondsToCatch, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
@@ -1392,8 +1392,8 @@ function TrafficFleet({ sim }: { sim: DriveSim }) {
       }
     });
   });
-  return <>{Array.from({ length: 7 }, (_, index) => <group key={index} ref={element => { if (element) cars.current[index] = element; }} scale={.94}>
-    <CivilianCar color={trafficPalette[index]} spin={sim.distance*.09} />
+  return <>{Array.from({ length: TRAFFIC_COUNT }, (_, index) => <group key={index} ref={element => { if (element) cars.current[index] = element; }} scale={.94}>
+    <CivilianCar color={trafficPalette[index % trafficPalette.length]} spin={sim.distance*.09} />
   </group>)}</>;
 }
 
@@ -1836,7 +1836,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
           speed = THREE.MathUtils.damp(speed, 0, 8.5, dt);
         }
         const playerRoadLane = 3.35 + lane;
-        const trafficHit = dockApproach ? undefined : Array.from({ length: 7 }, (_, index) => trafficStateFor(previous, index)).find(traffic => !traffic.opposite && Math.abs(traffic.distance - distance) < CAR_CONTACT.longitudinal && Math.abs(traffic.lane - playerRoadLane) < CAR_CONTACT.lateral);
+        const trafficHit = dockApproach ? undefined : Array.from({ length: TRAFFIC_COUNT }, (_, index) => trafficStateFor(previous, index)).find(traffic => !traffic.opposite && Math.abs(traffic.distance - distance) < CAR_CONTACT.longitudinal && Math.abs(traffic.lane - playerRoadLane) < CAR_CONTACT.lateral);
         if (trafficHit) {
           // both cars hesitate once per contact: the player loses about a third of its speed (never below the other car)
           // and the hit car slows for 0.7 s; while the bodies still overlap they are only pushed apart
@@ -1961,7 +1961,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     if (countdown > 0 || mode === "ship" || mode === "assist" || introOpen) return null;
     const ownLane = 3.35 + sim.lane;
     if (sim.rear != null && sim.rear < 45) return { kind: "rear", title: "뒤차 접근", text: `${Math.round(sim.rear)}m 뒤 · 정차 중이면 바로 출발하세요` };
-    for (let index = 0; index < 7; index++) {
+    for (let index = 0; index < TRAFFIC_COUNT; index++) {
       const traffic = trafficStateFor(sim, index);
       const ahead = traffic.distance - sim.distance;
       if (!traffic.opposite && ahead > 3 && ahead < 70 && Math.abs(traffic.lane - ownLane) < 3 && leadBraking(index, sim.elapsed)) return { kind: "lead", title: "앞차 급제동", text: `${Math.round(ahead)}m 앞 · 속도를 줄이고 차간 거리를 확보하세요` };
