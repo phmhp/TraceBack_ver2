@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "test": "NODE_OPTIONS=--import=tsx node --test tests/*.test.mjs",
     "prompts": "node scripts/build-image-prompts.mjs",
-    "assets:check": "node scripts/check-assets.mjs"
+    "assets:check": "node scripts/check-assets.mjs",
+    "crosscheck": "node --import=tsx scripts/build-crosscheck.mjs"
   },
   "dependencies": {
     "@react-three/drei": "latest",
