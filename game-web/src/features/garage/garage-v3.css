@@ -172,10 +172,12 @@
 .archView .archGroupCard.g-2 { background: rgba(252, 238, 230, .9); border-color: #d08f78; }
 .archView .archGroupCard h3 { margin: 0; font: 800 24px/1.1 Pretendard, system-ui; color: #3f302c; }
 .archView .archGroupCard .agIo { font: 600 14px/1.4 Pretendard, system-ui; color: #4a3a36; }
+.archView .archGroupCard .agPurpose { margin: -2px 0 2px; color: #6f5049; font: 700 14px/1.35 Pretendard, system-ui; }
 .archView .archGroupCard .agIo i { font-style: normal; font-weight: 800; color: #8a5a52; margin-right: 8px; }
 .archView .archGroupCard .agDomains { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
 .archView .archGroupCard .agDomains em { font-style: normal; display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; background: rgba(255, 255, 255, .85); border: 1px solid rgba(155, 107, 100, .35); font: 700 14px/1 Pretendard, system-ui; color: #3f302c; white-space: nowrap; }
 .archView .archGroupCard small { font: 700 13px/1 Pretendard, system-ui; color: #8a5a52; }
+.archView .archGroupRole { margin: 4px 0 12px; color: #6f5049; font: 700 14px/1.35 Pretendard, system-ui; }
 .archView .archCrumb { flex: none; display: flex; align-items: center; gap: 8px; }
 .archView .archCrumb button { all: unset; box-sizing: border-box; padding: 6px 12px; border-radius: 999px; background: rgba(155, 107, 100, .12); color: #5a4440; font: 700 13px/1 Pretendard, system-ui; cursor: pointer; white-space: nowrap; }
 .archView .archCrumb button.on { background: #9b6b64; color: #fff8f2; }

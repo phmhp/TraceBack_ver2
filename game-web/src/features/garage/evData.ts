@@ -414,6 +414,13 @@ export const OVERVIEW_IO: Record<DomainGroup, { inputs: string[]; outputs: strin
   "차량 제어": { inputs: ["진단 장비", "전방 카메라·레이더"], outputs: ["계기판·경고", "고장 기록"] },
 };
 
+/** One-line reason for the three overview groups; shown before the player drills into domains. */
+export const GROUP_ROLE: Record<DomainGroup, string> = {
+  "파워트레인": "에너지를 토크로 바꾸고 열을 관리해 차를 움직입니다.",
+  "섀시": "타이어의 힘과 차체 자세를 조절해 멈추고 방향을 바꿉니다.",
+  "차량 제어": "각 도메인을 조정하고 운전자에게 상태와 경고를 알립니다.",
+};
+
 /** Signals one domain sends to another so the whole vehicle behaves consistently. */
 export const COORD_SIGNALS: { name: string; from: DomainId; to: DomainId[]; purpose: string }[] = [
   { name: "방전·회생 한계", from: "power", to: ["drive", "brake"], purpose: "배터리가 낼 수 있는 출력과 받을 수 있는 회생 전력의 상한" },

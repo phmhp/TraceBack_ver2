@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { Icon, type IconName } from "../../ui/Icon";
-import { COORD_SIGNALS, DOMAIN_GROUPS, DOMAIN_ORDER, EV_DOMAINS, OVERVIEW_IO, type DomainGroup, type DomainId } from "./evData";
+import { COORD_SIGNALS, DOMAIN_GROUPS, DOMAIN_ORDER, EV_DOMAINS, GROUP_ROLE, OVERVIEW_IO, type DomainGroup, type DomainId } from "./evData";
 
 type Line = { key: string; d: string };
 
@@ -49,6 +49,7 @@ export function ArchitectureOverview({ icons, onPick, onShow3d }: { icons: Recor
       const io = OVERVIEW_IO[group];
       return <button key={group} className={`archGroupCard g-${gi}`} onClick={() => pickGroup(group)}>
         <h3>{group}</h3>
+        <p className="agPurpose">{GROUP_ROLE[group]}</p>
         <span className="agIo"><i>입력</i>{io.inputs.join(" · ")}</span>
         <span className="agIo"><i>출력</i>{io.outputs.join(" · ")}</span>
         <span className="agDomains">{ids.map(id => <em key={id}><Icon name={icons[id]} />{EV_DOMAINS[id].label}</em>)}</span>
@@ -69,6 +70,7 @@ export function ArchitectureOverview({ icons, onPick, onShow3d }: { icons: Recor
           <i className="archArrow" aria-hidden="true" />
           <section className={`archGroup g-${DOMAIN_GROUPS.indexOf(group)}`} aria-label={group}>
             <h3>{group}</h3>
+            <p className="archGroupRole">{GROUP_ROLE[group]}</p>
             <div className="archDomains">{ids.map(id => <button key={id} ref={element => { buttons.current[id] = element; }} className={involved.has(id) ? (active?.from === id ? "from" : "to") : ""} style={{ "--domain": EV_DOMAINS[id].accent } as React.CSSProperties} onClick={() => onPick(id)}>
               <span><Icon name={icons[id]} /></span><b>{EV_DOMAINS[id].label}</b><small>기능 {EV_DOMAINS[id].features.length}개</small>
             </button>)}</div>

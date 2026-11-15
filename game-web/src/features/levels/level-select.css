@@ -26,6 +26,7 @@
 .lvCard h2 { margin: 0; font: 800 22px/1.2 Pretendard, system-ui; color: #3f302c; }
 .lvEpisodeArt { position: relative; flex: 0 0 142px; min-height: 0; margin: 0; overflow: hidden; border-radius: 12px; border: 2px solid #e7d3a4; background: #eee4d6; }
 .lvEpisodeArt img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.lvEpisodeArt img.lvEpisodeCat { position: absolute; z-index: 1; right: 10px; bottom: 34px; width: 54px; height: 54px; object-fit: cover; border: 3px solid #fff8f2; border-radius: 50%; box-shadow: 0 3px 8px rgba(39, 25, 20, .28); }
 .lvEpisodeArt::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 38%, rgba(39, 25, 20, .72)); pointer-events: none; }
 .lvEpisodeArt figcaption { position: absolute; z-index: 1; left: 10px; right: 10px; bottom: 9px; display: grid; gap: 3px; color: #fffaf5; }
 .lvEpisodeArt figcaption b { font: 800 11px/1 Pretendard, system-ui; letter-spacing: .06em; color: #ffd9c9; }

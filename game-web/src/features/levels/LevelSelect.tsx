@@ -66,7 +66,7 @@ function LevelCard({ def, status, stars }: { def: LevelDef; status: "cleared" | 
   return <div className="lvCard">
     <small>{def.kind === "bonus" ? "선택 레벨" : def.kind === "finale" ? "마지막 레벨" : `${def.level}레벨`} · {def.domainLabel}</small>
     <h2>{def.title}</h2>
-    <figure className="lvEpisodeArt"><img src={art.image} alt={art.alt} /><figcaption><b>EPISODE {def.level}</b><span>{art.caption}</span></figcaption></figure>
+    <figure className="lvEpisodeArt"><img src={art.image} alt={art.alt} />{def.caseId && <img className="lvEpisodeCat" src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />}<figcaption><b>EPISODE {def.level}</b><span>{art.caption}</span></figcaption></figure>
     <p className="lvTeaser">{status === "locked" ? "아직 잠겨 있어요." : def.teaser}</p>
     <dl>
       <div><dt>시점</dt><dd>{status === "locked" ? "?" : def.phase}</dd></div>

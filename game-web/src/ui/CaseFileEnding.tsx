@@ -302,7 +302,7 @@ function AnalysisReport({ state, id }: { state: Campaign; id: CaseId }) {
       <div><dt>STEP02 역추적</dt><dd>{trace?.chain?.length ? trace.chain.join(" ← ") : "이 세션에 역추적 경로 기록이 남아 있지 않음"}</dd></div>
       <div><dt>STEP03 시험 계약</dt><dd>{contract ? `${contract.objective} · ${contract.stimulus.sequence} · 기대 ${contract.expected.value}` : "이 세션에 시험 계약 기록이 남아 있지 않음"}</dd></div>
       <div><dt>STEP04 비교·가설 판단</dt><dd>{testResult}<br />{judgement}</dd></div>
-      <div><dt>수리·재시험·주행 복귀</dt><dd>{scenario.repair} · 완료 상태에서 동일 조건 재시험·회귀 후 주행 복귀</dd></div>
+      <div><dt>수리 적용·주행 복귀</dt><dd>{scenario.repair} · 원인 제거 확인을 마친 뒤 주행 복귀</dd></div>
       <div><dt>유사 고장 접근</dt><dd>증상에서 출력 방향으로 측정값을 거슬러 최초 편차를 찾고, 같은 입력의 정상/사건 SW 시험으로 경쟁 가설을 구분한 뒤 수리 후 같은 조건으로 다시 확인</dd></div>
     </dl>
   </details>;
@@ -335,7 +335,7 @@ function reportItems(state: Campaign, id: CaseId): { title: string; lead: string
       { label: "STEP02 역추적", value: trace?.chain?.length ? trace.chain.join(" ← ") : "이 세션에 역추적 경로 기록이 남아 있지 않음" },
       { label: "STEP03 테스트 설계서", value: contract ? `${contract.objective} · ${contract.stimulus.sequence} · 기대 ${contract.expected.value}` : "이 세션에 테스트 설계서 기록이 남아 있지 않음" },
       { label: "STEP04 검증·가설", value: `${verdict} / ${judgement}` },
-      { label: "SW 수정·재시험", value: solved ? `${scenario.repair} · 완료 상태 기록됨` : "수리·동일 조건 재시험 완료 기록이 남아 있지 않음" },
+      { label: "SW 수정·검증 완료", value: solved ? `${scenario.repair} · 원인 제거 확인 기록됨` : "수리·원인 제거 확인 기록이 남아 있지 않음" },
     ],
   };
 }

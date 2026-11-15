@@ -1849,7 +1849,8 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   // STEP02 "먼저 시험할 가설" opens first; every hypothesis is still tested and judged before the report.
   const [qi, setQi] = useState<number>(savedProgress.qi ?? Math.max(0, questions.findIndex(item => item.hyp === state.hypothesis[caseId])));
   // Start with the driver's question and one decision, rather than presenting a dense lab console.
-  const [phase, setPhase] = useState<"pick" | "lab" | "report" | "ab" | "repair" | "retest" | "done">(savedProgress.phase ?? "pick");
+  const savedPhase = savedProgress.phase === "retest" || savedProgress.phase === "repair" ? (savedProgress.abDone ? "done" : "ab") : savedProgress.phase;
+  const [phase, setPhase] = useState<"pick" | "lab" | "report" | "ab" | "done">(savedPhase ?? "pick");
   // 3 sub-steps (2026-11-15): 시험 설계(pick) / 실행·판정(lab) / 원인 제거 확인(report+ab); the repair is applied straight after the cause removal check
   const stepIdx = phase === "pick" ? 0 : phase === "lab" ? 1 : 2;
   const [maxStep, setMaxStep] = useState<number>(savedProgress.maxStep ?? stepIdx);
@@ -1888,7 +1889,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [help, setHelp] = useState(false);
   const [runLog, setRunLog] = useState<{ level: Lv; verdict: Verdict; fixed: boolean; q: number; input: string; hyp?: string }[]>(savedProgress.runLog ?? []);
   const q = questions[qi];
-  const fixed = phase === "retest" || phase === "done";
+  const fixed = phase === "done";
   // results are kept per test level: switching levels never hides or deletes another level's result
   const lastRun: BenchRun | null = runs[runKey(fixed, level, q?.hyp)] ?? null;
   // the player chooses the input condition of the test (same input goes to the normal and the fault model)
@@ -1922,9 +1923,9 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const fmtV = (sig: Series, v: number) => `${v.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}`;
   const word = (sig: Series) => { const d = divergeIndex(sig); if (d === null) return "같음"; return sig.run[d] > sig.ref[d] ? "높음" : "낮음"; };
   const shown = Boolean(lastRun && !running);
-  useEffect(() => { setPanelTab(phase === "pick" ? "mat" : phase === "report" || phase === "repair" || phase === "ab" ? "result" : shown ? "result" : "cond"); }, [phase, shown]);
-  const roadmapStep = phase === "pick" ? 0 : phase === "lab" ? (shown || running ? 2 : 1) : phase === "report" || phase === "ab" || phase === "repair" ? 3 : 4;
-  const sameConditionCompare = phase === "retest" || phase === "done";
+  useEffect(() => { setPanelTab(phase === "pick" ? "mat" : phase === "report" || phase === "ab" ? "result" : shown ? "result" : "cond"); }, [phase, shown]);
+  const roadmapStep = phase === "pick" ? 0 : phase === "lab" ? (shown || running ? 2 : 1) : phase === "report" || phase === "ab" ? 3 : 4;
+  const sameConditionCompare = false;
   const inNormalRange = (sig: Series) => fixed && shown && word(sig) === "같음";
   const hypothesisGoal = hypDef?.label ?? q?.ask ?? "수리 후 정상 범위 확인";
   const needsInputPick = CASE_DERIVS[caseId].length > 1 && !pickedDeriv;
@@ -1961,13 +1962,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               ? "가설 판정을 모두 마쳤어요. 보고서의 판정과 근거를 보고, 원인 유형·발생 위치까지 맞는 최종 고장 원인을 고르세요."
               : phase === "ab"
                 ? (abDone ? (causeOk ? "원인을 제거한 모델이 정상 모델과 같아졌어요. 이 원인을 없애는 수리 방법을 고르세요." : "원인을 제거해도 정상 모델과 달라요. 최종 원인을 다시 고르세요.") : "왼쪽은 정상 모델, 오른쪽은 고른 원인을 제거한 모델이에요. 같은 조건으로 동시에 실행해 비교하세요.")
-              : phase === "repair"
-                ? "확정한 원인을 실제로 없애는 수리 방법을 고르세요. 증상만 가리는 조치는 다른 조건에서 문제를 만들어요."
-              : phase === "retest" && !shown
-                ? "수리한 SW로 같은 초기 조건·입력을 다시 실행해서 정상 기준선과 비교하세요. ‘동일 조건 기준선 비교 실행’을 누르세요."
-                : phase === "retest"
-                  ? "아직 정상 범위를 벗어난 신호가 있어요. 오른쪽 표의 ‘미충족’ 신호를 확인하고 다시 실행하세요."
-                  : "정상 범위를 확인했어요. ‘수리 적용 · 주행 복귀’를 눌러 주행으로 돌아가세요.";
+              : "정상 범위를 확인했어요. ‘수리 적용 · 주행 복귀’를 눌러 주행으로 돌아가세요.";
   // Why the question counter exists: one candidate hypothesis per question.
   const questionWhy = `이 사건의 후보 가설은 ${questions.length}개예요. 가설마다 시험 한 번으로 답하므로 ${qi + 1}/${questions.length}은 ‘${questions.length}개 중 ${qi + 1}번째 가설’이라는 뜻이에요.`;
   const nextReason = answeredHypotheses >= questions.length
@@ -2112,7 +2107,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     // The repair check keeps the selected contract input and initial state, then
     // uses the vehicle-level record so signal, controller output, and response share one comparison table.
     const compareLevel: Lv = "vehicle";
-    window.setTimeout(() => { setLevel(compareLevel); setViewTab("plant"); setU(0); setPhase("retest"); setBubble("같은 초기 조건과 입력으로 정상 기준선·수정 후 신호·제어 출력·차량 반응을 비교하세요."); }, 800);
+    window.setTimeout(() => { setLevel(compareLevel); setViewTab("plant"); setU(0); setPhase("done"); setBubble("원인 제거 확인을 마쳤어요. 수리 적용 후 주행으로 돌아가세요."); }, 800);
   };
   const trueHypothesis = meta.hypotheses.find(item => item.truth)?.id;
   // the cause is "found" when the true hypothesis was judged 원인으로 보여요 (no other hypothesis may be judged that way)
@@ -2235,7 +2230,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               <p className="qaSetupNote"><b>실행 시간</b>{numify(`${abSim.seconds} ${abSim.timeUnit} · 동일 시간축`)}</p>
             </aside>
  : <aside className="qaSetupPanel" aria-label="시험 계약 조건">
-              <header><small>01 · 시험 계약</small><b>{contract.stimulus.label}</b><span>{phase === "lab" ? `현재 확인: ${hypothesisGoal}` : "수리 후 동일 조건 재시험"}</span></header>
+              <header><small>01 · 시험 계약</small><b>{contract.stimulus.label}</b><span>{phase === "lab" ? `현재 확인: ${hypothesisGoal}` : "원인 제거 확인 후 수리 적용"}</span></header>
               <section className="qaConditionBlock">
                 <h3>초기 상태</h3>
                 <table><thead><tr><th>신호</th><th>설정값</th><th>단위</th></tr></thead><tbody>{initialConditionRows.map(item => <tr key={item.label}><td>{item.label}</td><td><code>{item.value}</code></td><td>{item.unit}</td></tr>)}</tbody></table>
@@ -2255,7 +2250,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
                 : <section className="qaResultBlock abResult">{(() => { const assessment = abDone ? assessContractRun(activeContract, "vehicle", abSim.levels.vehicle) : null; return <>
                   <div className={`qaResultState ${assessment ? (causeOk ? "pass" : "fail") : "pending"}`}><b>{assessment ? causeOk ? "원인 제거 모델 = 정상 모델" : "원인 제거 모델 ≠ 정상 모델" : "동시 실행 전"}</b><span>{assessment ? `요구사항(시험 설계서) 판정: ${VERDICT_KO[assessment.verdict]} (${assessment.verdict})` : "두 모델을 같은 조건으로 실행하면 결과가 표시돼요."}</span></div>
                   <table className="qaTable"><thead><tr><th>신호</th><th>정상 기준</th><th>원인 제거 후</th><th>전 구간 최대 차이</th></tr></thead><tbody>{abSim.levels.vehicle.map(sig => { const i = sig.ref.length - 1, d = sig.run.reduce((m, v, k) => Math.abs(v - sig.ref[k]) > Math.abs(m) ? v - sig.ref[k] : m, 0), same = Math.abs(d) <= sig.max * .02; return <tr key={sig.id}><td>{sig.name}</td><td><code>{fmtV(sig, sig.ref[i])}</code></td><td>{abDone ? <code>{fmtV(sig, sig.run[i])}</code> : "—"}</td><td>{abDone ? <b className={`qaW ${same ? "w-같음" : "w-낮음"}`}>{same ? "일치" : `${d > 0 ? "+" : ""}${d.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}`}</b> : "—"}</td></tr>; })}</tbody></table>
-                  <p className="qaVerdictNote">차량 수준 전 신호를 전 시간 구간에서 비교해, 원인 제거 외에 달라진 동작이 없는지(회귀) 확인해요. 실제 수리 효과는 수리 뒤 재시험에서 따로 확인해요.</p>
+                  <p className="qaVerdictNote">차량 수준 전 신호를 전 시간 구간에서 비교해, 원인 제거 외에 달라진 동작이 없는지 함께 확인해요.</p>
                 </>; })()}</section>}
             </aside>
  : <aside className="qaPanel qaObservePanel" aria-label="관찰 결과와 가설 판정">
