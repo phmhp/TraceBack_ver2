@@ -11,6 +11,7 @@
 - [ ] C04 변속 폴백 사건 이미지 (지금은 임시 이미지로 대체해 둔 상태 — 만들면 교체)
   - 증거 사진 3장: `motor_reverse_log`(후진 토크 로그), `dtc_gear_timeout`(통신 타임아웃 진단 코드), `bus_load_scope`(버스 부하 85 % 화면). 프롬프트는 `image-prompts/12-case-evidence.md`
   - 부품 사진 3장(`public/assets/ending-thumbs/`): `gear_selector.png` 변속 레버·시프터(지금 `accel_pedal.png` 임시), `gateway.png` 게이트웨이(지금 `can_harness.png` 임시), `cluster.png` 계기판 변속 표시(지금 `diagnostic_port.png` 임시). 교체 위치: `src/features/wiring/RefPuzzle.tsx`(REF.gear), `src/features/verification/VerificationLab.tsx`(CAUSES.gear), `src/features/board/DominoTrace.tsx`(gear 도미노 이미지)
+- [ ] C06 저온 회생 한계 사건 이미지 (임시: 기존 썸네일) — 증거 3장 `cold_decel_log`, `regen_limit_compare`, `battery_temp_view`(프롬프트 `image-prompts/12-case-evidence.md`). 부품은 `bms`, `brake_ecu`, `can_harness`, `traction_motor`, `motor_temp_sensor`, `brake_caliper` 기존 썸네일로 대체 중
 - [ ] (나중) 고양이 표정 세트 — 볼트·너트 각 4~6종(평온, 집중, 놀람, 안도, 기쁨, 실망). 레이싱 개편 승인 뒤 프롬프트를 드립니다
 
 ## B. 사건 시트 교차 확인 (GPT)
@@ -64,5 +65,5 @@
 - 완료·커밋: 도미노 개편, 실험대 3단계, 정비소 3영역 공개, 퍼즐 안내(Directive)·폴더 설계서, 규칙 R18~R23, 새 사건 C04 변속 폴백(6레벨, 신호 경로 선택 퍼즐 1차), 레벨별 해적선 엔딩 흐름.
 - 사용자 확인 필요: (1) 수리 후 1700 m 주행 → 엔딩 → 다음 레벨을 직접 플레이해 보기(특히 2레벨 열관리 고장까지 주행 시간), (2) C04 레이스에서 정차 후 D로 바꾸고 0.8초 안에 가속했을 때 후진 느낌, (3) 신호 경로 화면 모양.
 - 사용자 제작 이미지: 변속 레버·게이트웨이 부품 사진(임시: accel_pedal/can_harness/diagnostic_port), 증거 3장 `motor_reverse_log`, `dtc_gear_timeout`, `bus_load_scope`(프롬프트는 `docs/image-prompts/12-case-evidence.md`).
-- 완료: 상태 전이도 채우기 유형(C01에 적용). 도메인 수준 사건 시트 초안 작성됨: `docs/fault-cases/c06_cold_regen_limit.md`(승인 대기 — 승인하면 C04처럼 구현).
+- 완료: 상태 전이도 채우기 유형(C01에 적용). 도메인 수준 사건 C06(`cold`, 7레벨) 구현 완료. 사용자 확인: 7레벨 저온 구간(처음 700 m)에서 40 km/h 이상으로 달리다 페달을 떼 감속이 센 느낌.
 - 진행 로그: `docs/IN_PROGRESS_LOG.md`.

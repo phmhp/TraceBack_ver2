@@ -22,7 +22,7 @@
 
 ## C06 `cold` 구현 진행 (사용자 승인 2026-11-15, 자리 비움 중 7시까지 자율 진행)
 - 시트 `docs/fault-cases/c06_cold_regen_limit.md`. 레벨 7(선택), 마지막 탈출은 8로 이동. 절차는 C04(`gear`)와 동일: CaseId 추가 → tsc 표 채우기 → EeTrace 문자열 표 → main.tsx QA 허용 목록/DevMenu → 레벨·runtime·레이스 고장 → 테스트.
-- 진행: [x] sim/scenarios [x] contract+VerificationLab [x] RefPuzzle/Domino/Ending/OpenBook/EeTrace [x] levels(7레벨, finale 8)/runtime/faultSchedule(COLD_FAULT, regenScale)/experiences [x] tests/cold-case.test.mjs(147 통과) [ ] 브라우저 검증(STEP02~04, 허브 7노드) [ ] 문서 마무리
+- 진행: [x] sim/scenarios [x] contract+VerificationLab [x] RefPuzzle/Domino/Ending/OpenBook/EeTrace [x] levels(7레벨, finale 8)/runtime/faultSchedule(COLD_FAULT, regenScale)/experiences [x] tests/cold-case.test.mjs(147 통과) [x] 브라우저 검증(STEP02~04 수리 장면까지, 허브 7노드) [x] 문서 마무리. C06 완료.
 - 임시 이미지: 증거 3장(`cold_decel_log`, `regen_limit_compare`, `battery_temp_view`) 미제작, 부품은 기존 썸네일(`bms`, `brake_ecu`, `can_harness`, `traction_motor`, `motor_temp_sensor`, `brake_caliper`) 사용
 
 ## 다음 할 일 (순서)

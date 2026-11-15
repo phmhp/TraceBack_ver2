@@ -38,6 +38,8 @@ type Ref = {
   notes: { domain: DomainId; feature: number; name: string }[];
   /** "path": the pieces are E/E structure nodes on a signal path (network picture), not logic blocks. */
   ui?: "blocks" | "path" | "state";
+  /** label of the network bar in "path" mode */
+  bus?: { title: string; sub: string };
   field: Record<string, string>; // values recorded in the faulty drive (only where they differ from the reference)
 };
 // bench views: the SW unit under test, and the SW components (SWC) that make up the ECU software
@@ -246,7 +248,7 @@ const REF: Record<CaseId, Ref> = {
     field: { rx: "타임아웃 → R", cmd: "−60 Nm", motor: "후진 −6 km/h" },
   },
   cold: {
-    domain: "제동 · 구동 · 고전압 전원", feature: "BMS 한계 → 제동 도메인 → 인버터 회생", ecu: "Brake ECU", program: "regen_limit_rx", ui: "path",
+    domain: "제동 · 구동 · 고전압 전원", feature: "BMS 한계 → 제동 도메인 → 인버터 회생", ecu: "Brake ECU", program: "regen_limit_rx", ui: "path", bus: { title: "차량 네트워크", sub: "회생 한계 협조 신호 20 ms 주기" },
     board: ["bms", "gw", "msg", "rx", "inv", "car"], gaps: [1, 3],
     spares: ["direct", "rxB", "drvlim", "rx", "gw"], joints: ["round", "square", "square", "tri", "tri"],
     side: { pieces: ["temp"], into: 0, value: "배터리 0 °C", label: "BMS가 받는 배터리 온도" },
@@ -804,7 +806,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
         <div className="rpSizer" style={{ width: W * scale, height: H * scale }}><div className={`rpWorld ${connected ? "flowing" : ""} ${pathMode ? "pathMode" : ""} ${stateMode ? "stateMode" : ""}`} style={{ width: W, height: H, transform: `scale(${scale})` }}>
           <div className="rpTray main" style={{ left: slotX(0) - 14, top: MAIN_Y - 66, width: (n - 1) * PITCH + PIECE + 28, height: PIECE + 118 }}><span>입력 → 출력 · 연결이 맞으면 예시 입력의 값이 표시돼요</span></div>
           {stateMode && <><div className="rpFailState" style={{ left: slotX(4) + 34, top: MAIN_Y + PIECE + 30 }}><b>FAIL</b><span>대기 시간 제한을 넘기면 실패 상태로 전이</span></div><i className="rpFailArrow" style={{ left: slotX(4) + 68, top: MAIN_Y + PIECE - 2 }} /></>}
-          {pathMode && <><div className="rpBus" style={{ left: slotX(1) + 20, top: MAIN_Y + PIECE + 30, width: 2 * PITCH + 100 }}><b>CAN 버스</b><span>변속 메시지 20 ms 주기</span></div>
+          {pathMode && <><div className="rpBus" style={{ left: slotX(1) + 20, top: MAIN_Y + PIECE + 30, width: 2 * PITCH + 100 }}><b>{ref.bus?.title ?? "CAN 버스"}</b><span>{ref.bus?.sub ?? "변속 메시지 20 ms 주기"}</span></div>
             {[1, 2].map(k => <i key={`bus-${k}`} className="rpBusTap" style={{ left: slotX(k) + 68, top: MAIN_Y + PIECE - 2 }} />)}</>}
           <div className="rpTray side" style={{ left: slotX(sideStart) - 10, top: SIDE_Y - 12, width: (ref.side.pieces.length - 1) * PITCH + PIECE + 20, height: PIECE + 24 }}><span>{ref.side.label}</span></div>
           <div className="rpTray spare" style={{ left: PAD, top: SPARE_Y - 10, width: W - PAD * 2, height: PIECE + 30 }}><span>남은 조각 · 끌어서 빈칸에 · 두 번 누르면 크게 보기</span></div>
