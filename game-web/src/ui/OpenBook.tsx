@@ -25,6 +25,9 @@ const BOOK: Record<CaseId, { domain: DomainId; feature: number; name: string; re
   gear: [
     { domain: "gear", feature: 3, name: "변속·주차 · 기어 상태 배포·표시", req: "변속 위치는 20 ms마다 CAN으로 오고, 100 ms 동안 새 메시지가 없으면 VCU는 통신 오류로 보고 가장 안전한 값(N)으로 바꿔요." },
   ],
+  cold: [
+    { domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조", req: "BMS는 배터리 온도에 따라 회생 수용 한계를 정하고, 게이트웨이가 이를 제동 도메인에 전달해요. 제동 도메인은 받은 한계를 회생 요청의 상한으로 써요(25 °C에서 60 Nm, 0 °C에서 20 Nm)." },
+  ],
   brake: [{ domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조", req: "페달 55% → 목표 감속 3.2 m/s². 회생은 배터리가 받을 수 있는 만큼, 나머지는 마찰(1 m/s²당 20 bar)." }],
 };
 

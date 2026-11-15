@@ -20,6 +20,11 @@
 - `runtime.ts`: `levelFinish`, `START_LEVEL`에서 거리 0 초기화, `APPLY_REPAIR` → `CHASE_RESUME`(levelFinish), `NEXT_LEVEL`. `experiences.tsx`: `finishRun`으로 고장·증상·구간 카드 끄고 1700 m에서 `START_FINAL_ESCAPE`. `CaseFileEnding`: levelFinish면 "다음 레벨 →". `LevelSelect`: finale 노드 숨김, 6노드.
 - 확인 못 한 것: 실제 주행(브라우저 rAF 정지)으로 수리 → 1700 m → 엔딩 → 다음 레벨 전체 플레이. 사용자가 한 번 플레이해 확인 필요. 특히 레벨 2에서 열관리 고장(1300 m)까지의 주행 시간.
 
+## C06 `cold` 구현 진행 (사용자 승인 2026-11-15, 자리 비움 중 7시까지 자율 진행)
+- 시트 `docs/fault-cases/c06_cold_regen_limit.md`. 레벨 7(선택), 마지막 탈출은 8로 이동. 절차는 C04(`gear`)와 동일: CaseId 추가 → tsc 표 채우기 → EeTrace 문자열 표 → main.tsx QA 허용 목록/DevMenu → 레벨·runtime·레이스 고장 → 테스트.
+- 진행: [x] sim/scenarios [x] contract+VerificationLab [x] RefPuzzle/Domino/Ending/OpenBook/EeTrace [x] levels(7레벨, finale 8)/runtime/faultSchedule(COLD_FAULT, regenScale)/experiences [x] tests/cold-case.test.mjs(147 통과) [ ] 브라우저 검증(STEP02~04, 허브 7노드) [ ] 문서 마무리
+- 임시 이미지: 증거 3장(`cold_decel_log`, `regen_limit_compare`, `battery_temp_view`) 미제작, 부품은 기존 썸네일(`bms`, `brake_ecu`, `can_harness`, `traction_motor`, `motor_temp_sensor`, `brake_caliper`) 사용
+
 ## 다음 할 일 (순서)
 1. gear 사건 표 채우기(STEP02/03/04, 시나리오, 계약, 엔딩, 오픈북).
 2. 신호 경로 선택 퍼즐 UI(`RefPuzzle.tsx`), 시트 7절.

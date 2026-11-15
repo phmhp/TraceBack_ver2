@@ -13,8 +13,8 @@ import "./level-select.css";
 
 type Send = React.Dispatch<any>;
 // node positions on the 1100x440 road drawing
-const POS = [{ x: 80, y: 310 }, { x: 255, y: 170 }, { x: 430, y: 310 }, { x: 605, y: 170 }, { x: 780, y: 310 }, { x: 955, y: 170 }];
-const ROAD = `M 20 380 C 50 380 45 ${POS[0].y} ${POS[0].x} ${POS[0].y} ` + POS.slice(1).map(q => `S ${q.x - 50} ${q.y} ${q.x} ${q.y}`).join(" ") + " L 1075 170";
+const POS = [{ x: 70, y: 310 }, { x: 230, y: 170 }, { x: 390, y: 310 }, { x: 550, y: 170 }, { x: 710, y: 310 }, { x: 870, y: 170 }, { x: 1020, y: 310 }];
+const ROAD = `M 20 380 C 50 380 45 ${POS[0].y} ${POS[0].x} ${POS[0].y} ` + POS.slice(1).map(q => `S ${q.x - 50} ${q.y} ${q.x} ${q.y}`).join(" ") + " L 1075 310";
 
 const Stars = ({ n }: { n: number }) => <span className="lvStars" aria-label={`별 ${n}개`}>{[1, 2, 3].map(i => <i key={i} className={i <= n ? "on" : ""}>★</i>)}</span>;
 

@@ -90,6 +90,8 @@ export type FaultEffect = {
   driveCut?: boolean;
   /** only reverse is possible; forward pedal does nothing. */
   reverseOnly?: boolean;
+  /** multiplier on the coasting / regeneration deceleration (1 = healthy): regeneration used beyond the battery limit. */
+  regenScale?: number;
   /** cluster presentation hint for the HUD: dark cluster, warning lamp names. */
   cluster?: { blackout?: boolean; lamps?: string[] };
 };
@@ -232,6 +234,7 @@ export function mergeEffects(effects: readonly FaultEffect[]): FaultEffect {
     if (e.readyBlockedTries !== undefined) out.readyBlockedTries = Math.max(out.readyBlockedTries ?? 0, e.readyBlockedTries);
     if (e.driveCut) out.driveCut = true;
     if (e.reverseOnly) out.reverseOnly = true;
+    if (e.regenScale !== undefined) out.regenScale = (out.regenScale ?? 1) * e.regenScale;
     if (e.cluster) out.cluster = { blackout: out.cluster?.blackout || e.cluster.blackout, lamps: [...(out.cluster?.lamps ?? []), ...(e.cluster.lamps ?? [])] };
   }
   return out;
@@ -372,6 +375,18 @@ export const GEAR_FAULT: FaultSpec = {
   chase: { note: "The car jerks backwards for half a second at the start: the gap shrinks by the reverse distance and recovers once it moves forward again." },
 };
 
+/**
+ * C06 (docs/fault-cases/c06_cold_regen_limit.md): the brake domain ignores the BMS regeneration limit (fixed 60 Nm), so lifting the pedal in the cold
+ * first part of the course decelerates about 3 times harder than the battery allows. Release trigger inside the cold segment, permanent.
+ */
+export const COLD_FAULT: FaultSpec = {
+  id: "case-cold", caseId: "cold",
+  trigger: { phase: "release", minSpeedKph: 40, holdSec: .3, beforeDistanceM: 700 },
+  persistence: "permanent",
+  effect: { regenScale: 3 },
+  chase: { note: "Lifting the pedal slows the car much more than expected: the gap shrinks while the cold segment lasts; keeping the pedal down avoids it." },
+};
+
 /** Fault specs that run in a race mode. `caseId` is the case of the campaign (the case that was repaired last when resuming). */
 export function levelFaults(mode: "normal" | "resume" | "assist" | "ship", caseId: string): FaultSpec[] {
   if (mode === "normal") return [PROPULSION_FAULT];
@@ -379,5 +394,6 @@ export function levelFaults(mode: "normal" | "resume" | "assist" | "ship", caseI
   if (mode === "resume" && caseId === "regen") return [REGEN_FAULT];
   if (mode === "resume" && caseId === "ready") return [READY_FAULT];
   if (mode === "resume" && caseId === "gear") return [GEAR_FAULT];
+  if (mode === "resume" && caseId === "cold") return [COLD_FAULT];
   return [];
 }

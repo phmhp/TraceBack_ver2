@@ -119,6 +119,24 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
       { id: "interlock", label: "VCU 변속 인터록 판정이 틀렸다", desc: "입력 조건 판정 오류 가능성" },
     ],
   },
+  cold: {
+    title: "추운 아침 발만 떼도 확 섬",
+    chapter: "선택 사건 · 도메인 협조",
+    symptom: "배터리가 차가울 때 가속 페달에서 발을 떼면 평소보다 훨씬 세게 감속합니다. 경고등은 없습니다.",
+    root: "brake_fixed",
+    repair: "제동 도메인이 BMS 회생 한계를 읽어 쓰도록 복원하고 저온 시험 추가",
+    evidence: [
+      { id: "cold_decel_log", label: "페달을 뗀 뒤 감속도가 -0.75 m/s²로 기록됨", value: "배터리 0 °C · 기준 -0.25 m/s²", kind: "주행 현상" },
+      { id: "regen_limit_compare", label: "BMS 한계 20 Nm인데 회생 토크 요청은 60 Nm", value: "게이트웨이 전달 20 Nm", kind: "진단 기록" },
+      { id: "battery_temp_view", label: "배터리 온도가 0 °C로 표시됨", value: "회생 수용 한계 20 Nm", kind: "물리 응답" },
+    ],
+    hypotheses: [
+      { id: "bms_calc", label: "BMS가 회생 한계를 잘못 계산했다", desc: "한계 산출 오류 가능성" },
+      { id: "gw_lag", label: "게이트웨이가 한계 신호를 지연·누락했다", desc: "통신 중계 오류 가능성" },
+      { id: "brake_fixed", label: "제동 도메인이 한계를 읽지 않고 고정값을 쓴다", desc: "협조 신호 사용 설정 오류" },
+      { id: "inv_cfg", label: "인버터 토크 제한 설정이 틀렸다", desc: "출력단 설정 오류 가능성" },
+    ],
+  },
 };
 
 // ── Scenario registry (one source for race → board → puzzle → bench → repair) ──────────────
@@ -154,6 +172,7 @@ export const HYP_TAG: Record<string, HypTag> = {
   bms_link: "통신", start_cond: "SW 로직", seq_timeout: "SW 설정", precharge_hw: "HW",
   req_calc: "SW 로직", fade_mismatch: "SW 설정", fric_io: "SW 설정", wheel_hw: "HW",
   lever_hw: "HW", gw_map: "통신", gear_fallback: "SW 설정", interlock: "SW 로직",
+  bms_calc: "SW 로직", gw_lag: "통신", brake_fixed: "SW 설정", inv_cfg: "SW 설정",
 };
 
 export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
@@ -364,6 +383,44 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
         swint: { seen: "변속 수신 SWC 기어 값", unseen: "버스 상태", why: "PC 통합 시험에서는 인터록과 폴백을 나눌 수 없어요.", next: ["vehicle"] },
         embedded: { seen: "VCU 기어 값", unseen: "버스 상태", why: "제어기 한 대 시험에서는 인터록과 폴백을 나눌 수 없어요.", next: ["vehicle"] },
       } },
+    ],
+  },
+  cold: {
+    domain: "제동 · 구동 · 고전압 전원 (도메인 협조)",
+    goal: "도메인이 주고받는 협조 신호는 받는 쪽이 실제로 사용하는지까지 시험해야 한다. 환경(배터리 온도)이 바뀔 때만 드러나므로 재현 입력을 골라야 하고, 도메인 사이 경로는 시스템 통합 수준에서만 볼 수 있다.",
+    trigger: "코스팅: 배터리 온도가 낮은 상태에서 40 km/h 이상 중 가속 페달을 뗄 때 (영구, 레이스에서는 시작 후 첫 60초)",
+    injection: "제동 도메인 회생·마찰 협조 SWC(RegenLimitRx)가 BMS 협조 신호를 읽지 않고 고정 상한 60 Nm 사용 (simModel cold · faultSchedule COLD_FAULT)",
+    faultModel: "0 °C → BMS 한계 20 Nm(게이트웨이 전달도 20 Nm) → 제동 도메인 사용 한계 60 Nm(고장) → 회생 토크 -60 Nm → 감속 -0.75 m/s²(정상 -0.25)",
+    normalSpec: "BMS가 보내는 회생 수용 한계(25 °C에서 60 Nm, 0 °C에서 20 Nm)를 제동 도메인이 매 주기 받아 회생 요청의 상한으로 쓴다. 한계를 넘는 몫은 쓰지 않는다",
+    fix: "제동 도메인이 협조 신호의 한계를 읽도록 복원하고 저온 시험 추가",
+    regression: "같은 시스템 통합 시험(0 °C, 회생 요청 -80 Nm) PASS: 사용 한계 20 Nm, 회생 토크 -20 Nm + 25 °C 정상 회생 유지",
+    status: "optional", review: "수치 일치 확인(20+1.6×0=20 Nm, 25 °C에서 60 Nm, -60 Nm/80=-0.75 m/s²). 진단은 못 잡음",
+    hypotheses: [
+      { id: "bms_calc", label: "BMS 회생 한계 산출", truth: false, stage1: "도미노 역추적: BMS 회생 한계가 20 Nm으로 온도에 맞는 값이었어요.", rules: [
+        { levels: ["vehicle"], need: { bms: ["same"] }, verdict: "refuted", why: "BMS 한계가 기준과 같아요. 산출은 정상이에요." },
+      ], decideAt: ["vehicle"], decide: "시스템 통합 시험: BMS 한계가 기준과 같으면 반박",
+      hold: {
+        unit: { seen: "회생 요청 · 사용 한계(스텁)", unseen: "BMS 한계", why: "SW 단위 시험에는 BMS와 온도가 없어요.", next: ["vehicle"] },
+        swint: { seen: "회생 요청 SWC 출력", unseen: "BMS 한계", why: "PC 통합 시험에는 배터리 온도를 재현할 수 없어요.", next: ["vehicle"] },
+        embedded: { seen: "제동 제어기 사용 한계", unseen: "BMS 한계", why: "제어기 한 대 시험에는 BMS가 연결되지 않아요.", next: ["vehicle"] },
+      } },
+      { id: "gw_lag", label: "게이트웨이 한계 신호 중계", truth: false, stage1: "도미노 역추적: 게이트웨이가 전달한 한계가 20 Nm으로 기준과 같았어요.", rules: [
+        { levels: ["vehicle"], need: { gw: ["same"] }, verdict: "refuted", why: "게이트웨이 전달 한계가 기준과 같아요. 중계는 정상이에요." },
+      ], decideAt: ["vehicle"], decide: "시스템 통합 시험: 전달 한계가 기준과 같으면 반박",
+      hold: {
+        unit: { seen: "회생 요청", unseen: "게이트웨이 출력", why: "SW 단위 시험에는 게이트웨이가 없어요.", next: ["vehicle"] },
+        swint: { seen: "회생 요청 SWC 출력", unseen: "게이트웨이 출력", why: "PC 통합 시험에는 게이트웨이가 없어요.", next: ["vehicle"] },
+        embedded: { seen: "제동 제어기 사용 한계", unseen: "게이트웨이 출력", why: "제어기 한 대 시험에는 게이트웨이가 연결되지 않아요.", next: ["vehicle"] },
+      } },
+      { id: "brake_fixed", label: "제동 도메인의 회생 한계 수신·사용 설정", truth: true, rules: [
+        { levels: ["vehicle"], need: { bms: ["same"], gw: ["same"], lim: ["higher"] }, verdict: "supported", why: "BMS와 게이트웨이 한계는 정상(20 Nm)인데 제동 도메인이 쓰는 한계만 60 Nm으로 높아요. 받은 값을 쓰지 않고 있어요." },
+      ], decideAt: ["vehicle"], decide: "시스템 통합 시험: BMS·게이트웨이 한계는 같고 사용 한계만 높으면 지지",
+      hold: {
+        unit: { seen: "사용 한계 (스텁 입력)", unseen: "BMS·게이트웨이 한계", why: "단위 시험은 한계 입력을 직접 넣어 협조 경로를 볼 수 없어요.", next: ["vehicle"] },
+        swint: { seen: "사용 한계 (모델 입력)", unseen: "BMS·게이트웨이 한계", why: "PC 통합 시험에서는 배터리 온도에 따른 한계 변화를 만들 수 없어요.", next: ["vehicle"] },
+        embedded: { seen: "제동 제어기 사용 한계", unseen: "BMS·게이트웨이 한계", why: "제어기 한 대 시험에는 BMS 신호가 연결되지 않아요.", next: ["vehicle"] },
+      } },
+      { id: "inv_cfg", label: "인버터 토크 제한 설정", truth: false, stage1: "도미노 역추적: 인버터는 받은 요청대로 토크를 냈어요. 요청이 이미 과했어요.", rules: [], decideAt: [], decide: "도미노 단계에서 인버터가 요청대로 동작해 반박돼요" },
     ],
   },
 };

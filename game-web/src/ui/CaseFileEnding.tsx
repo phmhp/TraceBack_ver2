@@ -121,6 +121,16 @@ const CASE_VISUAL: Record<CaseId, {
     meter: { label: "정지 유지", unit: "%", normal: 100, actual: 0, max: 100 },
     lesson: "통신이 끊겼을 때 쓰는 폴백 값이 안전 값이 아니라 후진(R)으로 설정",
   },
+  cold: {
+    chain: [
+      { img: "bms", label: "BMS 회생 한계", role: "입력" },
+      { img: "brake_ecu", label: "제동 한계 수신", role: "제어" },
+      { img: "traction_motor", label: "인버터 회생", role: "출력" },
+    ],
+    fault: { at: "link", index: 1, label: "사용 한계 60 Nm (BMS 20 Nm)" },
+    meter: { label: "저온 회생 크기", unit: "Nm", normal: 20, actual: 60, max: 70 },
+    lesson: "제동 도메인이 BMS가 보낸 회생 한계를 읽지 않고 고정 상한을 써서 추울 때 감속이 과함",
+  },
 };
 
 // Functional-safety view of each case (ISO 26262 vocabulary only; no ASIL is
@@ -161,6 +171,12 @@ const CASE_SAFETY: Record<CaseId, { hazard: string; detect: string; safeState: s
     detect: "E2E 타임아웃 감시와 진단 코드 저장(확정은 3회 반복이라 간헐 고장은 늦게 남음)",
     safeState: "구동 토크 0(N)",
     insight: "통신이 끊겼을 때 쓰는 폴백 값은 안전한 방향이어야 한다는 점",
+  },
+  cold: {
+    hazard: "저온에서 과도한 회생 감속 → 뒤 차 추돌 위험, 배터리 수용 한계 초과 보호 차단",
+    detect: "회생 토크가 BMS 한계를 넘는지에 대한 감시가 없어 진단이 잡지 못함",
+    safeState: "회생 토크를 BMS 한계 이내로 제한(초과분은 마찰 제동)",
+    insight: "협조 신호는 보내는 쪽과 받는 쪽을 모두 시험해야 한다는 점",
   },
 };
 
@@ -256,6 +272,7 @@ const SIGNAL_PATH: Record<CaseId, string> = {
   regen: "회생 요청 → VCU 토크 지령 변환(부호 반영) → CAN 토크 지령 → 모터 토크 → 가감속",
   ready: "시동 요청 → VCU 프리차지 시퀀스(대기 시간) → 주 접촉기 명령 → READY",
   gear: "변속 레버 → 게이트웨이 → CAN → VCU 변속 수신(폴백) → 구동 지령",
+  cold: "배터리 온도 → BMS 회생 한계 → 게이트웨이 → 제동 도메인 한계 수신 → 인버터 회생 토크",
 };
 const CATEGORY: Record<CaseId, string> = {
   propulsion: "SW 계산·보정/스케일링",
@@ -264,6 +281,7 @@ const CATEGORY: Record<CaseId, string> = {
   regen: "SW 수치·부호 / 인터페이스 규약 불일치",
   ready: "시퀀스·타이밍 설정 / 상태 전이",
   gear: "통신 타임아웃 · 폴백 값 설정",
+  cold: "도메인 협조 신호 / 한계 수신·사용",
 };
 
 function AnalysisReport({ state, id }: { state: Campaign; id: CaseId }) {

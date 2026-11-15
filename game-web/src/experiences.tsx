@@ -29,7 +29,7 @@ import { CAR_CONTACT, TRACK_LENGTH, TRAFFIC_COUNT, resetTrafficStall, stallTraff
 import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
 import { CYCLE_JUNCTIONS, ROAD_ZONES, zoneBrakeFactor, zonesAt, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
 import { CLIMB_ZONE, FINAL_ESCAPE_M, OVERTAKE_ZONE } from "./game/course";
-import { DEMO_FAULTS, GEAR_FAULT, PROPULSION_FAULT, REGEN_FAULT, levelFaults, policeSpeedKph, secondsToCatch, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
+import { COLD_FAULT, DEMO_FAULTS, GEAR_FAULT, PROPULSION_FAULT, REGEN_FAULT, levelFaults, policeSpeedKph, secondsToCatch, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
 import { StageIntro } from "./ui/Verdict";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
@@ -1678,6 +1678,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const keys = useRef(new Set<string>());
   const collisionCooldown = useRef(0);
   const zoneThrottle = useRef(0); // seconds of full throttle inside the overtake zone
+  const coldHits = useRef(0);     // C06: seconds the cold regeneration fault has been felt (FAULT_CUE after 2.2 s)
   const gearHits = useRef(0);     // C04: how many times the fallback reverse burst started (FAULT_CUE after the second)
   const [gearHitCount, setGearHitCount] = useState(0);
   // fault schedule model: runtime state per spec, merged effect of the last frame, event clocks, R-restart tries
@@ -1804,6 +1805,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
             const step = stepFault(spec, faultRuntime.current[spec.id] ?? newFaultRuntime(), faultCtx, dt, Math.random, demo && faultRestarted.current);
             faultRuntime.current[spec.id] = step.runtime; effects.push(step.effect);
             if (spec.id === PROPULSION_FAULT.id || spec.id === REGEN_FAULT.id) zoneThrottle.current = step.runtime.heldSec; // seconds of throttle inside the zone (symptom / FAULT_CUE)
+            if (spec.id === COLD_FAULT.id && step.active) coldHits.current += dt;
             if (spec.id === GEAR_FAULT.id && (faultRuntime.current[spec.id]?.burstLeft ?? 0) === 0 && step.runtime.burstLeft > 0) { gearHits.current += 1; setGearHitCount(gearHits.current); }
           }
           faultRestarted.current = false; fx = mergeEffects(effects); faultFx.current = fx;
@@ -1814,7 +1816,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         let speed = previous.speed;
         const driveAccel = throttle && !fx.driveCut && !fx.shutdown && !fx.reverseOnly ? 46 * Math.min(1, 70 / Math.max(speed, 1)) * (fx.pedalScale ?? 1) : 0;
         if (throttle) speed += driveAccel * dt - (fx.reverseOnly ? 14 * dt : 0); // reverse-only fault: the pedal pulls the car backwards
-        else { const coast = (gear === "N" ? 1.6 : [2.15, 5.5, 9, 13][regen]) * dt; speed = speed > 0 ? speed - coast : Math.min(0, speed + coast); } // coasting: regen level sets the deceleration (none in N)
+        else { const coast = (gear === "N" ? 1.6 : [2.15, 5.5, 9, 13][regen]) * (fx.regenScale ?? 1) * dt; speed = speed > 0 ? speed - coast : Math.min(0, speed + coast); } // coasting: regen level sets the deceleration (none in N)
         if (!throttle && fx.coastAccelKphPerS) speed += fx.coastAccelKphPerS * dt;
         if (braking) { const brakeStep = 62 * (fx.brakeScale ?? 1) * zoneBrakeFactor(zonesAt(previous.distance)) * dt; speed = speed > 0 ? speed - brakeStep : Math.min(0, speed + brakeStep); }
         if (fx.speedCapKph !== undefined) speed = Math.min(speed, fx.speedCapKph);
@@ -1976,7 +1978,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   // instance so speed/camera continuity is preserved. Reset only the segment
   // gate when the mode changes; otherwise the resume fault event permanently
   // blocks the later deck-arrival event.
-  useEffect(() => { fired.current = false; zoneThrottle.current = 0; faultRuntime.current = {}; }, [mode]);
+  useEffect(() => { fired.current = false; zoneThrottle.current = 0; coldHits.current = 0; faultRuntime.current = {}; }, [mode]);
   useEffect(() => {
     if (fired.current) return;
     if (sim.gap <= 0) {
@@ -1990,6 +1992,8 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       fired.current = true; send({ type: "FAULT_CUE", caseId: "thermal", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
     } else if (mode === "resume" && state.caseId === "regen" && zoneThrottle.current >= 2.2) {
       fired.current = true; send({ type: "FAULT_CUE", caseId: "regen", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
+    } else if (mode === "resume" && state.caseId === "cold" && coldHits.current >= 2.2) {
+      fired.current = true; send({ type: "FAULT_CUE", caseId: "cold", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
     } else if (mode === "resume" && state.caseId === "gear" && gearHits.current >= 2) {
       fired.current = true; send({ type: "FAULT_CUE", caseId: "gear", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
     } else if (mode === "resume" && state.caseId === "thermal" && sim.distance >= FINAL_ESCAPE_M) {
@@ -2021,7 +2025,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     if (sim.gap > 0 && eta < 40) return { kind: "chase", title: "경찰 접근", text: `이 속도로는 약 ${Math.max(1, Math.round(eta))}초 뒤 따라잡혀요 · ${sim.speed < 0 ? "후진 중" : sim.speed < 4 ? "다시 출발하세요" : "속도를 올리세요"}` };
     return null;
   })();
-  const symptom = !finishRun && ((mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80) || (mode === "resume" && state.caseId === "regen" && zoneThrottle.current > .8) || (mode === "resume" && state.caseId === "gear" && gearHitCount >= 1) || (startFails > 0 && startAttempts >= 1));
+  const symptom = !finishRun && ((mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80) || (mode === "resume" && state.caseId === "regen" && zoneThrottle.current > .8) || (mode === "resume" && state.caseId === "gear" && gearHitCount >= 1) || (mode === "resume" && state.caseId === "cold" && coldHits.current > .6) || (startFails > 0 && startAttempts >= 1));
   // Regression drive after a repair: the same condition that exposed the fault is measured on the live race model.
   // propulsion: full pedal for 1.5 s → measured acceleration vs this model's healthy value (46·min(1, 70/v) km/h/s; the fault scaled it by 0.45)
   // thermal: sustained throttle for 2 s → coolant temperature and output limit (the fault had ≥ 84 °C and a 55 km/h limit)
@@ -2057,7 +2061,9 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         ? { icon: "road" as IconName, title: "코스팅 구간", text: "40 km/h 이상으로 달린 뒤 가속 페달에서 발을 떼 보세요" }
         : mode === "resume" && state.caseId === "gear" && sim.distance < state.raceDistance + 400
           ? { icon: "road" as IconName, title: "정차 후 출발", text: "정차해 브레이크(S)를 밟고 D(4)로 바꾼 뒤 바로 가속(W)해 보세요" }
-          : null;
+          : mode === "resume" && state.caseId === "cold" && sim.distance < 700
+            ? { icon: "road" as IconName, title: "저온 구간", text: "40 km/h 이상으로 달린 뒤 가속 페달에서 발을 떼 보세요" }
+            : null;
   useEffect(() => {
     if (mode !== "assist" || parking || sim.distance < assistTarget) return;
     setParking(true);
@@ -2125,7 +2131,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       {impact > 0 && impactLevel >= 2 && <div className="catReact" key={`c${impact}`} role="status"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><b>{impactLevel === 3 ? "으앗!" : "앗!"}</b></div>}
       {regression?.title && <div className={`regressionCard ${regression.ok ? "ok" : "no"}`} role="status"><i><Icon name="repeat" /></i><span><small>같은 조건 재주행</small><b>{regression.title}</b><em>{regression.text}</em></span></div>}
       {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i><Icon name={zone.icon} /></i><span><small>주행 구간</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
-      {symptom && <div className="faultBeacon" role="alert"><span /><div><small>차량 경고</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : state.caseId === "regen" ? "발을 뗐는데 속도가 올라감" : state.caseId === "gear" ? "D인데 차가 뒤로 움찔함" : state.caseId === "ready" ? "HV 시스템 점검 표시등" : "파워다운 표시등 · 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
+      {symptom && <div className="faultBeacon" role="alert"><span /><div><small>차량 경고</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : state.caseId === "regen" ? "발을 뗐는데 속도가 올라감" : state.caseId === "gear" ? "D인데 차가 뒤로 움찔함" : state.caseId === "cold" ? "발만 뗐는데 감속이 세요" : state.caseId === "ready" ? "HV 시스템 점검 표시등" : "파워다운 표시등 · 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
       {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
       {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>주행 미션</small><b>{driveMission === "red" ? "적색 신호 정지 · 제동 시퀀스 기록" : startFails > 0 ? `시동 시도 ${Math.min(startAttempts + 1, startFails)}/${startFails} · R 키로 시동 걸기` : readyTries > 0 ? `READY 재인가 · R 키 ${readyTries}회 더` : "정차 후 READY 재인가 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(612-sim.distance))}m · S로 부드럽게 제동 · 정지선 이탈 금지` : startFails > 0 ? (startAttempts > 0 ? "READY가 켜지지 않아요 · 점검 표시등을 확인하세요" : "브레이크를 밟은 상태로 시동을 걸어 출발하세요") : "이 재출발 기록이 열관리 고장 재현 미션의 초기조건이 됩니다"}</span></div>}
       {mode === "ship" && sim.distance >= TRACK_LENGTH - 230 && <div className="finalRampCommit"><small>도착 지점</small><b>{deckSettled ? "갑판 정차 완료 · 탈출 성공" : sim.distance >= DECK_TOUCH ? "해적선 갑판 착지 · 자동 감속" : sim.distance >= RAMP_START ? "실물 오르막 램프 진입" : "해적선 연결 램프 접근"}</b><span>{sim.distance >= RAMP_END && sim.distance < DECK_TOUCH ? "차량 도약 중 · 측면 카메라" : sim.distance >= DECK_TOUCH ? "네 바퀴 착지 확인 · 엔딩 전환 준비" : "중앙 유도 · 램프와 갑판 충돌면 활성"}</span></div>}
@@ -2156,6 +2162,7 @@ const faultLamp: Record<CaseId, { icon: string; glyph: string; label: string; no
   regen: { icon: "none", glyph: "—", label: "경고등 없음", note: "제어기가 고장을 감지하지 못함 (운전자 체감만 있음)" },
   ready: { icon: "power", glyph: "!", label: "HV 시스템 점검 표시등", note: "시동 시퀀스가 실패함 · 설명서상 원인 후보: 배터리 상태, 12 V 전원, 고전압 연결 계통" },
   gear: { icon: "power", glyph: "-", label: "경고등 없음", note: "계기판은 D를 표시함 · 켜진 경고등 없음" },
+  cold: { icon: "power", glyph: "-", label: "경고등 없음", note: "회생 표시가 평소보다 크게 나옴 · 켜진 경고등 없음" },
 };
 
 export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) {
@@ -2170,6 +2177,7 @@ export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) 
     regen: "발을 뗐는데 차가 더 빨라져요. 경고등은 하나도 안 켜졌어요. 왜 그럴까요?",
     ready: "시동 버튼을 눌러도 READY가 안 켜져요. 점검 표시등만 켜졌어요. 왜 그럴까요?",
     gear: "D에 놓았는데 가끔 뒤로 가요. 계기판은 D인데 왜 그럴까요?",
+    cold: "추울 때 발만 떼도 차가 확 서요. 경고등은 하나도 안 켜졌어요. 왜 그럴까요?",
   };
   const dialogue = [
     { who: `드라이버 ${DRIVER}`, role: "DRIVER", text: DRIVER_LINE[state.caseId], tone: "driver" },
@@ -2321,6 +2329,14 @@ export const MEASURE_RAIL: Record<CaseId, { stops: RailStop[]; hypothesisAt: Rec
       { at: "VCU가 쓰는 기어 값", value: "R", expect: "N", ok: false, ev: "motor_reverse_log" },
     ],
     hypothesisAt: { lever_hw: 0, gw_map: 1, gear_fallback: 2, interlock: 2 },
+  },
+  cold: {
+    stops: [
+      { at: "배터리 온도", value: "0 °C", expect: "0 °C", ok: true, ev: "battery_temp_view" },
+      { at: "게이트웨이 전달 한계", value: "20 Nm", expect: "20 Nm", ok: true, ev: "regen_limit_compare" },
+      { at: "제동 도메인 사용 한계", value: "60 Nm", expect: "20 Nm", ok: false, ev: "cold_decel_log" },
+    ],
+    hypothesisAt: { bms_calc: 0, gw_lag: 1, brake_fixed: 2, inv_cfg: 2 },
   },
 };
 /** The fault boundary is known once the first ✗ and the stop just before it (a ✓) are both measured. */
@@ -2515,6 +2531,7 @@ const puzzlePerspective: Record<CaseId, { active: string; depth: string; input: 
   regen: { active: "차량 제어 통합", depth: "코스팅 회생 토크 지령", input: "회생 요청", middle: "VCU 토크 지령 변환", output: "인버터·모터 토크" },
   ready: { active: "고전압 전원", depth: "프리차지·접촉기", input: "시동 요청", middle: "VCU 프리차지 시퀀스", output: "주 접촉기·READY" },
   gear: { active: "변속·주차", depth: "기어 상태 배포·표시", input: "변속 레버", middle: "VCU 변속 수신", output: "구동 지령" },
+  cold: { active: "제동", depth: "회생·마찰 협조 제동", input: "BMS 회생 한계", middle: "제동 도메인 한계 수신", output: "인버터 회생 토크" },
 };
 const puzzleMission: Record<CaseId, { domain: string; feature: string; input: string; output: string }> = {
   propulsion: { domain: "구동", feature: "운전자 토크 요청", input: "가속 페달 APS A/B", output: "인버터·전륜 모터 토크" },
@@ -2523,6 +2540,7 @@ const puzzleMission: Record<CaseId, { domain: string; feature: string; input: st
   regen: { domain: "구동", feature: "토크 배분·제한(코스팅 회생)", input: "Brake ECU 회생 요청", output: "인버터·모터 토크" },
   ready: { domain: "고전압 전원", feature: "프리차지·접촉기", input: "시동 요청·브레이크", output: "주 접촉기·READY" },
   gear: { domain: "변속·주차", feature: "기어 상태 배포·표시", input: "변속 레버·가속 페달", output: "구동 지령" },
+  cold: { domain: "제동", feature: "회생·마찰 협조 제동", input: "BMS 회생 한계", output: "인버터 회생 토크" },
 };
 const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNode, "x" | "y">[]; correct: string[]; program: string; faulty: string }> = {
   propulsion: {
@@ -2580,6 +2598,15 @@ const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNo
       { id: "cmd", label: "Drive Command", kind: "SW", detail: "구동 지령" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
     ], correct: ["lever", "gw", "can", "rxN", "vcu", "cmd"], program: "gear_fallback_n", faulty: "gear_fallback_r",
   },
+  cold: {
+    requirement: ["BMS 한계", "게이트웨이 중계", "협조 신호 20 ms", "IF 한계 수신 THEN 상한으로 사용", "회생 토크"],
+    blocks: [
+      { id: "bms", label: "BMS Regen Limit", kind: "HW", detail: "온도별 회생 한계" }, { id: "gw", label: "Gateway Relay", kind: "SW", detail: "신호 중계" },
+      { id: "msg", label: "Coordination Msg 20 ms", kind: "HW", detail: "협조 신호 20 ms 주기" }, { id: "rxA", label: "Limit Rx · use received", kind: "SW", detail: "받은 한계 사용" },
+      { id: "rxB", label: "Limit Rx · fixed 60 Nm", kind: "SW", detail: "고정 상한 60 Nm" }, { id: "ecu", label: "Brake ECU", kind: "HW", detail: "SW 실행 제어기" },
+      { id: "inv", label: "Inverter Regen", kind: "HW", detail: "회생 토크" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
+    ], correct: ["bms", "gw", "msg", "rxA", "ecu", "inv"], program: "regen_limit_rx", faulty: "regen_limit_fixed",
+  },
 };
 
 // Real part photos (whole object visible, kept inside the piece's safe area) and plain-language pictos for SW
@@ -2588,7 +2615,7 @@ const PART_PHOTO: Record<string, string> = {
   fan: "cooling_fan", pedal: "brake_pedal", brakeecu: "brake_ecu", caliper: "brake_caliper",
 };
 // SW blocks run inside a controller: show that controller's generated photo with a small logic badge.
-const SW_ATLAS: Record<CaseId, number> = { propulsion: 1, thermal: 5, brake: 8, regen: 1, ready: 1, gear: 1 }; // cells of the 3×3 evidence atlas
+const SW_ATLAS: Record<CaseId, number> = { propulsion: 1, thermal: 5, brake: 8, regen: 1, ready: 1, gear: 1, cold: 1 }; // cells of the 3×3 evidence atlas
 const swLogicKind = (label: string) => /Adapter|진단/.test(label) ? "check" : /Map|Scale/.test(label) ? "lut" : /Filter/.test(label) ? "delay" : /Hysteresis/.test(label) ? "state" : /Force|Only|Gate/.test(label) ? "switch" : /Blend|Request/.test(label) ? "min" : blockKind(label);
 function PiecePicture({ node, caseId }: { node: { id: string; label: string; kind: string }; caseId: CaseId }) {
   const cell = SW_ATLAS[caseId];
@@ -2637,6 +2664,7 @@ const SIGNAL_VALUE: Record<CaseId, Record<string, string>> = {
   regen: { req: "−40 Nm", sign: "−40 Nm", limit: "−40 Nm", can: "−40 Nm", vcu: "−40 Nm" },
   ready: { req: "시동 1", cond: "허용", wait1500: "750 ms에 95 %", main: "닫힘", vcu: "READY" },
   gear: { lever: "D", gw: "D · 120 ms", can: "120 ms", rx: "N", cmd: "0 Nm", motor: "정지" },
+  cold: { bms: "한계 20 Nm", gw: "20 Nm", msg: "20 Nm", rx: "한계 20 Nm", inv: "-20 Nm", car: "-0.25 m/s²" },
 };
 const TRAP_MSG: Record<string, string> = {
   map45: "요구사항과 달라요: 페달 값을 0.45배로 줄여서 토크가 모자라요. 정상 기준에는 안 맞아요.",
@@ -2673,6 +2701,7 @@ const PIECE_IO: Record<CaseId, Record<string, { in?: Nub; out?: Nub }>> = {
   brake: { pedal: { out: "round" }, request: { in: "round", out: "square" }, blend: { in: "square", out: "square" }, regenonly: { in: "square", out: "square" }, pressure: { in: "square", out: "tri" }, brakeecu: { in: "tri", out: "tri" }, caliper: { in: "tri" }, logger: { in: "round" } },
   ready: { req: { out: "round" }, cond: { in: "round", out: "square" }, wait1500: { in: "square", out: "square" }, wait500: { in: "square", out: "square" }, main: { in: "square", out: "tri" }, vcu: { in: "tri", out: "tri" }, bus: { in: "tri" }, logger: { in: "round" } },
   gear: { lever: { out: "round" }, gw: { in: "round", out: "square" }, can: { in: "square", out: "square" }, rx: { in: "square", out: "tri" }, rxB: { in: "square", out: "tri" }, cmd: { in: "tri", out: "tri" }, motor: { in: "tri" } },
+  cold: { bms: { out: "round" }, gw: { in: "round", out: "square" }, msg: { in: "square", out: "square" }, rx: { in: "square", out: "tri" }, rxB: { in: "square", out: "tri" }, drvlim: { in: "tri", out: "tri" }, inv: { in: "tri", out: "tri" }, car: { in: "tri" }, temp: { out: "round" } },
   regen: { req: { out: "round" }, sign: { in: "round", out: "square" }, magonly: { in: "round", out: "square" }, limit: { in: "square", out: "square" }, can: { in: "square", out: "tri" }, vcu: { in: "tri", out: "tri" }, inverter: { in: "tri" }, logger: { in: "round" } },
 }; // correct path index → requirement row
 
@@ -2878,6 +2907,8 @@ const BENCH_PARTS: Record<CaseId, { input: string; ecu: string; output: string; 
     { from: [0, "pressure_cmd_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
   gear: { input: "gear_selector", ecu: "vcu", output: "inverter", labels: ["변속 레버", "VCU", "인버터·모터"], wires: [
     { from: [0, "gear_out"], to: [1, "gear_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
+  cold: { input: "bms", ecu: "brake_ecu", output: "inverter", labels: ["BMS", "BRAKE ECU", "인버터·모터"], wires: [
+    { from: [0, "pressure_cmd_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
 };
 const BENCH_SLOTS: { position: [number, number, number]; scale: number }[] = [{ position: [-2.25, .62, 0], scale: .94 }, { position: [0, .72, 0], scale: 1.12 }, { position: [2.25, .68, 0], scale: .96 }];
 function EmbeddedBenchScene({ caseId, running, works }: { caseId: CaseId; running: boolean; works: boolean }) {

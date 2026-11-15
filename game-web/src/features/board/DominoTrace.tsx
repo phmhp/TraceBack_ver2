@@ -245,6 +245,34 @@ export const CASES: Record<CaseId, CaseData> = {
       lesson: "메시지가 100 ms 넘게 오지 않으면 안전 값 N을 써야 하는데, 폴백 값이 R로 들어가 있어 후진 지령이 나왔어요.",
     },
   },
+  cold: {
+    start: "decel", first: "brk_lim", timeUnit: "ms",
+    req: "요구사항: 제동 도메인은 BMS가 보내는 회생 수용 한계(25 °C에서 60 Nm, 0 °C에서 20 Nm)를 받아 회생 요청의 상한으로 써야 한다.",
+    doms: [
+      { id: "decel", label: "차량 감속", img: CAR, zone: "차량", ref: "-0.25", run: "-0.75", unit: "m/s²", status: "bad", t: 300, causes: ["regen_tq", "bms_lim", "gw_lim"] },
+      { id: "regen_tq", label: "인버터 회생 토크", img: E("traction_motor"), zone: "부품", ref: "-20", run: "-60", unit: "Nm", status: "bad", t: 200, causes: ["brk_lim", "gw_lim", "inv_cfg"], ev: "cold_decel_log" },
+      { id: "brk_lim", label: "제동 도메인 사용 한계", img: E("brake_ecu"), zone: "제어기", ref: "20", run: "60", unit: "Nm", status: "bad", t: 100, causes: ["gw_lim", "bms_lim", "temp"], ev: "regen_limit_compare" },
+      // trap: the inverter simply obeyed the request, abnormal only because the request was already too big
+      OK("steer_ok", "조향 반응", CAR, "차량", 100, "%"),
+      OK("accel_ok", "가속 반응", CAR, "차량", 2.8, "m/s²"),
+      { ...OK("gw_lim", "게이트웨이 전달 한계", E("can_harness"), "CAN", 20, "Nm"), ev: "regen_limit_compare" },
+      OK("bms_lim", "BMS 회생 한계", E("bms"), "제어기", 20, "Nm"),
+      { ...OK("temp", "배터리 온도", E("motor_temp_sensor"), "센서", 0, "°C"), ev: "battery_temp_view" },
+      OK("inv_cfg", "인버터 토크 제한 설정", E("traction_motor"), "제어기", "요청대로", ""),
+    ],
+    section: { name: "제동 도메인 한계 수신 경계", choices: [
+      { label: "BMS 회생 한계 산출 (온도별 수용 한계)", ok: false, why: "BMS 한계는 20 Nm으로 온도에 맞는 값이었어요. 산출은 정상이에요." },
+      { label: "제동 도메인 한계 수신·사용 (협조 신호 읽기·상한 적용)", ok: true, why: "게이트웨이까지는 20 Nm으로 기준과 같은데 제동 도메인이 쓰는 한계만 60 Nm으로 먼저 달라졌어요. 어떤 설정 오류인지는 검증에서 가려요." },
+      { label: "게이트웨이 협조 신호 중계 (전달·주기)", ok: false, why: "게이트웨이 전달 한계는 20 Nm으로 기준과 같았어요. 중계는 정상이에요." },
+    ] },
+    zoom: {
+      where: "제동 도메인 한계 수신", kind: "sw",
+      reference: [["수신한 한계", "20 Nm"], ["사용 한계", "20 Nm"], ["회생 토크", "-20 Nm"]],
+      run: [["수신한 한계", "20 Nm"], ["사용 한계", "60 Nm"], ["회생 토크", "-60 Nm"]],
+      culprit: "한계 수신·사용 설정",
+      lesson: "받은 한계를 쓰지 않고 고정 상한 60 Nm를 써서, 배터리가 차가워 한계가 낮아져도 회생이 과하게 나왔어요.",
+    },
+  },
 };
 
 export const fmt = (value: number | string) => typeof value === "string" ? value : Number.isInteger(value) ? String(value) : value.toFixed(1);

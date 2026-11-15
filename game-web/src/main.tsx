@@ -101,12 +101,12 @@ function useCampaign() {
       const qaDistance = Number.isFinite(requestedDistance) && requestedDistance >= 0 ? requestedDistance : undefined;
       return hydrateCampaign({
         scene: qaScene,
-        caseId: (["propulsion", "thermal", "brake", "regen", "ready", "gear"].includes(params.get("case") ?? "") ? params.get("case") : "propulsion") as Campaign["caseId"], // dev: ?qa=WIRING&case=thermal
+        caseId: (["propulsion", "thermal", "brake", "regen", "ready", "gear", "cold"].includes(params.get("case") ?? "") ? params.get("case") : "propulsion") as Campaign["caseId"], // dev: ?qa=WIRING&case=thermal
         previousScene: qaScene === "PAUSE" ? "CHASE_NORMAL" : undefined,
         completedCases: isFinale ? ["propulsion", "thermal"] : isResume ? ["propulsion"] : [],
-        evidence: { propulsion: ["pedal_raw", "pedal_processed", "torque_cmd"], thermal: [], brake: [], regen: [], ready: [], gear: [] },
-        hypothesis: { propulsion: "gateway", thermal: "", brake: "", regen: "", ready: "", gear: "" },
-        program: { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_dropped", ready: "precharge_timeout_500", gear: "gear_fallback_r" },
+        evidence: { propulsion: ["pedal_raw", "pedal_processed", "torque_cmd"], thermal: [], brake: [], regen: [], ready: [], gear: [], cold: [] },
+        hypothesis: { propulsion: "gateway", thermal: "", brake: "", regen: "", ready: "", gear: "", cold: "" },
+        program: { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_dropped", ready: "precharge_timeout_500", gear: "gear_fallback_r", cold: "regen_limit_fixed" },
         raceDistance: qaDistance ?? (qaScene === "CHASE_NORMAL" ? 0 : qaScene === "SHIP_ESCAPE" ? 1165 : isResume ? 545 : 260),
         raceElapsedSeconds: 52,
         policeGapMeters: 72,
@@ -1435,7 +1435,7 @@ function Ending({
             <span>
               필수 사건
               <b>
-                {state.completedCases.filter((x) => x !== "brake" && x !== "regen" && x !== "ready" && x !== "gear").length} / 2
+                {state.completedCases.filter((x) => x !== "brake" && x !== "regen" && x !== "ready" && x !== "gear" && x !== "cold").length} / 2
                 완료
               </b>
             </span>

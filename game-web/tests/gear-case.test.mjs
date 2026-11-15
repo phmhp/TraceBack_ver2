@@ -10,10 +10,10 @@ import { GEAR_FAULT, levelFaults, newFaultRuntime, stepFault } from "../src/game
 
 const at = (completed) => ({ ...initialCampaign(), scene: "LEVEL_SELECT", completedCases: completed });
 
-test("C04 level: bonus level 6 after thermal, a race first, finale is level 7", () => {
+test("C04 level: bonus level 6 after thermal, a race first, finale is level 8", () => {
   const level = LEVELS[5];
   assert.deepEqual([level.level, level.kind, level.caseId], [6, "bonus", "gear"]);
-  assert.equal(LEVELS[6].kind, "finale");
+  assert.equal(LEVELS[7].kind, "finale");
   assert.equal(levelStatus(at([]), level), "locked");
   assert.equal(levelStatus(at(["propulsion", "thermal"]), level), "open");
   const started = dispatch(at(["propulsion", "thermal"]), { type: "START_LEVEL", level: 6 });
@@ -61,7 +61,7 @@ test("C04 hypotheses: only the vehicle (system integration) level decides the fa
 test("C04 data: scenario, board and ending are present and the first deviation is the VCU gear value", () => {
   assert.equal(SCENARIOS.gear.root, "gear_fallback");
   const src = readFileSync(new URL("../src/features/board/DominoTrace.tsx", import.meta.url), "utf8");
-  const board = src.slice(src.indexOf('  gear: {\n    start: "launch_dir"'), src.indexOf("export const fmt"));
+  const board = src.slice(src.indexOf('  gear: {\n    start: "launch_dir"'), src.indexOf('  cold: {\n    start: "decel"'));
   assert.match(board, /start: "launch_dir", first: "vcu_gear"/);
   const times = Object.fromEntries([...board.matchAll(/id: "(\w+)"[^\n]*status: "bad", t: (\d+)/g)].map(m => [m[1], Number(m[2])]));
   assert.equal(times.vcu_gear, 100);

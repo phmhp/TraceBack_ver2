@@ -47,6 +47,7 @@ const SCOPE: Record<CaseId, { unit: { name: string; ids: string[] }; swc: { name
   brake: { unit: { name: "제동 배분 SWC", ids: ["rmin", "rest", "press"] }, swc: [{ name: "제동 요구 SWC", ids: ["recv"] }, { name: "제동 배분 SWC", ids: ["rmin", "rest", "press"] }] },
   ready: { unit: { name: "프리차지 시퀀스 SWC", ids: ["pre", "wait", "main"] }, swc: [{ name: "시동 조건 SWC", ids: ["cond"] }, { name: "프리차지 시퀀스 SWC", ids: ["pre", "wait", "main"] }] },
   gear: { unit: { name: "변속 수신 SWC", ids: ["rx", "cmd"] }, swc: [{ name: "변속 수신 SWC", ids: ["rx"] }, { name: "토크 요청 SWC", ids: ["cmd"] }] },
+  cold: { unit: { name: "회생·마찰 협조 SWC", ids: ["rx"] }, swc: [{ name: "회생·마찰 협조 SWC", ids: ["rx"] }] },
   regen: { unit: { name: "토크 지령 SWC", ids: ["sign", "rlim", "ramp"] }, swc: [{ name: "회생 요청 수신 SWC", ids: ["rrecv"] }, { name: "토크 지령 SWC", ids: ["sign", "rlim", "ramp"] }, { name: "통신 SWC", ids: ["out"] }] },
 };
 
@@ -243,6 +244,37 @@ const REF: Record<CaseId, Ref> = {
     },
     notes: [{ domain: "gear", feature: 3, name: "변속·주차 · 기어 상태 배포·표시" }, { domain: "gear", feature: 0, name: "변속·주차 · PRND 입력 판독" }],
     field: { rx: "타임아웃 → R", cmd: "−60 Nm", motor: "후진 −6 km/h" },
+  },
+  cold: {
+    domain: "제동 · 구동 · 고전압 전원", feature: "BMS 한계 → 제동 도메인 → 인버터 회생", ecu: "Brake ECU", program: "regen_limit_rx", ui: "path",
+    board: ["bms", "gw", "msg", "rx", "inv", "car"], gaps: [1, 3],
+    spares: ["direct", "rxB", "drvlim", "rx", "gw"], joints: ["round", "square", "square", "tri", "tri"],
+    side: { pieces: ["temp"], into: 0, value: "배터리 0 °C", label: "BMS가 받는 배터리 온도" },
+    req: [
+      { text: "BMS가 배터리 온도에 따라 회생 수용 한계를 정한다", slot: 0 },
+      { text: "게이트웨이가 한계를 협조 신호로 중계한다", slot: 1 },
+      { text: "협조 신호는 20 ms 주기로 제동 도메인에 전달된다", slot: 2 },
+      { text: "제동 도메인은 받은 한계를 회생 요청의 상한으로 사용한다", slot: 3 },
+      { text: "인버터는 한계 이내의 회생 토크를 낸다", slot: 4 },
+      { text: "차량은 그만큼만 감속한다", slot: 5 },
+    ],
+    blocks: {
+      bms: { id: "bms", label: "BMS 회생 한계", kind: "hw", img: `${T}bms.png`, out: "한계 20 Nm", from: "고전압 전원 · 팩 안전 판단" },
+      gw: { id: "gw", label: "게이트웨이 협조 신호 중계", kind: "calc", out: "20 Nm", from: "통신·진단 · 신호 수신·폴백" },
+      direct: { id: "direct", label: "직결 연결 (게이트웨이 없음)", kind: "calc", from: "통신·진단 · 신호 수신·폴백",
+        why: "'직결 연결'은 BMS가 제동 제어기에 바로 연결되는 다른 구조예요. 이 차의 협조 신호는 게이트웨이를 거쳐요." },
+      msg: { id: "msg", label: "협조 신호 20 ms 주기", kind: "hw", img: `${T}can_harness.png`, out: "20 Nm", from: "통신·진단 · 신호 수신·폴백" },
+      rx: { id: "rx", label: "제동 한계 수신·사용", tag: "표 A", spec: "수신한 한계를 회생 상한으로 사용", kind: "check", out: "한계 20 Nm", from: "제동 · 회생·마찰 협조" },
+      rxB: { id: "rxB", label: "제동 한계 수신·사용", tag: "표 B", spec: "고정 상한 60 Nm 사용 (수신값 무시)", kind: "check", bad: "한계 60 Nm", from: "제동 · 회생·마찰 협조",
+        why: "실행 결과 사용 한계가 60 Nm 그대로라 차가울 때도 회생이 과해요. 요구사항은 받은 한계를 쓰는 거예요. 같은 '제동 한계 수신·사용'이라도 표 값이 달라요." },
+      drvlim: { id: "drvlim", label: "구동 도메인 직접 한계", kind: "switch", from: "구동 · 토크 배분·제한",
+        why: "'구동 도메인 직접 한계'는 구동 쪽에서 따로 한계를 두는 블록이에요. 이 경로에서는 제동 도메인이 한계를 받아 써요." },
+      inv: { id: "inv", label: "인버터 · 회생 토크", kind: "hw", img: `${T}traction_motor.png`, out: "-20 Nm", from: "구동 · 토크 배분·제한" },
+      car: { id: "car", label: "차량 감속", kind: "hw", img: `${T}brake_caliper.png`, out: "-0.25 m/s²", from: "제동 · 회생·마찰 협조" },
+      temp: { id: "temp", label: "배터리 온도 센서", kind: "hw", img: `${T}motor_temp_sensor.png`, out: "0 °C", from: "고전압 전원 · 팩 안전 판단" },
+    },
+    notes: [{ domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조" }, { domain: "drive", feature: 2, name: "구동 · 토크 배분·제한" }],
+    field: { rx: "한계 60 Nm", inv: "-60 Nm", car: "-0.75 m/s²" },
   },
 };
 
@@ -497,6 +529,7 @@ const WHY: Record<CaseId, string> = {
   regen: "발을 뗐을 때 회생 요청이 정확한 방향의 토크로 바뀌어야 차가 의도대로 감속하기 때문이에요.",
   ready: "전압이 충분히 오르기 전에 주 접촉기를 닫으면 돌입 전류가 커서 위험하므로, 충전이 끝날 때까지 기다려야 해요.",
   gear: "통신이 끊겨도 차가 엉뚱한 방향으로 가면 안 되므로, 끊겼을 때 쓰는 값은 가장 안전한 값이어야 해요.",
+  cold: "회생은 배터리가 받을 수 있는 만큼만 해야 하므로, 도메인이 서로의 한계를 전달하고 받는 쪽이 그 값을 써야 해요.",
 };
 // The final actuator reacts in 3D: normal output when the rig matches the requirement, a weaker one when it does not.
 const ACTUATOR: Record<CaseId, { id: string; ok: string; weak: string }> = {
@@ -506,6 +539,7 @@ const ACTUATOR: Record<CaseId, { id: string; ok: string; weak: string }> = {
   regen: { id: "traction_motor", ok: "모터 −40 Nm · 정상 회생 감속", weak: "토크가 반대 방향 · 오히려 가속해요" },
   ready: { id: "vcu", ok: "버스 380 V · 주 접촉기 닫힘 · READY", weak: "대기 중 실패 · READY가 안 켜져요" },
   gear: { id: "vcu", ok: "기어 값 N · 구동 지령 0 Nm · 정지 유지", weak: "기어 값 R · 후진 방향으로 움찔해요" },
+  cold: { id: "brake_ecu", ok: "한계 20 Nm 이내 · 회생 -20 Nm · 감속 -0.25 m/s²", weak: "한계를 넘는 회생 -60 Nm · 감속이 세요" },
 };
 function ActuatorReaction({ caseId, ok }: { caseId: CaseId; ok: boolean }) {
   const a = ACTUATOR[caseId];
@@ -527,6 +561,7 @@ const RIG_GOAL: Record<CaseId, string> = {
   regen: "VCU 토크 지령 변환 SW인지, 그 뒤 CAN·인버터 경로인지",
   ready: "프리차지 대기 시간 설정인지, 프리차지 회로(저항·접촉기)인지",
   gear: "변속 수신의 타임아웃 폴백 설정인지, 레버·게이트웨이 경로인지",
+  cold: "제동 도메인의 한계 사용 설정인지, BMS·게이트웨이 경로인지",
 };
 /** STEP03 산출물: 정상 시나리오 요구사항 문장 (STEP04 시험 자료함에서 그대로 참고). */
 export const normalScenarioLines = (caseId: CaseId) => SPEC[caseId].lines;
@@ -538,6 +573,7 @@ const SHEET_PURPOSE: Record<CaseId, string> = {
   regen: "VCU 변환 SW와 인버터 이후 경로 중 원인 구분",
   ready: "프리차지 대기 설정과 프리차지 회로 중 원인 구분",
   gear: "변속 수신 타임아웃 폴백 설정과 중계 경로(레버·게이트웨이) 중 원인 구분",
+  cold: "회생 한계 수신 사용과 BMS·게이트웨이 경로 중 원인 구분",
 };
 const SPEC: Record<CaseId, { text: string; lines: string[]; input?: { label: string; unit: string; min: number; max: number; at: number }; expect: string }> = {
   propulsion: { text: "페달 0~100% → 토크 요청 0~340 Nm 선형 · 가용 토크 한계 260 Nm(BMS·온도) · D단·READY일 때만 통과",
@@ -555,6 +591,9 @@ const SPEC: Record<CaseId, { text: string; lines: string[]; input?: { label: str
   gear: { text: "변속 레버 → 게이트웨이 → CAN(20 ms 주기) → VCU 수신(100 ms 타임아웃 · 폴백 N) → 구동 지령",
     lines: ["변속 레버 위치는 게이트웨이를 거쳐 CAN으로 VCU에 20\u00a0ms 주기로 전달된다.", "VCU는 100\u00a0ms 안에 새 메시지가 없으면 통신 오류로 본다.", "통신 오류일 때는 안전 값 N(구동 토크 0)을 쓴다. 클러스터는 별도 경로로 변속 값을 받는다."],
     input: { label: "메시지 간격", unit: "ms", min: 0, max: 200, at: 120 }, expect: "메시지 간격 120 ms → 타임아웃 → 기어 값 N · 구동 지령 0 Nm" },
+  cold: { text: "배터리 온도 → BMS 회생 한계 → 게이트웨이(협조 신호) → 제동 도메인 수신·사용 → 인버터 회생 토크 → 차량 감속",
+    lines: ["BMS는 배터리 온도에 따라 회생 수용 한계를 정한다(25 °C에서 60 Nm, 0 °C에서 20 Nm).", "게이트웨이는 이 한계를 20 ms마다 제동 도메인에 전달한다.", "제동 도메인은 받은 한계를 회생 요청의 상한으로 사용한다. 한계를 넘는 회생은 쓰지 않는다."],
+    input: { label: "배터리 온도", unit: "°C", min: -10, max: 25, at: 0 }, expect: "배터리 0 °C → 한계 20 Nm → 회생 토크 -20 Nm → 감속 -0.25 m/s²" },
 };
 /** Value leaving each board slot for an example input (same numbers as simModel: 3.4 Nm/%, limit 260, 65/60 °C, 1850 rpm). */
 function exampleValue(caseId: CaseId, id: string, x: number, mapId = "map"): string | null {
@@ -565,6 +604,11 @@ function exampleValue(caseId: CaseId, id: string, x: number, mapId = "map"): str
   }
   if (caseId === "thermal") {
     return ({ coolant: `${x}°C`, range: `${x}°C ✓`, filter: `${x}°C` } as Record<string, string>)[id] ?? null;
+  }
+  if (caseId === "cold") {
+    const lim = Math.round(Math.min(60, Math.max(10, 20 + 1.6 * x)));      // BMS regeneration acceptance by battery temperature
+    const used = mapId === "rxB" ? 60 : lim, tq = Math.min(80, used);
+    return ({ bms: `한계 ${lim} Nm`, gw: `${lim} Nm`, msg: `${lim} Nm`, rx: `한계 ${lim} Nm`, rxB: "한계 60 Nm", inv: `-${tq} Nm`, car: `${(-tq / 80).toFixed(2)} m/s²` } as Record<string, string>)[id] ?? null;
   }
   if (caseId === "gear") {
     const late = x > 100;                                    // no new message within 100 ms -> timeout

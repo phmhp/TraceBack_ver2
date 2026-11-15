@@ -293,4 +293,7 @@ export const CASE_EVIDENCE = [
   { caseKo: "변속", id: "motor_reverse_log", scene: "A data logger screen on a laptop showing a motor torque command trace dipping below zero right after a gear shift marker, an engineer pointing at the dip" },
   { caseKo: "변속", id: "dtc_gear_timeout", scene: "A diagnostic tablet screen showing a pending (unconfirmed) communication timeout fault entry with a counter of occurrences, no warning lamp lit in the background cluster" },
   { caseKo: "변속", id: "bus_load_scope", scene: "A vehicle network analyzer screen showing a CAN bus load bar at 85 percent and a message timing diagram with one gap much longer than the others" },
+  { caseKo: "저온회생", id: "cold_decel_log", scene: "A data logger screen on a laptop showing a vehicle deceleration trace with a sharp downward step right after a pedal release marker, a small thermometer icon reading near zero degrees on the side" },
+  { caseKo: "저온회생", id: "regen_limit_compare", scene: "A diagnostic tablet showing two bar graphs side by side labeled by position only, a short bar for a battery limit value and a much taller bar for a requested value, no warning lamp visible" },
+  { caseKo: "저온회생", id: "battery_temp_view", scene: "A battery management display showing a cold battery pack temperature near zero degrees with a low regeneration acceptance gauge, engineer hand holding a tablet in a cold garage" },
 ];

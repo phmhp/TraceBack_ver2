@@ -142,6 +142,23 @@ const CASES: Record<CaseId, { nodes: SigNode[]; zoom: Zoom }> = {
       lesson: "통신이 끊겼을 때 쓰는 값이 안전 값 N이 아니라 R로 들어가 있어요.",
     },
   },
+  cold: {
+    nodes: [
+      { id: "temp", label: "배터리 온도", x: 2.5, y: 14, ref: "0 °C", run: "0 °C", status: "ok", ev: "battery_temp_view" },
+      { id: "bms_lim", label: "BMS 회생 한계", x: 16, y: 14, ref: "20 Nm", run: "20 Nm", status: "ok" },
+      { id: "gw_lim", label: "게이트웨이 전달 한계", x: 31, y: 14, ref: "20 Nm", run: "20 Nm", status: "ok", ev: "regen_limit_compare" },
+      { id: "brk_lim", label: "제동 도메인 사용 한계", x: 47, y: 12, ref: "20 Nm", run: "60 Nm", status: "bad", t: 100, role: "origin", ev: "cold_decel_log" },
+      { id: "regen_tq", label: "인버터 회생 토크", x: 64, y: 12, ref: "-20 Nm", run: "-60 Nm", status: "bad", t: 200, parent: "brk_lim", role: "effect" },
+      { id: "decel", label: "차량 감속", x: 82, y: 12, ref: "-0.25 m/s²", run: "-0.75 m/s²", status: "bad", t: 300, parent: "regen_tq", role: "effect" },
+    ],
+    zoom: {
+      where: "제동 도메인 한계 수신", kind: "sw",
+      reference: [["수신한 한계", "20 Nm"], ["사용 한계", "20 Nm"], ["회생 토크", "-20 Nm"]],
+      run: [["수신한 한계", "20 Nm"], ["사용 한계", "60 Nm"], ["회생 토크", "-60 Nm"]],
+      culprit: "한계 수신·사용 설정",
+      lesson: "받은 한계 대신 고정 상한 60 Nm를 써서 추울 때도 회생이 과해요.",
+    },
+  },
 };
 type Zoom = { where: string; kind: "sw" | "hw"; reference: [string, string][]; run: [string, string][]; part?: [string, string, string]; culprit: string; lesson: string };
 

@@ -22,6 +22,9 @@
 | 변속 | `motor_reverse_log` | `motor_reverse_log__EVID.png` |
 | 변속 | `dtc_gear_timeout` | `dtc_gear_timeout__EVID.png` |
 | 변속 | `bus_load_scope` | `bus_load_scope__EVID.png` |
+| 저온회생 | `cold_decel_log` | `cold_decel_log__EVID.png` |
+| 저온회생 | `regen_limit_compare` | `regen_limit_compare__EVID.png` |
+| 저온회생 | `battery_temp_view` | `battery_temp_view__EVID.png` |
 
 ## 구동 · pedal_raw
 
@@ -255,4 +258,43 @@ Composition: the key subject centered and occupying about 70% of the frame; keep
 Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
 Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
 After the image, reply with only this file name (never draw it in the image): bus_load_scope__EVID.png
+```
+
+## 저온회생 · cold_decel_log
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A data logger screen on a laptop showing a vehicle deceleration trace with a sharp downward step right after a pedal release marker, a small thermometer icon reading near zero degrees on the side.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): cold_decel_log__EVID.png
+```
+
+## 저온회생 · regen_limit_compare
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A diagnostic tablet showing two bar graphs side by side labeled by position only, a short bar for a battery limit value and a much taller bar for a requested value, no warning lamp visible.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): regen_limit_compare__EVID.png
+```
+
+## 저온회생 · battery_temp_view
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A battery management display showing a cold battery pack temperature near zero degrees with a low regeneration acceptance gauge, engineer hand holding a tablet in a cold garage.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): battery_temp_view__EVID.png
 ```

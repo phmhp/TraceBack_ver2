@@ -156,6 +156,22 @@ function gear(tech: Tech, fault: boolean, execution?: VerificationExecution) {
   }, s => ({ lever: s.lever, gap: s.gap, gw: s.lever, tmo: s.tmo, g: s.g, cmd: s.cmd, mot: s.mot, spd: s.v, ped: s.ped }));
 }
 
+// ── 저온 회생(도메인 협조): 배터리 온도 → BMS 회생 한계 → 게이트웨이 → 제동 도메인 수신 → 회생 토크 → 차량 감속 ──
+function cold(tech: Tech, fault: boolean, execution?: VerificationExecution) {
+  // req: 0 degC (field condition, limit 20 Nm) · boundary: -10 degC (limit 10 Nm) · replay: same as req
+  const temp = initialValue(execution, "batteryTemp", tech === "boundary" ? -10 : 0);
+  const limit = clamp(20 + 1.6 * temp, 10, 60);                       // BMS regeneration acceptance (Nm): 25 degC -> 60, 0 degC -> 20
+  const seconds = execution?.durationSeconds ?? 2.5;
+  return integrate(seconds, { req: 0, lim: fault ? 60 : limit, regen: 0, v: initialValue(execution, "vehicleSpeed", 60) / 3.6, acc: 0 }, (s, t, dt) => {
+    s.req = execution ? rampInput(execution, t) : t < .1 ? 0 : -80;     // coasting regeneration request (Nm, negative)
+    s.lim = fault ? 60 : limit;                                         // the fault: the brake domain uses a fixed 60 Nm instead of the received limit
+    const want = clamp(s.req, -s.lim, 0);
+    s.regen += (want - s.regen) * dt / .05;
+    s.acc = s.regen / 80;                                               // 80 Nm per 1 m/s2 on level ground
+    s.v = Math.max(0, s.v + s.acc * dt);
+  }, s => ({ temp, bms: limit, gw: limit, lim: s.lim, req: s.req, regen: s.regen, acc: s.acc, spd: s.v * 3.6 }));
+}
+
 type Def = { id: string; name: string; unit: string; min?: number; max: number; src: string; model?: boolean };
 // per level: which signals exist there. `model: true` = taken from the healthy run (plant is a model at that level)
 const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
@@ -316,9 +332,35 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
       { id: "spd", name: "차량 속도", unit: "km/h", min: -8, max: 8, src: "spd" },
     ],
   },
+  cold: {
+    unit: [
+      { id: "req", name: "입력값 인가 · 회생 요청", unit: "Nm", min: -90, max: 0, src: "req", model: true },
+      { id: "lim", name: "제동 도메인이 쓰는 한계 (한계 입력은 스텁)", unit: "Nm", max: 70, src: "lim", model: true },
+      { id: "regen", name: "회생 토크 요청", unit: "Nm", min: -90, max: 0, src: "regen", model: true },
+    ],
+    swint: [
+      { id: "req", name: "회생 요청 SWC 출력", unit: "Nm", min: -90, max: 0, src: "req", model: true },
+      { id: "lim", name: "회생·마찰 협조 SWC · 사용 한계", unit: "Nm", max: 70, src: "lim", model: true },
+      { id: "regen", name: "회생 토크 요청", unit: "Nm", min: -90, max: 0, src: "regen", model: true },
+    ],
+    embedded: [
+      { id: "req", name: "회생 요청 (CAN 수신)", unit: "Nm", min: -90, max: 0, src: "req", model: true },
+      { id: "lim", name: "제동 제어기 사용 한계", unit: "Nm", max: 70, src: "lim", model: true },
+      { id: "regen", name: "회생 토크 요청", unit: "Nm", min: -90, max: 0, src: "regen", model: true },
+    ],
+    vehicle: [
+      { id: "temp", name: "배터리 온도 (재현)", unit: "°C", min: -20, max: 40, src: "temp" },
+      { id: "bms", name: "BMS 회생 한계", unit: "Nm", max: 70, src: "bms" },
+      { id: "gw", name: "게이트웨이 전달 한계", unit: "Nm", max: 70, src: "gw" },
+      { id: "lim", name: "제동 도메인 사용 한계", unit: "Nm", max: 70, src: "lim" },
+      { id: "regen", name: "인버터 회생 토크", unit: "Nm", min: -90, max: 0, src: "regen" },
+      { id: "acc", name: "차량 감속도", unit: "m/s²", min: -1.2, max: 0, src: "acc" },
+      { id: "spd", name: "차량 속도", unit: "km/h", max: 70, src: "spd" },
+    ],
+  },
 };
-const MODELS = { propulsion, thermal, brake, regen, ready, gear };
-const TIME: Record<CaseId, [number, string]> = { propulsion: [3, "s"], thermal: [8, "분(압축)"], brake: [3, "s"], regen: [5.5, "s"], ready: [1.6, "s"], gear: [0.35, "s"] };
+const MODELS = { propulsion, thermal, brake, regen, ready, gear, cold };
+const TIME: Record<CaseId, [number, string]> = { propulsion: [3, "s"], thermal: [8, "분(압축)"], brake: [3, "s"], regen: [5.5, "s"], ready: [1.6, "s"], gear: [0.35, "s"], cold: [2.5, "s"] };
 
 /** Reference = healthy design, run = field fault (or the fixed design). Same input for both. */
 export function simulate(caseId: CaseId, tech: Tech, fixed: boolean, execution?: VerificationExecution): SimResult {

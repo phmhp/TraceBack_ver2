@@ -249,6 +249,39 @@ const BASE: Record<CaseId, ContractBase> = {
     limitation: "버스 부하를 만들 수 있는 시스템 통합 수준에서만 메시지 간격이 보이고, 진단 코드가 확정되지 않은 이유는 이 시험의 범위 밖이다.",
     createdBy: "STEP03",
   },
+  cold: {
+    version: 1,
+    caseId: "cold",
+    objective: "저온 코스팅에서 회생이 과한 원인이 BMS·게이트웨이가 아니라 제동 도메인의 한계 사용 설정인지, 같은 입력에서 한계 신호를 단계별로 보고 구분한다.",
+    preconditions: ["주행 60 km/h", "배터리 0 °C", "가속 페달 해제"],
+    stimulus: { label: "저온 코스팅", sequence: "회생 요청 0→-80 Nm / 0.1 s · 2.5 s 관찰" },
+    expectedSignal: "제동 도메인 사용 한계와 회생 토크",
+    observations: [
+      { id: "input", label: "BMS 회생 한계" },
+      { id: "control", label: "제동 도메인 사용 한계" },
+      { id: "output", label: "인버터 회생 토크" },
+    ],
+    comparison: { baseline: "STEP03 정상 기준 장치", sameInput: true, timeAxis: "0~2.5 s 동일 시간축", units: "Nm, m/s², °C" },
+    execution: {
+      initial: [
+        { signalId: "batteryTemp", value: 0, unit: "°C" },
+        { signalId: "vehicleSpeed", value: 60, unit: "km/h" },
+        { signalId: "accelPedal", value: 0, unit: "%" },
+      ],
+      stimulus: { signalId: "regenRequest", startValue: 0, endValue: -80, unit: "Nm", rampSeconds: 0.1, holdSeconds: 2.4 },
+      durationSeconds: 2.5,
+      observationSignalIds: {
+        unit: ["req", "lim", "regen"],
+        swint: ["req", "lim", "regen"],
+        embedded: ["req", "lim", "regen"],
+        vehicle: ["temp", "bms", "gw", "lim", "regen", "acc", "spd"],
+      },
+      expectedOutputs: [{ signalId: "regen", value: -20, unit: "Nm", tolerance: 3 }],
+      comparisonTolerancePercent: 2,
+    },
+    limitation: "배터리 온도에 따른 한계 변화는 시스템 통합 수준에서만 재현되며, 진단이 잡지 못한 이유는 이 시험의 범위 밖이다.",
+    createdBy: "STEP03",
+  },
 };
 
 export function buildVerificationContract(caseId: CaseId, input: {

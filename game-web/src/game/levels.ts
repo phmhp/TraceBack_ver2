@@ -39,7 +39,10 @@ export const LEVELS: LevelDef[] = [
   { level: 6, kind: "bonus", caseId: "gear", title: "D에 놓았는데 뒤로 가요", domainLabel: "변속·통신", icon: "gear",
     teaser: "변속 직후 출발하면 가끔 차가 뒤로 움찔해요.", phase: "정차 후 출발", learn: "버스 부하를 재현하는 시스템 통합 시험으로 통신 폴백 값 오류를 찾는 시험", difficulty: 3, principles: ["변속 위치는 20 ms마다 CAN으로 전달되고, 오래 오지 않으면 제어기가 안전 값으로 바꿔요.", "통신이 끊겼을 때 쓰는 폴백 값은 안전한 방향이어야 해요.", "간헐 고장은 재현 조건(버스 부하)을 고르면 드러나요."],
     garage: [{ domain: "gear", feature: 3 }] },
-  { level: 7, kind: "finale", caseId: null, title: "최종 탈출", domainLabel: "해적선", icon: "flag",
+  { level: 7, kind: "bonus", caseId: "cold", title: "추울 때 발만 떼도 확 서요", domainLabel: "도메인 협조", icon: "thermo",
+    teaser: "차가운 아침에 가속 페달에서 발을 떼면 감속이 너무 세요.", phase: "저온 코스팅", learn: "도메인이 주고받는 협조 신호를 받는 쪽이 쓰는지 시스템 통합 시험으로 확인", difficulty: 3, principles: ["회생은 배터리가 받을 수 있는 한계 이내여야 하고, 그 한계는 온도에 따라 달라져요.", "도메인은 협조 신호로 서로의 한계를 전달해요.", "협조 신호는 보내는 쪽과 받는 쪽을 둘 다 시험해요."],
+    garage: [{ domain: "brake", feature: 1 }, { domain: "drive", feature: 2 }] },
+  { level: 8, kind: "finale", caseId: null, title: "최종 탈출", domainLabel: "해적선", icon: "flag",
     teaser: "수리한 차로 부두까지 달려 해적선에 올라타요.", phase: "부두 구간 주행", learn: "수리 후에도 정상 동작이 이어지는지 확인", difficulty: 1, principles: ["수리 후에도 같은 시험으로 정상 동작을 확인해요.", "정상 기준은 요구사항에서 나오고 시험 기준이 돼요.", "추리, 시험, 수리, 재시험이 검증의 기본 흐름이에요."], garage: [] },
 ];
 
@@ -50,12 +53,12 @@ export function levelStatus(state: Campaign, def: LevelDef): LevelStatus {
   if (def.caseId && done(def.caseId)) return "cleared";
   if (def.level === 1) return "open";
   if (def.level === 2) return done("propulsion") ? "open" : "locked";
-  if (def.level >= 3 && def.level <= 6) return done("thermal") ? "open" : "locked";
+  if (def.level >= 3 && def.level <= 7) return done("thermal") ? "open" : "locked";
   return done("propulsion") && done("thermal") ? "open" : "locked";
 }
 
 export function lockedReason(def: LevelDef) {
   if (def.level === 2) return "1레벨을 클리어하면 열려요.";
-  if (def.level >= 3 && def.level <= 6) return "2레벨을 클리어하면 열려요.";
+  if (def.level >= 3 && def.level <= 7) return "2레벨을 클리어하면 열려요.";
   return "1·2레벨을 클리어하면 열려요.";
 }

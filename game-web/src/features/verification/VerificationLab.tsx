@@ -148,6 +148,27 @@ const experimentConfig: Record<CaseId, ExperimentConfig> = {
     lesson: "버스 전압 곡선과 시퀀스 상태를 함께 비교해 대기 시간 설정이 충전 시간보다 짧은 경계를 찾았습니다.",
     probeCopy: { input: "시동 요청", control: "프리차지 시퀀스", output: "HV 버스 전압" },
   },
+  cold: {
+    requirementId: "REQ-COLD-06",
+    requirement: "제동 도메인은 BMS가 보내는 회생 수용 한계(25 °C에서 60 Nm, 0 °C에서 20 Nm)를 매 주기 받아 회생 요청의 상한으로 사용해야 한다.",
+    missionTitle: "추운 날 발을 뗀 순간을 재현하라",
+    missionBrief: "배터리가 차가운 상태에서 가속 페달을 뗀 순간을 재현하고, 제동 도메인이 쓰는 한계가 BMS 한계와 처음 갈라지는 지점을 확인합니다.",
+    precondition: "주행 60 km/h · 배터리 0 °C · 회생 요청 -80 Nm",
+    stimuli: [
+      { label: "저온 코스팅", hint: "배터리 0 °C · 한계 20 Nm", sequence: "회생 요청 0→-80 Nm / 0.1 s" },
+      { label: "더 낮은 온도", hint: "배터리 -10 °C · 한계 10 Nm", sequence: "회생 요청 0→-80 Nm" },
+      { label: "상온 코스팅", hint: "배터리 25 °C · 한계 60 Nm", sequence: "회생 요청 0→-80 Nm" },
+    ],
+    target: 0,
+    probe: "control",
+    expected: "20 Nm",
+    healthyActual: "20 Nm",
+    faultyActual: "60 Nm",
+    mismatch: "제동 도메인 사용 한계",
+    technique: "시스템 통합 · 배터리 온도 재현",
+    lesson: "BMS와 게이트웨이의 한계는 정상인데 제동 도메인이 쓰는 한계만 60 Nm으로 높다는 경계를 찾았습니다.",
+    probeCopy: { input: "배터리 온도", control: "제동 도메인 사용 한계", output: "인버터 회생 토크" },
+  },
   gear: {
     requirementId: "REQ-GEAR-04",
     requirement: "변속 위치 메시지는 20 ms 주기로 전달되고, VCU는 100 ms 안에 새 메시지가 없으면 통신 오류로 보고 안전 값 N을 써야 한다.",
@@ -223,6 +244,12 @@ const rigParts: Record<CaseId, readonly RigPart[]> = {
     { cell: [2, 1], role: "PRECHARGE", label: "프리차지 접촉기·저항", signal: "버스 충전", kind: "transfer" },
     { cell: [3, 1], role: "HV BUS", label: "HV 버스 · 주 접촉기", signal: "380 V 이상", kind: "output" },
   ],
+  cold: [
+    { cell: [0, 0], role: "BATTERY", label: "배터리 온도 · BMS", signal: "한계 20 Nm", kind: "input" },
+    { cell: [1, 0], role: "GATEWAY", label: "게이트웨이 · 협조 신호", signal: "20 Nm 전달", kind: "transfer" },
+    { cell: [2, 1], role: "BRAKE DOMAIN", label: "제동 도메인 한계 수신", signal: "한계 이내", kind: "controller" },
+    { cell: [3, 1], role: "DRIVE", label: "인버터 · 회생 토크", signal: "-20 Nm", kind: "output" },
+  ],
   gear: [
     { cell: [0, 0], role: "DRIVER INPUT", label: "변속 레버 · 페달", signal: "D · 40 %", kind: "input" },
     { cell: [1, 0], role: "GATEWAY", label: "게이트웨이 · CAN", signal: "간격 120 ms", kind: "transfer" },
@@ -275,6 +302,7 @@ const systemScenario: Record<CaseId, { input: string; network: string; response:
   brake: { input: "제동 요구 55%", network: "Brake ECU ↔ VCU ↔ ABS", response: "감속도 · 휠 슬립", units: "3.2 m/s² · 4%" },
   regen: { input: "회생 요청 −40 Nm", network: "Brake ECU ↔ VCU ↔ Inverter", response: "가감속 · 모터 토크", units: "−0.5 m/s² · −40 Nm" },
   ready: { input: "시동 요청 · 브레이크 ON", network: "VCU ↔ BMS ↔ 접촉기 드라이버", response: "버스 전압 · READY", units: "380 V · READY 1" },
+  cold: { input: "배터리 온도 · 회생 요청", network: "BMS ↔ 게이트웨이 ↔ 제동 ↔ 구동", response: "회생 토크 · 차량 감속", units: "한계 20 Nm · 회생 -20 Nm" },
   gear: { input: "변속 레버 · 가속 페달", network: "시프터 ↔ 게이트웨이 ↔ CAN ↔ VCU", response: "기어 값 · 구동 지령", units: "기어 N · 0 Nm" },
 };
 
@@ -374,6 +402,17 @@ const softwareFlows: Record<CaseId, { nodes: SoftwareFlowNode[]; mismatchIndex: 
       { stage: "FEEDBACK", label: "READY 상태", expected: "켜짐", faulty: "꺼짐", kind: "output" },
     ],
   },
+  cold: {
+    mismatchIndex: 3,
+    nodes: [
+      { stage: "TEMP", label: "배터리 온도", expected: "0 °C", faulty: "0 °C" },
+      { stage: "BMS", label: "BMS 회생 한계", expected: "20 Nm", faulty: "20 Nm" },
+      { stage: "GATEWAY", label: "게이트웨이 전달 한계", expected: "20 Nm", faulty: "20 Nm" },
+      { stage: "BRAKE", label: "제동 도메인 사용 한계", expected: "20 Nm", faulty: "60 Nm", kind: "decision" },
+      { stage: "OUTPUT", label: "인버터 회생 토크", expected: "-20 Nm", faulty: "-60 Nm" },
+      { stage: "FEEDBACK", label: "차량 감속도", expected: "-0.25 m/s²", faulty: "-0.75 m/s²", kind: "output" },
+    ],
+  },
   gear: {
     mismatchIndex: 3,
     nodes: [
@@ -441,6 +480,11 @@ const levelCheck: Record<CaseId, { answer: BenchTab; why: string; wrong: string 
     why: "의심 구간이 프리차지 시퀀스 SW예요. 제어기 I/O까지 연결해 버스 전압 곡선과 대기 시간 설정을 함께 봐야 설정이 충전 시간보다 짧은지 가를 수 있어요.",
     wrong: "그 레벨로는 실제 충전 곡선과 대기 시간 설정을 함께 볼 수 없거나, 더 높은 레벨이어도 시퀀스 내부를 볼 수 없어요.",
   },
+  cold: {
+    answer: "vehicle",
+    why: "의심 구간이 도메인 사이 협조 신호이고 배터리 온도를 바꿔야 드러나요. BMS·게이트웨이·제동 제어기가 함께 도는 시스템 통합 시험에서 한계 신호를 단계별로 봐야 가를 수 있어요.",
+    wrong: "그 레벨에서는 배터리 온도와 BMS 신호를 만들 수 없어 한계가 낮아지는 순간이 오지 않아요.",
+  },
   gear: {
     answer: "vehicle",
     why: "의심 구간이 VCU 변속 수신이고 버스 지연이 있어야 드러나요. 게이트웨이와 CAN이 함께 도는 시스템 통합 시험에서 메시지 간격과 기어 값을 같이 봐야 가를 수 있어요.",
@@ -453,6 +497,7 @@ const regressionTests: Record<CaseId, string[]> = {
   brake: ["회생 가능 범위에서는 회생 우선", "ABS 작동 시 압력 조절 정상", "브레이크 경고등 소등"],
   regen: ["평지 코스팅 시 회생 감속 유지", "회생·마찰 제동 협조 전환 정상", "가속 시 구동 토크 방향 정상"],
   ready: ["시동 재시도 시 READY 성공", "접촉기 용착 진단 정상", "충전 중 시동 인터록 유지"],
+  cold: ["25 °C에서 회생 정상 크기", "-10 °C에서도 한계 준수", "한계 신호 끊김 시 안전 값 사용"],
   gear: ["D 출발 정상 동작", "의도적 R 후진 정상 동작", "통신 복구 때 즉시 복귀"],
 };
 
@@ -620,6 +665,7 @@ const CHAIN_PHOTO: Record<CaseId, [string, string, string]> = {
   brake: ["brake_pedal", "brake_ecu", "brake_caliper"],
   regen: ["brake_ecu", "vcu", "traction_motor"],
   ready: ["brake_pedal", "vcu", "bms"],
+  cold: ["bms", "brake_ecu", "traction_motor"],
   gear: ["brake_pedal", "vcu", "can_harness"],
 };
 const WAVES: Record<CaseId, string[]> = {
@@ -628,6 +674,7 @@ const WAVES: Record<CaseId, string[]> = {
   brake: ["M4 30 H20 L36 26 H76", "M4 30 H18 L30 14 H76", "M4 30 H16 L19 4 H76"],
   regen: ["M4 30 H20 L36 26 H76", "M4 30 H18 L30 14 H76", "M4 30 H16 L19 4 H76"],
   ready: ["M4 30 H20 L36 26 H76", "M4 30 H18 L30 14 H76", "M4 30 H16 L19 4 H76"],
+  cold: ["M4 30 H20 L36 26 H76", "M4 30 H18 L30 14 H76", "M4 30 H16 L19 4 H76"],
   gear: ["M4 30 H20 L36 26 H76", "M4 30 H18 L30 14 H76", "M4 30 H16 L19 4 H76"],
 };
 type Fix = { label: string; img: string; ok: boolean; why: string };
@@ -656,6 +703,11 @@ const FIXES: Record<CaseId, Fix[]> = {
     { label: "프리차지 대기 시간을 1500 ms로 복원하고 시퀀스 타이밍 시험 추가", img: "/assets/ending-thumbs/vcu.png", ok: true, why: "대기 시간 설정을 설계값으로 되돌리고, 같은 오류가 다시 들어오지 않게 타이밍 시험을 추가했어요." },
     { label: "타임아웃이 나면 주 접촉기를 강제로 닫기", img: "/assets/ending-thumbs/vcu.png", ok: false, why: "증상만 가려요. 전압이 모자란 채로 닫으면 돌입 전류와 접촉기 용착 위험이 생겨요." },
     { label: "프리차지 저항 값을 키우기", img: "/assets/ending-thumbs/bms.png", ok: false, why: "충전이 더 느려질 뿐 대기 시간 설정은 그대로라 실패는 그대로예요." },
+  ],
+  cold: [
+    { label: "회생 한계를 협조 신호에서 읽도록 복원하고 저온 시험 추가", img: "/assets/ending-thumbs/brake_ecu.png", ok: true, why: "받은 한계를 쓰도록 되돌리고, 환경이 바뀌어도 같은 오류가 다시 들어오지 않게 저온 시험을 추가했어요." },
+    { label: "감속 필터로 회생 토크 변화를 완화", img: "/assets/ending-thumbs/brake_ecu.png", ok: false, why: "증상만 가려요. 한계를 넘는 회생은 그대로라 배터리가 보호를 위해 끊을 수 있어요." },
+    { label: "BMS가 보내는 한계를 높이기", img: "/assets/ending-thumbs/bms.png", ok: false, why: "배터리가 받을 수 없는 전력을 허용하게 돼 안전하지 않아요." },
   ],
   gear: [
     { label: "폴백 값을 N으로 복원하고 통신 타임아웃 시험 추가", img: "/assets/ending-thumbs/vcu.png", ok: true, why: "타임아웃 때 쓰는 값을 안전 값으로 되돌리고, 같은 설정 오류가 다시 들어오지 않게 시험을 추가했어요." },
@@ -707,6 +759,13 @@ const SIGNALS: Record<CaseId, { seconds: number; first: number; list: Sig[] }> =
     { name: "시퀀스 상태 (3 = 실패)", unit: "", zone: "제어기 SW", ref: u => (u < .5 ? 1 : 2), fault: u => (u < .31 ? 1 : 3), max: 3 },
     { name: "주 접촉기 명령", unit: "", zone: "제어기 SW I/O", ref: u => (u < .5 ? 0 : 1), fault: () => 0, max: 1 },
     { name: "READY 상태", unit: "", zone: "차량", ref: u => (u < .52 ? 0 : 1), fault: () => 0, max: 1 },
+  ] },
+  cold: { seconds: 2.5, first: 3, list: [
+    { name: "배터리 온도", unit: "°C", zone: "센서", ref: () => 0, fault: () => 0, max: 40 },
+    { name: "BMS 회생 한계", unit: "Nm", zone: "제어기", ref: () => 20, fault: () => 20, max: 70 },
+    { name: "게이트웨이 전달 한계", unit: "Nm", zone: "CAN", ref: () => 20, fault: () => 20, max: 70 },
+    { name: "제동 도메인 사용 한계", unit: "Nm", zone: "제어기 SW", ref: () => 20, fault: () => 60, max: 70 },
+    { name: "인버터 회생 토크", unit: "Nm", zone: "부품", ref: u => -20 * Math.min(1, u * 20), fault: u => -60 * Math.min(1, u * 20), max: 90 },
   ] },
   gear: { seconds: 0.35, first: 3, list: [
     { name: "변속 레버 위치", unit: "", zone: "센서", ref: u => (u < .29 ? 0 : 1), fault: u => (u < .29 ? 0 : 1), max: 1 },
@@ -767,6 +826,9 @@ const TEST_ANSWER: Record<CaseId, { method: Method[]; deriv: Deriv[]; input: str
   ready: { method: ["req"], deriv: ["reqa", "bound"], input: "시동 요청 0→1 · 충전 시정수 250 ms",
     whyM: { req: "'시동 요청 → 750 ms 부근 95 % → READY' 요구를 그대로 확인하는 방법이에요.", iface: "신호 형식 문제가 아니에요. 시퀀스의 시간 설정을 보는 시험이에요.", inject: "고장을 일부러 넣는 방법이에요. 이미 발생한 고장을 재현하는 이번 시험에는 맞지 않아요." },
     whyD: { reqa: "요구사항 '시동 요청 → 750 ms에 95 %'에서 입력과 기대값을 바로 뽑을 수 있어요.", bound: "충전이 더 느린 저온 경계(시정수 350 ms)에서도 대기 시간이 충분해야 해요. 같은 설정 오류가 더 뚜렷해요.", equiv: "시동 요청이 없으면 시퀀스가 돌지 않아 이 오류를 드러내지 못해요.", guess: "근거 없이 고르기보다 요구사항 입력을 쓰는 게 확실해요.", usecase: "실제 시동 기록은 시도 횟수만 남아 설정 값을 가르기 어려워요." } },
+  cold: { method: ["req"], deriv: ["reqa", "bound", "equiv"], input: "배터리 0 °C · 회생 요청 -80 Nm",
+    whyM: { req: "'회생은 BMS가 허용한 한계 이내' 요구를 그대로 확인하는 방법이에요.", iface: "신호 형식 문제가 아니에요. 협조 신호의 사용 여부를 보는 시험이에요.", inject: "고장을 일부러 넣는 방법이에요. 이미 발생한 고장을 재현하는 이번 시험에는 맞지 않아요." },
+    whyD: { reqa: "요구사항 '회생은 BMS 한계 이내'에서 입력(0 °C, -80 Nm)과 기대값(한계 20 Nm, 회생 -20 Nm)을 바로 뽑을 수 있어요.", bound: "-10 °C는 한계가 더 낮아 같은 오류가 더 뚜렷해요.", equiv: "25 °C에서는 한계가 60 Nm이라 고정값과 같아서 이 오류가 보이지 않아요. 환경이 바뀔 때만 드러나요.", guess: "근거 없이 고르기보다 요구사항 입력을 쓰는 게 확실해요.", usecase: "실제 주행 기록은 날씨에 따라 가끔만 재현돼 원인을 가르기 어려워요." } },
   gear: { method: ["req"], deriv: ["reqa", "bound", "equiv"], input: "변속 P→D 후 페달 40 % · 버스 부하 85 %",
     whyM: { req: "'통신이 끊기면 안전 값 N' 요구를 그대로 확인하는 방법이에요.", iface: "신호 형식 문제가 아니에요. 타임아웃 뒤 쓰는 값을 보는 시험이에요.", inject: "고장을 일부러 넣는 방법이에요. 이미 발생한 고장을 재현하는 이번 시험에는 맞지 않아요." },
     whyD: { reqa: "요구사항 '100 ms 안에 새 메시지가 없으면 안전 값 N'에서 입력(버스 부하 85 %)과 기대값(N, 0 Nm)을 바로 뽑을 수 있어요.", bound: "버스 부하 70 %는 간격 90 ms로 타임아웃에 닿지 않아요. 폴백이 쓰이지 않아 이 오류가 보이지 않아요.", equiv: "버스가 한가하면 메시지가 제때 와서 폴백이 쓰이지 않아요. 간헐 고장은 부하가 높을 때만 드러나요.", guess: "근거 없이 고르기보다 요구사항 입력을 쓰는 게 확실해요.", usecase: "실제 주행 기록은 가끔만 재현돼 원인을 가르기 어려워요." } },
@@ -801,6 +863,11 @@ const CASE_DERIVS: Record<CaseId, { id: Deriv; tech: Tech; input: string }[]> = 
     { id: "bound", tech: "boundary", input: "경계 조건 · 저온 시동, 충전 시정수 350 ms" },
     { id: "equiv", tech: "req", input: "다른 입력 구간 · 시동 요청 없음" },
   ],
+  cold: [
+    { id: "reqa", tech: "req", input: "요구사항 기준 · 배터리 0 °C, 회생 요청 -80 Nm" },
+    { id: "bound", tech: "boundary", input: "경계 조건 · 배터리 -10 °C (한계 10 Nm)" },
+    { id: "equiv", tech: "req", input: "다른 입력 구간 · 배터리 25 °C (한계 60 Nm)" },
+  ],
   gear: [
     { id: "reqa", tech: "req", input: "요구사항 기준 · 변속 직후 출발, 버스 부하 85 %" },
     { id: "bound", tech: "boundary", input: "경계 조건 · 버스 부하 70 % (간격 90 ms)" },
@@ -832,6 +899,10 @@ const INPUT_EXEC: Record<CaseId, Partial<Record<Deriv, (base: VerificationExecut
   ready: {
     bound: base => ({ ...base, initial: base.initial.map(item => item.signalId === "prechargeTau" ? { ...item, value: 350 } : item) }),
     equiv: base => ({ ...base, stimulus: { ...base.stimulus, startValue: 0, endValue: 0 } }),
+  },
+  cold: {
+    bound: base => ({ ...base, initial: base.initial.map(item => item.signalId === "batteryTemp" ? { ...item, value: -10 } : item) }),
+    equiv: base => ({ ...base, initial: base.initial.map(item => item.signalId === "batteryTemp" ? { ...item, value: 25 } : item) }),
   },
   gear: {
     bound: base => ({ ...base, initial: base.initial.map(item => item.signalId === "busLoad" ? { ...item, value: 70 } : item) }),
@@ -881,6 +952,11 @@ const INPUT_INFO: Record<CaseId, Partial<Record<Deriv, { tag: string; purpose: s
     bound: { tag: "경계 조건 시험 · 저온 시동", purpose: "충전이 더 느린 조건(시정수 350 ms, 95 %는 약 1050 ms)에서도 대기 시간이 충분한지 확인" },
     equiv: { tag: "다른 입력 구간 시험 · 시동 요청 없음", purpose: "시동 요청이 없으면 시퀀스가 돌지 않고 접촉기도 열려 있어야 해요. 이 구간이 기준과 같은지 확인" },
   },
+  cold: {
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "배터리 0 °C(한계 20 Nm)에서 회생 요청 -80 Nm일 때 제동 도메인이 한계 20 Nm를 쓰고 회생 토크가 -20 Nm인지 확인" },
+    bound: { tag: "경계 조건 시험 · 배터리 -10 °C", purpose: "더 낮은 온도(한계 10 Nm)에서도 제동 도메인이 받은 한계를 따르는지 확인" },
+    equiv: { tag: "다른 입력 구간 시험 · 배터리 25 °C", purpose: "상온(한계 60 Nm)에서 회생이 정상 크기(-60 Nm)로 동작하는지 확인" },
+  },
   gear: {
     reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "변속 직후 버스 부하 85 %(메시지 간격 120 ms)에서 VCU가 안전 값 N을 쓰고 구동 지령이 0 Nm인지 확인" },
     bound: { tag: "경계 조건 시험 · 버스 부하 70 %", purpose: "메시지 간격 90 ms로 타임아웃(100 ms) 직전인 조건에서 기어 값이 D로 유지되는지 확인" },
@@ -925,6 +1001,12 @@ const CAUSES: Record<CaseId, { hyp: string; name: string; type: string; where: s
     { hyp: "seq_timeout", name: "프리차지 대기 시간 설정 오류", type: "구성·파라미터 오류(시퀀스 타이밍)", where: "VCU 시퀀스", desc: "설계값 1500 ms 대신 500 ms가 들어가 정상 충전 중에 실패로 판정", img: CAUSE_IMG.part("vcu") },
     { hyp: "precharge_hw", name: "프리차지 저항·접촉기 불량 (HW)", type: "하드웨어 고장", where: "프리차지 회로", desc: "충전이 정상 곡선을 못 그려 시간 안에 전압이 오르지 않음", img: CAUSE_IMG.part("can_harness") },
   ],
+  cold: [
+    { hyp: "bms_calc", name: "BMS 회생 한계 산출 오류", type: "SW 로직 오류(한계 산출)", where: "BMS · 회생 한계", desc: "온도에 맞지 않는 한계를 계산해 보냄", img: CAUSE_IMG.part("bms") },
+    { hyp: "gw_lag", name: "게이트웨이 한계 신호 중계 오류", type: "통신 신호 오류(중계)", where: "게이트웨이 · 협조 신호", desc: "한계 신호를 지연하거나 빠뜨려 전달함", img: CAUSE_IMG.part("can_harness") },
+    { hyp: "brake_fixed", name: "회생 한계 수신 사용 오류", type: "구성·파라미터 오류(협조 신호 미사용)", where: "제동 도메인 · 회생·마찰 협조 SWC", desc: "받은 한계 대신 고정 상한 60 Nm를 사용", img: CAUSE_IMG.part("brake_ecu") },
+    { hyp: "inv_cfg", name: "인버터 토크 제한 설정 오류", type: "구성·파라미터 오류(출력단)", where: "인버터 · 토크 제한", desc: "요청과 다른 토크를 내도록 제한값이 설정됨", img: CAUSE_IMG.part("traction_motor") },
+  ],
   gear: [
     { hyp: "lever_hw", name: "변속 레버 접점 불량 (HW)", type: "하드웨어 고장", where: "시프터 · 접점", desc: "레버 위치 신호가 실제 위치와 다르게 전달됨", img: CAUSE_IMG.part("diagnostic_port") },
     { hyp: "gw_map", name: "게이트웨이 신호 매핑 오류", type: "통신 신호 오류(중계)", where: "게이트웨이 · 신호 매핑", desc: "중계 과정에서 변속 값이 다른 값으로 바뀌어 전달됨", img: CAUSE_IMG.part("can_harness") },
@@ -947,6 +1029,7 @@ const LV_ANSWER: Record<CaseId, { answer: Lv; why: string }> = {
   brake: { answer: "embedded", why: "의심 구간이 압력 명령 I/O 어댑터 SW예요. 통합 SW·제어기 I/O 시험에서 계산값과 전송값을 비교하면 가장 먼저 잡을 수 있어요." },
   regen: { answer: "unit", why: "의심 구간이 VCU 토크 지령 변환 SW예요. SW 단위 시험에서 회생 요청과 변환 출력의 부호를 나란히 보면 가장 먼저 잡을 수 있어요." },
   ready: { answer: "embedded", why: "의심 구간이 프리차지 시퀀스 SW예요. 통합 SW·제어기 I/O 시험에서 버스 전압 곡선과 대기 시간 설정을 함께 보면 가장 먼저 가를 수 있어요." },
+  cold: { answer: "vehicle", why: "의심 구간이 도메인 사이 협조 신호예요. BMS, 게이트웨이, 제동 제어기가 함께 도는 시스템 통합 시험에서 배터리 온도를 재현해 한계 신호를 단계별로 봐야 가를 수 있어요." },
   gear: { answer: "vehicle", why: "의심 구간이 VCU 변속 수신이고 원인은 버스 지연에서만 드러나요. 게이트웨이와 CAN까지 함께 도는 시스템 통합 시험에서 메시지 간격과 기어 값을 같이 봐야 가를 수 있어요." },
 };
 
@@ -1165,13 +1248,14 @@ function OverlayGraph({ list, upto, look, note }: { list: Series[]; upto: number
 // Mission B · 고장 재현: field condition — does the same symptom come back, and where does it first split?
 // Every choice runs for real (no locked "answer"); stars come from the total test cost.
 const LV_COST: Record<Lv, number> = { unit: 1, swint: 2, embedded: 3, vehicle: 5 };
-const BEST_COST: Record<CaseId, number> = { propulsion: 2, thermal: 10, brake: 10, regen: 1, ready: 3, gear: 5 };
-const ROOT_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "rpm", brake: "line", regen: "vcuOut", ready: "tmo", gear: "g" };
+const BEST_COST: Record<CaseId, number> = { propulsion: 2, thermal: 10, brake: 10, regen: 1, ready: 3, gear: 5, cold: 5 };
+const ROOT_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "rpm", brake: "line", regen: "vcuOut", ready: "tmo", gear: "g", cold: "lim" };
 /** The function the case fault lives in, read from the NORMAL model: pedal processing, fan PWM duty, friction pressure command. */
-const FAULT_PATH_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "duty", brake: "cmd", regen: "vcuOut", ready: "seq", gear: "g" };
+const FAULT_PATH_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "duty", brake: "cmd", regen: "vcuOut", ready: "seq", gear: "g", cold: "lim" };
 /** Did this input make the normal design use the faulty function at all? (If not, normal and fault runs are identical by construction.) */
 function exercisesFaultPath(caseId: CaseId, levels: Record<string, Series[]>) {
   // gear: the faulty fallback is only used while the message gap exceeds the 100 ms timeout
+  if (caseId === "cold") return Object.values(levels).flat().filter(sig => sig.id === "lim").some(sig => Math.min(...sig.ref) < 59);
   if (caseId === "gear") return Object.values(levels).flat().filter(sig => sig.id === "gap").some(sig => Math.max(...sig.ref) > 100);
   return Object.values(levels).flat().filter(sig => sig.id === FAULT_PATH_SIGNAL[caseId]).some(sig => Math.max(...sig.ref.map(Math.abs)) > span(sig) * .02);
 }
@@ -1480,6 +1564,12 @@ const QUESTIONS: Record<CaseId, { hyp: string; ask: string }[]> = {
     { hyp: "seq_timeout", ask: "프리차지 대기 시간 설정이 틀린 건가요?" },
     { hyp: "precharge_hw", ask: "프리차지 저항·접촉기가 불량인 건가요?" },
   ],
+  cold: [
+    { hyp: "bms_calc", ask: "BMS가 회생 한계를 잘못 계산한 건가요?" },
+    { hyp: "gw_lag", ask: "게이트웨이가 한계 신호를 지연·누락한 건가요?" },
+    { hyp: "brake_fixed", ask: "제동 도메인이 한계를 읽지 않고 고정값을 쓰는 건가요?" },
+    { hyp: "inv_cfg", ask: "인버터 토크 제한 설정이 틀린 건가요?" },
+  ],
   gear: [
     { hyp: "lever_hw", ask: "변속 레버 접점이 불량인 건가요?" },
     { hyp: "gw_map", ask: "게이트웨이 신호 매핑이 틀린 건가요?" },
@@ -1496,7 +1586,7 @@ const TEST_CARD: Record<Lv, { name: string; pic: "chip" | "grid" | "monitor" | "
 /** Short subtitle under each test level (tab names stay short). */
 const LEVEL_SUB: Record<Lv, string> = { unit: "SW 단독 실행 · PC 환경 · 제어기·부품은 모델", swint: "여러 SW 연결 · PC 환경 · 부품은 모델", embedded: "SW와 제어기 입출력 연결 · 부품은 모델", vehicle: "SW·제어기·실제 부품 통합 실행" };
 const QA_LEVELS: Lv[] = ["unit", "embedded", "vehicle"];
-const qaDeriv = (caseId: CaseId, lv: Lv): Deriv => caseId === "gear" || lv === "unit" || lv === "swint" ? "reqa" : CASE_DERIVS[caseId].some(d => d.id === "usecase") ? "usecase" : "bound";
+const qaDeriv = (caseId: CaseId, lv: Lv): Deriv => caseId === "gear" || caseId === "cold" || lv === "unit" || lv === "swint" ? "reqa" : CASE_DERIVS[caseId].some(d => d.id === "usecase") ? "usecase" : "bound";
 type Answer = "supported" | "refuted" | "open";
 const ANSWER_KO: Record<Answer, string> = { supported: "원인으로 보여요", refuted: "원인이 아니에요", open: "아직 몰라요" };
 
@@ -2012,7 +2102,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const canApply = phase === "ab" && abDone && causeOk;
   const finish = () => {
     if (!canApply) { setBubble("원인을 없앤 모델이 정상과 같아지는 것을 먼저 확인하세요."); return; }
-    const expectedProgram = ({ propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500", gear: "gear_fallback_n" } as Record<string, string>)[caseId];
+    const expectedProgram = ({ propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500", gear: "gear_fallback_n", cold: "regen_limit_rx" } as Record<string, string>)[caseId];
     if (expectedProgram && state.program[caseId] !== expectedProgram) send({ type: "COMPILE", program: expectedProgram });
     send({ type: "BENCH_RESULT", pass: canApply, causeCorrect: causeCorrect || causeOk });
   };

@@ -1,4 +1,4 @@
-export type CaseId = "propulsion" | "thermal" | "brake" | "regen" | "ready" | "gear";
+export type CaseId = "propulsion" | "thermal" | "brake" | "regen" | "ready" | "gear" | "cold";
 
 export type InvestigationStep = "locked" | "board" | "wiring" | "bench" | "repair" | "done";
 export type JourneyStageId = "garage" | "heist" | "race" | "board" | "wiring" | "bench" | "repair" | "escape";
@@ -64,11 +64,11 @@ export const initialCampaign = (): Campaign => ({
   caseId: "propulsion",
   completedCases: [],
   levelStars: {},
-  investigationProgress: { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked", ready: "locked", gear: "locked" },
+  investigationProgress: { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked", ready: "locked", gear: "locked", cold: "locked" },
   optionalBrake: "undecided",
   checkpoint: "start",
-  evidence: { propulsion: [], thermal: [], brake: [], regen: [], ready: [], gear: [] },
-  hypothesis: { propulsion: "", thermal: "", brake: "", regen: "", ready: "", gear: "" },
+  evidence: { propulsion: [], thermal: [], brake: [], regen: [], ready: [], gear: [], cold: [] },
+  hypothesis: { propulsion: "", thermal: "", brake: "", regen: "", ready: "", gear: "", cold: "" },
   program: {
     propulsion: "underreport_45pct",
     thermal: "open_loop_fan",
@@ -76,6 +76,7 @@ export const initialCampaign = (): Campaign => ({
     regen: "regen_sign_dropped",
     ready: "precharge_timeout_500",
     gear: "gear_fallback_r",
+    cold: "regen_limit_fixed",
   },
   collisions: 0,
   hints: 0,
@@ -121,9 +122,9 @@ const investigationStepForScene = (scene: Scene): InvestigationStep => {
   return "locked";
 };
 const unlockInvestigation = (s: Campaign, step: InvestigationStep) => {
-  s.investigationProgress ??= { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked", ready: "locked", gear: "locked" };
+  s.investigationProgress ??= { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked", ready: "locked", gear: "locked", cold: "locked" };
   s.investigationProgress.regen ??= "locked"; s.evidence.regen ??= []; s.hypothesis.regen ??= ""; s.program.regen ??= "regen_sign_dropped";
-  s.investigationProgress.ready ??= "locked"; s.evidence.ready ??= []; s.hypothesis.ready ??= ""; s.program.ready ??= "precharge_timeout_500"; s.investigationProgress.gear ??= "locked"; s.evidence.gear ??= []; s.hypothesis.gear ??= ""; s.program.gear ??= "gear_fallback_r";
+  s.investigationProgress.ready ??= "locked"; s.evidence.ready ??= []; s.hypothesis.ready ??= ""; s.program.ready ??= "precharge_timeout_500"; s.investigationProgress.gear ??= "locked"; s.evidence.gear ??= []; s.hypothesis.gear ??= ""; s.program.gear ??= "gear_fallback_r"; s.investigationProgress.cold ??= "locked"; s.evidence.cold ??= []; s.hypothesis.cold ??= ""; s.program.cold ??= "regen_limit_fixed";
   if (stepRank(step) > stepRank(s.investigationProgress[s.caseId])) {
     s.investigationProgress[s.caseId] = step;
   }
@@ -261,7 +262,10 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       // level 6 (C04): a race first; launching right after a shift under bus load triggers the fallback fault (GEAR_FAULT), then FAULT_CUE → BOARD
       if (level === 6 && done("thermal") && !done("gear"))
         return enter({ ...s, ...fresh, caseId: "gear", checkpoint: "gear_start" }, "CHASE_RESUME");
-      if (level === 7 && done("propulsion") && done("thermal"))
+      // level 7 (C06): a race first; lifting the pedal at speed in the cold first 600 m triggers COLD_FAULT, then FAULT_CUE → BOARD
+      if (level === 7 && done("thermal") && !done("cold"))
+        return enter({ ...s, ...fresh, caseId: "cold", checkpoint: "cold_start" }, "CHASE_RESUME");
+      if (level === 8 && done("propulsion") && done("thermal"))
         return enter({ ...s, optionalBrake: s.optionalBrake === "accepted" ? "accepted" : "skipped" }, "SHIP_ESCAPE");
       return reject(s, "LEVEL_LOCKED");
     }
@@ -330,14 +334,15 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
         regen: { evidence: ["accel_trend", "regen_request", "torque_cmd"], root: "vcu_sign" },
         ready: { evidence: ["ready_off", "dtc_precharge", "hv_bus_scope"], root: "seq_timeout" },
         gear: { evidence: ["motor_reverse_log", "dtc_gear_timeout", "bus_load_scope"], root: "gear_fallback" },
+        cold: { evidence: ["cold_decel_log", "regen_limit_compare", "battery_temp_view"], root: "brake_fixed" },
       };
       s.evidence[s.caseId] = answers[s.caseId].evidence;
       s.hypothesis[s.caseId] = answers[s.caseId].root;
       return s;
     }
     case "DEV_SOLVE": {
-      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign", ready: "seq_timeout", gear: "gear_fallback" };
-      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500", gear: "gear_fallback_n" };
+      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign", ready: "seq_timeout", gear: "gear_fallback", cold: "brake_fixed" };
+      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500", gear: "gear_fallback_n", cold: "regen_limit_rx" };
       s.hypothesis[s.caseId] = roots[s.caseId];
       s.program[s.caseId] = programs[s.caseId];
       return s;
@@ -464,8 +469,8 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       }
       return s.policeGapMeters <= 0 ? enter(s, "CAUGHT") : s;
     case "GUIDED_REPAIR": {
-      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign", ready: "seq_timeout", gear: "gear_fallback" };
-      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500", gear: "gear_fallback_n" };
+      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign", ready: "seq_timeout", gear: "gear_fallback", cold: "brake_fixed" };
+      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500", gear: "gear_fallback_n", cold: "regen_limit_rx" };
       s.hypothesis[s.caseId] = roots[s.caseId];
       s.program[s.caseId] = programs[s.caseId];
       return enter(unlockInvestigation(s, "repair"), "REPAIR");
