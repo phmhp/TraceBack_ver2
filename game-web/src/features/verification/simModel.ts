@@ -9,7 +9,9 @@ import type { VerificationContract, VerificationExecution, VerificationLevel } f
 
 export type Lv = "unit" | "swint" | "embedded" | "vehicle";
 export type Tech = "req" | "replay" | "boundary" | "soak" | "inject";
-export type Series = { id: string; name: string; unit: string; max: number; ref: number[]; run: number[] };
+/** `min` (default 0) lets a signal be signed, e.g. a regenerative torque request of -40 Nm. */
+export type Series = { id: string; name: string; unit: string; min?: number; max: number; ref: number[]; run: number[] };
+export const span = (s: Pick<Series, "min" | "max">) => s.max - (s.min ?? 0);
 export type SimResult = { seconds: number; timeUnit: string; levels: Record<Lv, Series[]> };
 
 export const SAMPLES = 120;
@@ -97,7 +99,24 @@ function brake(tech: Tech, fault: boolean, execution?: VerificationExecution) {
   }, s => ({ p: s.p, req: s.req, avail: regenMax, fric: s.fric, cmd: s.cmd, cmdOut: s.cmd * (fault ? .19 : 1), valve: s.cmd * (fault ? .19 : 1) * 1.4, cur: s.cmd * (fault ? .19 : 1) * .02, line: s.line, cal: s.cal, regen: s.regen, dec: s.dec, spd: s.v * 3.6 }));
 }
 
-type Def = { id: string; name: string; unit: string; max: number; src: string; model?: boolean };
+// ── 회생(코스팅): 회생 요청(−) → VCU 변환(부호 반영 → 한계 → 램프) → CAN → 인버터·모터 → 차량 가감속 ──
+function regen(tech: Tech, fault: boolean, execution?: VerificationExecution) {
+  // req: -40 Nm (requirement value) · boundary: -80 Nm (largest regeneration request) · replay: field ramp with driver wobble
+  const request = (t: number) => execution ? rampInput(execution, t) : tech === "replay" ? (t < .1 ? 0 : Math.max(-40, -(t - .1) * 80 + Math.sin(t * 9) * 1.5)) : t < .1 ? 0 : tech === "boundary" ? -80 : -40;
+  const seconds = execution?.durationSeconds ?? 5.5;
+  return integrate(seconds, { req: 0, sgn: 0, lim: 0, ramp: 0, can: 0, mot: 0, v: initialValue(execution, "vehicleSpeed", 60) / 3.6, acc: 0 }, (s, t, dt) => {
+    s.req = request(t);
+    s.sgn = fault ? Math.abs(s.req) : s.req;      // the fault: the sign block of the design is missing, only the magnitude is used
+    s.lim = clamp(s.sgn, -80, 80);                // available regeneration limit (battery)
+    s.ramp += clamp(s.lim - s.ramp, -600 * dt, 600 * dt);
+    s.can += (Math.round(s.ramp) - s.can) * dt / .01;
+    s.mot += (s.can - s.mot) * dt / .03;
+    s.acc = s.mot / 80;                           // 80 Nm per 1 m/s² on level ground
+    s.v += s.acc * dt;
+  }, s => ({ ped: 0, req: s.req, vcuOut: s.sgn, ramp: s.ramp, cansig: s.can, can: s.can, mot: s.mot, acc: s.acc, spd: s.v * 3.6 }));
+}
+
+type Def = { id: string; name: string; unit: string; min?: number; max: number; src: string; model?: boolean };
 // per level: which signals exist there. `model: true` = taken from the healthy run (plant is a model at that level)
 const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
   propulsion: {
@@ -183,9 +202,33 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
       { id: "dec", name: "차량 감속", unit: "m/s²", max: 4, src: "dec" },
     ],
   },
+  regen: {
+    unit: [
+      { id: "req", name: "입력값 인가 · 회생 요청", unit: "Nm", min: -80, max: 80, src: "req", model: true },
+      { id: "vcuOut", name: "토크 지령 변환 출력 (부호 반영)", unit: "Nm", min: -80, max: 80, src: "vcuOut" },
+      { id: "ramp", name: "램프율 제한 출력", unit: "Nm", min: -80, max: 80, src: "ramp" },
+    ],
+    swint: [
+      { id: "req", name: "회생 요청 SWC 출력", unit: "Nm", min: -80, max: 80, src: "req", model: true },
+      { id: "vcuOut", name: "토크 지령 SWC · 변환 출력", unit: "Nm", min: -80, max: 80, src: "vcuOut" },
+      { id: "cansig", name: "통신 SWC · CAN 송신값", unit: "Nm", min: -80, max: 80, src: "cansig" },
+    ],
+    embedded: [
+      { id: "vcuOut", name: "토크 지령 변환 출력", unit: "Nm", min: -80, max: 80, src: "vcuOut" },
+      { id: "can", name: "CAN 토크 지령 (버스)", unit: "Nm", min: -80, max: 80, src: "can" },
+      { id: "mot", name: "인버터 모델 · 모터 토크", unit: "Nm", min: -80, max: 80, src: "mot" },
+    ],
+    vehicle: [
+      { id: "ped", name: "가속 페달 (로거)", unit: "%", max: 100, src: "ped", model: true },
+      { id: "req", name: "회생 요청 (로거)", unit: "Nm", min: -80, max: 80, src: "req", model: true },
+      { id: "can", name: "CAN 토크 지령 (로거)", unit: "Nm", min: -80, max: 80, src: "can" },
+      { id: "mot", name: "모터 실제 토크", unit: "Nm", min: -80, max: 80, src: "mot" },
+      { id: "acc", name: "차량 가감속", unit: "m/s²", min: -2, max: 2, src: "acc" },
+    ],
+  },
 };
-const MODELS = { propulsion, thermal, brake };
-const TIME: Record<CaseId, [number, string]> = { propulsion: [3, "s"], thermal: [8, "분(압축)"], brake: [3, "s"] };
+const MODELS = { propulsion, thermal, brake, regen };
+const TIME: Record<CaseId, [number, string]> = { propulsion: [3, "s"], thermal: [8, "분(압축)"], brake: [3, "s"], regen: [5.5, "s"] };
 
 /** Reference = healthy design, run = field fault (or the fixed design). Same input for both. */
 export function simulate(caseId: CaseId, tech: Tech, fixed: boolean, execution?: VerificationExecution): SimResult {
@@ -193,7 +236,7 @@ export function simulate(caseId: CaseId, tech: Tech, fixed: boolean, execution?:
   const run = MODELS[caseId](tech, !fixed, execution);
   const levels = {} as Record<Lv, Series[]>;
   (Object.keys(VIEW[caseId]) as Lv[]).forEach(lv => {
-    levels[lv] = VIEW[caseId][lv].map(d => ({ id: d.id, name: d.name, unit: d.unit, max: d.max, ref: ref[d.src], run: d.model ? ref[d.src] : run[d.src] }));
+    levels[lv] = VIEW[caseId][lv].map(d => ({ id: d.id, name: d.name, unit: d.unit, min: d.min, max: d.max, ref: ref[d.src], run: d.model ? ref[d.src] : run[d.src] }));
   });
   return { seconds: execution?.durationSeconds ?? TIME[caseId][0], timeUnit: TIME[caseId][1], levels };
 }
@@ -215,7 +258,7 @@ export function assessContractRun(contract: VerificationContract, level: Verific
   const threshold = contract.execution.comparisonTolerancePercent / 100;
   const outOfRangeSignalIds = requiredSignalIds.filter(id => {
     const signal = byId.get(id);
-    return signal ? signal.run.some((value, index) => Math.abs(value - signal.ref[index]) > signal.max * threshold) : false;
+    return signal ? signal.run.some((value, index) => Math.abs(value - signal.ref[index]) > span(signal) * threshold) : false;
   });
   const expectedOutputFailures: string[] = [];
   for (const expected of contract.execution.expectedOutputs) {
@@ -235,7 +278,7 @@ export function assessContractRun(contract: VerificationContract, level: Verific
 
 /** First sample where the run leaves the reference by more than 2 % of full scale (null = never). */
 export function divergeIndex(s: Series) {
-  for (let i = 0; i < s.ref.length; i++) if (Math.abs(s.ref[i] - s.run[i]) > s.max * .02) return i;
+  for (let i = 0; i < s.ref.length; i++) if (Math.abs(s.ref[i] - s.run[i]) > span(s) * .02) return i;
   return null;
 }
 /** The signal that diverges first on this level (ties → the one earlier in the signal flow). */

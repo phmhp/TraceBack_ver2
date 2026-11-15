@@ -60,16 +60,16 @@ test("STEP04: input conditions change the executed stimulus; expected outputs co
 });
 
 test("STEP04 A/B: removing the true cause matches the normal model; a wrong cause keeps the fault", () => {
-  for (const caseId of ["propulsion", "thermal", "brake"]) {
+  for (const caseId of ["propulsion", "thermal", "brake", "regen"]) {
     const contract = buildVerificationContract(caseId, { hypothesisId: "x", hypothesisLabel: "x", suspectSection: "x" });
     const fixed = simulate(caseId, "req", true, contract.execution).levels.vehicle;
     const fault = simulate(caseId, "req", false, contract.execution).levels.vehicle;
-    assert.ok(fixed.every(sig => sig.run.every((v, i) => Math.abs(v - sig.ref[i]) <= sig.max * .02)), `${caseId}: cause removed = normal`);
-    assert.ok(fault.some(sig => sig.run.some((v, i) => Math.abs(v - sig.ref[i]) > sig.max * .02)), `${caseId}: wrong cause keeps the fault`);
+    assert.ok(fixed.every(sig => sig.run.every((v, i) => Math.abs(v - sig.ref[i]) <= (sig.max - (sig.min ?? 0)) * .02)), `${caseId}: cause removed = normal`);
+    assert.ok(fault.some(sig => sig.run.some((v, i) => Math.abs(v - sig.ref[i]) > (sig.max - (sig.min ?? 0)) * .02)), `${caseId}: wrong cause keeps the fault`);
   }
   assert.match(lab, /const CAUSES: Record<CaseId, \{ hyp: string; name: string; type: string; where: string; desc: string; img: string \}\[\]>/);
   // every cause card shows a real part photo from the STEP02 polaroid assets
-  assert.equal((lab.match(/img: CAUSE_IMG\.(board|part)\("[a-z_]+"\)/g) ?? []).length, 8);
+  assert.equal((lab.match(/img: CAUSE_IMG\.(board|part)\("[a-z_]+"\)/g) ?? []).length, 12);
   assert.match(live04, /<span className="causePhoto"><i className="pin" \/><span className="causePhotoWin"><img src=\{item\.img\} alt="" \/><\/span><\/span>/);
   // A/B compares every vehicle signal over the whole run (regression), not the last sample only
   assert.match(live04, /<th>전 구간 최대 차이<\/th>/);

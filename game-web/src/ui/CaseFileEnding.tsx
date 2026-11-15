@@ -91,6 +91,16 @@ const CASE_VISUAL: Record<CaseId, {
     meter: { label: "마찰 제동 응답", unit: "%", normal: 55, actual: 8, max: 60 },
     lesson: "내부 압력 명령은 정상, I/O 어댑터 SW가 전송값을 다시 축소",
   },
+  regen: {
+    chain: [
+      { img: "brake_ecu", label: "Brake ECU", role: "입력" },
+      { img: "vcu", label: "VCU", role: "제어" },
+      { img: "traction_motor", label: "모터", role: "출력" },
+    ],
+    fault: { at: "link", index: 1, label: "토크 지령 −40→+40 Nm" },
+    meter: { label: "코스팅 감속 응답", unit: "%", normal: 100, actual: 0, max: 100 },
+    lesson: "회생 요청은 정상, VCU 변환 SW가 부호를 버려 지령이 반대 방향",
+  },
 };
 
 // Functional-safety view of each case (ISO 26262 vocabulary only; no ASIL is
@@ -113,6 +123,12 @@ const CASE_SAFETY: Record<CaseId, { hazard: string; detect: string; safeState: s
     detect: "제동 압력 명령 vs 측정 압력 비교, 회생 실패 감시",
     safeState: "마찰 제동으로 보상 + 브레이크 경고등",
     insight: "한 제동 수단이 실패해도 다른 수단으로 보완하는 '중복' 구조",
+  },
+  regen: {
+    hazard: "의도하지 않은 가속 → 앞차·장애물 접촉 위험",
+    detect: "토크 방향 타당성(plausibility) 감시. 단, 이 사건에서는 지령 100 Nm 미만에서 동작하지 않아 못 잡음(미탐)",
+    safeState: "마찰 제동으로 정지 + 감시 범위 재검토",
+    insight: "감시 기능이 있어도 작동 범위 밖이면 고장을 못 잡는다는 점",
   },
 };
 
@@ -205,11 +221,13 @@ const SIGNAL_PATH: Record<CaseId, string> = {
   propulsion: "APS 원신호 → VCU 페달 처리 → CAN 토크 명령 → 모터 토크",
   thermal: "냉각수 온도 → Thermal ECU 팬 요청 → PWM 출력 어댑터 → 팬 회전 → 온도·출력 제한",
   brake: "브레이크 입력 → Brake ECU 압력 계산 → I/O 전송 압력 명령 → 캘리퍼 압력 → 감속",
+  regen: "회생 요청 → VCU 토크 지령 변환(부호 반영) → CAN 토크 지령 → 모터 토크 → 가감속",
 };
 const CATEGORY: Record<CaseId, string> = {
   propulsion: "SW 계산·보정/스케일링",
   thermal: "SW 주기·타이밍 / 제어기 I/O 처리",
   brake: "제어기 I/O 처리 / SW 통신·인터페이스",
+  regen: "SW 수치·부호 / 인터페이스 규약 불일치",
 };
 
 function AnalysisReport({ state, id }: { state: Campaign; id: CaseId }) {
@@ -330,7 +348,7 @@ function CaseBrief({ state, escaped }: { state: Campaign; escaped: boolean }) {
       <div><dt>추격차 격차</dt><dd>{escaped ? `${Math.round(state.policeGapMeters)} m` : "0 m"}</dd></div>
       <div><dt>검증 실행</dt><dd>{state.benchRuns}회</dd></div>
     </dl>
-    <div className="cfCases">{(["propulsion", "thermal", "brake"] as CaseId[]).map(id => <React.Fragment key={id}><CaseRow state={state} id={id} safety={safety} />{state.completedCases.includes(id) && !safety && <AnalysisReport state={state} id={id} />}</React.Fragment>)}</div>
+    <div className="cfCases">{(["propulsion", "thermal", "brake", "regen"] as CaseId[]).map(id => <React.Fragment key={id}><CaseRow state={state} id={id} safety={safety} />{state.completedCases.includes(id) && !safety && <AnalysisReport state={state} id={id} />}</React.Fragment>)}</div>
     <footer className="cfFoot">
       <span>충돌 <b>{state.collisions}</b></span>
       <span>힌트 <b>{state.hints}</b></span>

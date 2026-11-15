@@ -65,6 +65,24 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
       { id: "pedal", label: "페달 입력 처리 SW의 보정값이 틀렸다", desc: "입력 데이터 처리 오류 가능성" },
     ],
   },
+  regen: {
+    title: "가속 페달을 떼도 차가 계속 빨라짐",
+    chapter: "선택 사건 · 코스팅 회생",
+    symptom: "가속 페달에서 발을 떼면 감속해야 하는데 오히려 속도가 올라갑니다. 경고등은 없습니다.",
+    root: "vcu_sign",
+    repair: "회생 요청의 부호 규약을 인터페이스 정의대로 반영하고 부호 단위 시험 추가",
+    evidence: [
+      { id: "accel_trend", label: "페달 0%인데 차량 가감속이 +0.5 m/s²로 기록됨", value: "기준 −0.5 m/s² · 경고등 없음", kind: "주행 현상" },
+      { id: "regen_request", label: "Brake ECU 회생 요청이 −40 Nm로 기록됨", value: "회생 요청 정상 · 기준과 같음", kind: "제어 명령" },
+      { id: "torque_cmd", label: "VCU 토크 지령이 +40 Nm로 기록됨", value: "기준 −40 Nm", kind: "제어 명령" },
+    ],
+    hypotheses: [
+      { id: "brake_sw", label: "Brake ECU가 틀린 회생 요청을 보냈다", desc: "회생 요청 계산 오류 가능성" },
+      { id: "pedal", label: "가속 페달 값이 틀렸다", desc: "입력 센서 오류 가능성" },
+      { id: "vcu_sign", label: "VCU가 회생 요청의 부호를 반영하지 않았다", desc: "인터페이스 부호 규약 오류" },
+      { id: "inv_wire", label: "인버터·모터 상 배선이 반대로 연결됐다", desc: "하드웨어 배선 오류 가능성" },
+    ],
+  },
 };
 
 // ── Scenario registry (one source for race → board → puzzle → bench → repair) ──────────────
@@ -187,6 +205,39 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
       ], decideAt: ["embedded", "vehicle"], decide: "통합 SW·제어기 I/O 시험: 피드백을 읽기 전 I/O 어댑터 출력값부터 낮으면 반박",
       hold: {
         unit: { seen: "제동 요구 · 마찰 압력 명령 42 bar 정상", unseen: "I/O 어댑터 출력값 · 읽어 온 라인 압력", why: "SW 단위 시험에는 압력 피드백 경로가 없어 피드백 처리를 확인할 수 없어요.", next: ["embedded", "vehicle"] },
+      } },
+    ],
+  },
+  regen: {
+    domain: "구동·회생",
+    goal: "크기는 맞는데 부호(방향)가 틀린 값을, 입력과 변환 출력을 나란히 보는 SW 단위 시험으로 찾는다. 진단 모니터가 있어도 작동 범위 밖이면 못 잡는다는 점도 함께 본다.",
+    trigger: "가속 페달을 놓는 순간(코스팅 회생 조건: 속도 40 km/h 이상, 페달 0%)",
+    injection: "VCU 토크 지령 변환 SWC에서 회생 요청의 부호 반영 블록 누락(크기만 사용) (faultSchedule release · simModel sign)",
+    faultModel: "회생 요청 −40 Nm → 토크 지령 +40 Nm → 모터 토크 +40 Nm → 가감속 +0.5 m/s²(기준 −0.5)",
+    normalSpec: "페달 0%·40 km/h 이상에서 토크 지령은 회생 요청과 같은 방향(−40 Nm), 80 Nm당 1 m/s²(평지 −0.5 m/s²)",
+    fix: "회생 요청의 부호 규약을 인터페이스 정의대로 반영하고 부호 단위 시험 추가",
+    regression: "같은 SW 단위 시험(회생 요청 −40 Nm 유지) PASS + 영향 범위 신호",
+    status: "optional", review: "수치 일치 확인(40 Nm ÷ 80 = 0.5 m/s²). 진단 미탐: 토크 방향 모니터는 100 Nm 이상에서만 판정",
+    hypotheses: [
+      { id: "brake_sw", label: "Brake ECU 회생 요청 계산 SW", truth: false, stage1: "도미노 역추적: 회생 요청이 −40 Nm로 기준과 같았어요.", rules: [
+        { levels: SW, need: { req: ["same"] }, verdict: "refuted", why: "회생 요청이 기준과 같아요." },
+      ] },
+      { id: "pedal", label: "가속 페달 입력", truth: false, stage1: "도미노 역추적: 가속 페달 값이 0%로 기준과 같았어요.", rules: [
+        { levels: ["vehicle"], need: { ped: ["same"] }, verdict: "refuted", why: "페달 값이 기준과 같아요." },
+      ] },
+      { id: "vcu_sign", label: "VCU 토크 지령 변환 SW(회생 부호 반영)", truth: true, rules: [
+        { levels: SW, need: { req: ["same"], vcuOut: ["higher"] }, verdict: "supported", why: "입력 회생 요청은 같은데 변환 출력의 부호부터 달라요(−40 → +40)." },
+      ], decideAt: ["unit"], decide: "SW 단위 시험: 회생 요청 −40 Nm를 넣었을 때 변환 출력이 +40 Nm면 지지",
+      hold: {
+        embedded: { seen: "변환 출력·CAN 토크 지령·모터 토크 모두 +40 Nm", unseen: "변환 SW에 들어간 회생 요청", why: "입력을 함께 볼 수 없어 변환 SW가 부호를 바꾼 것인지 앞에서 이미 양수로 왔는지 나눌 수 없어요.", next: ["unit"] },
+        vehicle: { seen: "회생 요청 정상 · CAN 토크 지령·모터 토크·가감속 반대 방향", unseen: "VCU 변환 출력", why: "가속이 보이지만 변환 SW 내부 값을 볼 수 없어 위치는 판단할 수 없어요.", next: ["unit"] },
+      } },
+      { id: "inv_wire", label: "인버터·모터 상 배선 (HW)", truth: false, rules: [
+        { levels: ["embedded"], need: { vcuOut: ["higher"] }, verdict: "refuted", why: "배선에 닿기 전, 지령 변환 출력부터 이미 반대 방향이에요." },
+        { levels: ["vehicle"], need: { can: ["higher"] }, verdict: "refuted", why: "CAN 토크 지령부터 이미 반대 방향이라 인버터 이후 배선 문제가 아니에요." },
+      ], decideAt: ["embedded", "vehicle"], decide: "통합 SW·제어기 I/O 시험: 인버터에 닿기 전 지령부터 +40 Nm면 반박",
+      hold: {
+        unit: { seen: "회생 요청 · 변환 출력(부호 반대)", unseen: "인버터 이후 토크와 배선", why: "SW 단위 시험에는 인버터와 모터 배선이 없어요.", next: ["embedded", "vehicle"] },
       } },
     ],
   },

@@ -286,4 +286,5 @@ export const CASE_EVIDENCE = [
   { caseKo: "제동", id: "brake_request", scene: "A driver's shoe pressing the brake pedal firmly in a car footwell, pedal stroke sensor visible" },
   { caseKo: "제동", id: "regen_request", scene: "A traction motor and inverter connected by orange cables to a battery pack on a test bench" },
   { caseKo: "제동", id: "brake_actual", scene: "A brake caliper and disc on a wheel hub with its brake line attached" },
+  { caseKo: "회생", id: "accel_trend", scene: "A car instrument cluster with the speed needle still rising while the accelerator pedal icon shows zero, no warning lamps lit" },
 ];

@@ -147,6 +147,40 @@ const BASE: Record<CaseId, ContractBase> = {
     limitation: "협조 제동의 최초 편차를 찾되 시험 결과와 SW 근본 원인 판정을 분리한다.",
     createdBy: "STEP03",
   },
+  regen: {
+    version: 1,
+    caseId: "regen",
+    objective: "코스팅 회생의 토크 지령이 반대 방향으로 나가는 위치를, 같은 회생 요청 입력에서 VCU 변환 SW와 그 뒤 경로로 구분한다.",
+    preconditions: ["READY", "D단", "차속 60 km/h", "가속 페달 0%"],
+    stimulus: { label: "코스팅 회생", sequence: "회생 요청 0→−40 Nm / 0.5 s · 5 s 유지" },
+    expectedSignal: "토크 지령과 모터 토크",
+    observations: [
+      { id: "input", label: "회생 요청" },
+      { id: "control", label: "VCU 토크 지령 변환" },
+      { id: "output", label: "모터 실제 토크" },
+    ],
+    comparison: { baseline: "STEP03 정상 기준 장치", sameInput: true, timeAxis: "0~5.5 s 동일 시간축", units: "Nm, m/s²" },
+    execution: {
+      initial: [
+        { signalId: "ready", value: 1, unit: "bool" },
+        { signalId: "gearDrive", value: 1, unit: "bool" },
+        { signalId: "vehicleSpeed", value: 60, unit: "km/h" },
+        { signalId: "aps", value: 0, unit: "%" },
+      ],
+      stimulus: { signalId: "regenRequest", startValue: 0, endValue: -40, unit: "Nm", rampSeconds: 0.5, holdSeconds: 5 },
+      durationSeconds: 5.5,
+      observationSignalIds: {
+        unit: ["req", "vcuOut", "ramp"],
+        swint: ["req", "vcuOut", "cansig"],
+        embedded: ["vcuOut", "can", "mot"],
+        vehicle: ["ped", "req", "can", "mot", "acc"],
+      },
+      expectedOutputs: [{ signalId: "mot", value: -40, unit: "Nm", tolerance: 4 }],
+      comparisonTolerancePercent: 2,
+    },
+    limitation: "부호가 처음 달라지는 위치를 시험하며, 진단 모니터가 동작하지 않은 이유는 이 시험의 범위 밖이다.",
+    createdBy: "STEP03",
+  },
 };
 
 export function buildVerificationContract(caseId: CaseId, input: {
@@ -217,5 +251,6 @@ const CONTRACT_SIGNAL_LABEL: Record<string, string> = {
   absActive: "ABS 상태",
   regenAvailable: "회생 제동 가용 감속도",
   aps: "가속 페달 입력",
+  regenRequest: "회생 요청",
 };
 export const contractSignalLabel = (signalId: string) => CONTRACT_SIGNAL_LABEL[signalId] ?? signalId;

@@ -15,6 +15,7 @@
 | 제동 | `brake_request` | `brake_request__EVID.png` |
 | 제동 | `regen_request` | `regen_request__EVID.png` |
 | 제동 | `brake_actual` | `brake_actual__EVID.png` |
+| 회생 | `accel_trend` | `accel_trend__EVID.png` |
 
 ## 구동 · pedal_raw
 
@@ -157,4 +158,17 @@ Composition: the key subject centered and occupying about 70% of the frame; keep
 Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
 Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
 After the image, reply with only this file name (never draw it in the image): brake_actual__EVID.png
+```
+
+## 회생 · accel_trend
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A car instrument cluster with the speed needle still rising while the accelerator pedal icon shows zero, no warning lamps lit.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): accel_trend__EVID.png
 ```

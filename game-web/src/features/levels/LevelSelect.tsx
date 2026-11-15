@@ -11,8 +11,8 @@ import "./level-select.css";
 
 type Send = React.Dispatch<any>;
 // node positions on the 1100x440 road drawing
-const POS = [{ x: 150, y: 310 }, { x: 430, y: 170 }, { x: 720, y: 310 }, { x: 980, y: 150 }];
-const ROAD = `M 40 380 C 120 380 120 310 150 310 S 330 170 430 170 S 600 310 720 310 S 900 150 980 150 L 1070 150`;
+const POS = [{ x: 110, y: 310 }, { x: 330, y: 170 }, { x: 550, y: 310 }, { x: 770, y: 170 }, { x: 990, y: 300 }];
+const ROAD = `M 20 380 C 70 380 70 310 110 310 S 270 170 330 170 S 490 310 550 310 S 710 170 770 170 S 930 300 990 300 L 1070 300`;
 
 const Stars = ({ n }: { n: number }) => <span className="lvStars" aria-label={`별 ${n}개`}>{[1, 2, 3].map(i => <i key={i} className={i <= n ? "on" : ""}>★</i>)}</span>;
 
@@ -24,7 +24,7 @@ export function LevelSelect({ state, send }: { state: Campaign; send: Send }) {
   const cleared = LEVELS.filter(item => levelStatus(state, item) === "cleared").length;
   const stars = def.caseId ? state.levelStars?.[def.caseId] ?? 0 : 0;
   const start = () => { if (status !== "open") { play("error"); return; } play("pop"); send({ type: "START_LEVEL", level: def.level }); };
-  const say = status === "locked" ? lockedReason(def) : status === "cleared" ? "이미 클리어한 레벨이에요. 다음 레벨을 골라 보세요." : def.level === 4 ? "두 필수 레벨을 마쳤어요. 이제 부두로 달려요." : def.kind === "bonus" ? "선택 레벨이에요. 건너뛰고 탈출해도 돼요." : "준비가 되면 시작을 눌러요. 정비소에서 본 내용이 도움이 돼요.";
+  const say = status === "locked" ? lockedReason(def) : status === "cleared" ? "이미 클리어한 레벨이에요. 다음 레벨을 골라 보세요." : def.kind === "finale" ? "두 필수 레벨을 마쳤어요. 이제 부두로 달려요." : def.kind === "bonus" ? "선택 레벨이에요. 건너뛰고 탈출해도 돼요." : "준비가 되면 시작을 눌러요. 정비소에서 본 내용이 도움이 돼요.";
   return <div className="levelSelect">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
     <GameHeader chapter="레벨 선택" title="추격 코스" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
@@ -34,7 +34,7 @@ export function LevelSelect({ state, send }: { state: Campaign; send: Send }) {
         <svg viewBox="0 0 1100 440" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d={ROAD} className="lvRoadEdge" /><path d={ROAD} className="lvRoad" /><path d={ROAD} className="lvRoadLine" /></svg>
         {LEVELS.map((item, i) => { const st = levelStatus(state, item); const s = item.caseId ? state.levelStars?.[item.caseId] ?? 0 : 0; return <button key={item.level} className={`lvNode ${st} ${item.kind} ${sel === item.level ? "sel" : ""}`} style={{ left: `${POS[i].x / 11}%`, top: `${POS[i].y / 4.4}%` }} onClick={() => { setSel(item.level); play("pop"); }} aria-pressed={sel === item.level}>
           <span className="lvBadge">{st === "locked" ? <Icon name="lock" /> : <Icon name={item.icon} />}</span>
-          <b>{item.level === 4 ? "탈출" : `${item.level}레벨`}</b>
+          <b>{item.kind === "finale" ? "탈출" : `${item.level}레벨`}</b>
           <small>{item.kind === "bonus" ? "선택 · " : ""}{item.domainLabel}</small>
           {st === "cleared" && <Stars n={s} />}
         </button>; })}

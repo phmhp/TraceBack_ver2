@@ -2106,6 +2106,7 @@ const faultLamp: Record<CaseId, { icon: string; glyph: string; label: string; no
   propulsion: { icon: "none", glyph: "—", label: "경고등 없음", note: "제어기가 고장을 감지하지 못한 채 출력만 약해짐 (운전자 체감만 있음)" },
   thermal: { icon: "power", glyph: "!", label: "파워다운(출력 제한) 표시등", note: "출력이 제한됨 · 설명서상 원인 후보: 배터리 잔량 부족, 배터리 온도, 구동계 온도" },
   brake: { icon: "brake", glyph: "(!)", label: "브레이크 경고등", note: "제동 계통 이상 — 제동 거리가 늘어날 수 있음" },
+  regen: { icon: "none", glyph: "—", label: "경고등 없음", note: "제어기가 고장을 감지하지 못함 (운전자 체감만 있음)" },
 };
 
 export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) {
@@ -2117,6 +2118,7 @@ export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) 
     propulsion: "페달을 끝까지 밟아도 가속이 안나와! 경고등도 안떴는데! 왜이러지?",
     thermal: "오래 달렸더니 힘이 빠졌어! 계기판에 출력 제한 표시등이 켜졌어! 왜이러지?",
     brake: "브레이크를 밟았는데 차가 잘 안 서! 브레이크 경고등까지 켜졌어! 왜이러지?",
+    regen: "발을 뗐는데 차가 더 빨라져! 경고등도 하나도 안 켜졌어! 왜이러지?",
   };
   const dialogue = [
     { who: `드라이버 ${DRIVER}`, role: "DRIVER", text: DRIVER_LINE[state.caseId], tone: "driver" },
@@ -2244,6 +2246,14 @@ export const MEASURE_RAIL: Record<CaseId, { stops: RailStop[]; hypothesisAt: Rec
       { at: "캘리퍼 제동 응답", value: "8%", expect: "부족분 보충", ok: false, ev: "brake_actual" },
     ],
     hypothesisAt: { pedal: 0, regen_limit: 1, brake_actuator: 2 },
+  },
+  regen: {
+    stops: [
+      { at: "가속 페달", value: "0%", expect: "0%", ok: true, ev: "accel_trend" },
+      { at: "Brake ECU 회생 요청", value: "−40 Nm", expect: "−40 Nm", ok: true, ev: "regen_request" },
+      { at: "VCU 토크 지령", value: "+40 Nm", expect: "−40 Nm", ok: false, ev: "torque_cmd" },
+    ],
+    hypothesisAt: { pedal: 0, brake_sw: 1, vcu_sign: 2, inv_wire: 2 },
   },
 };
 /** The fault boundary is known once the first ✗ and the stop just before it (a ✓) are both measured. */
@@ -2435,11 +2445,13 @@ const puzzlePerspective: Record<CaseId, { active: string; depth: string; input: 
   propulsion: { active: "SW 로직", depth: "기능 슬라이스 · 상세 제어", input: "변수·신호·상태", middle: "검증·계산·제어·중재", output: "토크 명령값" },
   thermal: { active: "E/E + 물리 피드백", depth: "ECU–액추에이터 통합", input: "온도 센서·ECU 신호", middle: "ECU·PWM·전원·피드백", output: "팬 회전·RPM" },
   brake: { active: "차량 제어 통합", depth: "회생·마찰 제동 협조", input: "운전자 감속 요구", middle: "제동력 배분·ECU·I/O", output: "유압·휠 감속" },
+  regen: { active: "차량 제어 통합", depth: "코스팅 회생 토크 지령", input: "회생 요청", middle: "VCU 토크 지령 변환", output: "인버터·모터 토크" },
 };
 const puzzleMission: Record<CaseId, { domain: string; feature: string; input: string; output: string }> = {
   propulsion: { domain: "구동", feature: "운전자 토크 요청", input: "가속 페달 APS A/B", output: "인버터·전륜 모터 토크" },
   thermal: { domain: "열관리", feature: "냉각 팬 폐루프 제어", input: "냉각수 온도 센서", output: "팬 PWM·실제 RPM" },
   brake: { domain: "제동", feature: "회생·마찰 협조 제동", input: "브레이크 페달 요구", output: "캘리퍼 압력·휠 감속" },
+  regen: { domain: "구동", feature: "토크 배분·제한(코스팅 회생)", input: "Brake ECU 회생 요청", output: "인버터·모터 토크" },
 };
 const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNode, "x" | "y">[]; correct: string[]; program: string; faulty: string }> = {
   propulsion: {
@@ -2469,6 +2481,16 @@ const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNo
       { id: "caliper", label: "Caliper + Wheel", kind: "HW", detail: "마찰 제동 응답" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
     ], correct: ["pedal", "request", "blend", "pressure", "brakeecu", "caliper"], program: "blended_brake", faulty: "friction_only",
   },
+  // legacy puzzle (unused by the live flow; the live STEP03 is RefPuzzle.tsx)
+  regen: {
+    requirement: ["회생 요청 −40 Nm", "IF 코스팅", "부호 반영·한계", "THEN 토크 지령 −40 Nm", "모터 회생 토크"],
+    blocks: [
+      { id: "req", label: "Brake ECU 회생 요청", kind: "HW", detail: "감속 요청" }, { id: "sign", label: "Sign Rule", kind: "SW", detail: "요청의 부호를 그대로 반영" },
+      { id: "magonly", label: "Magnitude Only", kind: "SW", detail: "크기만 사용(부호 버림)" }, { id: "limit", label: "Regen Limit", kind: "SW", detail: "가용 회생 한계" },
+      { id: "can", label: "CAN Torque Command", kind: "SW", detail: "VCU→Inverter" }, { id: "vcu", label: "VCU Controller", kind: "HW", detail: "SW 실행 제어기" },
+      { id: "inverter", label: "Inverter + PMSM", kind: "HW", detail: "모터 토크" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
+    ], correct: ["req", "sign", "limit", "can", "vcu", "inverter"], program: "regen_sign_applied", faulty: "regen_sign_dropped",
+  },
 };
 
 // Real part photos (whole object visible, kept inside the piece's safe area) and plain-language pictos for SW
@@ -2477,7 +2499,7 @@ const PART_PHOTO: Record<string, string> = {
   fan: "cooling_fan", pedal: "brake_pedal", brakeecu: "brake_ecu", caliper: "brake_caliper",
 };
 // SW blocks run inside a controller: show that controller's generated photo with a small logic badge.
-const SW_ATLAS: Record<CaseId, number> = { propulsion: 1, thermal: 5, brake: 8 }; // cells of the 3×3 evidence atlas
+const SW_ATLAS: Record<CaseId, number> = { propulsion: 1, thermal: 5, brake: 8, regen: 1 }; // cells of the 3×3 evidence atlas
 const swLogicKind = (label: string) => /Adapter|진단/.test(label) ? "check" : /Map|Scale/.test(label) ? "lut" : /Filter/.test(label) ? "delay" : /Hysteresis/.test(label) ? "state" : /Force|Only|Gate/.test(label) ? "switch" : /Blend|Request/.test(label) ? "min" : blockKind(label);
 function PiecePicture({ node, caseId }: { node: { id: string; label: string; kind: string }; caseId: CaseId }) {
   const cell = SW_ATLAS[caseId];
@@ -2523,11 +2545,13 @@ const SIGNAL_VALUE: Record<CaseId, Record<string, string>> = {
   propulsion: { aps: "60%", adapter: "60% ✓", map100: "204 Nm", can: "204 Nm", vcu: "204 Nm" },
   thermal: { temp: "78.4°C", filter: "78.4°C", threshold: "팬 ON", pwm: "100%", thermalecu: "PWM 100%" },
   brake: { pedal: "55%", request: "3.2 m/s²", blend: "회생+마찰", pressure: "42 bar", brakeecu: "42 bar" },
+  regen: { req: "−40 Nm", sign: "−40 Nm", limit: "−40 Nm", can: "−40 Nm", vcu: "−40 Nm" },
 };
 const TRAP_MSG: Record<string, string> = {
   map45: "요구사항과 달라요: 페달 값을 0.45배로 줄여서 토크가 모자라요. 정상 기준에는 안 맞아요.",
   forceoff: "요구사항과 달라요: 온도가 높아도 팬을 꺼 버려요. 정상 기준에는 안 맞아요.",
   regenonly: "요구사항과 달라요: 회생 제동만 쓰고 모자란 힘을 마찰 제동으로 채우지 않아요.",
+  magonly: "요구사항과 달라요: 회생 요청의 크기만 쓰고 부호를 버려서 지령이 반대 방향이 돼요.",
   logger: "📝 기록 전용 블록이라 신호를 바꾸지 않아. 경로에는 안 넣어도 돼",
 };
 const REQ_OF_STEP = [0, 1, 2, 3, 3, 4];
@@ -2555,6 +2579,7 @@ const PIECE_IO: Record<CaseId, Record<string, { in?: Nub; out?: Nub }>> = {
   propulsion: { aps: { out: "round" }, adapter: { in: "round", out: "round" }, map100: { in: "round", out: "square" }, map45: { in: "round", out: "square" }, can: { in: "square", out: "zigzag" }, vcu: { in: "zigzag", out: "zigzag" }, inverter: { in: "zigzag" }, logger: { in: "round" } },
   thermal: { temp: { out: "tri" }, filter: { in: "tri", out: "tri" }, threshold: { in: "tri", out: "zigzag" }, forceoff: { in: "tri", out: "zigzag" }, pwm: { in: "zigzag", out: "wave" }, thermalecu: { in: "wave", out: "wave" }, fan: { in: "wave" }, logger: { in: "tri" } },
   brake: { pedal: { out: "round" }, request: { in: "round", out: "square" }, blend: { in: "square", out: "square" }, regenonly: { in: "square", out: "square" }, pressure: { in: "square", out: "tri" }, brakeecu: { in: "tri", out: "tri" }, caliper: { in: "tri" }, logger: { in: "round" } },
+  regen: { req: { out: "round" }, sign: { in: "round", out: "square" }, magonly: { in: "round", out: "square" }, limit: { in: "square", out: "square" }, can: { in: "square", out: "tri" }, vcu: { in: "tri", out: "tri" }, inverter: { in: "tri" }, logger: { in: "round" } },
 }; // correct path index → requirement row
 
 export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
@@ -2753,12 +2778,14 @@ const BENCH_PARTS: Record<CaseId, { input: string; ecu: string; output: string; 
     { from: [0, "temp_out"], to: [1, "temp_in"], color: "#4f9ab5" }, { from: [1, "fan_pwm_out"], to: [2, "pwm_in"], color: "#ef8a4f" }, { from: [2, "speed_out"], to: [1, "fan_speed_in"], color: "#56a68d" }] },
   brake: { input: "brake_pedal", ecu: "brake_ecu", output: "brake_caliper", labels: ["페달 센서", "BRAKE ECU", "캘리퍼"], wires: [
     { from: [0, "bpp_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "pressure_cmd_out"], to: [2, "pressure_in"], color: "#ef8a4f" }] },
+  regen: { input: "brake_ecu", ecu: "vcu", output: "inverter", labels: ["BRAKE ECU", "VCU", "인버터·모터"], wires: [
+    { from: [0, "pressure_cmd_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
 };
 const BENCH_SLOTS: { position: [number, number, number]; scale: number }[] = [{ position: [-2.25, .62, 0], scale: .94 }, { position: [0, .72, 0], scale: 1.12 }, { position: [2.25, .68, 0], scale: .96 }];
 function EmbeddedBenchScene({ caseId, running, works }: { caseId: CaseId; running: boolean; works: boolean }) {
   const bench = BENCH_PARTS[caseId];
   const ids = [bench.input, bench.ecu, bench.output];
-  const kinds: HardwareKind[] = [caseId === "thermal" ? "sensor" : caseId === "brake" ? "brakepedal" : "pedal", "ecu", caseId === "thermal" ? "fan" : caseId === "brake" ? "caliper" : "motor"];
+  const kinds: HardwareKind[] = [caseId === "thermal" ? "sensor" : caseId === "brake" ? "brakepedal" : caseId === "regen" ? "ecu" : "pedal", "ecu", caseId === "thermal" ? "fan" : caseId === "brake" ? "caliper" : "motor"];
   const point = (slot: 0 | 1 | 2, port: string) => anchorPoint(ids[slot], port, BENCH_SLOTS[slot].position, BENCH_SLOTS[slot].scale);
   return <>
     {import.meta.env.DEV && <DevRenderProbe name="bench" />}
@@ -2877,7 +2904,7 @@ export function FailureAnalysis({ state, send }: { state: Campaign; send: Send }
     <GameHeader chapter="해설" title="실패 원인 해설" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main><section className="analysisHeader"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><div><small>ENGINEER {ENGINEER} · STEP BY STEP</small><h1>틀린 지점부터 정상 경로까지 차례로 다시 봅니다</h1><p>다시 메모판으로 돌려보내지 않고, 이번 한 판 안에서 풀이를 완성한 뒤 수리와 주행 복귀까지 이어집니다.</p></div></section><section className="analysisCompare"><div><small>EXPECTED</small><b>{expected}</b></div><i>≠</i><div><small>ACTUAL</small><b>{actual}</b></div></section><section className="guidedSteps">{[
-      ["1 · 최초 차이", `기준과 실제가 처음 갈라진 경계는 ${state.caseId === "thermal" ? "ECU 명령 이후 실제 팬 피드백" : state.caseId === "brake" ? "제동력 배분 이후 마찰 압력" : "토크 맵 출력"}입니다.`],
+      ["1 · 최초 차이", `기준과 실제가 처음 갈라진 경계는 ${state.caseId === "thermal" ? "ECU 명령 이후 실제 팬 피드백" : state.caseId === "brake" ? "제동력 배분 이후 마찰 압력" : state.caseId === "regen" ? "VCU 토크 지령 변환 출력" : "토크 맵 출력"}입니다.`],
       ["2 · 원인 판정", `${root.label}: ${root.desc}`],
       ["3 · 정상 연결", correctLabels.join(" → ")],
       ["4 · 수정 결과", `${expected}로 회복되는 것을 SW·임베디드·차량 수준에서 다시 확인했습니다.`],

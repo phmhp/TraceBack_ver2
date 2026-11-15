@@ -15,6 +15,10 @@ const BOOK: Record<CaseId, { domain: DomainId; feature: number; name: string; re
     { domain: "thermal", feature: 1, name: "열관리 · 펌프·팬 제어", req: "냉각수 65°C 이상이면 팬 켜짐, 60°C 이하면 꺼짐. 켜지면 목표 1850 rpm으로 PWM 조절." },
     { domain: "thermal", feature: 3, name: "열관리 · 열 한계 출력 제한", req: "구동계가 너무 뜨거우면 보호를 위해 구동 출력을 줄여요(파워다운 표시등)." },
   ],
+  regen: [
+    { domain: "drive", feature: 2, name: "구동 · 토크 배분·제한", req: "회생 요청은 부호까지 정해진 값이에요. 가속 페달 0%·40 km/h 이상에서 토크 지령은 회생 요청과 같은 방향(−40 Nm)이고, 평지에서 −0.5 m/s²로 감속해요." },
+    { domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조", req: "회생 요청은 감속 방향(음수)으로 VCU에 전달돼요. 회생 크기는 배터리가 받을 수 있는 한계 이내예요." },
+  ],
   brake: [{ domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조", req: "페달 55% → 목표 감속 3.2 m/s². 회생은 배터리가 받을 수 있는 만큼, 나머지는 마찰(1 m/s²당 20 bar)." }],
 };
 

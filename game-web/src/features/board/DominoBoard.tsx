@@ -92,6 +92,24 @@ const CASES: Record<CaseId, { nodes: SigNode[]; zoom: Zoom }> = {
       lesson: "제동 SW는 기준대로 42 bar를 명령했어. 실제 압력이 8 bar밖에 안 나왔으니 유압·캘리퍼(HW) 쪽 문제야!",
     },
   },
+  // legacy board (unused by the live flow, kept for the type): same chain as DominoTrace.regen
+  regen: {
+    nodes: [
+      { id: "pedal", label: "가속 페달 신호", x: 2.5, y: 14, ref: "0%", run: "0%", status: "ok" },
+      { id: "vcu_out", label: "VCU 토크 지령 변환 출력", x: 19.5, y: 12, ref: "−40 Nm", run: "+40 Nm", status: "bad", t: 10, role: "origin", ev: "torque_cmd" },
+      { id: "can_cmd", label: "CAN 토크 지령", x: 19.5, y: 28, ref: "−40 Nm", run: "+40 Nm", status: "bad", t: 20, parent: "vcu_out", role: "effect", hidden: true },
+      { id: "motor_tq", label: "모터 실제 토크", x: 39.5, y: 12, ref: "−40 Nm", run: "+40 Nm", status: "bad", t: 30, parent: "can_cmd", role: "effect" },
+      { id: "regen_req", label: "회생 요청", x: 59.5, y: 62, ref: "−40 Nm", run: "−40 Nm", status: "ok", ev: "regen_request" },
+      { id: "accel", label: "차량 가감속", x: 80, y: 12, ref: "−0.5 m/s²", run: "+0.5 m/s²", status: "bad", t: 60, parent: "motor_tq", role: "effect", ev: "accel_trend" },
+    ],
+    zoom: {
+      where: "VCU", kind: "sw",
+      reference: [["회생 요청", "−40 Nm"], ["부호 반영", "적용"], ["토크 지령", "−40 Nm"]],
+      run: [["회생 요청", "−40 Nm"], ["부호 반영", "누락"], ["토크 지령", "+40 Nm"]],
+      culprit: "회생 부호 반영 누락",
+      lesson: "회생 요청의 부호를 버려 토크 지령이 반대 방향으로 나갔어요.",
+    },
+  },
 };
 type Zoom = { where: string; kind: "sw" | "hw"; reference: [string, string][]; run: [string, string][]; part?: [string, string, string]; culprit: string; lesson: string };
 

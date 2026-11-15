@@ -30,7 +30,10 @@ export const LEVELS: LevelDef[] = [
     teaser: "고속으로 오래 달리자 경고등이 켜지고 출력이 줄어요.", phase: "연속 고부하 주행", learn: "제어기 출력과 실제 동작을 비교해 실행 누락을 찾는 시험", difficulty: 2, principles: ["열 요구는 제어기가 PWM 출력으로 바꿔 팬을 돌려요.", "요청은 정상인데 출력이 없으면 출력 어댑터를 의심해요.", "출력 제한은 고장이 아니라 과열을 막는 보호 동작이에요."], garage: [{ domain: "thermal", feature: 1 }, { domain: "thermal", feature: 3 }] },
   { level: 3, kind: "bonus", caseId: "brake", title: "브레이크가 덜 들어요", domainLabel: "제동", icon: "disc",
     teaser: "브레이크를 밟았는데 생각보다 덜 서요.", phase: "정차 구간 제동", learn: "내부 계산값과 출력값의 차이로 변환 오류를 찾는 시험", difficulty: 2, principles: ["회생으로 줄인 몫의 나머지를 마찰 압력이 채워요.", "내부 계산값과 전송값이 다르면 변환 단계를 의심해요.", "같은 입력으로 수리 전후를 비교하면 원인 제거를 확인할 수 있어요."], garage: [{ domain: "brake", feature: 1 }] },
-  { level: 4, kind: "finale", caseId: null, title: "최종 탈출", domainLabel: "해적선", icon: "flag",
+  { level: 4, kind: "bonus", caseId: "regen", title: "발을 떼도 가속해요", domainLabel: "구동·회생", icon: "bolt",
+    teaser: "가속 페달에서 발을 뗐는데 오히려 빨라져요.", phase: "코스팅(페달 해제) 구간", learn: "값의 크기가 맞아도 부호가 틀리면 정반대로 동작한다는 것을 SW 단위 시험으로 확인", difficulty: 1, principles: ["회생 요청은 부호(방향)까지 정해진 인터페이스 규약이에요.", "크기가 맞아도 부호가 틀리면 정반대로 움직여요.", "진단 모니터는 작동 범위 밖이면 고장을 못 잡아요."],
+    garage: [{ domain: "drive", feature: 2 }, { domain: "brake", feature: 1 }] },
+  { level: 5, kind: "finale", caseId: null, title: "최종 탈출", domainLabel: "해적선", icon: "flag",
     teaser: "수리한 차로 부두까지 달려 해적선에 올라타요.", phase: "부두 구간 주행", learn: "수리 후에도 정상 동작이 이어지는지 확인", difficulty: 1, principles: ["수리 후에도 같은 시험으로 정상 동작을 확인해요.", "정상 기준은 요구사항에서 나오고 시험 기준이 돼요.", "추리, 시험, 수리, 재시험이 검증의 기본 흐름이에요."], garage: [] },
 ];
 
@@ -41,12 +44,12 @@ export function levelStatus(state: Campaign, def: LevelDef): LevelStatus {
   if (def.caseId && done(def.caseId)) return "cleared";
   if (def.level === 1) return "open";
   if (def.level === 2) return done("propulsion") ? "open" : "locked";
-  if (def.level === 3) return done("thermal") ? "open" : "locked";
+  if (def.level === 3 || def.level === 4) return done("thermal") ? "open" : "locked";
   return done("propulsion") && done("thermal") ? "open" : "locked";
 }
 
 export function lockedReason(def: LevelDef) {
   if (def.level === 2) return "1레벨을 클리어하면 열려요.";
-  if (def.level === 3) return "2레벨을 클리어하면 열려요.";
+  if (def.level === 3 || def.level === 4) return "2레벨을 클리어하면 열려요.";
   return "1·2레벨을 클리어하면 열려요.";
 }

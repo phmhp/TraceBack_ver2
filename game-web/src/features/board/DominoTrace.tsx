@@ -156,6 +156,37 @@ export const CASES: Record<CaseId, CaseData> = {
       lesson: "내부 계산 뒤 I/O 어댑터 SW가 변환 계수를 한 번 더 적용해 압력 명령을 19%로 줄였어요.",
     },
   },
+  regen: {
+    start: "accel", first: "vcu_out", timeUnit: "ms",
+    req: "요구사항: 가속 페달 0%·40 km/h 이상에서 코스팅 회생이 동작해 토크 지령이 회생 요청과 같은 방향(−40 Nm)이어야 한다.",
+    doms: [
+      { id: "accel", label: "차량 가감속", img: CAR, zone: "차량", ref: "−0.5", run: "+0.5", unit: "m/s²", status: "bad", t: 60, causes: ["motor_tq", "regen_req", "pedal"], ev: "accel_trend" },
+      { id: "motor_tq", label: "모터 토크", img: B("motor_actual"), zone: "부품", ref: "−40", run: "+40", unit: "Nm", status: "bad", t: 30, causes: ["batt_i", "can_cmd", "rotor"] },
+      { id: "can_cmd", label: "CAN 토크 지령", img: B("torque_cmd"), zone: "CAN", ref: "−40", run: "+40", unit: "Nm", status: "bad", t: 20, causes: ["gateway", "vcu_out", "regen_req"] },
+      { id: "vcu_out", label: "VCU 토크 지령 변환 출력", img: E("vcu"), zone: "제어기", ref: "−40", run: "+40", unit: "Nm", status: "bad", t: 10, causes: ["regen_req", "pedal", "speed"], ev: "torque_cmd" },
+      // trap: abnormal, but it changed LATER than the domino it is offered for
+      { id: "batt_i", label: "배터리 전류(충전/방전)", img: E("bms"), zone: "부품", ref: "−10", run: "+25", unit: "A", status: "bad", t: 40 },
+      OK("decel_ok", "마찰 제동 감속", CAR, "차량", 3.2, "m/s²"),
+      OK("steer_ok", "조향 반응", CAR, "차량", 100, "%"),
+      { ...OK("regen_req", "Brake ECU 회생 요청", E("brake_ecu"), "제어기", "−40", "Nm"), ev: "regen_request" },
+      OK("pedal", "가속 페달", B("pedal_raw"), "센서", 0, "%"),
+      OK("speed", "차속", CAR, "센서", 60, "km/h"),
+      OK("gateway", "게이트웨이 전달", GATEWAY, "CAN", "−40", "Nm"),
+      OK("rotor", "로터 위치(리졸버)", E("traction_motor"), "센서", "정상", ""),
+    ],
+    section: { name: "VCU 토크 지령 변환 SW 경계", choices: [
+      { label: "Brake ECU 회생 요청 계산 (감속 목표·회생 몫·한계)", ok: false, why: "회생 요청은 −40 Nm로 기준과 같았어요. 요청 계산은 정상이에요." },
+      { label: "VCU 토크 지령 변환 (회생 부호 반영·한계 적용·램프)", ok: true, why: "들어온 요청은 −40 Nm인데 나가는 지령이 +40 Nm예요. 어떤 변환 오류인지는 검증에서 가려요." },
+      { label: "인버터 모터 제어 (전류 제어·PWM·리졸버)", ok: false, why: "CAN 토크 지령이 이미 +40 Nm로 왔어요. 인버터에 닿기 전에 달라졌어요." },
+    ] },
+    zoom: {
+      where: "VCU 토크 지령 변환", kind: "sw",
+      reference: [["회생 요청", "−40 Nm"], ["부호 반영", "적용"], ["토크 지령", "−40 Nm"]],
+      run: [["회생 요청", "−40 Nm"], ["부호 반영", "누락"], ["토크 지령", "+40 Nm"]],
+      culprit: "회생 요청 부호 반영 누락",
+      lesson: "변환 SW가 회생 요청의 크기만 쓰고 부호를 버려, 지령이 반대 방향(+40 Nm)으로 나갔어요.",
+    },
+  },
 };
 
 export const fmt = (value: number | string) => typeof value === "string" ? value : Number.isInteger(value) ? String(value) : value.toFixed(1);

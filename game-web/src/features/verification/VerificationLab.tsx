@@ -5,7 +5,7 @@ import { HYP_LABEL, NOT_EXERCISED_WHY, SCENARIOS, SCENARIO_META, judgeRun, type 
 import { BenchVisual, EmbeddedBench3D, PursuitRouteBar, RestoredPuzzleVisual, type BenchTab } from "../../experiences";
 import { RefPuzzleTrack, normalScenarioLines } from "../wiring/RefPuzzle";
 import { StageIntro, showVerdict } from "../../ui/Verdict";
-import { SAMPLES, assessContractRun, divergeIndex, firstMismatch, simulate, type ContractRunAssessment, type Lv, type Series, type Tech } from "./simModel";
+import { SAMPLES, span, assessContractRun, divergeIndex, firstMismatch, simulate, type ContractRunAssessment, type Lv, type Series, type Tech } from "./simModel";
 import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
 import { useReportSubStep } from "../../ui/stepRoadmap";
 import { useDevActions } from "../../ui/dev/devActions";
@@ -104,6 +104,27 @@ const experimentConfig: Record<CaseId, ExperimentConfig> = {
     lesson: "내부 압력 계산값과 I/O 전송값을 비교해 중복 스케일링이 처음 발생한 SW 경계를 찾았습니다.",
     probeCopy: { input: "제동 요구", control: "회생·마찰 배분", output: "캘리퍼 압력" },
   },
+  regen: {
+    requirementId: "REQ-RGN-01",
+    requirement: "가속 페달 0%·40 km/h 이상에서 토크 지령은 회생 요청과 같은 방향(−40 Nm)이어야 한다.",
+    missionTitle: "페달을 뗀 순간을 재현하라",
+    missionBrief: "달리던 중 가속 페달에서 발을 뗀 코스팅 구간의 회생 요청을 재현하고, 토크 지령의 부호가 처음 달라지는 경계를 확인합니다.",
+    precondition: "60 km/h · D · 가속 페달 0%",
+    stimuli: [
+      { label: "약한 회생", hint: "회생 요청 작음", sequence: "0→−10 Nm / 0.5 s" },
+      { label: "코스팅 회생", hint: "미션 기록과 동일", sequence: "0→−40 Nm / 0.5 s · 5 s 유지" },
+      { label: "최대 회생", hint: "회생 한계 근처", sequence: "0→−80 Nm / 0.5 s" },
+    ],
+    target: 1,
+    probe: "control",
+    expected: "−40 Nm",
+    healthyActual: "−40 Nm",
+    faultyActual: "+40 Nm",
+    mismatch: "회생 요청 이후 VCU 토크 지령 변환 출력",
+    technique: "SW 단위 입력·출력 비교",
+    lesson: "같은 회생 요청을 넣고 변환 출력의 부호를 비교해 부호 반영이 빠진 SW 경계를 찾았습니다.",
+    probeCopy: { input: "회생 요청", control: "VCU 토크 지령 변환", output: "모터 토크" },
+  },
 };
 
 const lenses: { id: BenchTab; label: string; short: string; observation: string }[] = [
@@ -145,6 +166,12 @@ const rigParts: Record<CaseId, readonly RigPart[]> = {
     { cell: [1, 0], role: "CONTROL", label: "Brake ECU", signal: "Blend request", kind: "controller" },
     { cell: [2, 1], role: "PRESSURE STAGE", label: "유압 모듈레이터", signal: "42 bar command", kind: "transfer" },
     { cell: [3, 1], role: "PHYSICAL OUTPUT", label: "디스크 · 캘리퍼", signal: "42 bar", kind: "output" },
+  ],
+  regen: [
+    { cell: [0, 0], role: "BRAKE ECU", label: "Brake ECU", signal: "회생 요청 −40 Nm", kind: "input" },
+    { cell: [1, 0], role: "CONTROL", label: "VCU 토크 지령 변환", signal: "부호 반영 · 한계 · 램프", kind: "controller" },
+    { cell: [2, 1], role: "TRANSFER", label: "CAN 토크 지령", signal: "−40 Nm", kind: "transfer" },
+    { cell: [3, 1], role: "PHYSICAL OUTPUT", label: "인버터 · 모터", signal: "회생 −40 Nm", kind: "output" },
   ],
 };
 
@@ -190,6 +217,7 @@ const systemScenario: Record<CaseId, { input: string; network: string; response:
   propulsion: { input: "가속 요구 60%", network: "VCU ↔ BMS ↔ Inverter", response: "종가속도 · 모터 토크", units: "204 Nm · 2.1 m/s²" },
   thermal: { input: "열부하 78.4°C", network: "Thermal ECU ↔ VCU ↔ BMS", response: "온도 기울기 · 팬 응답", units: "-1.8°C/min · 1850 RPM" },
   brake: { input: "제동 요구 55%", network: "Brake ECU ↔ VCU ↔ ABS", response: "감속도 · 휠 슬립", units: "3.2 m/s² · 4%" },
+  regen: { input: "회생 요청 −40 Nm", network: "Brake ECU ↔ VCU ↔ Inverter", response: "가감속 · 모터 토크", units: "−0.5 m/s² · −40 Nm" },
 };
 
 function SystemNetworkVisual({ caseId, running, works, conclusive }: { caseId: CaseId; running: boolean; works: boolean; conclusive: boolean }) {
@@ -265,6 +293,18 @@ const softwareFlows: Record<CaseId, { nodes: SoftwareFlowNode[]; mismatchIndex: 
       { stage: "FEEDBACK", label: "휠 감속 응답", expected: "요구 만족", faulty: "감속 부족", kind: "output" },
     ],
   },
+  regen: {
+    mismatchIndex: 2,
+    nodes: [
+      { stage: "INPUT", label: "회생 요청 수신", expected: "−40 Nm", faulty: "−40 Nm" },
+      { stage: "VALIDATE", label: "신호 유효성", expected: "VALID", faulty: "VALID", kind: "decision" },
+      { stage: "SIGN", label: "부호 반영", expected: "−40 Nm", faulty: "+40 Nm" },
+      { stage: "LIMIT", label: "가용 회생 한계", expected: "−40 Nm", faulty: "+40 Nm" },
+      { stage: "RAMP", label: "램프율", expected: "−40 Nm ↘", faulty: "+40 Nm ↗" },
+      { stage: "OUTPUT", label: "CAN 토크 지령", expected: "−40 Nm", faulty: "+40 Nm" },
+      { stage: "FEEDBACK", label: "차량 가감속", expected: "−0.5 m/s²", faulty: "+0.5 m/s²", kind: "output" },
+    ],
+  },
 };
 
 function SoftwareLogicVisual({ caseId, running, works, conclusive, reference }: { caseId: CaseId; running: boolean; works: boolean; conclusive: boolean; reference: boolean }) {
@@ -311,11 +351,17 @@ const levelCheck: Record<CaseId, { answer: BenchTab; why: string; wrong: string 
     why: "의심 구간이 압력 명령 I/O 어댑터 SW예요. 통합 SW를 제어기 I/O까지 연결하면 계산값 42 bar와 전송값 8 bar를 함께 관찰할 수 있어요.",
     wrong: "그 레벨로는 계산값과 I/O 전송값 사이 경계를 관찰할 수 없거나, 더 이른 레벨에서 볼 수 있어요.",
   },
+  regen: {
+    answer: "sw",
+    why: "의심 구간이 VCU 토크 지령 변환 SW예요. SW만 따로 실행하는 단위 시험에서 회생 요청과 변환 출력의 부호를 바로 비교할 수 있어요.",
+    wrong: "그 레벨은 하드웨어 경로까지 포함해 위치를 좁히기 어렵거나, 더 앞선 레벨에서 바로 볼 수 있어요.",
+  },
 };
 const regressionTests: Record<CaseId, string[]> = {
   propulsion: ["브레이크를 함께 밟으면 구동 토크 차단", "APS 두 센서 값이 어긋나면 토크 제한", "P단에서는 페달을 밟아도 토크 0"],
   thermal: ["냉각수 온도가 내려가면 팬 정지(히스테리시스)", "팬 피드백이 없으면 고장 코드·경고", "출력 제한 해제 후 정상 가속 복귀"],
   brake: ["회생 가능 범위에서는 회생 우선", "ABS 작동 시 압력 조절 정상", "브레이크 경고등 소등"],
+  regen: ["평지 코스팅 시 회생 감속 유지", "회생·마찰 제동 협조 전환 정상", "가속 시 구동 토크 방향 정상"],
 };
 
 function VerificationReport({ caseId, config, works, actual, onDone, onClose }: { caseId: CaseId; config: ExperimentConfig; works: boolean; actual: string; onDone: () => void; onClose: () => void }) {
@@ -480,11 +526,13 @@ const CHAIN_PHOTO: Record<CaseId, [string, string, string]> = {
   propulsion: ["accel_pedal", "vcu", "traction_motor"],
   thermal: ["motor_temp_sensor", "thermal_ecu", "cooling_fan"],
   brake: ["brake_pedal", "brake_ecu", "brake_caliper"],
+  regen: ["brake_ecu", "vcu", "traction_motor"],
 };
 const WAVES: Record<CaseId, string[]> = {
   propulsion: ["M4 30 H76", "M4 30 H18 L28 12 H76", "M4 30 H16 L19 4 H76"],
   thermal: ["M4 20 H76", "M4 20 H38 L42 16 H76", "M4 26 H14 C40 24 52 10 76 6"],
   brake: ["M4 30 H20 L36 26 H76", "M4 30 H18 L30 14 H76", "M4 30 H16 L19 4 H76"],
+  regen: ["M4 30 H20 L36 26 H76", "M4 30 H18 L30 14 H76", "M4 30 H16 L19 4 H76"],
 };
 type Fix = { label: string; img: string; ok: boolean; why: string };
 const FIXES: Record<CaseId, Fix[]> = {
@@ -502,6 +550,11 @@ const FIXES: Record<CaseId, Fix[]> = {
     { label: "I/O 어댑터 중복 스케일링 제거", img: "/assets/ending-thumbs/brake_ecu.png", ok: true, why: "내부 계산 뒤 0.19가 다시 적용되던 SW 인터페이스 오류를 제거했어요." },
     { label: "회생 제동을 더 세게 설정", img: "/assets/board-photos/regen_request.png", ok: false, why: "회생 제동은 배터리가 가득 차면 줄어들어요. 마찰 제동 고장을 가릴 뿐이에요." },
     { label: "압력 계산값을 5배로 키우기", img: "/assets/ending-thumbs/brake_ecu.png", ok: false, why: "증상만 보상하는 값이에요. 경계 조건에서 과한 압력을 만들 수 있어요." },
+  ],
+  regen: [
+    { label: "회생 요청의 부호 규약을 정의대로 반영하고 부호 시험 추가", img: "/assets/ending-thumbs/vcu.png", ok: true, why: "부호 반영이 빠진 변환 SW를 고치고, 같은 오류가 다시 들어오지 않게 부호 단위 시험을 추가했어요." },
+    { label: "코스팅 중 가속 페달 off일 때 토크 지령을 0으로 고정", img: "/assets/ending-thumbs/vcu.png", ok: false, why: "증상만 가려요. 회생 감속이 사라져 감속감이 없고 연비와 제동 협조가 깨져요." },
+    { label: "모터 최대 토크 한계를 낮추기", img: "/assets/ending-thumbs/traction_motor.png", ok: false, why: "가속이 줄 뿐 지령의 부호 오류는 그대로예요." },
   ],
 };
 const STEP_NAMES = ["재현 입력", "관측 경계", "고치기 전 실행", "고치기", "다시 실행 · 회귀"];
@@ -533,6 +586,14 @@ const SIGNALS: Record<CaseId, { seconds: number; first: number; list: Sig[] }> =
     { name: "I/O 전송 압력 명령", unit: "bar", zone: "제어기 SW I/O", ref: u => 42 * lag(u, .06, .2), fault: u => 8 * lag(u, .06, .2), max: 50 },
     { name: "캘리퍼 압력", unit: "bar", zone: "부품", ref: u => 42 * lag(u, .07, .2), fault: u => 8 * lag(u, .07, .2), max: 50 },
     { name: "차량 감속", unit: "m/s²", zone: "차량", ref: u => 3.2 * lag(u, .1, .2), fault: u => 1.4 * lag(u, .1, .2), max: 4 },
+  ] },
+  regen: { seconds: 5.5, first: 2, list: [
+    { name: "가속 페달", unit: "%", zone: "센서", ref: () => 0, fault: () => 0, max: 100 },
+    { name: "회생 요청 (크기)", unit: "Nm", zone: "제어기 SW", ref: u => 40 * ramp(u, .1), fault: u => 40 * ramp(u, .1), max: 80 },
+    { name: "토크 지령 (방향 +: 구동)", unit: "Nm", zone: "제어기 SW", ref: () => 0, fault: u => 40 * lag(u, .03, .1), max: 80 },
+    { name: "CAN 토크 지령 (구동분)", unit: "Nm", zone: "CAN", ref: () => 0, fault: u => 40 * lag(u, .05, .1), max: 80 },
+    { name: "모터 토크 (구동분)", unit: "Nm", zone: "부품", ref: () => 0, fault: u => 40 * lag(u, .07, .1), max: 80 },
+    { name: "차량 가속 (구동분)", unit: "m/s²", zone: "차량", ref: () => 0, fault: u => .5 * lag(u, .1, .1), max: 2 },
   ] },
 };
 const SIM_TABS: { id: string; label: string; sub: string }[] = [
@@ -580,6 +641,9 @@ const TEST_ANSWER: Record<CaseId, { method: Method[]; deriv: Deriv[]; input: str
   brake: { method: ["req"], deriv: ["bound"], input: "페달 55% · 배터리 가득(회생 0) 경계",
     whyM: { req: "'페달 55% → 3.2 m/s²' 요구를 같은 제동 입력에서 확인해요.", iface: "내부 압력 계산값과 I/O 전송값을 비교하면 중복 스케일링을 구분할 수 있어요.", inject: "회생 0 조건은 SW 경계를 드러내는 입력 조건이며, 근본 원인은 I/O 어댑터의 데이터 처리 오류예요." },
     whyD: { bound: "배터리가 가득 차 회생이 0이 되는 경계에서는 마찰 압력 명령이 커져 I/O 스케일링 오류가 가장 뚜렷해요.", reqa: "가능하지만 회생 제동이 일부를 메워 차이가 작게 보여요.", equiv: "대표값만으로는 회생이 섞여 마찰 쪽 차이가 흐려져요.", guess: "근거 없이 고르기보다 회생이 0이 되는 경계를 쓰는 게 확실해요.", usecase: "실제 주행 기록엔 회생이 섞여 마찰 쪽 차이가 흐려져요." } },
+  regen: { method: ["req"], deriv: ["reqa"], input: "회생 요청 −40 Nm 유지 · 페달 0% · 60 km/h",
+    whyM: { req: "'회생 요청 −40 Nm → 토크 지령 −40 Nm' 요구를 그대로 확인하는 방법이에요.", iface: "요청의 크기·형식은 맞고 방향 규약이 문제라, 인터페이스 값 비교로도 볼 수 있지만 요구사항 입력이 가장 직접적이에요.", inject: "고장을 일부러 넣는 방법이에요. 이미 발생한 고장을 재현하는 이번 시험에는 맞지 않아요." },
+    whyD: { reqa: "요구사항 '요청 −40 Nm → 지령 −40 Nm'에서 입력과 기대값을 바로 뽑을 수 있어요.", bound: "최대 회생(−80 Nm) 경계에서도 부호가 반대로 나와 오류는 같게 드러나요. 대표 입력으로 충분해요.", equiv: "회생 요청 0 Nm은 부호를 바꿔도 0이라 이 오류를 드러내지 못해요.", guess: "근거 없이 고르기보다 요구사항 값을 쓰는 게 확실해요.", usecase: "실제 주행 기록엔 요청이 계속 변해 부호 오류가 섞여 보여요." } },
 };
 const SIM_INPUT: Record<Deriv, Tech> = { reqa: "req", equiv: "req", guess: "req", bound: "boundary", usecase: "soak" };
 // v7: only test-case derivations whose input really differs in the numeric model are offered, per case,
@@ -601,6 +665,11 @@ const CASE_DERIVS: Record<CaseId, { id: Deriv; tech: Tech; input: string }[]> = 
     { id: "bound", tech: "boundary", input: "경계 조건 · 페달 55%, 배터리 가득(회생 0) → 마찰 제동만" },
     { id: "equiv", tech: "req", input: "다른 입력 구간 · 페달 15% 약한 제동 (회생만으로 감속)" },
   ],
+  regen: [
+    { id: "reqa", tech: "req", input: "요구사항 기준 · 회생 요청 −40 Nm 유지" },
+    { id: "bound", tech: "boundary", input: "경계 조건 · 회생 요청 −80 Nm (최대 회생)" },
+    { id: "equiv", tech: "req", input: "다른 입력 구간 · 회생 요청 0 Nm (회생 없음)" },
+  ],
 };
 /**
  * 2026-11-12: each input condition is a real, different stimulus (STEP03 contract = the case reproduction input).
@@ -619,6 +688,10 @@ const INPUT_EXEC: Record<CaseId, Partial<Record<Deriv, (base: VerificationExecut
   brake: {
     bound: base => ({ ...base, initial: base.initial.map(item => item.signalId === "regenAvailable" ? { ...item, value: 0 } : item) }),
     equiv: base => ({ ...base, stimulus: { ...base.stimulus, startValue: 0, endValue: 15 } }),
+  },
+  regen: {
+    bound: base => ({ ...base, stimulus: { ...base.stimulus, endValue: -80 } }),
+    equiv: base => ({ ...base, stimulus: { ...base.stimulus, startValue: 0, endValue: 0 } }),
   },
 };
 /** The contract actually executed for an input: expected outputs come from the healthy (normal) model run with the same input. */
@@ -654,6 +727,11 @@ const INPUT_INFO: Record<CaseId, Partial<Record<Deriv, { tag: string; purpose: s
     bound: { tag: "경계 조건 시험 · 회생 0", purpose: "회생이 0인 경계(배터리 가득)에서 마찰 제동만으로 감속 3.2 m/s²를 채우는지 확인" },
     equiv: { tag: "다른 입력 구간 시험", purpose: "약한 제동은 회생만으로 감속을 채워 마찰 압력이 0이어야 해요. 이 구간의 감속이 기준과 같은지 확인" },
   },
+  regen: {
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "고장 당시와 같은 코스팅 회생 요청(−40 Nm)에서 토크 지령이 −40 Nm로 나오는지 확인" },
+    bound: { tag: "경계 조건 시험 · 최대 회생", purpose: "회생 요청 −80 Nm에서도 토크 지령이 같은 방향으로 나오는지 확인" },
+    equiv: { tag: "다른 입력 구간 시험 · 회생 없음", purpose: "회생 요청이 0이면 지령도 0이어야 해요. 이 구간이 기준과 같은지 확인" },
+  },
 };
 const fmtNum = (v: number) => Number.isInteger(v) ? String(v) : v.toFixed(1);
 /** Plain description of the executed stimulus: values, change shape and hold time. */
@@ -681,6 +759,12 @@ const CAUSES: Record<CaseId, { hyp: string; name: string; type: string; where: s
     { hyp: "hyd_path", name: "압력 명령 I/O 어댑터 중복 스케일링(×0.19)", type: "인터페이스 오류(I/O 스케일링 중복)", where: "Brake ECU · I/O 어댑터 SW", desc: "내부 계산 42 bar에 출력 단계에서 축척을 한 번 더 곱해 8 bar로 전송", img: CAUSE_IMG.board("brake_actual") },
     { hyp: "caliper", name: "압력 피드백 데이터 처리 SW 오류", type: "SW 로직 오류(피드백 처리)", where: "Brake ECU · 피드백 처리 SW", desc: "읽어 온 라인 압력을 잘못 처리해 압력 제어가 틀어짐", img: CAUSE_IMG.part("brake_caliper") },
   ],
+  regen: [
+    { hyp: "brake_sw", name: "회생 요청 계산 SW 오류", type: "SW 로직 오류(요청 계산)", where: "Brake ECU · 제동 배분 SWC", desc: "감속 목표를 잘못 계산해 틀린 회생 요청을 보냄", img: CAUSE_IMG.board("regen_request") },
+    { hyp: "pedal", name: "가속 페달 입력 오류", type: "입력 계측 오류", where: "APS 입력 처리", desc: "페달 값이 틀려 코스팅 판단이 어긋남", img: CAUSE_IMG.board("pedal_raw") },
+    { hyp: "vcu_sign", name: "토크 지령 변환의 회생 부호 반영 누락", type: "수치·부호 오류(인터페이스 규약 불일치)", where: "VCU · 토크 지령 변환 SWC", desc: "회생 요청의 크기만 쓰고 부호를 버려 지령이 반대 방향으로 나감", img: CAUSE_IMG.board("torque_cmd") },
+    { hyp: "inv_wire", name: "인버터·모터 상 배선 반대 연결 (HW)", type: "하드웨어 배선 오류", where: "모터 U/V/W 배선", desc: "상 순서가 바뀌어 토크 방향이 반대로 나옴", img: CAUSE_IMG.part("traction_motor") },
+  ],
 };
 // Verification levels (what is verified) — ISO 26262-6 §9, §10, §11 and ISO 26262-4 §7.
 // Test environments (where it runs: MIL/SIL/PIL/HIL/차량) are a separate axis, shown as chips.
@@ -695,6 +779,7 @@ const LV_ANSWER: Record<CaseId, { answer: Lv; why: string }> = {
   propulsion: { answer: "unit", why: "의심 구간이 VCU 내부 SW 계산이에요. 그 SW 단위에 입력값을 인가하는 SW 단위 시험에서 바로 관찰할 수 있어요. 가장 싸고 빠른 레벨이에요." },
   thermal: { answer: "embedded", why: "의심 구간이 PWM 출력 어댑터 SW예요. 통합 SW·제어기 I/O 시험에서 요청값과 실제 출력값을 함께 보면 가장 먼저 잡을 수 있어요." },
   brake: { answer: "embedded", why: "의심 구간이 압력 명령 I/O 어댑터 SW예요. 통합 SW·제어기 I/O 시험에서 계산값과 전송값을 비교하면 가장 먼저 잡을 수 있어요." },
+  regen: { answer: "unit", why: "의심 구간이 VCU 토크 지령 변환 SW예요. SW 단위 시험에서 회생 요청과 변환 출력의 부호를 나란히 보면 가장 먼저 잡을 수 있어요." },
 };
 
 // v6 (level → technique quiz → compare) kept unused; v7 below follows docs/REDESIGN_2026-11-08.md
@@ -884,7 +969,7 @@ export function TwinBenchV6({ state, send }: { state: Campaign; send: Send }) {
 function SeriesTrace({ sig, upto, probed }: { sig: Series; upto: number; probed: boolean }) {
   if (!probed) return <svg className="vbTrace off" viewBox="0 0 200 36"><line x1="0" y1="34" x2="200" y2="34" /></svg>;
   const n = sig.ref.length - 1, last = Math.round(upto * n);
-  const pts = (arr: number[]) => arr.slice(0, last + 1).map((v, i) => `${(i / n * 200).toFixed(1)},${(34 - clampTo(v / sig.max) * 30).toFixed(1)}`).join(" ");
+  const pts = (arr: number[]) => arr.slice(0, last + 1).map((v, i) => `${(i / n * 200).toFixed(1)},${(34 - clampTo((v - (sig.min ?? 0)) / span(sig)) * 30).toFixed(1)}`).join(" ");
   const d = divergeIndex(sig);
   return <svg className="vbTrace" viewBox="0 0 200 36"><polyline className="ref" points={pts(sig.ref)} /><polyline className={`run ${d === null ? "ok" : ""}`} points={pts(sig.run)} />{d !== null && last >= d && <g className="split"><line x1={d / n * 200} y1="0" x2={d / n * 200} y2="36" /><circle cx={d / n * 200} cy={34 - clampTo(sig.run[d] / sig.max) * 30} r="3" /></g>}</svg>;
 }
@@ -897,7 +982,7 @@ function OverlayGraph({ list, upto, look, note }: { list: Series[]; upto: number
     {note && <p className="ovNote">{note}</p>}
     {list.map(sig => {
       const n = sig.ref.length - 1, last = Math.round(upto * n), d = divergeIndex(sig);
-      const y = (v: number) => (34 - clampTo(v / sig.max) * 30).toFixed(1);
+      const y = (v: number) => (34 - clampTo((v - (sig.min ?? 0)) / span(sig)) * 30).toFixed(1);
       const pts = (arr: number[], to: number) => arr.slice(0, to + 1).map((v, i) => `${(i / n * 200).toFixed(1)},${y(v)}`).join(" ");
       return <div key={sig.id} className={`ovRow ${look.has(sig.id) ? "look" : ""}`}>
         <span>{sig.name}<small>{sig.unit}</small></span>
@@ -912,13 +997,13 @@ function OverlayGraph({ list, upto, look, note }: { list: Series[]; upto: number
 // Mission B · 고장 재현: field condition — does the same symptom come back, and where does it first split?
 // Every choice runs for real (no locked "answer"); stars come from the total test cost.
 const LV_COST: Record<Lv, number> = { unit: 1, swint: 2, embedded: 3, vehicle: 5 };
-const BEST_COST: Record<CaseId, number> = { propulsion: 2, thermal: 10, brake: 10 };
-const ROOT_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "rpm", brake: "line" };
+const BEST_COST: Record<CaseId, number> = { propulsion: 2, thermal: 10, brake: 10, regen: 1 };
+const ROOT_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "rpm", brake: "line", regen: "vcuOut" };
 /** The function the case fault lives in, read from the NORMAL model: pedal processing, fan PWM duty, friction pressure command. */
-const FAULT_PATH_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "duty", brake: "cmd" };
+const FAULT_PATH_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "duty", brake: "cmd", regen: "vcuOut" };
 /** Did this input make the normal design use the faulty function at all? (If not, normal and fault runs are identical by construction.) */
 function exercisesFaultPath(caseId: CaseId, levels: Record<string, Series[]>) {
-  return Object.values(levels).flat().filter(sig => sig.id === FAULT_PATH_SIGNAL[caseId]).some(sig => Math.max(...sig.ref.map(Math.abs)) > sig.max * .02);
+  return Object.values(levels).flat().filter(sig => sig.id === FAULT_PATH_SIGNAL[caseId]).some(sig => Math.max(...sig.ref.map(Math.abs)) > span(sig) * .02);
 }
 const PROBE_LIMIT = 3;
 const REQ_DERIV: Deriv[] = ["reqa", "equiv", "bound"];
@@ -1212,6 +1297,12 @@ const QUESTIONS: Record<CaseId, { hyp: string; ask: string }[]> = {
     { hyp: "blend_sw", ask: "회생·마찰을 나누는 SW가 잘못된 건가요?" },
     { hyp: "hyd_path", ask: "I/O 어댑터가 압력 명령을 다시 줄인 건가요?" },
     { hyp: "caliper", ask: "압력 피드백 처리 SW가 잘못된 건가요?" },
+  ],
+  regen: [
+    { hyp: "brake_sw", ask: "Brake ECU가 틀린 회생 요청을 보낸 건가요?" },
+    { hyp: "pedal", ask: "가속 페달 값이 틀린 건가요?" },
+    { hyp: "vcu_sign", ask: "VCU가 회생 요청의 부호를 놓친 건가요?" },
+    { hyp: "inv_wire", ask: "인버터 배선이 반대로 연결된 건가요?" },
   ],
 };
 const TEST_CARD: Record<Lv, { name: string; pic: "chip" | "grid" | "monitor" | "car" }> = {

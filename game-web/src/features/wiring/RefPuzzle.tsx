@@ -42,6 +42,7 @@ const SCOPE: Record<CaseId, { unit: { name: string; ids: string[] }; swc: { name
   propulsion: { unit: { name: "토크 요청 SWC", ids: ["filter", "map", "permit"] }, swc: [{ name: "APS 입력 SWC", ids: ["corr", "filter"] }, { name: "토크 요청 SWC", ids: ["map", "permit"] }, { name: "토크 중재 SWC", ids: ["min", "ramp"] }, { name: "통신 SWC", ids: ["out"] }] },
   thermal: { unit: { name: "팬 제어 SWC", ids: ["hyst", "pi"] }, swc: [{ name: "온도 SWC", ids: ["range", "filter"] }, { name: "팬 제어 SWC", ids: ["hyst", "pi"] }] },
   brake: { unit: { name: "제동 배분 SWC", ids: ["rmin", "rest", "press"] }, swc: [{ name: "제동 요구 SWC", ids: ["recv"] }, { name: "제동 배분 SWC", ids: ["rmin", "rest", "press"] }] },
+  regen: { unit: { name: "토크 지령 SWC", ids: ["sign", "rlim", "ramp"] }, swc: [{ name: "회생 요청 수신 SWC", ids: ["rrecv"] }, { name: "토크 지령 SWC", ids: ["sign", "rlim", "ramp"] }, { name: "통신 SWC", ids: ["out"] }] },
 };
 
 const T = "/assets/ending-thumbs/", P = "/assets/board-photos/";
@@ -143,6 +144,39 @@ const REF: Record<CaseId, Ref> = {
     notes: [{ domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조" }],
     field: { hmod: "라인 8 bar", caliper: "감속 1.4 m/s²" },
   },
+  regen: {
+    domain: "구동", feature: "회생 요청 → 토크 지령", ecu: "VCU", program: "regen_sign_applied",
+    board: ["bpe", "rrecv", "sign", "rlim", "ramp", "out", "inv"], gaps: [2, 3],
+    spares: ["signB", "pedmap", "rlim", "sign", "avg"], joints: ["round", "square", "square", "square", "zigzag", "wave"],
+    side: { pieces: ["bms"], into: 3, value: "회생 한계 60 Nm", label: "BMS가 보내는 회생 가용 한계" },
+    req: [
+      { text: "Brake ECU가 감속 목표를 회생 요청으로 계산해 CAN으로 보낸다 (이번 시나리오 −40 Nm)", slot: 0 },
+      { text: "VCU가 회생 요청을 수신한다", slot: 1 },
+      { text: "회생 요청의 부호(음수 = 감속 방향)를 인터페이스 정의대로 반영한다", slot: 2 },
+      { text: "회생 크기는 BMS가 허용하는 한계(60 Nm)를 넘지 않게 제한한다", slot: 3 },
+      { text: "토크 지령의 변화 속도는 램프율로 제한한다", slot: 4 },
+      { text: "토크 지령을 CAN으로 인버터에 보낸다 (−40 Nm)", slot: 5 },
+      { text: "인버터가 −40 Nm 회생 토크를 만들어 평지에서 −0.5 m/s²로 감속한다", slot: 6 },
+    ],
+    blocks: {
+      bpe: { id: "bpe", label: "Brake ECU 회생 요청", kind: "hw", ee: true, img: `${T}brake_ecu.png`, out: "회생 요청 −40 Nm", from: "제동 · 회생·마찰 협조" },
+      rrecv: { id: "rrecv", label: "회생 요청 수신", kind: "calc", out: "−40 Nm", from: "구동 · 토크 배분·제한" },
+      sign: { id: "sign", label: "부호 규약", tag: "표 A", spec: "표 값: 회생 요청 음수 → 토크 지령 음수 (감속)", kind: "lut", out: "−40 Nm", from: "구동 · 토크 배분·제한" },
+      signB: { id: "signB", label: "부호 규약", tag: "표 B", spec: "표 값: 회생 요청 음수 → 토크 지령 양수", kind: "lut", bad: "+40 Nm", from: "구동 · 토크 배분·제한",
+        why: "실행 결과 +40 Nm예요. 요구사항은 '회생 요청과 같은 방향(−40 Nm)'이에요. 같은 '부호 규약'이라도 표 값이 달라요." },
+      rlim: { id: "rlim", label: "가용 회생 한계", kind: "min", out: "−40 Nm", from: "구동 · 토크 배분·제한" },
+      pedmap: { id: "pedmap", label: "페달 맵", kind: "lut", from: "구동 · 운전자 토크 요청",
+        why: "'페달 맵'은 가속 페달 위치를 토크 요청으로 바꾸는 블록이에요. 페달이 0%인 코스팅 회생 경로에는 없어요." },
+      avg: { id: "avg", label: "평균 필터", kind: "delay", from: "구동 · 토크 배분·제한",
+        why: "'평균 필터'는 요구사항에 없는 처리예요. 회생 요청을 그대로 부호·한계 처리하는 경로에는 들어가지 않아요." },
+      ramp: { id: "ramp", label: "램프율", kind: "delay", out: "−40 Nm ↘", from: "구동 · 토크 배분·제한" },
+      out: { id: "out", label: "토크 지령 출력", kind: "calc", out: "CAN −40 Nm", from: "구동 · 토크 배분·제한" },
+      inv: { id: "inv", label: "인버터 · 전륜 모터", kind: "hw", img: `${T}traction_motor.png`, out: "회생 −40 Nm · −0.5 m/s² ✓", from: "구동 · 토크 배분·제한" },
+      bms: { id: "bms", label: "BMS 회생 수용량", kind: "hw", img: `${T}bms.png`, out: "회생 한계 60 Nm", from: "제동 · 회생·마찰 협조" },
+    },
+    notes: [{ domain: "drive", feature: 2, name: "구동 · 토크 배분·제한" }, { domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조" }],
+    field: { sign: "+40 Nm", rlim: "+40 Nm", ramp: "+40 Nm ↗", out: "CAN +40 Nm", inv: "모터 +40 Nm · +0.5 m/s²" },
+  },
 };
 
 // SW blocks take the garage's own picto/tag rule, so the piece looks exactly like the garage block
@@ -154,7 +188,7 @@ const doesOf = (b: Blk) => b.does ?? (b.kind === "hw" ? "실제 부품" : plainT
 const eunNeun = (word: string) => { const c = word.charCodeAt(word.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? "은" : "는"; };
 
 // table/setting pieces show their values on the face, so same-name candidates are told apart by the requirement numbers
-const FACE: Record<string, string> = { map: "60% → 204 Nm", mapB: "60% → 92 Nm", hyst: "65°C 켜짐 · 60°C 꺼짐", hystB: "95°C 켜짐 · 90°C 꺼짐", press: "2.1 m/s² → 42 bar", pressB: "2.1 m/s² → 8 bar" };
+const FACE: Record<string, string> = { map: "60% → 204 Nm", mapB: "60% → 92 Nm", hyst: "65°C 켜짐 · 60°C 꺼짐", hystB: "95°C 켜짐 · 90°C 꺼짐", press: "2.1 m/s² → 42 bar", pressB: "2.1 m/s² → 8 bar", sign: "음수 → 음수", signB: "음수 → 양수" };
 function PieceFace({ b }: { b: Blk }) {
   return <>
     {b.kind === "hw"
@@ -393,12 +427,14 @@ const WHY: Record<CaseId, string> = {
   propulsion: "페달을 얼마나 밟았는지에 맞춰 차가 낼 힘을 정하기 위해서예요.",
   thermal: "냉각수가 뜨거워지면 팬을 돌려 구동계 온도를 지키기 위해서예요.",
   brake: "브레이크를 밟은 만큼 회생과 마찰 제동을 나눠 차를 세우기 위해서예요.",
+  regen: "발을 뗐을 때 회생 요청이 정확한 방향의 토크로 바뀌어야 차가 의도대로 감속하기 때문이에요.",
 };
 // The final actuator reacts in 3D: normal output when the rig matches the requirement, a weaker one when it does not.
 const ACTUATOR: Record<CaseId, { id: string; ok: string; weak: string }> = {
   propulsion: { id: "traction_motor", ok: "모터 204 Nm · 정상 가속", weak: "모터 힘 부족 · 가속이 약해요" },
   thermal: { id: "cooling_fan", ok: "팬 1850 rpm · 정상 냉각", weak: "팬이 켜지지 않아요 · 온도 상승" },
   brake: { id: "brake_caliper", ok: "캘리퍼 42 bar · 정상 감속", weak: "압력 부족 · 감속이 약해요" },
+  regen: { id: "traction_motor", ok: "모터 −40 Nm · 정상 회생 감속", weak: "토크가 반대 방향 · 오히려 가속해요" },
 };
 function ActuatorReaction({ caseId, ok }: { caseId: CaseId; ok: boolean }) {
   const a = ACTUATOR[caseId];
@@ -417,6 +453,7 @@ const RIG_GOAL: Record<CaseId, string> = {
   propulsion: "VCU 계산 SW 문제인지, 입력 회로 문제인지",
   thermal: "팬 요청 계산 SW인지, PWM 출력 어댑터 SW인지",
   brake: "배분 계산 SW인지, 압력 명령 I/O 어댑터 SW인지",
+  regen: "VCU 토크 지령 변환 SW인지, 그 뒤 CAN·인버터 경로인지",
 };
 /** STEP03 산출물: 정상 시나리오 요구사항 문장 (STEP04 시험 자료함에서 그대로 참고). */
 export const normalScenarioLines = (caseId: CaseId) => SPEC[caseId].lines;
@@ -425,6 +462,7 @@ const SHEET_PURPOSE: Record<CaseId, string> = {
   propulsion: "VCU 계산 SW와 입력 회로 중 원인 구분",
   thermal: "팬 요청 계산 SW와 PWM 출력 SW 중 원인 구분",
   brake: "배분 계산 SW와 압력 출력 SW 중 원인 구분",
+  regen: "VCU 변환 SW와 인버터 이후 경로 중 원인 구분",
 };
 const SPEC: Record<CaseId, { text: string; lines: string[]; input?: { label: string; unit: string; min: number; max: number; at: number }; expect: string }> = {
   propulsion: { text: "페달 0~100% → 토크 요청 0~340 Nm 선형 · 가용 토크 한계 260 Nm(BMS·온도) · D단·READY일 때만 통과",
@@ -435,6 +473,8 @@ const SPEC: Record<CaseId, { text: string; lines: string[]; input?: { label: str
     input: { label: "냉각수 온도", unit: "°C", min: 40, max: 100, at: 78 }, expect: "냉각수 78°C → 팬 켜짐 → 팬 1850 rpm" },
   brake: { text: "페달 55% → 목표 감속 3.2 m/s² · 회생은 가용량까지 · 나머지는 마찰(1 m/s²당 20 bar)",
     lines: ["브레이크 페달을 55% 밟으면 목표 감속은 3.2\u00a0m/s²이다.", "회생 제동은 배터리가 받을 수 있는 만큼만 쓰고, 나머지는 마찰 제동이 채운다.", "마찰 제동 1\u00a0m/s²는 브레이크 압력 20\u00a0bar로 만든다."], expect: "페달 55% → 감속 3.2 m/s²" },
+  regen: { text: "페달 0%·40 km/h 이상에서 코스팅 회생 · 토크 지령은 회생 요청과 같은 방향(음수) · 크기는 회생 한계 이내",
+    lines: ["가속 페달 0%이고 40\u00a0km/h 이상이면 코스팅 회생이 동작한다.", "토크 지령은 회생 요청과 같은 방향(음수)이다. 요청 −40\u00a0Nm이면 지령도 −40\u00a0Nm이다.", "회생 크기는 BMS가 허용하는 한계(60\u00a0Nm) 이내이고, 평지에서 80\u00a0Nm당 1\u00a0m/s²로 감속한다."], expect: "회생 요청 −40 Nm → 토크 지령 −40 Nm → 가감속 −0.5 m/s²" },
 };
 /** Value leaving each board slot for an example input (same numbers as simModel: 3.4 Nm/%, limit 260, 65/60 °C, 1850 rpm). */
 function exampleValue(caseId: CaseId, id: string, x: number, mapId = "map"): string | null {
