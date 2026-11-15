@@ -1,4 +1,4 @@
-export type CaseId = "propulsion" | "thermal" | "brake" | "regen" | "ready";
+export type CaseId = "propulsion" | "thermal" | "brake" | "regen" | "ready" | "gear";
 
 export type InvestigationStep = "locked" | "board" | "wiring" | "bench" | "repair" | "done";
 export type JourneyStageId = "garage" | "heist" | "race" | "board" | "wiring" | "bench" | "repair" | "escape";
@@ -62,17 +62,18 @@ export const initialCampaign = (): Campaign => ({
   caseId: "propulsion",
   completedCases: [],
   levelStars: {},
-  investigationProgress: { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked", ready: "locked" },
+  investigationProgress: { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked", ready: "locked", gear: "locked" },
   optionalBrake: "undecided",
   checkpoint: "start",
-  evidence: { propulsion: [], thermal: [], brake: [], regen: [], ready: [] },
-  hypothesis: { propulsion: "", thermal: "", brake: "", regen: "", ready: "" },
+  evidence: { propulsion: [], thermal: [], brake: [], regen: [], ready: [], gear: [] },
+  hypothesis: { propulsion: "", thermal: "", brake: "", regen: "", ready: "", gear: "" },
   program: {
     propulsion: "underreport_45pct",
     thermal: "open_loop_fan",
     brake: "friction_only",
     regen: "regen_sign_dropped",
     ready: "precharge_timeout_500",
+    gear: "gear_fallback_r",
   },
   collisions: 0,
   hints: 0,
@@ -117,9 +118,9 @@ const investigationStepForScene = (scene: Scene): InvestigationStep => {
   return "locked";
 };
 const unlockInvestigation = (s: Campaign, step: InvestigationStep) => {
-  s.investigationProgress ??= { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked", ready: "locked" };
+  s.investigationProgress ??= { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked", ready: "locked", gear: "locked" };
   s.investigationProgress.regen ??= "locked"; s.evidence.regen ??= []; s.hypothesis.regen ??= ""; s.program.regen ??= "regen_sign_dropped";
-  s.investigationProgress.ready ??= "locked"; s.evidence.ready ??= []; s.hypothesis.ready ??= ""; s.program.ready ??= "precharge_timeout_500";
+  s.investigationProgress.ready ??= "locked"; s.evidence.ready ??= []; s.hypothesis.ready ??= ""; s.program.ready ??= "precharge_timeout_500"; s.investigationProgress.gear ??= "locked"; s.evidence.gear ??= []; s.hypothesis.gear ??= ""; s.program.gear ??= "gear_fallback_r";
   if (stepRank(step) > stepRank(s.investigationProgress[s.caseId])) {
     s.investigationProgress[s.caseId] = step;
   }
@@ -252,7 +253,10 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       // level 5 (C01): the race starts with failed start attempts (READY_FAULT, prestart), then FAULT_CUE → BOARD
       if (level === 5 && done("thermal") && !done("ready"))
         return enter({ ...s, caseId: "ready", checkpoint: "ready_start" }, "CHASE_RESUME");
-      if (level === 6 && done("propulsion") && done("thermal"))
+      // level 6 (C04): a race first; launching right after a shift under bus load triggers the fallback fault (GEAR_FAULT), then FAULT_CUE → BOARD
+      if (level === 6 && done("thermal") && !done("gear"))
+        return enter({ ...s, caseId: "gear", checkpoint: "gear_start" }, "CHASE_RESUME");
+      if (level === 7 && done("propulsion") && done("thermal"))
         return enter({ ...s, optionalBrake: s.optionalBrake === "accepted" ? "accepted" : "skipped" }, "SHIP_ESCAPE");
       return reject(s, "LEVEL_LOCKED");
     }
@@ -320,14 +324,15 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
         brake: { evidence: ["brake_request", "regen_request", "brake_actual"], root: "brake_actuator" },
         regen: { evidence: ["accel_trend", "regen_request", "torque_cmd"], root: "vcu_sign" },
         ready: { evidence: ["ready_off", "dtc_precharge", "hv_bus_scope"], root: "seq_timeout" },
+        gear: { evidence: ["motor_reverse_log", "dtc_gear_timeout", "bus_load_scope"], root: "gear_fallback" },
       };
       s.evidence[s.caseId] = answers[s.caseId].evidence;
       s.hypothesis[s.caseId] = answers[s.caseId].root;
       return s;
     }
     case "DEV_SOLVE": {
-      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign", ready: "seq_timeout" };
-      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500" };
+      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign", ready: "seq_timeout", gear: "gear_fallback" };
+      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500", gear: "gear_fallback_n" };
       s.hypothesis[s.caseId] = roots[s.caseId];
       s.program[s.caseId] = programs[s.caseId];
       return s;
@@ -451,8 +456,8 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       }
       return s.policeGapMeters <= 0 ? enter(s, "CAUGHT") : s;
     case "GUIDED_REPAIR": {
-      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign", ready: "seq_timeout" };
-      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500" };
+      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign", ready: "seq_timeout", gear: "gear_fallback" };
+      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500", gear: "gear_fallback_n" };
       s.hypothesis[s.caseId] = roots[s.caseId];
       s.program[s.caseId] = programs[s.caseId];
       return enter(unlockInvestigation(s, "repair"), "REPAIR");

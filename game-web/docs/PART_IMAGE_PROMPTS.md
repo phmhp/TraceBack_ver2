@@ -3,7 +3,7 @@
 > 자동 생성 파일입니다. 수정은 `scripts/image-prompt-data.mjs`에서 하고 `npm run prompts`를 실행하세요.
 > 생성 도구: ChatGPT(GPT 이미지) · 3D 변환: [TRELLIS.2 데모](https://huggingface.co/spaces/microsoft/TRELLIS.2)(MIT) · 부품 ID 기준: `src/sim/components.ts`
 
-부품 99종 + 사건 증거 15종 = **이미지 총 251장**
+부품 99종 + 사건 증거 18종 = **이미지 총 254장**
 
 ## 1. 규칙 — 코드 블록 하나 = 요청 1번 = 이미지 1장
 

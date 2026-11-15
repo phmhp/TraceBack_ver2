@@ -37,6 +37,7 @@ const LAMP: Record<string, { label: string; note: string }> = {
   brake: { label: "제동 경고 없음", note: "페달 대비 감속이 부족함" },
   regen: { label: "경고등 없음", note: "발을 뗀 뒤에도 속도가 오름" },
   ready: { label: "HV 시스템 점검", note: "READY 없음 · 점검 표시등" },
+  gear: { label: "경고등 없음", note: "계기판 D 표시 · 켜진 경고등 없음" },
 };
 const QUOTE: Record<string, string> = {
   propulsion: "페달을 반 넘게 밟았는데 차가 힘없이 천천히 나가.",
@@ -44,6 +45,7 @@ const QUOTE: Record<string, string> = {
   brake: "브레이크를 밟았는데 생각보다 덜 서.",
   regen: "발을 뗐는데 차가 오히려 더 빨라져요.",
   ready: "시동 버튼을 눌러도 READY가 안 켜져요.",
+  gear: "D에 놓았는데 가끔 뒤로 가요.",
 };
 
 /** v2 (evidence | board / mugshot row). Kept unused; v3 below is live. */
@@ -401,6 +403,9 @@ const TRACE: Record<string, { chain: TNode[]; signals: string[]; first: number }
   ready: { first: 1, signals: ["시동 요청", "시퀀스 상태", "주 접촉기 명령"], chain: [
     { label: "시동 요청·브레이크", role: "input", dom: "start_req" }, { label: "VCU", role: "control", dom: "seq_state" }, { label: "주 접촉기", role: "actuator", dom: "main_cmd" },
     { label: "READY 상태", role: "result", dom: "ready" }] },
+  gear: { first: 1, signals: ["변속 레버", "VCU 기어 값", "구동 지령"], chain: [
+    { label: "변속 레버 위치", role: "input", dom: "lever" }, { label: "VCU", role: "control", dom: "vcu_gear" }, { label: "모터 토크 지령", role: "actuator", dom: "motor_cmd" },
+    { label: "출발 방향", role: "result", dom: "launch_dir" }] },
 };
 
 // Zoom into the first deviation like a subsystem: only the boundary values are known; the inside stays "?"
@@ -412,8 +417,9 @@ const OBSERVED: Record<string, { icon: "detective" | "warning" | "clipboard" | "
   brake: [{ icon: "detective", label: "운전자 체감", value: "밟아도 덜 섬" }, { icon: "warning", label: "계기판", value: "브레이크 경고등" }, { icon: "clipboard", label: "페달 입력 기록", value: "55% 유지" }, { icon: "road", label: "노면", value: "마른 노면" }],
   regen: [{ icon: "detective", label: "운전자 체감", value: "발을 떼도 계속 빨라짐" }, { icon: "warning", label: "계기판", value: "경고등 없음 · 회생 표시 없음" }, { icon: "clipboard", label: "주행 기록", value: "페달 0% · 속도 상승" }, { icon: "road", label: "도로", value: "마른 평지 직선" }],
   ready: [{ icon: "detective", label: "운전자 체감", value: "시동 후 READY 없음" }, { icon: "warning", label: "계기판", value: "HV 시스템 점검 표시등" }, { icon: "clipboard", label: "시동 기록", value: "3회 시도 · 모두 실패" }, { icon: "road", label: "주행 상태", value: "정차 · 출발 전" }],
+  gear: [{ icon: "detective", label: "운전자 체감", value: "출발 때 가끔 뒤로 움찔" }, { icon: "warning", label: "계기판", value: "기어 D 표시 · 경고등 없음" }, { icon: "clipboard", label: "조작 기록", value: "변속 후 0.2초에 페달" }, { icon: "road", label: "도로", value: "마른 평지 · 정차 출발" }],
 };
-const REPLAY: Record<string, string> = { propulsion: "페달 60% 기록", thermal: "고속 연속 주행 기록", brake: "페달 55% 기록", regen: "페달 0% 코스팅 기록", ready: "시동 3회 시도 기록" };
+const REPLAY: Record<string, string> = { propulsion: "페달 60% 기록", thermal: "고속 연속 주행 기록", brake: "페달 55% 기록", regen: "페달 0% 코스팅 기록", ready: "시동 3회 시도 기록", gear: "변속 직후 출발 기록" };
 
 const SUBSYS: Record<string, { where: string; inLabel: string; outLabel: string; stages: string[] }> = {
   propulsion: { where: "VCU", inLabel: "페달 신호 60%", outLabel: "토크 명령 92 Nm (기준 204)", stages: ["입력 회로", "페달 처리", "토크 계산"] },
@@ -421,6 +427,7 @@ const SUBSYS: Record<string, { where: string; inLabel: string; outLabel: string;
   brake: { where: "압력 출력 SW 경계", inLabel: "압력 계산 42 bar", outLabel: "전송 명령 8 bar (기준 42)", stages: ["배분 계산", "단위 변환", "I/O 전송"] },
   regen: { where: "VCU 지령 변환", inLabel: "요청 −40 Nm", outLabel: "지령 +40 Nm (기준 −40)", stages: ["수신", "부호", "한계·램프"] },
   ready: { where: "VCU 시퀀스", inLabel: "시동 요청 1", outLabel: "접촉기 명령 없음 (기준 닫기)", stages: ["조건", "대기", "전이"] },
+  gear: { where: "VCU 변속 수신", inLabel: "게이트웨이 D (간격 120 ms)", outLabel: "기어 값 R (기준 N)", stages: ["E2E 검사", "타임아웃 판정", "폴백 값"] },
 };
 
 export function EeTrace({ state, send }: { state: Campaign; send: Send }) {

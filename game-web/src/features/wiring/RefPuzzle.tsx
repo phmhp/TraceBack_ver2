@@ -44,6 +44,7 @@ const SCOPE: Record<CaseId, { unit: { name: string; ids: string[] }; swc: { name
   thermal: { unit: { name: "팬 제어 SWC", ids: ["hyst", "pi"] }, swc: [{ name: "온도 SWC", ids: ["range", "filter"] }, { name: "팬 제어 SWC", ids: ["hyst", "pi"] }] },
   brake: { unit: { name: "제동 배분 SWC", ids: ["rmin", "rest", "press"] }, swc: [{ name: "제동 요구 SWC", ids: ["recv"] }, { name: "제동 배분 SWC", ids: ["rmin", "rest", "press"] }] },
   ready: { unit: { name: "프리차지 시퀀스 SWC", ids: ["pre", "wait", "main"] }, swc: [{ name: "시동 조건 SWC", ids: ["cond"] }, { name: "프리차지 시퀀스 SWC", ids: ["pre", "wait", "main"] }] },
+  gear: { unit: { name: "변속 수신 SWC", ids: ["rx", "cmd"] }, swc: [{ name: "변속 수신 SWC", ids: ["rx"] }, { name: "토크 요청 SWC", ids: ["cmd"] }] },
   regen: { unit: { name: "토크 지령 SWC", ids: ["sign", "rlim", "ramp"] }, swc: [{ name: "회생 요청 수신 SWC", ids: ["rrecv"] }, { name: "토크 지령 SWC", ids: ["sign", "rlim", "ramp"] }, { name: "통신 SWC", ids: ["out"] }] },
 };
 
@@ -209,6 +210,37 @@ const REF: Record<CaseId, Ref> = {
     },
     notes: [{ domain: "power", feature: 1, name: "고전압 전원 · 프리차지·접촉기" }, { domain: "power", feature: 0, name: "고전압 전원 · 팩 안전 판단" }],
     field: { wait: "500 ms에 실패", main: "명령 없음", ready: "READY 꺼짐" },
+  },
+  gear: {
+    domain: "변속·주차", feature: "변속 레버 → 통신 → VCU 수신 → 구동 지령", ecu: "VCU", program: "gear_fallback_n",
+    board: ["lever", "gw", "can", "rx", "cmd", "motor"], gaps: [1, 3],
+    spares: ["direct", "rxB", "hold", "rx", "gw"], joints: ["round", "square", "square", "tri", "tri"],
+    side: { pieces: ["cluster"], into: 3, value: "D 표시", label: "클러스터가 따로 받는 변속 값" },
+    req: [
+      { text: "운전자가 변속 레버를 P에서 D로 바꾼다", slot: 0 },
+      { text: "변속 레버 위치는 게이트웨이를 거쳐 전달된다", slot: 1 },
+      { text: "CAN으로 20 ms 주기로 VCU에 전달된다", slot: 2 },
+      { text: "VCU는 100 ms 안에 새 메시지가 없으면 통신 오류로 보고 안전 값 N을 쓴다", slot: 3 },
+      { text: "VCU가 기어 값에 맞춰 구동 지령을 만든다 (N이면 0 Nm)", slot: 4 },
+      { text: "모터가 지령대로 토크를 낸다", slot: 5 },
+    ],
+    blocks: {
+      lever: { id: "lever", label: "변속 레버 · 시프터", kind: "hw", img: `${T}accel_pedal.png`, out: "D", from: "변속·주차 · PRND 입력 판독" },
+      gw: { id: "gw", label: "게이트웨이 신호 중계", kind: "calc", out: "D · 간격 120 ms", from: "통신·진단 · 신호 수신·폴백" },
+      direct: { id: "direct", label: "직결 연결 (게이트웨이 없음)", kind: "calc", from: "통신·진단 · 신호 수신·폴백",
+        why: "'직결 연결'은 게이트웨이 없이 센서가 VCU에 바로 연결되는 다른 구조예요. 이 차의 변속 신호는 게이트웨이를 거쳐요." },
+      can: { id: "can", label: "CAN 버스 20 ms 주기", kind: "hw", img: `${T}can_harness.png`, out: "20 ms · 부하 시 120 ms", from: "통신·진단 · 신호 수신·폴백" },
+      rx: { id: "rx", label: "변속 수신 처리", tag: "표 A", spec: "타임아웃 100 ms · 폴백 값 N(중립)", kind: "check", out: "타임아웃 → N", from: "변속·주차 · 기어 상태 배포·표시" },
+      rxB: { id: "rxB", label: "변속 수신 처리", tag: "표 B", spec: "타임아웃 100 ms · 폴백 값 R(후진)", kind: "check", bad: "타임아웃 → R", from: "변속·주차 · 기어 상태 배포·표시",
+        why: "실행 결과 폴백 값이 R이라 후진 지령이 나와요. 요구사항은 안전 값 N이에요. 같은 '변속 수신 처리'라도 표 값이 달라요." },
+      hold: { id: "hold", label: "마지막 값 유지", kind: "switch", from: "통신·진단 · 신호 수신·폴백",
+        why: "'마지막 값 유지'는 끊기기 직전 값을 계속 쓰는 방식이에요. 직전 값이 D면 계속 달려서 안전 값이 아니에요." },
+      cmd: { id: "cmd", label: "구동 지령 출력", kind: "calc", out: "0 Nm", from: "구동 · 토크 배분·제한" },
+      motor: { id: "motor", label: "인버터 · 전륜 모터", kind: "hw", img: `${T}traction_motor.png`, out: "토크 0 Nm · 정지 유지", from: "구동 · 토크 배분·제한" },
+      cluster: { id: "cluster", label: "클러스터 변속 표시", kind: "hw", img: `${T}diagnostic_port.png`, out: "D 표시", from: "변속·주차 · 기어 상태 배포·표시" },
+    },
+    notes: [{ domain: "gear", feature: 3, name: "변속·주차 · 기어 상태 배포·표시" }, { domain: "gear", feature: 0, name: "변속·주차 · PRND 입력 판독" }],
+    field: { rx: "타임아웃 → R", cmd: "−60 Nm", motor: "후진 −6 km/h" },
   },
 };
 
@@ -462,6 +494,7 @@ const WHY: Record<CaseId, string> = {
   brake: "브레이크를 밟은 만큼 회생과 마찰 제동을 나눠 차를 세우기 위해서예요.",
   regen: "발을 뗐을 때 회생 요청이 정확한 방향의 토크로 바뀌어야 차가 의도대로 감속하기 때문이에요.",
   ready: "전압이 충분히 오르기 전에 주 접촉기를 닫으면 돌입 전류가 커서 위험하므로, 충전이 끝날 때까지 기다려야 해요.",
+  gear: "통신이 끊겨도 차가 엉뚱한 방향으로 가면 안 되므로, 끊겼을 때 쓰는 값은 가장 안전한 값이어야 해요.",
 };
 // The final actuator reacts in 3D: normal output when the rig matches the requirement, a weaker one when it does not.
 const ACTUATOR: Record<CaseId, { id: string; ok: string; weak: string }> = {
@@ -470,6 +503,7 @@ const ACTUATOR: Record<CaseId, { id: string; ok: string; weak: string }> = {
   brake: { id: "brake_caliper", ok: "캘리퍼 42 bar · 정상 감속", weak: "압력 부족 · 감속이 약해요" },
   regen: { id: "traction_motor", ok: "모터 −40 Nm · 정상 회생 감속", weak: "토크가 반대 방향 · 오히려 가속해요" },
   ready: { id: "vcu", ok: "버스 380 V · 주 접촉기 닫힘 · READY", weak: "대기 중 실패 · READY가 안 켜져요" },
+  gear: { id: "vcu", ok: "기어 값 N · 구동 지령 0 Nm · 정지 유지", weak: "기어 값 R · 후진 방향으로 움찔해요" },
 };
 function ActuatorReaction({ caseId, ok }: { caseId: CaseId; ok: boolean }) {
   const a = ACTUATOR[caseId];
@@ -490,6 +524,7 @@ const RIG_GOAL: Record<CaseId, string> = {
   brake: "배분 계산 SW인지, 압력 명령 I/O 어댑터 SW인지",
   regen: "VCU 토크 지령 변환 SW인지, 그 뒤 CAN·인버터 경로인지",
   ready: "프리차지 대기 시간 설정인지, 프리차지 회로(저항·접촉기)인지",
+  gear: "변속 수신의 타임아웃 폴백 설정인지, 레버·게이트웨이 경로인지",
 };
 /** STEP03 산출물: 정상 시나리오 요구사항 문장 (STEP04 시험 자료함에서 그대로 참고). */
 export const normalScenarioLines = (caseId: CaseId) => SPEC[caseId].lines;
@@ -500,6 +535,7 @@ const SHEET_PURPOSE: Record<CaseId, string> = {
   brake: "배분 계산 SW와 압력 출력 SW 중 원인 구분",
   regen: "VCU 변환 SW와 인버터 이후 경로 중 원인 구분",
   ready: "프리차지 대기 설정과 프리차지 회로 중 원인 구분",
+  gear: "변속 수신 타임아웃 폴백 설정과 중계 경로(레버·게이트웨이) 중 원인 구분",
 };
 const SPEC: Record<CaseId, { text: string; lines: string[]; input?: { label: string; unit: string; min: number; max: number; at: number }; expect: string }> = {
   propulsion: { text: "페달 0~100% → 토크 요청 0~340 Nm 선형 · 가용 토크 한계 260 Nm(BMS·온도) · D단·READY일 때만 통과",
@@ -514,6 +550,9 @@ const SPEC: Record<CaseId, { text: string; lines: string[]; input?: { label: str
     lines: ["가속 페달 0%이고 40\u00a0km/h 이상이면 코스팅 회생이 동작한다.", "토크 지령은 회생 요청과 같은 방향(음수)이다. 요청 −40\u00a0Nm이면 지령도 −40\u00a0Nm이다.", "회생 크기는 BMS가 허용하는 한계(60\u00a0Nm) 이내이고, 평지에서 80\u00a0Nm당 1\u00a0m/s²로 감속한다."], expect: "회생 요청 −40 Nm → 토크 지령 −40 Nm → 가감속 −0.5 m/s²" },
   ready: { text: "시동 요청 → 프리차지 접촉기 → 버스 95 %(380 V)까지 대기(시간 제한 1500 ms) → 주 접촉기 → READY",
     lines: ["브레이크를 밟고 시동 요청이 오면 프리차지 접촉기를 닫아 버스를 먼저 충전한다.", "버스 전압이 팩 전압의 95 %(400\u00a0V 팩이면 380\u00a0V)에 닿으면 주 접촉기를 닫아 READY로 전환한다.", "프리차지 대기 시간(시간 제한)은 1500\u00a0ms이다. 정상 충전은 약 750\u00a0ms가 걸린다."], expect: "시동 요청 → 750 ms 부근 버스 380 V 이상 → 주 접촉기 명령 → READY" },
+  gear: { text: "변속 레버 → 게이트웨이 → CAN(20 ms 주기) → VCU 수신(100 ms 타임아웃 · 폴백 N) → 구동 지령",
+    lines: ["변속 레버 위치는 게이트웨이를 거쳐 CAN으로 VCU에 20\u00a0ms 주기로 전달된다.", "VCU는 100\u00a0ms 안에 새 메시지가 없으면 통신 오류로 본다.", "통신 오류일 때는 안전 값 N(구동 토크 0)을 쓴다. 클러스터는 별도 경로로 변속 값을 받는다."],
+    input: { label: "메시지 간격", unit: "ms", min: 0, max: 200, at: 120 }, expect: "메시지 간격 120 ms → 타임아웃 → 기어 값 N · 구동 지령 0 Nm" },
 };
 /** Value leaving each board slot for an example input (same numbers as simModel: 3.4 Nm/%, limit 260, 65/60 °C, 1850 rpm). */
 function exampleValue(caseId: CaseId, id: string, x: number, mapId = "map"): string | null {
@@ -524,6 +563,11 @@ function exampleValue(caseId: CaseId, id: string, x: number, mapId = "map"): str
   }
   if (caseId === "thermal") {
     return ({ coolant: `${x}°C`, range: `${x}°C ✓`, filter: `${x}°C` } as Record<string, string>)[id] ?? null;
+  }
+  if (caseId === "gear") {
+    const late = x > 100;                                    // no new message within 100 ms -> timeout
+    return ({ lever: "D", gw: `D · 간격 ${x} ms`, can: `${x} ms`, rx: late ? "타임아웃 → N" : "D", rxB: late ? "타임아웃 → R" : "D",
+      cmd: mapId === "rxB" ? (late ? "-60 Nm" : "60 Nm") : (late ? "0 Nm" : "60 Nm"), motor: mapId === "rxB" ? (late ? "후진 -6 km/h" : "전진") : (late ? "정지 유지" : "전진") } as Record<string, string>)[id] ?? null;
   }
   return null;
 }

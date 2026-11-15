@@ -65,7 +65,7 @@ test("C01 judging: embedded test supports the timeout hypothesis, the bus curve 
 
 test("C01 board data: first deviation is the VCU sequence state, trap changes later, one correct section", () => {
   const src = readFileSync(new URL("../src/features/board/DominoTrace.tsx", import.meta.url), "utf8");
-  const board = src.slice(src.indexOf('  ready: {\n    start: "ready"'), src.indexOf("export const fmt"));
+  const board = src.slice(src.indexOf('  ready: {\n    start: "ready"'), src.indexOf('  gear: {\n    start: "launch_dir"'));
   assert.match(board, /start: "ready", first: "seq_state"/);
   const times = Object.fromEntries([...board.matchAll(/id: "(\w+)"[^\n]*status: "bad", t: (\d+)/g)].map(m => [m[1], Number(m[2])]));
   assert.equal(times.seq_state, 500);

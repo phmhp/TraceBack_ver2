@@ -126,6 +126,22 @@ const CASES: Record<CaseId, { nodes: SigNode[]; zoom: Zoom }> = {
       lesson: "대기 시간이 충전 시간보다 짧아 정상 충전 중에 실패로 판정했어요.",
     },
   },
+  gear: {
+    nodes: [
+      { id: "lever", label: "변속 레버 위치", x: 2.5, y: 14, ref: "D", run: "D", status: "ok" },
+      { id: "gw_out", label: "게이트웨이 출력 기어", x: 18, y: 14, ref: "D", run: "D", status: "ok", ev: "bus_load_scope" },
+      { id: "vcu_gear", label: "VCU가 쓰는 기어 값", x: 34, y: 12, ref: "N", run: "R", status: "bad", t: 100, role: "origin", ev: "dtc_gear_timeout" },
+      { id: "motor_cmd", label: "모터 토크 지령", x: 56, y: 12, ref: "0 Nm", run: "-60 Nm", status: "bad", t: 200, parent: "vcu_gear", role: "effect", ev: "motor_reverse_log" },
+      { id: "launch_dir", label: "출발 방향", x: 80, y: 12, ref: "전진", run: "후진", status: "bad", t: 300, parent: "motor_cmd", role: "effect" },
+    ],
+    zoom: {
+      where: "VCU 변속 수신", kind: "sw",
+      reference: [["수신 간격", "120 ms"], ["타임아웃", "100 ms 초과"], ["폴백 값", "N"]],
+      run: [["수신 간격", "120 ms"], ["타임아웃", "100 ms 초과"], ["폴백 값", "R"]],
+      culprit: "타임아웃 폴백 값 설정",
+      lesson: "통신이 끊겼을 때 쓰는 값이 안전 값 N이 아니라 R로 들어가 있어요.",
+    },
+  },
 };
 type Zoom = { where: string; kind: "sw" | "hw"; reference: [string, string][]; run: [string, string][]; part?: [string, string, string]; culprit: string; lesson: string };
 

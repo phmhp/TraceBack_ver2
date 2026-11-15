@@ -22,6 +22,9 @@ const BOOK: Record<CaseId, { domain: DomainId; feature: number; name: string; re
   ready: [
     { domain: "power", feature: 1, name: "고전압 전원 · 프리차지·접촉기", req: "시동 요청이 오면 프리차지 접촉기로 인버터 커패시터를 먼저 충전하고, 버스 전압이 팩 전압의 95 %(400 V 팩이면 380 V)에 닿으면 주 접촉기를 닫아 READY가 돼요. 충전에는 약 750 ms가 걸리고 대기 시간은 1500 ms예요." },
   ],
+  gear: [
+    { domain: "gear", feature: 3, name: "변속·주차 · 기어 상태 배포·표시", req: "변속 위치는 20 ms마다 CAN으로 오고, 100 ms 동안 새 메시지가 없으면 VCU는 통신 오류로 보고 가장 안전한 값(N)으로 바꿔요." },
+  ],
   brake: [{ domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조", req: "페달 55% → 목표 감속 3.2 m/s². 회생은 배터리가 받을 수 있는 만큼, 나머지는 마찰(1 m/s²당 20 bar)." }],
 };
 

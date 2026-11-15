@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 const at = (completed) => ({ ...initialCampaign(), scene: "LEVEL_SELECT", completedCases: completed });
 
 test("N01 level: bonus level 4 after thermal, finale is level 5", () => {
-  assert.deepEqual(LEVELS.map(l => [l.level, l.kind, l.caseId]), [[1, "required", "propulsion"], [2, "required", "thermal"], [3, "bonus", "brake"], [4, "bonus", "regen"], [5, "bonus", "ready"], [6, "finale", null]]);
+  assert.deepEqual(LEVELS.map(l => [l.level, l.kind, l.caseId]), [[1, "required", "propulsion"], [2, "required", "thermal"], [3, "bonus", "brake"], [4, "bonus", "regen"], [5, "bonus", "ready"], [6, "bonus", "gear"], [7, "finale", null]]);
   const regenLevel = LEVELS[3];
   assert.equal(levelStatus(at([]), regenLevel), "locked");
   assert.equal(levelStatus(at(["propulsion", "thermal"]), regenLevel), "open");
@@ -21,8 +21,8 @@ test("N01 level: bonus level 4 after thermal, finale is level 5", () => {
   assert.equal(cue.scene, "FAULT_CUE"); assert.equal(cue.caseId, "regen");
   assert.equal(dispatch(cue, { type: "CONTINUE_FAULT" }).scene, "BOARD");
   assert.equal(dispatch(at(["propulsion"]), { type: "START_LEVEL", level: 4 }).scene, "LEVEL_SELECT", "locked before thermal");
-  assert.equal(dispatch(at(["propulsion", "thermal"]), { type: "START_LEVEL", level: 6 }).scene, "SHIP_ESCAPE");
-  assert.equal(dispatch(at(["propulsion"]), { type: "START_LEVEL", level: 6 }).scene, "LEVEL_SELECT", "finale needs both required levels");
+  assert.equal(dispatch(at(["propulsion", "thermal"]), { type: "START_LEVEL", level: 7 }).scene, "SHIP_ESCAPE");
+  assert.equal(dispatch(at(["propulsion"]), { type: "START_LEVEL", level: 7 }).scene, "LEVEL_SELECT", "finale needs both required levels");
 });
 
 test("N01 repair returns to the level screen with stars and keeps the other levels", () => {

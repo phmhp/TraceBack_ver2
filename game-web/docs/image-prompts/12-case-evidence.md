@@ -19,6 +19,9 @@
 | 시동 | `ready_off` | `ready_off__EVID.png` |
 | 시동 | `dtc_precharge` | `dtc_precharge__EVID.png` |
 | 시동 | `hv_bus_scope` | `hv_bus_scope__EVID.png` |
+| 변속 | `motor_reverse_log` | `motor_reverse_log__EVID.png` |
+| 변속 | `dtc_gear_timeout` | `dtc_gear_timeout__EVID.png` |
+| 변속 | `bus_load_scope` | `bus_load_scope__EVID.png` |
 
 ## 구동 · pedal_raw
 
@@ -213,4 +216,43 @@ Composition: the key subject centered and occupying about 70% of the frame; keep
 Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
 Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
 After the image, reply with only this file name (never draw it in the image): hv_bus_scope__EVID.png
+```
+
+## 변속 · motor_reverse_log
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A data logger screen on a laptop showing a motor torque command trace dipping below zero right after a gear shift marker, an engineer pointing at the dip.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): motor_reverse_log__EVID.png
+```
+
+## 변속 · dtc_gear_timeout
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A diagnostic tablet screen showing a pending (unconfirmed) communication timeout fault entry with a counter of occurrences, no warning lamp lit in the background cluster.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): dtc_gear_timeout__EVID.png
+```
+
+## 변속 · bus_load_scope
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A vehicle network analyzer screen showing a CAN bus load bar at 85 percent and a message timing diagram with one gap much longer than the others.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): bus_load_scope__EVID.png
 ```

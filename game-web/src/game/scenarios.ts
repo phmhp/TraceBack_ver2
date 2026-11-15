@@ -101,6 +101,24 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
       { id: "precharge_hw", label: "프리차지 저항·접촉기가 불량이다", desc: "하드웨어 고장 가능성" },
     ],
   },
+  gear: {
+    title: "D에 놓았는데 가끔 뒤로 감",
+    chapter: "선택 사건 · 변속 신호",
+    symptom: "변속 레버를 D에 놓고 바로 출발하면 가끔 차가 뒤로 움찔하거나 반응이 없습니다. 계기판에는 D가 표시됩니다.",
+    root: "gear_fallback",
+    repair: "변속 신호 타임아웃 폴백 값을 안전 값 N으로 복원하고 통신 타임아웃 시험 추가",
+    evidence: [
+      { id: "motor_reverse_log", label: "출발 직후 모터 토크 지령이 -60 Nm으로 기록됨", value: "변속 후 0.2초 · 페달 40 %", kind: "주행 현상" },
+      { id: "dtc_gear_timeout", label: "변속 신호 수신 타임아웃 진단 코드가 대기 상태로 저장됨", value: "확정 전 · 경고등 없음", kind: "진단 기록" },
+      { id: "bus_load_scope", label: "변속 직후 버스 부하가 85 %로 측정됨", value: "변속 메시지 간격 120 ms (정상 20 ms)", kind: "물리 응답" },
+    ],
+    hypotheses: [
+      { id: "lever_hw", label: "변속 레버 접점이 불량이다", desc: "하드웨어 고장 가능성" },
+      { id: "gw_map", label: "게이트웨이 신호 매핑이 틀렸다", desc: "통신 중계 오류 가능성" },
+      { id: "gear_fallback", label: "VCU 변속 수신의 타임아웃 폴백값 설정이 틀렸다", desc: "통신 폴백 설정 오류" },
+      { id: "interlock", label: "VCU 변속 인터록 판정이 틀렸다", desc: "입력 조건 판정 오류 가능성" },
+    ],
+  },
 };
 
 // ── Scenario registry (one source for race → board → puzzle → bench → repair) ──────────────
@@ -302,6 +320,49 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
       hold: {
         unit: { seen: "시동 요청 · 시퀀스 상태", unseen: "HV 버스 전압", why: "SW 단위 시험에는 프리차지 회로가 없어요.", next: ["embedded", "vehicle"] },
         swint: { seen: "시동 요청 · 시퀀스 상태 · 주 접촉기 명령", unseen: "HV 버스 전압", why: "PC 통합 시험에는 프리차지 회로가 없어요.", next: ["embedded", "vehicle"] },
+      } },
+    ],
+  },
+  gear: {
+    domain: "변속·주차 · 통신·진단",
+    goal: "통신이 끊겼을 때 쓰는 폴백 값은 안전한 방향이어야 한다. 간헐 고장은 재현 입력(버스 부하)을 골라야 보이고, 버스 지연은 시스템 통합 수준에서만 만들 수 있다.",
+    trigger: "정차 후 출발: 변속 레버를 P에서 D로 바꾸고 0.3초 이내에 가속 페달을 밟을 때 (간헐)",
+    injection: "VCU 변속 수신 SWC(GearRx)의 E2E 타임아웃 폴백값(GEAR_FALLBACK)이 N 대신 R (simModel gear · faultSchedule GEAR_FAULT)",
+    faultModel: "변속 직후 0.3초 버스 부하 85 % → 메시지 간격 120 ms > 100 ms → 타임아웃 → 폴백 값 R → 구동 지령 -60 Nm → 후진 최대 -6 km/h",
+    normalSpec: "변속 위치 메시지는 20 ms 주기. 100 ms(5주기) 안에 새 메시지가 없으면 통신 오류로 보고 안전 값 N(구동 토크 0)을 쓴다. 수신이 재개되면 즉시 현재 값으로 복귀",
+    fix: "폴백 값을 N으로 복원하고 통신 타임아웃 시험 추가",
+    regression: "같은 시스템 통합 시험(변속 후 0.2초 출발, 버스 부하 85 %) PASS: 기어 값 N, 구동 지령 0 Nm + 정상 부하 D 출발 정상",
+    status: "optional", review: "수치 일치 확인(5×20 ms=100 ms, 120 ms>100 ms, 페달 40 %×1.5×(-1)=-60 Nm). 진단은 부분(디바운스 3회)",
+    hypotheses: [
+      { id: "lever_hw", label: "변속 레버 접점 (HW)", truth: false, stage1: "도미노 역추적: 변속 레버 위치가 D로 기준과 같았어요.", rules: [
+        { levels: ["vehicle"], need: { lever: ["same"] }, verdict: "refuted", why: "변속 레버 위치가 D로 기준과 같아요. 레버 접점은 정상이에요." },
+      ], decideAt: ["vehicle"], decide: "시스템 통합 시험: 변속 레버 위치가 기준과 같으면 반박",
+      hold: {
+        unit: { seen: "변속 입력 (주입값)", unseen: "실제 레버 신호", why: "SW 단위 시험에서는 입력을 직접 넣으므로 레버 접점 상태를 알 수 없어요.", next: ["vehicle"] },
+        swint: { seen: "변속 입력 SWC 출력", unseen: "실제 레버 신호", why: "PC 통합 시험에는 실제 레버가 없어요.", next: ["vehicle"] },
+        embedded: { seen: "시프터 핀 입력", unseen: "버스 지연", why: "제어기 한 대만으로는 버스 상태와 레버 연결을 함께 볼 수 없어요.", next: ["vehicle"] },
+      } },
+      { id: "gw_map", label: "게이트웨이 신호 매핑", truth: false, stage1: "도미노 역추적: 게이트웨이 출력 기어가 D로 기준과 같았어요.", rules: [
+        { levels: ["vehicle"], need: { gw: ["same"] }, verdict: "refuted", why: "게이트웨이 출력이 D로 기준과 같아요. 중계는 정상이에요." },
+      ], decideAt: ["vehicle"], decide: "시스템 통합 시험: 게이트웨이 출력이 기준과 같으면 반박",
+      hold: {
+        unit: { seen: "변속 입력 (주입값)", unseen: "게이트웨이 출력", why: "SW 단위 시험에는 게이트웨이가 없어요.", next: ["vehicle"] },
+        swint: { seen: "변속 입력 SWC 출력", unseen: "게이트웨이 출력", why: "PC 통합 시험에는 게이트웨이가 없어요.", next: ["vehicle"] },
+        embedded: { seen: "시프터 핀 입력", unseen: "게이트웨이 출력", why: "제어기 한 대 시험에는 게이트웨이가 연결되지 않아요.", next: ["vehicle"] },
+      } },
+      { id: "gear_fallback", label: "VCU 변속 수신의 타임아웃 폴백값 설정", truth: true, rules: [
+        { levels: ["vehicle"], need: { gap: ["same"], g: ["lower"] }, verdict: "supported", why: "버스 메시지 간격은 정상·고장이 같은 120 ms로 100 ms를 넘는데, VCU 기어 값만 N(0) 대신 R(-1)로 나와요. 타임아웃 때 쓰는 폴백 값이 원인이에요." },
+      ], decideAt: ["vehicle"], decide: "시스템 통합 시험: 메시지 간격 120 ms일 때 VCU 기어 값이 R로 나오면 지지",
+      hold: {
+        unit: { seen: "VCU 기어 값 · 구동 지령 (메시지 지연 없음)", unseen: "메시지 간격", why: "SW 단위 시험은 메시지 지연을 만들 수 없어 폴백이 쓰이는 순간이 오지 않아요.", next: ["vehicle"] },
+        swint: { seen: "변속 수신 SWC 기어 값", unseen: "메시지 간격", why: "PC 통합 시험에서는 버스 부하를 재현할 수 없어요.", next: ["vehicle"] },
+        embedded: { seen: "VCU 기어 값 · 구동 지령", unseen: "메시지 간격", why: "제어기 한 대 시험에는 버스 부하가 없어 타임아웃이 일어나지 않아요.", next: ["vehicle"] },
+      } },
+      { id: "interlock", label: "VCU 변속 인터록 판정", truth: false, stage1: "도미노 역추적: 브레이크 입력 조건이 정상으로 충족됐어요.", rules: [], decideAt: [], decide: "도미노 단계에서 브레이크 입력 조건이 정상으로 확인돼 반박돼요",
+      hold: {
+        unit: { seen: "VCU 기어 값", unseen: "버스 상태", why: "단위 시험에서는 인터록과 폴백을 나눌 수 없어요.", next: ["vehicle"] },
+        swint: { seen: "변속 수신 SWC 기어 값", unseen: "버스 상태", why: "PC 통합 시험에서는 인터록과 폴백을 나눌 수 없어요.", next: ["vehicle"] },
+        embedded: { seen: "VCU 기어 값", unseen: "버스 상태", why: "제어기 한 대 시험에서는 인터록과 폴백을 나눌 수 없어요.", next: ["vehicle"] },
       } },
     ],
   },

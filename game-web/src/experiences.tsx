@@ -2144,6 +2144,7 @@ const faultLamp: Record<CaseId, { icon: string; glyph: string; label: string; no
   brake: { icon: "brake", glyph: "(!)", label: "브레이크 경고등", note: "제동 계통 이상 — 제동 거리가 늘어날 수 있음" },
   regen: { icon: "none", glyph: "—", label: "경고등 없음", note: "제어기가 고장을 감지하지 못함 (운전자 체감만 있음)" },
   ready: { icon: "power", glyph: "!", label: "HV 시스템 점검 표시등", note: "시동 시퀀스가 실패함 · 설명서상 원인 후보: 배터리 상태, 12 V 전원, 고전압 연결 계통" },
+  gear: { icon: "power", glyph: "-", label: "경고등 없음", note: "계기판은 D를 표시함 · 켜진 경고등 없음" },
 };
 
 export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) {
@@ -2157,6 +2158,7 @@ export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) 
     brake: "브레이크를 밟았는데 차가 잘 안 서! 브레이크 경고등까지 켜졌어! 왜이러지?",
     regen: "발을 뗐는데 차가 더 빨라져요. 경고등은 하나도 안 켜졌어요. 왜 그럴까요?",
     ready: "시동 버튼을 눌러도 READY가 안 켜져요. 점검 표시등만 켜졌어요. 왜 그럴까요?",
+    gear: "D에 놓았는데 가끔 뒤로 가요. 계기판은 D인데 왜 그럴까요?",
   };
   const dialogue = [
     { who: `드라이버 ${DRIVER}`, role: "DRIVER", text: DRIVER_LINE[state.caseId], tone: "driver" },
@@ -2300,6 +2302,14 @@ export const MEASURE_RAIL: Record<CaseId, { stops: RailStop[]; hypothesisAt: Rec
       { at: "VCU 프리차지 시퀀스", value: "실패", expect: "대기 중", ok: false, ev: "dtc_precharge" },
     ],
     hypothesisAt: { start_cond: 0, bms_link: 1, seq_timeout: 2, precharge_hw: 2 },
+  },
+  gear: {
+    stops: [
+      { at: "변속 레버 위치", value: "D", expect: "D", ok: true, ev: "dtc_gear_timeout" },
+      { at: "게이트웨이 출력 기어", value: "D", expect: "D", ok: true, ev: "bus_load_scope" },
+      { at: "VCU가 쓰는 기어 값", value: "R", expect: "N", ok: false, ev: "motor_reverse_log" },
+    ],
+    hypothesisAt: { lever_hw: 0, gw_map: 1, gear_fallback: 2, interlock: 2 },
   },
 };
 /** The fault boundary is known once the first ✗ and the stop just before it (a ✓) are both measured. */
@@ -2493,6 +2503,7 @@ const puzzlePerspective: Record<CaseId, { active: string; depth: string; input: 
   brake: { active: "차량 제어 통합", depth: "회생·마찰 제동 협조", input: "운전자 감속 요구", middle: "제동력 배분·ECU·I/O", output: "유압·휠 감속" },
   regen: { active: "차량 제어 통합", depth: "코스팅 회생 토크 지령", input: "회생 요청", middle: "VCU 토크 지령 변환", output: "인버터·모터 토크" },
   ready: { active: "고전압 전원", depth: "프리차지·접촉기", input: "시동 요청", middle: "VCU 프리차지 시퀀스", output: "주 접촉기·READY" },
+  gear: { active: "변속·주차", depth: "기어 상태 배포·표시", input: "변속 레버", middle: "VCU 변속 수신", output: "구동 지령" },
 };
 const puzzleMission: Record<CaseId, { domain: string; feature: string; input: string; output: string }> = {
   propulsion: { domain: "구동", feature: "운전자 토크 요청", input: "가속 페달 APS A/B", output: "인버터·전륜 모터 토크" },
@@ -2500,6 +2511,7 @@ const puzzleMission: Record<CaseId, { domain: string; feature: string; input: st
   brake: { domain: "제동", feature: "회생·마찰 협조 제동", input: "브레이크 페달 요구", output: "캘리퍼 압력·휠 감속" },
   regen: { domain: "구동", feature: "토크 배분·제한(코스팅 회생)", input: "Brake ECU 회생 요청", output: "인버터·모터 토크" },
   ready: { domain: "고전압 전원", feature: "프리차지·접촉기", input: "시동 요청·브레이크", output: "주 접촉기·READY" },
+  gear: { domain: "변속·주차", feature: "기어 상태 배포·표시", input: "변속 레버·가속 페달", output: "구동 지령" },
 };
 const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNode, "x" | "y">[]; correct: string[]; program: string; faulty: string }> = {
   propulsion: {
@@ -2548,6 +2560,15 @@ const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNo
       { id: "bus", label: "HV Bus", kind: "HW", detail: "고전압 버스" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
     ], correct: ["req", "cond", "wait1500", "main", "vcu", "bus"], program: "precharge_timeout_1500", faulty: "precharge_timeout_500",
   },
+  gear: {
+    requirement: ["변속 레버 D", "게이트웨이 중계", "CAN 20 ms", "IF 100 ms 초과 THEN 안전 값 N", "구동 지령"],
+    blocks: [
+      { id: "lever", label: "Shift Lever", kind: "HW", detail: "변속 레버 위치" }, { id: "gw", label: "Gateway Relay", kind: "SW", detail: "신호 중계" },
+      { id: "can", label: "CAN 20 ms", kind: "HW", detail: "변속 메시지 20 ms 주기" }, { id: "rxN", label: "Gear Rx · fallback N", kind: "SW", detail: "타임아웃 100 ms · 폴백 N" },
+      { id: "rxR", label: "Gear Rx · fallback R", kind: "SW", detail: "타임아웃 100 ms · 폴백 R" }, { id: "vcu", label: "VCU Controller", kind: "HW", detail: "SW 실행 제어기" },
+      { id: "cmd", label: "Drive Command", kind: "SW", detail: "구동 지령" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
+    ], correct: ["lever", "gw", "can", "rxN", "vcu", "cmd"], program: "gear_fallback_n", faulty: "gear_fallback_r",
+  },
 };
 
 // Real part photos (whole object visible, kept inside the piece's safe area) and plain-language pictos for SW
@@ -2556,7 +2577,7 @@ const PART_PHOTO: Record<string, string> = {
   fan: "cooling_fan", pedal: "brake_pedal", brakeecu: "brake_ecu", caliper: "brake_caliper",
 };
 // SW blocks run inside a controller: show that controller's generated photo with a small logic badge.
-const SW_ATLAS: Record<CaseId, number> = { propulsion: 1, thermal: 5, brake: 8, regen: 1, ready: 1 }; // cells of the 3×3 evidence atlas
+const SW_ATLAS: Record<CaseId, number> = { propulsion: 1, thermal: 5, brake: 8, regen: 1, ready: 1, gear: 1 }; // cells of the 3×3 evidence atlas
 const swLogicKind = (label: string) => /Adapter|진단/.test(label) ? "check" : /Map|Scale/.test(label) ? "lut" : /Filter/.test(label) ? "delay" : /Hysteresis/.test(label) ? "state" : /Force|Only|Gate/.test(label) ? "switch" : /Blend|Request/.test(label) ? "min" : blockKind(label);
 function PiecePicture({ node, caseId }: { node: { id: string; label: string; kind: string }; caseId: CaseId }) {
   const cell = SW_ATLAS[caseId];
@@ -2604,6 +2625,7 @@ const SIGNAL_VALUE: Record<CaseId, Record<string, string>> = {
   brake: { pedal: "55%", request: "3.2 m/s²", blend: "회생+마찰", pressure: "42 bar", brakeecu: "42 bar" },
   regen: { req: "−40 Nm", sign: "−40 Nm", limit: "−40 Nm", can: "−40 Nm", vcu: "−40 Nm" },
   ready: { req: "시동 1", cond: "허용", wait1500: "750 ms에 95 %", main: "닫힘", vcu: "READY" },
+  gear: { lever: "D", gw: "D · 120 ms", can: "120 ms", rx: "N", cmd: "0 Nm", motor: "정지" },
 };
 const TRAP_MSG: Record<string, string> = {
   map45: "요구사항과 달라요: 페달 값을 0.45배로 줄여서 토크가 모자라요. 정상 기준에는 안 맞아요.",
@@ -2639,6 +2661,7 @@ const PIECE_IO: Record<CaseId, Record<string, { in?: Nub; out?: Nub }>> = {
   thermal: { temp: { out: "tri" }, filter: { in: "tri", out: "tri" }, threshold: { in: "tri", out: "zigzag" }, forceoff: { in: "tri", out: "zigzag" }, pwm: { in: "zigzag", out: "wave" }, thermalecu: { in: "wave", out: "wave" }, fan: { in: "wave" }, logger: { in: "tri" } },
   brake: { pedal: { out: "round" }, request: { in: "round", out: "square" }, blend: { in: "square", out: "square" }, regenonly: { in: "square", out: "square" }, pressure: { in: "square", out: "tri" }, brakeecu: { in: "tri", out: "tri" }, caliper: { in: "tri" }, logger: { in: "round" } },
   ready: { req: { out: "round" }, cond: { in: "round", out: "square" }, wait1500: { in: "square", out: "square" }, wait500: { in: "square", out: "square" }, main: { in: "square", out: "tri" }, vcu: { in: "tri", out: "tri" }, bus: { in: "tri" }, logger: { in: "round" } },
+  gear: { lever: { out: "round" }, gw: { in: "round", out: "square" }, can: { in: "square", out: "square" }, rx: { in: "square", out: "tri" }, rxB: { in: "square", out: "tri" }, cmd: { in: "tri", out: "tri" }, motor: { in: "tri" } },
   regen: { req: { out: "round" }, sign: { in: "round", out: "square" }, magonly: { in: "round", out: "square" }, limit: { in: "square", out: "square" }, can: { in: "square", out: "tri" }, vcu: { in: "tri", out: "tri" }, inverter: { in: "tri" }, logger: { in: "round" } },
 }; // correct path index → requirement row
 
@@ -2841,6 +2864,8 @@ const BENCH_PARTS: Record<CaseId, { input: string; ecu: string; output: string; 
   regen: { input: "brake_ecu", ecu: "vcu", output: "inverter", labels: ["BRAKE ECU", "VCU", "인버터·모터"], wires: [
     { from: [0, "pressure_cmd_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
   ready: { input: "bms", ecu: "vcu", output: "inverter", labels: ["BMS", "VCU", "인버터·HV 버스"], wires: [
+    { from: [0, "pressure_cmd_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
+  gear: { input: "lever", ecu: "vcu", output: "inverter", labels: ["변속 레버", "VCU", "인버터·모터"], wires: [
     { from: [0, "pressure_cmd_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
 };
 const BENCH_SLOTS: { position: [number, number, number]; scale: number }[] = [{ position: [-2.25, .62, 0], scale: .94 }, { position: [0, .72, 0], scale: 1.12 }, { position: [2.25, .68, 0], scale: .96 }];

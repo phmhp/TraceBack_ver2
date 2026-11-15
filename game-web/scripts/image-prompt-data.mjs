@@ -290,4 +290,7 @@ export const CASE_EVIDENCE = [
   { caseKo: "시동", id: "ready_off", scene: "A car instrument cluster after a start attempt with no READY indicator lit, only a high-voltage system warning lamp glowing amber" },
   { caseKo: "시동", id: "dtc_precharge", scene: "A diagnostic tablet screen showing a stored fault entry with a freeze-frame table of timestamps and voltages, an engineer's hand holding it beside an open service port" },
   { caseKo: "시동", id: "hv_bus_scope", scene: "An oscilloscope on a test bench showing a rising exponential voltage curve from a high-voltage bus, probes clipped to an inverter capacitor terminal" },
+  { caseKo: "변속", id: "motor_reverse_log", scene: "A data logger screen on a laptop showing a motor torque command trace dipping below zero right after a gear shift marker, an engineer pointing at the dip" },
+  { caseKo: "변속", id: "dtc_gear_timeout", scene: "A diagnostic tablet screen showing a pending (unconfirmed) communication timeout fault entry with a counter of occurrences, no warning lamp lit in the background cluster" },
+  { caseKo: "변속", id: "bus_load_scope", scene: "A vehicle network analyzer screen showing a CAN bus load bar at 85 percent and a message timing diagram with one gap much longer than the others" },
 ];

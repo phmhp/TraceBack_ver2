@@ -217,6 +217,34 @@ export const CASES: Record<CaseId, CaseData> = {
       lesson: "대기 시간이 충전에 걸리는 시간(약 750 ms)보다 짧은 500 ms로 들어가, 정상 충전 중에 실패로 판정했어요.",
     },
   },
+  gear: {
+    start: "launch_dir", first: "vcu_gear", timeUnit: "ms",
+    req: "요구사항: 변속 위치 메시지는 20 ms 주기로 전달되고, VCU는 100 ms 안에 새 메시지가 없으면 통신 오류로 보고 안전 값 N을 써야 한다.",
+    doms: [
+      { id: "launch_dir", label: "출발 방향", img: CAR, zone: "차량", ref: "전진", run: "후진", unit: "", status: "bad", t: 300, causes: ["motor_cmd", "cluster_gear", "brake_in"] },
+      { id: "motor_cmd", label: "모터 토크 지령", img: E("traction_motor"), zone: "부품", ref: "0", run: "-60", unit: "Nm", status: "bad", t: 200, causes: ["vcu_gear", "gw_out", "lever"], ev: "motor_reverse_log" },
+      { id: "vcu_gear", label: "VCU가 쓰는 기어 값", img: E("vcu"), zone: "제어기", ref: "N", run: "R", unit: "", status: "bad", t: 100, causes: ["gw_out", "lever", "brake_in"], ev: "dtc_gear_timeout" },
+      // trap: the cluster shows D (it receives the shift on its own path), which is normal
+      OK("cluster_gear", "계기판 기어 표시", CLUSTER, "차량", "D", ""),
+      OK("steer_ok", "조향 반응", CAR, "차량", 100, "%"),
+      OK("decel_ok", "제동 감속", CAR, "차량", 3.2, "m/s²"),
+      { ...OK("gw_out", "게이트웨이 출력 기어", E("can_harness"), "CAN", "D", ""), ev: "bus_load_scope" },
+      OK("lever", "변속 레버 위치", E("diagnostic_port"), "센서", "D", ""),
+      OK("brake_in", "브레이크 입력", E("brake_pedal"), "센서", "ON", ""),
+    ],
+    section: { name: "VCU 변속 수신 SW 경계", choices: [
+      { label: "변속 레버·시프터 입력 (접점·위치 신호 생성)", ok: false, why: "변속 레버 위치는 D로 기준과 같았어요. 레버 신호는 정상이에요." },
+      { label: "VCU 변속 수신 (E2E 검사·타임아웃·폴백 처리)", ok: true, why: "게이트웨이 출력까지는 D로 기준과 같은데 VCU가 쓰는 기어 값만 먼저 달라졌어요. 어떤 설정·로직 오류인지는 검증에서 가려요." },
+      { label: "게이트웨이 신호 중계 (매핑·카운터·전달 주기)", ok: false, why: "게이트웨이 출력은 D로 기준과 같았어요. 중계는 정상이에요." },
+    ] },
+    zoom: {
+      where: "VCU 변속 수신", kind: "sw",
+      reference: [["수신 간격", "120 ms"], ["타임아웃", "100 ms 초과"], ["폴백 값", "N"]],
+      run: [["수신 간격", "120 ms"], ["타임아웃", "100 ms 초과"], ["폴백 값", "R"]],
+      culprit: "타임아웃 폴백 값 설정",
+      lesson: "메시지가 100 ms 넘게 오지 않으면 안전 값 N을 써야 하는데, 폴백 값이 R로 들어가 있어 후진 지령이 나왔어요.",
+    },
+  },
 };
 
 export const fmt = (value: number | string) => typeof value === "string" ? value : Number.isInteger(value) ? String(value) : value.toFixed(1);

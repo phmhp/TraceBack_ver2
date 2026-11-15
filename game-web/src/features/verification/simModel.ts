@@ -135,6 +135,27 @@ function ready(tech: Tech, fault: boolean, execution?: VerificationExecution) {
   }, s => ({ req: s.req, bms: 1, tmo: timeout * 1000, seq: s.seq, vbus: s.vbus, main: s.main, ready: s.ready }));
 }
 
+
+// ── 변속(통신 폴백): 레버 P→D → 게이트웨이 → CAN(메시지 간격) → VCU 수신(타임아웃 100 ms → 폴백 값) → 구동 지령 → 모터 → 차량 ──
+function gear(tech: Tech, fault: boolean, execution?: VerificationExecution) {
+  // req: bus load 85 % right after the shift (gap 120 ms) · boundary: bus load 70 % (gap 90 ms, still under the timeout) · replay: same as req
+  const load = initialValue(execution, "busLoad", tech === "boundary" ? 70 : 85);
+  const gapMs = load >= 80 ? 120 : load >= 60 ? 90 : 20;           // worst-case message gap while the bus is busy
+  const seconds = execution?.durationSeconds ?? 0.6;
+  const pedalAt = execution ? 0 : .2;
+  return integrate(seconds, { lever: 0, gap: 20, tmo: 0, g: 0, cmd: 0, mot: 0, v: 0, ped: 0 }, (s, t, dt) => {
+    s.lever = t < .1 ? 0 : 1;                                       // 0 = P, 1 = D
+    s.ped = execution ? rampInput(execution, t) : t < pedalAt ? 0 : 40;
+    s.gap = t >= .1 && t < .4 ? gapMs : 20;                          // the busy window lasts 0.3 s after the shift
+    s.tmo = s.gap > 100 ? 1 : 0;                                    // VCU: no new message within 100 ms (5 cycles of 20 ms) -> communication error
+    const fallback = fault ? -1 : 0;                                // the fault: the fallback value is R (-1) instead of the safe value N (0)
+    s.g = s.tmo ? fallback : s.lever;                               // gear value the VCU uses: -1 R, 0 N, 1 D
+    s.cmd = s.g * s.ped * 1.5;                                      // drive command (Nm): sign follows the gear value
+    s.mot += (s.cmd - s.mot) * dt / .08;
+    s.v += (s.mot / 10) * dt * 3.6;                                  // km/h
+  }, s => ({ lever: s.lever, gap: s.gap, gw: s.lever, tmo: s.tmo, g: s.g, cmd: s.cmd, mot: s.mot, spd: s.v, ped: s.ped }));
+}
+
 type Def = { id: string; name: string; unit: string; min?: number; max: number; src: string; model?: boolean };
 // per level: which signals exist there. `model: true` = taken from the healthy run (plant is a model at that level)
 const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
@@ -270,9 +291,34 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
       { id: "ready", name: "READY 상태", unit: "", max: 1, src: "ready" },
     ],
   },
+  gear: {
+    unit: [
+      { id: "lever", name: "입력값 인가 · 변속 레버 위치 (0 P · 1 D)", unit: "", max: 1, src: "lever", model: true },
+      { id: "g", name: "VCU 기어 값 (-1 R · 0 N · 1 D)", unit: "", min: -1, max: 1, src: "g", model: true },
+      { id: "cmd", name: "구동 지령", unit: "Nm", min: -90, max: 90, src: "cmd", model: true },
+    ],
+    swint: [
+      { id: "lever", name: "변속 입력 SWC 출력 (0 P · 1 D)", unit: "", max: 1, src: "lever", model: true },
+      { id: "g", name: "변속 수신 SWC · 기어 값 (-1 R · 0 N · 1 D)", unit: "", min: -1, max: 1, src: "g", model: true },
+      { id: "cmd", name: "토크 요청 SWC · 구동 지령", unit: "Nm", min: -90, max: 90, src: "cmd", model: true },
+    ],
+    embedded: [
+      { id: "lever", name: "시프터 핀 입력 (0 P · 1 D)", unit: "", max: 1, src: "lever" },
+      { id: "g", name: "VCU 기어 값 (-1 R · 0 N · 1 D)", unit: "", min: -1, max: 1, src: "g", model: true },
+      { id: "cmd", name: "구동 지령", unit: "Nm", min: -90, max: 90, src: "cmd", model: true },
+    ],
+    vehicle: [
+      { id: "lever", name: "변속 레버 위치 (0 P · 1 D)", unit: "", max: 1, src: "lever" },
+      { id: "gw", name: "게이트웨이 출력 기어 (0 P · 1 D)", unit: "", max: 1, src: "gw" },
+      { id: "gap", name: "변속 메시지 간격 (버스 부하 재현)", unit: "ms", max: 150, src: "gap" },
+      { id: "g", name: "VCU 기어 값 (-1 R · 0 N · 1 D)", unit: "", min: -1, max: 1, src: "g" },
+      { id: "cmd", name: "구동 지령", unit: "Nm", min: -90, max: 90, src: "cmd" },
+      { id: "spd", name: "차량 속도", unit: "km/h", min: -8, max: 8, src: "spd" },
+    ],
+  },
 };
-const MODELS = { propulsion, thermal, brake, regen, ready };
-const TIME: Record<CaseId, [number, string]> = { propulsion: [3, "s"], thermal: [8, "분(압축)"], brake: [3, "s"], regen: [5.5, "s"], ready: [1.6, "s"] };
+const MODELS = { propulsion, thermal, brake, regen, ready, gear };
+const TIME: Record<CaseId, [number, string]> = { propulsion: [3, "s"], thermal: [8, "분(압축)"], brake: [3, "s"], regen: [5.5, "s"], ready: [1.6, "s"], gear: [0.6, "s"] };
 
 /** Reference = healthy design, run = field fault (or the fixed design). Same input for both. */
 export function simulate(caseId: CaseId, tech: Tech, fixed: boolean, execution?: VerificationExecution): SimResult {

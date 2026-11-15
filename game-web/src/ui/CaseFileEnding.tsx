@@ -111,6 +111,16 @@ const CASE_VISUAL: Record<CaseId, {
     meter: { label: "시동 성공", unit: "%", normal: 100, actual: 0, max: 100 },
     lesson: "버스 충전은 정상, 프리차지 대기 시간 설정이 너무 짧아 정상 충전을 실패로 판정",
   },
+  gear: {
+    chain: [
+      { img: "can_harness", label: "변속 메시지", role: "입력" },
+      { img: "vcu", label: "VCU 변속 수신", role: "제어" },
+      { img: "traction_motor", label: "모터", role: "출력" },
+    ],
+    fault: { at: "link", index: 1, label: "폴백 값 R (정상 N)" },
+    meter: { label: "정지 유지", unit: "%", normal: 100, actual: 0, max: 100 },
+    lesson: "통신이 끊겼을 때 쓰는 폴백 값이 안전 값이 아니라 후진(R)으로 설정",
+  },
 };
 
 // Functional-safety view of each case (ISO 26262 vocabulary only; no ASIL is
@@ -145,6 +155,12 @@ const CASE_SAFETY: Record<CaseId, { hazard: string; detect: string; safeState: s
     detect: "프리차지 전압 확인과 타임아웃 감시, 실패 진단 코드 저장(이 사건에서는 정탐이나 원인은 미지정)",
     safeState: "주 접촉기 개방 유지(READY 불가)",
     insight: "진단 코드는 어느 단계에서 실패했는지 알려 주고 원인은 시험으로 가른다는 점",
+  },
+  gear: {
+    hazard: "출발 순간 의도하지 않은 후진 → 뒤 차·보행자 접촉 위험",
+    detect: "E2E 타임아웃 감시와 진단 코드 저장(확정은 3회 반복이라 간헐 고장은 늦게 남음)",
+    safeState: "구동 토크 0(N)",
+    insight: "통신이 끊겼을 때 쓰는 폴백 값은 안전한 방향이어야 한다는 점",
   },
 };
 
@@ -239,6 +255,7 @@ const SIGNAL_PATH: Record<CaseId, string> = {
   brake: "브레이크 입력 → Brake ECU 압력 계산 → I/O 전송 압력 명령 → 캘리퍼 압력 → 감속",
   regen: "회생 요청 → VCU 토크 지령 변환(부호 반영) → CAN 토크 지령 → 모터 토크 → 가감속",
   ready: "시동 요청 → VCU 프리차지 시퀀스(대기 시간) → 주 접촉기 명령 → READY",
+  gear: "변속 레버 → 게이트웨이 → CAN → VCU 변속 수신(폴백) → 구동 지령",
 };
 const CATEGORY: Record<CaseId, string> = {
   propulsion: "SW 계산·보정/스케일링",
@@ -246,6 +263,7 @@ const CATEGORY: Record<CaseId, string> = {
   brake: "제어기 I/O 처리 / SW 통신·인터페이스",
   regen: "SW 수치·부호 / 인터페이스 규약 불일치",
   ready: "시퀀스·타이밍 설정 / 상태 전이",
+  gear: "통신 타임아웃 · 폴백 값 설정",
 };
 
 function AnalysisReport({ state, id }: { state: Campaign; id: CaseId }) {
