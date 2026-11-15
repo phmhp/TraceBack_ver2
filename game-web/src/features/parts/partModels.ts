@@ -541,7 +541,10 @@ const DEFS: Record<string, Def> = {
   hv_battery: {
     ref: "power-battery/hv_battery__REF.png",
     build: () => {
-      const w = .9, h = .1, d = .62;
+      // Vehicle coordinates are X=width, Z=front/rear.  A skateboard pack is
+      // narrow across X and long across Z; the previous definition was the
+      // opposite, which made the pack wider than the car after fitting.
+      const w = .62, h = .1, d = .92;
       const statics: Spec[] = [
         S("castAl", rbox(w, h * .8, d, .01), [0, h * .4, 0]),
         S("castAl", box(w + .03, .008, d + .03), [0, .012, 0]), // perimeter flange

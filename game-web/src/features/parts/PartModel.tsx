@@ -54,7 +54,7 @@ function Moving({ group, input: fixedInput, demo }: { group: MovingGroup; input:
  * `input` drives every moving group: pedal travel 0..1, steering/dial angle in rad,
  * spin speed in rad/s, explode/push 0..1. `scale` 1 = real size in metres.
  */
-export function PartModel({ id, input = 0, demo = false, scale = 1, castShadow = true, ...props }: { id: string; input?: number; demo?: boolean; scale?: number; castShadow?: boolean } & Omit<React.ComponentProps<"group">, "id" | "scale">) {
+export function PartModel({ id, input = 0, demo = false, scale = 1, castShadow = true, ...props }: { id: string; input?: number; demo?: boolean; scale?: number | [number, number, number]; castShadow?: boolean } & Omit<React.ComponentProps<"group">, "id" | "scale">) {
   const model = useMemo(() => getPartModel(id), [id]);
   return <group scale={scale} {...props}>
     <Baked geometries={model.geometries} castShadow={castShadow} />

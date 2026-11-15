@@ -2727,6 +2727,14 @@ body:has(.pursuitHud) .stageFolderSubtitle { padding-right: 420px !important; }
 .eeTrace .polBig .polPhoto img, .eeTrace .polBig .polPhoto .dtPhoto img { object-fit: contain !important; }
 .eeTrace .pol .polPhoto .dtPhoto.atlas, .eeTrace .polBig .polPhoto .dtPhoto.atlas { background-size: 300% 300%; }
 .eeTrace .polBig .polPhoto.big { justify-self: stretch; width: 100%; aspect-ratio: 83 / 71; } /* same photo window ratio as the small polaroid */
+.eeTrace .polBig { width: min(380px, 90vw); height: auto; aspect-ratio: auto; padding: 22px 18px 14px; grid-template-rows: auto auto auto; gap: 8px; background: #fff; }
+.eeTrace .polBig .polPhoto.big { height: 220px; aspect-ratio: auto; display: grid; place-items: center; }
+.eeTrace .polBig .polPhoto.big img { width: 100%; height: 100%; object-fit: contain; }
+.eeTrace .polBig > b { min-width: 0; margin: 0; font: 800 17px/1.25 Pretendard, system-ui; color: #3f302c; word-break: keep-all; }
+.eeTrace .polCaption { min-height: 68px; padding: 10px 12px; display: grid; gap: 5px; align-content: center; background: #fff; border-top: 1px solid #eadfd5; color: #4a3a36; }
+.eeTrace .polCaption span { font: 700 13px/1.4 Pretendard, system-ui; word-break: keep-all; }
+.eeTrace .polCaption small { font: 600 11px/1.35 Pretendard, system-ui; color: #80665d; word-break: keep-all; }
+.eeTrace .polInfo { display: none; }
 .eeTrace .etMemoSeed > div > span { transform: none !important; }
 /* 하단 영역: 한 번에 질문 하나, 중앙 정렬, 폴라로이드가 높이를 최대한 사용 */
 .dtBoard.eeTrace:has(.stageProgressAction) .etMugs { display: flex !important; align-items: stretch; justify-content: center; padding: 8px 12px !important; }

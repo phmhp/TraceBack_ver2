@@ -240,6 +240,10 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     { id: "quote", kind: "quote", title: `${DRIVER} 진술`, sub: "운전자 체감", photo: <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /> },
     ...evidenceCards.filter(d => d.status === "bad").map(d => ({ id: d.id, kind: `m s-${d.status}`, title: d.label, sub: `이상 판정 · ${d.zone} · 기준 ${refText(d)} / 이번 ${fmt(d.run)}${d.unit ? ` ${d.unit}` : ""}`, photo: <Photo src={d.img} />, dom: d })),
   ];
+  const hypImage = (h: (typeof meta.hypotheses)[number]) => {
+    const index = meta.hypotheses.findIndex(item => item.id === h.id);
+    return data.doms[(index + 1) % Math.max(1, data.doms.length)]?.img ?? start.img;
+  };
   const zoomed = pols.find(item => item.id === zoomPol);
   // the enlarged polaroid closes with Enter or Esc (captured so the stage keys underneath do not react)
   useEffect(() => {
@@ -330,7 +334,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
         <header><nav className="etEvidenceTabs" role="tablist" aria-label="증거 패널">
           <button role="tab" aria-selected={memoTab === "evidence"} className={memoTab === "evidence" ? "on" : ""} onClick={() => setMemoTab("evidence")}>증거</button>
           <button role="tab" aria-selected={memoTab === "measure"} className={memoTab === "measure" ? "on" : ""} onClick={() => setMemoTab("measure")}>역추적 경로</button>
-          {phase === "hyp" && <button role="tab" aria-selected={memoTab === "zone"} className={memoTab === "zone" ? "on" : ""} onClick={() => setMemoTab("zone")}>의심 구간 구조</button>}
+          {phase === "hyp" && <button role="tab" aria-selected={memoTab === "zone"} className={memoTab === "zone" ? "on" : ""} onClick={() => setMemoTab("zone")}>구조 보기</button>}
           {phase === "hyp" && sectionDone && <button role="tab" aria-selected={memoTab === "hyp"} className={memoTab === "hyp" ? "on" : ""} onClick={() => setMemoTab("hyp")}>가설 후보</button>}
         </nav><OpenBookButton caseId={caseId} /></header>
         <div className="etEvidenceContent">
@@ -343,7 +347,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
             {chain.length > 0 && <div className="etReasonPath"><small>거슬러 올라간 경로</small><div className="etStack flow">{[...chain].reverse().map((id, row) => <React.Fragment key={id}><span className={row === 0 ? "top" : ""}>{dom(id).label}</span>{row < chain.length - 1 && <i aria-hidden="true">→</i>}</React.Fragment>)}</div></div>}
           </div>}
           {memoTab === "zone" && <div className="etZoneTab" role="tabpanel" aria-label="의심 구간 구조">{SUBSYS[caseId] ? <div className="etZoom inline"><b><Icon name="search" /> {SUBSYS[caseId].where} 구조</b><div className="etZoomCol"><span className="io ok">들어오는 값<em>{SUBSYS[caseId].inLabel}</em></span>{SUBSYS[caseId].stages.map(st => <React.Fragment key={st}><i aria-hidden="true">↓</i><span className="stage">{st}<em>?</em></span></React.Fragment>)}<i aria-hidden="true">↓</i><span className="io bad">나가는 값<em>{SUBSYS[caseId].outLabel}</em></span></div></div> : null}</div>}
-          {memoTab === "hyp" && <div className="etHypTab" role="tabpanel" aria-label="가설 후보">{meta.hypotheses.map(h => <article key={h.id} className={`etHyp ${sorted[h.id] ?? "todo"}`}><b><span className="etTag" data-tag={HYP_TAG[h.id]}>{HYP_TAG[h.id]}</span>{h.label}</b><em>{sorted[h.id] === "out" ? "후보에서 뺌" : sorted[h.id] === "hold" ? "후보에 올림" : "아직 안 봄"}</em></article>)}</div>}
+          {memoTab === "hyp" && <div className="etHypTab" role="tabpanel" aria-label="가설 후보">{meta.hypotheses.map(h => <article key={h.id} className={`etHyp ${sorted[h.id] ?? "todo"}`}><span className="etHypGraphic"><Photo src={hypImage(h)} /></span><div className="etHypCopy"><b><span className="etTag" data-tag={HYP_TAG[h.id]}>{HYP_TAG[h.id]}</span>{h.label}</b><small>첫 편차 구간에서 확인할 원인 후보</small></div><em>{sorted[h.id] === "out" ? "가설 등록X" : sorted[h.id] === "hold" ? "가설 등록O" : "가설 미분류"}</em></article>)}</div>}
         </div>
       </section>
 
@@ -374,14 +378,13 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
         <i className="pin" />
         <span className="polPhoto big">{zoomed.photo}</span>
         <b>{zoomed.title}</b>
+        <div className="polCaption" aria-label="증거 설명">
+          {zoomed.id === "quote" && <><span>"{QUOTE[caseId]}"</span><small>운전자 진술을 출발 증거로 등록했어요.</small></>}
+          {zoomed.id === "lamp" && <><span>{LAMP[caseId].label} · {LAMP[caseId].note}</span><small>경고등은 결과로 켜진 것일 수 있어요.</small></>}
+          {zoomed.dom && <><span>기준 {refText(zoomed.dom)} · 이번 {fmt(zoomed.dom.run)}{zoomed.dom.unit ? ` ${zoomed.dom.unit}` : ""}</span><small>{zoomed.dom.zone} · {zoomed.dom.t !== undefined ? `달라진 시각 ${fmt(zoomed.dom.t)} ${unit}` : "측정 경로에 등록된 신호"}</small></>}
+        </div>
       </article>
-      <aside className="polInfo" aria-label="증거 설명">
-      {zoomed.id === "quote" && <p>"{QUOTE[caseId]}"<small>이 증상을 만드는 차량 출력을 E/E 판에서 조사하세요.</small></p>}
-      {zoomed.id === "lamp" && <p>{LAMP[caseId].label} · {LAMP[caseId].note}<small>경고등은 결과로 켜진 것일 수 있어요.</small></p>}
-      {zoomed.dom && <p><span className="polRow"><em>원본 기록</em>기준 <code>{refText(zoomed.dom)}</code> · 이번 <code>{fmt(zoomed.dom.run)}{zoomed.dom.unit ? ` ${zoomed.dom.unit}` : ""}</code></span>{zoomed.dom.t !== undefined && <span className="polRow"><em>달라진 시각</em><code>{fmt(zoomed.dom.t)} {unit}</code></span>}<span className="polRow"><em>위치</em>{zoomed.dom.zone}</span><Gauge dom={zoomed.dom} /></p>}
-    
-        <small className="polKeys">Enter · Esc 로 닫기</small>
-      </aside>
+      <small className="polKeys">Enter · Esc 로 닫기</small>
     </div></div>}
     {replayOpen && <ReplayConfirm impact="STEP03 퍼즐과 STEP04 시험 계약·실행 기록도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); resetStage(); }} />}
   </div>;

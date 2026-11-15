@@ -45,15 +45,14 @@
 .rp3Work .rpFoot .rpDockRow { flex-direction: column; align-items: stretch; gap: 6px; }
 .rp3Work .rpChoiceTray { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 4px; }
 .rp3Work .rpChoiceTray > small { color: #7a4a44; font: 800 11px/1.1 Pretendard, system-ui; }
-.rp3Work .rpChoiceTray > div { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; align-items: center; }
-.rp3Work .rpChoicePiece { position: relative; width: min(100%, 132px); aspect-ratio: 1 / .92; height: auto; justify-self: center; padding: 0; border: 2px solid #c9b79f; border-radius: 12px; background: #fff8e9; clip-path: none; cursor: grab; overflow: visible; filter: drop-shadow(0 2px 0 #8d806c); }
+.rp3Work .rpChoiceTray > div { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; align-items: center; justify-items: center; }
+.rp3Work .rpChoicePiece { position: relative; width: 140px; height: 140px; aspect-ratio: 1; justify-self: center; padding: 0; border: 0; border-radius: 0; background: #fff8e9; clip-path: inset(6px 12px 6px 12px round 12px); cursor: grab; overflow: visible; filter: drop-shadow(0 2px 0 #8d806c); }
 .rp3Work .rpChoicePiece:active { cursor: grabbing; }
 .rp3Work .rpChoicePiece.picked { background: #fff1c9; border-color: #e0a43a; box-shadow: 0 0 0 3px rgba(224, 164, 58, .28); }
-.rp3Work .rpChoicePiece .rpPic { left: 8px; right: 8px; top: 6px; height: 49px; border-radius: 7px; }
+.rp3Work .rpChoicePiece .rpPic { left: 28px; right: 28px; top: 13px; height: 70px; border-radius: 7px; }
 .rp3Work .rpChoicePiece .rpPic.sw .flowBlock .picto { width: 22px; height: 22px; }
 .rp3Work .rpChoicePiece .rpPic.sw .flowBlock small { font-size: 8px; }
-.rp3Work .rpChoicePiece .rpLabel { left: 6px; right: 6px; top: 59px; bottom: 5px; font-size: 11px; line-height: 1.16; }
-.rp3Work .rpChoicePiece .rpLabel { top: 58%; bottom: 5px; display: flex; align-items: center; justify-content: center; text-align: center; }
+.rp3Work .rpChoicePiece .rpLabel { left: 28px; right: 28px; top: 88px; bottom: 10px; font-size: 13px; line-height: 1.16; display: flex; align-items: center; justify-content: center; text-align: center; }
 .rp3Work .rpChoicePiece .rpTag, .rp3Work .rpChoicePiece .rpHelp { display: none; }
 .rp3Work .rpChoiceTray .rpChoicePiece { touch-action: none; user-select: none; }
 .rp3Work .rpPuzzleAction { flex: none; min-height: 42px; display: flex; align-items: center; gap: 8px; }

@@ -16,7 +16,7 @@ import { CAR_DIMENSIONS, getBodyGeometry } from "../vehicle/carBody";
 /** Scene units per metre: the garage car shell is 4.7 m ≈ 7.2 units long. */
 export const U = 1.53;
 type V3 = [number, number, number];
-type Place = { p: V3; r?: V3; s?: number; target?: number };
+type Place = { p: V3; r?: V3; s?: number | V3; target?: number };
 const H = Math.PI / 2;
 
 // Vehicle platform frame in metres: front/rear = Z, left/right = X, y = height above ground.
@@ -26,9 +26,11 @@ const PLACE: Record<string, Place> = {
   // cabin · driver controls
   accel_pedal: { p: [.27, .28, -.98], r: [0, H, 0], target: .18 },
   brake_pedal: { p: [.43, .28, -.98], r: [0, H, 0], target: .2 },
-  steering_wheel: { p: [.37, .98, -.42], r: [0, 0, -.38], target: .38 },
-  steering_torque_sensor: { p: [.37, .86, -.62], r: [0, 0, -.38], target: .14 },
-  steering_column: { p: [.37, .78, -.78], r: [0, 0, -.38], target: .32 },
+  // The authored wheel's local X axis is the steering axis.  Keep the wheel
+  // plane vertical and facing the driver; a Z-roll makes it look sideways.
+  steering_wheel: { p: [.37, .98, -.42], r: [0, 0, 0], target: .38 },
+  steering_torque_sensor: { p: [.37, .86, -.62], r: [0, 0, 0], target: .14 },
+  steering_column: { p: [.37, .78, -.78], r: [0, 0, 0], target: .32 },
   start_button: { p: [.08, .88, -.72], r: [0, H, 0], target: .16 },
   gear_selector: { p: [0, .62, -.38], target: .3 },
   instrument_cluster: { p: [.37, 1.02, -.78], r: [0, H, 0], target: .5 },
@@ -61,7 +63,8 @@ const PLACE: Record<string, Place> = {
   // high voltage
   // A skateboard pack occupies most of the wheelbase under the seats, not a
   // small floating electronics box. Keep it low and nearly cabin-width.
-  hv_battery: { p: [0, .18, .05], target: 3.15 },
+  // The pack is long in vehicle Z and stays well inside the 1.8 m body width.
+  hv_battery: { p: [0, .18, .05], s: [1.05, 1, 1.9] },
   bms: { p: [0, .4, .35], target: .24 },
   main_contactor: { p: [-.48, .62, -.82], target: .28 },
   isolation_monitor: { p: [-.48, .62, -.62], target: .12 },
@@ -115,7 +118,7 @@ export type Segment = { from: Node; to: Node; flow: string; fromPort?: string; t
 
 /** Convert a model's authored metre geometry to the target physical envelope. */
 function modelScale(node: Node) {
-  if (node.place.s) return U * node.place.s;
+  if (node.place.s) return Array.isArray(node.place.s) ? node.place.s.map(value => U * value) as V3 : U * node.place.s;
   const target = node.place.target;
   return U * (target ? target / Math.max(...getPartModel(node.id).size) : 1);
 }
@@ -173,7 +176,8 @@ function anchorWorld(node: Node, side: "in" | "out", port?: string): THREE.Vecto
   const a = model.anchors[pick];
   const s = modelScale(node);
   euler.set(...(node.place.r ?? [0, 0, 0]));
-  return new THREE.Vector3(a[0] * s, a[1] * s, a[2] * s).applyEuler(euler).add(new THREE.Vector3(...offsetOf(node)));
+  const sx = Array.isArray(s) ? s[0] : s, sy = Array.isArray(s) ? s[1] : s, sz = Array.isArray(s) ? s[2] : s;
+  return new THREE.Vector3(a[0] * sx, a[1] * sy, a[2] * sz).applyEuler(euler).add(new THREE.Vector3(...offsetOf(node)));
 }
 const offsetOf = (node: Node): V3 => [node.place.p[0] * U, node.place.p[1] * U, node.place.p[2] * U];
 

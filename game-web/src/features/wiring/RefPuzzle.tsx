@@ -460,7 +460,6 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
         <div className="rpSizer" style={{ width: W * scale, height: H * scale }}><div className="rpWorld" style={{ width: W, height: H, transform: `scale(${scale})` }}>
           <div className="rpTray main" style={{ left: slotX(0) - 14, top: MAIN_Y - 66, width: (n - 1) * PITCH + PIECE + 28, height: PIECE + 118 }}><span>입력 → 출력 · 표시창은 ▶ 실행할 때 채워져요</span></div>
           <div className="rpTray side" style={{ left: slotX(sideStart) - 10, top: SIDE_Y - 12, width: (ref.side.pieces.length - 1) * PITCH + PIECE + 20, height: PIECE + 24 }}><span>{ref.side.label}</span></div>
-          <div className="rpTray spare" style={{ left: PAD, top: SPARE_Y - 10, width: W - PAD * 2, height: PIECE + 30 }}><span>남은 조각 · 끌어서 빈칸에 · 두 번 누르면 크게 보기</span></div>
           {/* side input climbing into the merge block */}
           <svg className={`rpSideWire ${sideLit ? "lit" : ""}`} width={W} height={H}>
             <path d={`M${slotX(ref.side.into) + 70} ${SIDE_Y + 4} V${MAIN_Y + PIECE - 2}`} />
@@ -811,7 +810,6 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
           {pathMode && <><div className="rpBus" style={{ left: slotX(1) + 20, top: MAIN_Y + PIECE + 30, width: 2 * PITCH + 100 }}><b>{ref.bus?.title ?? "CAN 버스"}</b><span>{ref.bus?.sub ?? "변속 메시지 20 ms 주기"}</span></div>
             {[1, 2].map(k => <i key={`bus-${k}`} className="rpBusTap" style={{ left: slotX(k) + 68, top: MAIN_Y + PIECE - 2 }} />)}</>}
           <div className="rpTray side" style={{ left: slotX(sideStart) - 10, top: SIDE_Y - 12, width: (ref.side.pieces.length - 1) * PITCH + PIECE + 20, height: PIECE + 24 }}><span>{ref.side.label}</span></div>
-          <div className="rpTray spare" style={{ left: PAD, top: SPARE_Y - 10, width: W - PAD * 2, height: PIECE + 30 }}><span>남은 조각 · 끌어서 빈칸에 · 두 번 누르면 크게 보기</span></div>
           <svg className={`rpSideWire ${sideLit ? "lit" : ""}`} width={W} height={H}>
             <path d={`M${slotX(ref.side.into) + 70} ${SIDE_Y + 4} V${MAIN_Y + PIECE - 2}`} />
             <path d={`M${slotX(ref.side.into) + 62} ${MAIN_Y + PIECE + 8} L${slotX(ref.side.into) + 70} ${MAIN_Y + PIECE - 2} L${slotX(ref.side.into) + 78} ${MAIN_Y + PIECE + 8}`} />
