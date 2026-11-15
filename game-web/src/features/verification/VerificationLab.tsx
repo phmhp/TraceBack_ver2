@@ -1591,6 +1591,7 @@ const LEVEL_SUB: Record<Lv, string> = { unit: "SW 단독 실행 · PC 환경 · 
 const QA_LEVELS: Lv[] = ["unit", "embedded", "vehicle"];
 const qaDeriv = (caseId: CaseId, lv: Lv): Deriv => caseId === "gear" || caseId === "cold" || lv === "unit" || lv === "swint" ? "reqa" : CASE_DERIVS[caseId].some(d => d.id === "usecase") ? "usecase" : "bound";
 type Answer = "supported" | "refuted" | "open";
+const STAMP_KO: Record<Answer, string> = { supported: "원인 확인", refuted: "원인 아님", open: "보류" };
 const ANSWER_KO: Record<Answer, string> = { supported: "원인으로 보여요", refuted: "원인이 아니에요", open: "아직 몰라요" };
 
 /** Q&A v1 (probe picking + small answer overlay). Kept unused; v2 below is live. */
@@ -2058,7 +2059,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     const evidence = `${TEST_CARD[lastRun.level].name} · ${keyAns.need.map(id => lastRun.vals[id]).filter(Boolean).join(", ")}`;
     const nextAnswers = { ...answers, [q.hyp]: { answer: pick, why: keyAns.why, evidence } };
     setAnswers(nextAnswers);
-    showVerdict(true, ANSWER_KO[pick]); play("stamp");
+    showVerdict(true, STAMP_KO[pick]); play("stamp");
     setFeedback({ ok: true, text: `${keyAns.why} → ${ANSWER_KO[pick]}` });
     setBubble(`${keyAns.why} → "${ANSWER_KO[pick]}"`);
     setJudged(true);
@@ -2096,7 +2097,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       setU(next);
       if (next < 1) { requestAnimationFrame(tick); return; }
       setRunning(false); setAbDone(true); setAbTab("result");
-      if (causeOk) { play("stamp"); showVerdict(true, "결과 일치"); setBubble(""); }
+      if (causeOk) { play("stamp"); showVerdict(true, "일치"); setBubble(""); }
       else { play("error"); showVerdict(false); setBubble("원인을 없앴는데도 정상 모델과 달라요. 고른 원인이 실제 원인이 아닌 것 같아요."); }
     };
     requestAnimationFrame(tick);
@@ -2166,7 +2167,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     : phase === "pick" ? <div className="b4Cards">{QA_LEVELS.map(levelCard)}</div>
     : phase === "report" ? <div className="b4Cards">{CAUSES[caseId].map(item => <button key={item.hyp} className={`b4Card cause ${cause === item.hyp ? causeOk ? "right" : "wrong" : ""}`} onClick={() => pickCause(item.hyp)}><span className="causePhoto"><i className="pin" /><span className="causePhotoWin"><img src={item.img} alt="" /></span></span><span className="etTag" data-tag={HYP_TAG[item.hyp]}>{HYP_TAG[item.hyp]}</span><b>{item.name}</b><span className="causeType">{item.type}</span></button>)}</div>
     : phase === "ab" ? <div className="b4Cards">{!abDone ? <button className="b4Card run" disabled={running} onClick={runAb}><b>▶ 두 모델 동시 실행</b><small>정상 모델과 원인을 없앤 모델</small></button>
-        : causeOk ? <button className="b4Card run" onClick={finish}><b>수리 적용 · 주행 복귀 →</b><small>원인을 없앤 모델이 정상과 같아요</small></button>
+        : causeOk ? <p className="b4DockMsg">원인을 없앤 모델이 정상 모델과 같아졌어요. 오른쪽 아래 버튼으로 수리를 적용해요.</p>
           : <button className="b4Card" onClick={() => { setPhase("report"); setCause(null); setAbDone(false); setMistakes(n => n + 1); play("pop"); }}><b>최종 원인 다시 고르기</b><small>정상과 달라요</small></button>}</div>
     : running ? <p className="b4DockMsg">시험을 실행하고 있어요. 위 화면에서 두 모델이 움직여요.</p>
     : judged ? <div className="b4Cards">

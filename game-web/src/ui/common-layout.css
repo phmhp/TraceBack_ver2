@@ -42,3 +42,6 @@ html body .refPuzzle.v2 .rpFoot button:not(.nutAgain):not(.nutOk),
 html body .vbBench.bench4.qa2 .b4Dock button:not(.nutAgain):not(.nutOk) {
   min-height: var(--btn-h); padding: 8px 18px; border-radius: 14px; font: 700 15px/1.25 Pretendard, system-ui; box-sizing: border-box;
 }
+
+/* one stamp size for every verdict (labels are short nouns: 정답 · 오답 · 통과 · 원인 확인 · 원인 아님 · 보류) */
+html body .verdictLayer .verdictStamp { font-size: 72px !important; padding: 8px 34px !important; border-width: 8px !important; letter-spacing: .04em !important; white-space: nowrap; max-width: 88vw; box-sizing: border-box; }

@@ -186,7 +186,7 @@ test("STEP04 polish: polaroid cause cards without tilt, full-height driving view
   assert.match(live04, /<span className="causePhoto"><i className="pin" \/><span className="causePhotoWin">/);
   assert.match(css, /\.causeCard > \.causePhoto \{[^}]*aspect-ratio: 88 \/ 107;[^}]*transform: none;/);
   assert.match(css, /\.benchVehicleVisual \.labRaceWorld \{ inset: 0 !important; \}/);
-  assert.match(live04, /showVerdict\(true, "결과 일치"\)/);
+  assert.match(live04, /showVerdict\(true, "일치"\)/);
   assert.doesNotMatch(live04, /showVerdict\(true, "정상 기준과 일치"\)/);
 });
 
