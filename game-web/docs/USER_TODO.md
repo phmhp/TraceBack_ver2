@@ -43,3 +43,9 @@
 - [ ] 결정: 레벨 배치(N01 다음 5레벨 선택 / 필수로 승격), STEP03 전용 상태 전이도 UI를 지금 만들지 이번엔 블록 조립으로 갈지
 - [ ] (나중) 증거 이미지 2장 `ready_off`, `hv_bus_scope`
 - [ ] (C01 이미지) `ready_off`, `dtc_precharge`, `hv_bus_scope` 증거 이미지 3장(프롬프트는 docs/image-prompts에 있음)
+
+## C05 사건 시트 (2026-11-14 초안, 승인 대기)
+- [ ] `docs/fault-cases/c05_lowspeed_blend.md` 읽고 승인 또는 수정 지시 (구현은 승인 뒤)
+- [ ] GPT 교차 검토: `CROSSCHECK_PROMPT.md` 방법으로 절 단위 검토 → 시트 12절에 기록 (특히 3·4절 회생·마찰 전환 수치, 5절 감시 활성 속도 범위)
+- [ ] 결정: 레벨 배치(6레벨 선택 제안, 탈출 7레벨), 레이스에서 약한 제동(Space)과 강한 제동(S)을 구분하는 입력 변경 승인(시트 2.1·11절)
+- [ ] (나중) 증거 이미지 `decel_dip`, `regen_share_log`
