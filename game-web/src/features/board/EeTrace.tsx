@@ -328,7 +328,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
           {phase === "hyp" && sectionDone && <button role="tab" aria-selected={memoTab === "hyp"} className={memoTab === "hyp" ? "on" : ""} onClick={() => setMemoTab("hyp")}>가설 후보</button>}
         </nav><OpenBookButton caseId={caseId} /></header>
         <div className="etEvidenceContent">
-          {memoTab === "evidence" && <><div className="polBoard" role="tabpanel" aria-label="관찰·계측 증거">{visiblePols.map(item => <button key={item.id} className={`pol ${item.kind}`} onClick={() => { setZoomPol(item.id); play("pop"); }}>
+          {memoTab === "evidence" && <><div className="polBoard" role="tabpanel" aria-label="관찰·계측 증거">{visiblePols.length === 0 ? <p className="etEmpty"><Icon name="camera" /> 아직 이상으로 등록한 신호가 없어요. 신호를 확인한 뒤 이상 여부를 판정하면 여기에 사진이 남아요.</p> : visiblePols.map(item => <button key={item.id} className={`pol ${item.kind}`} onClick={() => { setZoomPol(item.id); play("pop"); }}>
             <i className="pin" /><span className="polPhoto">{item.photo}</span><b>{item.title}</b><small>{item.sub}</small>
           </button>)}</div>{evidencePages > 1 && <div className="polPager"><button disabled={evidencePage === 0} onClick={() => setEvidencePage(page => Math.max(0, page - 1))}>이전</button><span>{evidencePage + 1}/{evidencePages}</span><button disabled={evidencePage >= evidencePages - 1} onClick={() => setEvidencePage(page => Math.min(evidencePages - 1, page + 1))}>다음</button></div>}</>}
           {memoTab === "measure" && <div className="etMeasureTab" role="tabpanel" aria-label="확인한 신호">

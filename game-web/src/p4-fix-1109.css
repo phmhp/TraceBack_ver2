@@ -3050,3 +3050,14 @@ body:has(.pursuitHud) .stageFolderSubtitle { padding-right: 420px !important; }
 .vbBench.v7.qa2 .qaSimCaption { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 6; margin: 0; max-width: calc(100% - 24px); padding: 4px 10px; border-radius: 999px; background: rgba(255, 253, 246, .94); box-shadow: 0 1px 3px rgba(70, 45, 30, .18); color: #5b4636; font: 600 10.5px/1.35 Pretendard, system-ui; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .vbBench.v7.qa2 .qaSimCaption b { display: inline !important; white-space: nowrap; margin-right: 6px; color: #9b3d33; font-weight: 800; }
 .vbBench.v7.qa2 .v7View:has(.qaInputGuide) .qaSimCaption { display: none; }
+
+/* 2026-11-15 feedback: measured-signal records stay inside the panel and
+   polaroid captions remain in the paper's lower white area. */
+.eeTrace .etChecked li { min-width: 0; grid-template-columns: minmax(0, 1fr) auto; }
+.eeTrace .etChecked li b, .eeTrace .etChecked li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; word-break: keep-all; }
+.eeTrace .etChecked li span { white-space: normal; line-height: 1.25; }
+.eeTrace .etReasonPath { min-width: 0; overflow: hidden; }
+.eeTrace .etReasonPath > div { min-width: 0; overflow: hidden; }
+.eeTrace .etReasonPath span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eeTrace .etEvidence .pol { grid-template-rows: minmax(0, 1fr) auto auto; }
+.eeTrace .etEvidence .pol > b, .eeTrace .etEvidence .pol > small { width: 100%; min-width: 0; }
