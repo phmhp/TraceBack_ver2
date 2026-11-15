@@ -101,3 +101,11 @@
 .rpBus b { font: 800 13px/1 Pretendard, system-ui; }
 .rpBus span { font: 600 12px/1 Pretendard, system-ui; opacity: .92; }
 .rpBusTap { position: absolute; width: 4px; height: 36px; border-radius: 2px; background: #55687a; pointer-events: none; }
+
+/* 2026-11-15: state transition fill (state diagram): pieces are states, arrows are transitions */
+.rpWorld.stateMode .rpPiece { clip-path: inset(6px 12px 6px 12px round 46px) !important; border: 3px solid #7a4a44; background: radial-gradient(circle at 50% 35%, #fffaf2, #efe0d2); }
+.rpWorld.stateMode .rpPiece.hw { background: radial-gradient(circle at 50% 35%, #f3f8fb, #dbe8ef); }
+.rpFailState { position: absolute; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 2px dashed #a0281e; background: #fdeeea; white-space: nowrap; pointer-events: none; }
+.rpFailState b { font: 800 13px/1 Pretendard, system-ui; color: #a0281e; }
+.rpFailState span { font: 600 12px/1 Pretendard, system-ui; color: #6b3a34; }
+.rpFailArrow { position: absolute; width: 0; height: 34px; border-left: 2px dashed #a0281e; pointer-events: none; }

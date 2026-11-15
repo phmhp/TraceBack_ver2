@@ -37,7 +37,7 @@ type Ref = {
   blocks: Record<string, Blk>;
   notes: { domain: DomainId; feature: number; name: string }[];
   /** "path": the pieces are E/E structure nodes on a signal path (network picture), not logic blocks. */
-  ui?: "blocks" | "path";
+  ui?: "blocks" | "path" | "state";
   field: Record<string, string>; // values recorded in the faulty drive (only where they differ from the reference)
 };
 // bench views: the SW unit under test, and the SW components (SWC) that make up the ECU software
@@ -183,7 +183,7 @@ const REF: Record<CaseId, Ref> = {
     field: { sign: "+40 Nm", rlim: "+40 Nm", ramp: "+40 Nm ↗", out: "CAN +40 Nm", inv: "모터 +40 Nm · +0.5 m/s²" },
   },
   ready: {
-    domain: "고전압 전원", feature: "시동 요청 → 프리차지 → READY", ecu: "VCU", program: "precharge_timeout_1500",
+    domain: "고전압 전원", feature: "시동 요청 → 프리차지 → READY", ecu: "VCU", program: "precharge_timeout_1500", ui: "state",
     board: ["req", "cond", "pre", "wait", "main", "ready"], gaps: [3, 4],
     spares: ["weld", "waitB", "lock", "main", "wait"], joints: ["round", "square", "square", "tri", "tri"],
     side: { pieces: ["bms"], into: 3, value: "시동 허용 1", label: "BMS가 보내는 시동 허용" },
@@ -712,7 +712,8 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const coach = state.completedCases.length ? "" : !filled ? "gaps" : !connected ? "check" : !confirmed ? "confirm" : "next";
   const sideLit = connected;
   const pathMode = ref.ui === "path";   // signal path (E/E structure) instead of logic blocks
-  const jointsIo = (slot: number) => pathMode ? {} : ({ in: slot > 0 ? ref.joints[slot - 1] : undefined, out: slot < n - 1 ? ref.joints[slot] : undefined });
+  const stateMode = ref.ui === "state"; // state transition diagram: pieces are states, arrows are transitions
+  const jointsIo = (slot: number) => pathMode || stateMode ? {} : ({ in: slot > 0 ? ref.joints[slot - 1] : undefined, out: slot < n - 1 ? ref.joints[slot] : undefined });
   const piece = (b: Blk, px: number, py: number, opts: { io?: { in?: Nub; out?: Nub }; locked?: boolean; cls?: string }) =>
     <div key={`${opts.locked ? "fixed" : "move"}-${b.id}`} className={`rpPiece ${b.kind === "hw" ? "hw" : "sw"} ${opts.locked ? "locked" : ""} ${opts.cls ?? ""}`}
       style={{ left: px, top: py, ...({ "--piece": opts.io ? piecePath(opts.io) : "inset(6px 12px 6px 12px round 12px)" } as React.CSSProperties) }}
@@ -730,7 +731,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   // spoken directions: what the player just did, what this step is, how to do it
   const dirStep = viewStep ?? stepNow;
   const dirLines: string[] = dirStep === 0
-    ? [`도미노에서 의심 구간을 ${section}${(() => { const c = section.charCodeAt(section.length - 1) - 44032; return c >= 0 && c < 11172 ? (c % 28 === 0 || c % 28 === 8 ? "로" : "으로") : /[0-9013678LMNRlmnr]$/.test(section) ? "으로" : "로"; })()} 좁혔어요. 이 퍼즐은 그 구간이 정상이라면 어떻게 동작해야 하는지 맞춰 보는 거예요.`, "오른쪽 요구사항을 읽고, 빈칸에 들어갈 조각을 골라 끌어다 놓아요.", filled ? "다 채웠어요. 연결 확인을 눌러요." : "조각을 누르면 하는 일과 표 값을 볼 수 있어요."]
+    ? [`도미노에서 의심 구간을 ${section}${(() => { const c = section.charCodeAt(section.length - 1) - 44032; return c >= 0 && c < 11172 ? (c % 28 === 0 || c % 28 === 8 ? "로" : "으로") : /[0-9013678LMNRlmnr]$/.test(section) ? "으로" : "로"; })()} 좁혔어요. 이 퍼즐은 그 구간이 정상이라면 어떻게 동작해야 하는지 맞춰 보는 거예요.`, stateMode ? "오른쪽 요구사항을 읽고, 전이도의 빈 상태에 들어갈 조각을 끌어다 놓아요." : "오른쪽 요구사항을 읽고, 빈칸에 들어갈 조각을 골라 끌어다 놓아요.", filled ? "다 채웠어요. 연결 확인을 눌러요." : "조각을 누르면 하는 일과 표 값을 볼 수 있어요."]
     : dirStep === 1
       ? ["조각 연결이 맞았어요. 이제 값이 맞는지 볼 차례예요.", "예시 입력을 움직이면 칸마다 값이 표시창에 나와요.", "표시창 값이 요구사항과 같으면 아래 버튼을 눌러요."]
       : ["요구사항과 같은 걸 확인했어요. 이 값이 정상 기준이 돼요.", "시험 설계서에는 어떤 입력을 넣고 어떤 값이 나와야 하는지 적혀 있어요.", confirmed ? "기준이 확정됐어요. 다음으로 넘어가요." : "내용을 확인하고 이 기준으로 확정해요."];
@@ -756,8 +757,9 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
           </div>
         </div>
         <div className="rpBoardZoom rpZoomTools" role="group" aria-label="퍼즐 확대 축소" onPointerDown={event => event.stopPropagation()}><button onClick={() => setScale(value => Math.max(.45, value - .1))}>−</button><button onClick={fitStage}>맞춤</button><button onClick={() => setScale(value => Math.min(1.25, value + .1))}>+</button></div>
-        <div className="rpSizer" style={{ width: W * scale, height: H * scale }}><div className={`rpWorld ${connected ? "flowing" : ""} ${pathMode ? "pathMode" : ""}`} style={{ width: W, height: H, transform: `scale(${scale})` }}>
+        <div className="rpSizer" style={{ width: W * scale, height: H * scale }}><div className={`rpWorld ${connected ? "flowing" : ""} ${pathMode ? "pathMode" : ""} ${stateMode ? "stateMode" : ""}`} style={{ width: W, height: H, transform: `scale(${scale})` }}>
           <div className="rpTray main" style={{ left: slotX(0) - 14, top: MAIN_Y - 66, width: (n - 1) * PITCH + PIECE + 28, height: PIECE + 118 }}><span>입력 → 출력 · 연결이 맞으면 예시 입력의 값이 표시돼요</span></div>
+          {stateMode && <><div className="rpFailState" style={{ left: slotX(4) + 34, top: MAIN_Y + PIECE + 30 }}><b>FAIL</b><span>대기 시간 제한을 넘기면 실패 상태로 전이</span></div><i className="rpFailArrow" style={{ left: slotX(4) + 68, top: MAIN_Y + PIECE - 2 }} /></>}
           {pathMode && <><div className="rpBus" style={{ left: slotX(1) + 20, top: MAIN_Y + PIECE + 30, width: 2 * PITCH + 100 }}><b>CAN 버스</b><span>변속 메시지 20 ms 주기</span></div>
             {[1, 2].map(k => <i key={`bus-${k}`} className="rpBusTap" style={{ left: slotX(k) + 68, top: MAIN_Y + PIECE - 2 }} />)}</>}
           <div className="rpTray side" style={{ left: slotX(sideStart) - 10, top: SIDE_Y - 12, width: (ref.side.pieces.length - 1) * PITCH + PIECE + 20, height: PIECE + 24 }}><span>{ref.side.label}</span></div>

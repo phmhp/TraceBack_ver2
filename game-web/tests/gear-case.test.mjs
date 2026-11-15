@@ -81,3 +81,10 @@ test("per-level ending: every level starts at 0 m, a repair leads to a clean rac
   assert.equal(ship.scene, "SHIP_ESCAPE");
   assert.equal(dispatch({ ...ship, scene: "ENDING" }, { type: "NEXT_LEVEL" }).scene, "LEVEL_SELECT");
 });
+
+test("puzzle UI types are all in use: blocks (propulsion…), signal path (gear), state transition (ready)", () => {
+  const src = readFileSync(new URL("../src/features/wiring/RefPuzzle.tsx", import.meta.url), "utf8");
+  assert.match(src, /domain: "변속·주차"[^\n]*ui: "path"/);
+  assert.match(src, /precharge_timeout_1500", ui: "state"/);
+  assert.match(src, /ui\?: "blocks" \| "path" \| "state"/);
+});
