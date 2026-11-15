@@ -2025,6 +2025,8 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       send({ type: "FINISH_ESCAPE", distance: sim.distance, gap: Math.max(10, sim.gap), elapsed: sim.elapsed });
     }
   }, [celebrated, mode, send, sim.distance, sim.elapsed, sim.gap, state.caseId, state.lastRepairDistance, state.lastRepairElapsedSeconds]);
+  // The interceptor joins after the opening run. Keep every police-specific hint behind this gate.
+  const policeJoined = mode !== "normal" || (sim.elapsed >= 3 && sim.distance >= 45);
   // situation set 1 hints (the player decides; only contact is enforced): braking lead car, red signal / pedestrians ahead
   const situationHint = (() => {
     if (countdown > 0 || mode === "ship" || mode === "assist" || introOpen) return null;
@@ -2042,7 +2044,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     if (envTag) return { kind: "env", title: ENV_HINT[envTag].title, text: zoneNow.includes(envTag) ? ENV_HINT[envTag].now : ENV_HINT[envTag].soon };
     // chase: how long until the police catch up at the current speed (stopping, reversing or an output limit all show up here)
     const eta = secondsToCatch(sim.gap, sim.speed);
-    if (sim.gap > 0 && eta < 40) return { kind: "chase", title: "경찰 접근", text: `이 속도로는 약 ${Math.max(1, Math.round(eta))}초 뒤 따라잡혀요 · ${sim.speed < 0 ? "후진 중" : sim.speed < 4 ? "다시 출발하세요" : "속도를 올리세요"}` };
+    if (policeJoined && sim.gap > 0 && eta < 40) return { kind: "chase", title: "경찰 접근", text: `이 속도로는 약 ${Math.max(1, Math.round(eta))}초 뒤 따라잡혀요 · ${sim.speed < 0 ? "후진 중" : sim.speed < 4 ? "다시 출발하세요" : "속도를 올리세요"}` };
     return null;
   })();
   const symptom = !finishRun && ((mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80) || (mode === "resume" && state.caseId === "regen" && zoneThrottle.current > .8) || (mode === "resume" && state.caseId === "gear" && gearHitCount >= 1) || (mode === "resume" && state.caseId === "cold" && coldHits.current > .6) || (startFails > 0 && startAttempts >= 1));
@@ -2100,7 +2102,6 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const mapPoint = (progress: number) => { const d = progress / 100 * TRACK_LENGTH; return { x: 45 + trackFrame(d).x * 3.4, y: 94 - progress * .86 }; };
   const mapPlayer = mapPoint(routeProgress);
   const mapPolice = mapPoint(policeProgress);
-  const policeJoined = mode !== "normal" || (sim.elapsed >= 3 && sim.distance >= 45);
   const policeInWorld = policeJoined && !(mode === "ship" && sim.distance >= TRACK_LENGTH - 82);
   // soft siren: once when the interceptor comes within 40 m, then every 5 s while it is within 25 m
   const sirenAt = useRef(0), sirenNear = useRef(false);
@@ -2135,7 +2136,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       { icon: "warning", text: "경고와 증상이 나타나면 무엇이 달라졌는지 기억하기" },
     ]} onClose={() => setIntroOpen(false)} />}
     {(countdown > 0 || goFlash) && <div className="startCountdown"><small>출발 준비</small><b>{goFlash ? "GO!" : countdown}</b></div>}
-    {sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="경찰 차량 접근" />}
+    {policeJoined && sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="경찰 차량 접근" />}
     {symptom && <ComicBurst tone="fault" side="right" image="/assets/ending-thumbs/accel_pedal.png" title="가속 저하 발생" sound="alarm" />}
     {/* every message card lives in one column under the mirror, so cards never overlap */}
     {zonesAt(sim.distance).includes("wet") && <div className="rainOverlay" aria-hidden="true" />}

@@ -471,12 +471,13 @@ function RaceWorld({ sim, ship }: { sim: Sim; ship: boolean }) {
 }
 function Header({ state, send }: { state: Campaign; send: React.Dispatch<any> }) {
   const s = SCENARIOS[state.caseId];
-  const beforeRace = state.scene.startsWith("GARAGE");
+  const beforeRace = state.scene.startsWith("GARAGE") || ["LEVEL_SELECT", "DRIVE_BRIEFING"].includes(state.scene);
   return (
     <GameHeader
       chapter={beforeRace ? "GARAGE · VEHICLE LOGIC LAB" : "INCIDENT INVESTIGATION"}
       title={s.title}
       distanceMeters={beforeRace ? undefined : state.policeGapMeters}
+      progressScene={state.scene}
       onPause={() => send({ type: "PAUSE" })}
     />
   );
