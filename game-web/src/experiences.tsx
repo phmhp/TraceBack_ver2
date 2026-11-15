@@ -85,10 +85,20 @@ function SignalCable({ from, to, color = "#ef8c58", via = [] }: { from: [number,
   const pulses = useRef<THREE.Mesh[]>([]);
   const curve = useMemo(() => {
     const a = new THREE.Vector3(...from), b = new THREE.Vector3(...to);
+    // Keep the default harness below the parts: descend vertically from each port,
+    // run the shared segment horizontally, then rise into the destination port.
+    // Explicit `via` routes remain available for component-specific harnesses.
     const points = via.length
       ? [a, ...via.map(point => new THREE.Vector3(...point)), b]
-      : [a, a.clone().add(new THREE.Vector3(.3, .55, 0)), b.clone().add(new THREE.Vector3(-.3, .55, 0)), b];
-    return new THREE.CatmullRomCurve3(points);
+      : (() => {
+        const lowY = Math.min(a.y, b.y) - .28;
+        const midX = (a.x + b.x) / 2;
+        const midZ = (a.z + b.z) / 2;
+        return [a, new THREE.Vector3(a.x, lowY, a.z), new THREE.Vector3(midX, lowY, midZ), new THREE.Vector3(b.x, lowY, b.z), b];
+      })();
+    const path = new THREE.CurvePath<THREE.Vector3>();
+    for (let index = 0; index < points.length - 1; index += 1) path.add(new THREE.LineCurve3(points[index], points[index + 1]));
+    return path;
   }, [from.join(","), to.join(","), via.flat().join(",")]);
   useFrame(({ clock }) => {
     pulses.current.forEach((pulse, index) => {
@@ -571,7 +581,7 @@ function SwcView({ domain, feature, activeStep, onPick }: { domain: DomainId; fe
 
 function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, onDomain, noDomain = false, onJump, inputOn = false, eeLayer = "logic", onEeLayerChange, selectedVehiclePart = null, onVehiclePartSelect }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; onDomain?: (id: DomainId) => void; noDomain?: boolean; onJump?: (level: number, step: number) => void; inputOn?: boolean; eeLayer?: EeLayer; onEeLayerChange?: (layer: EeLayer) => void; selectedVehiclePart?: number | null; onVehiclePartSelect?: (index: number) => void }) {
   const [shell, setShell] = useState(false);
-  const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "grid" : "one");
+  const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "overlay" : "one");
   // The first garage screen is a visual vehicle map. Logic cards remain one click away.
   const [overview3d, setOverview3d] = useState(true);
   const [inspect, setInspect] = useState<number | null>(null);

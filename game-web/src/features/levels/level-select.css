@@ -54,7 +54,7 @@
 .lvSay span { font: 500 14px/1.35 Pretendard, system-ui; color: #4a3a36; }
 .lvProgress { margin: 0; font: 700 13px/1 Pretendard, system-ui; color: #8a6a63; }
 .lvStart { grid-column: 2; grid-row: 3; min-height: 0; display: flex; }
-.lvStart button { flex: 1; width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; position: static !important; border-radius: 20px !important; background: #6aa477 !important; border-color: #4f855d !important; box-shadow: 0 5px 0 #4f855d !important; font: 800 22px/1 Pretendard, system-ui !important; white-space: nowrap; }
+.lvStart button { flex: 1; width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; position: static !important; font: 800 22px/1 Pretendard, system-ui !important; white-space: nowrap; }
 .lvStart button:disabled { opacity: .55; cursor: not-allowed; }
 .levelSelect .lvWork .lvStart button.stageProgressAction { font: 800 22px/1 Pretendard, system-ui !important; width: 100% !important; height: 100% !important; position: static !important; }
 

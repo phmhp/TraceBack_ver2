@@ -167,3 +167,14 @@
 .eeTrace .etChecked li em.refuted { background: #e8eddf; color: #3d5a34; }
 .eeTrace .etHyp b { display: block; }
 @keyframes etShake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+/* Keep the four-step explanation in its own row. It must never sit on top of
+   the board title or the first row of domain nodes. */
+.eeTrace .etBoard { display: grid !important; grid-template-rows: auto 34px minmax(0, 1fr); min-height: 0; }
+.eeTrace .etBoard > header { grid-row: 1; position: relative; z-index: 6; min-width: 0; }
+.eeTrace .etBoard > .etPhaseBridge { position: relative; inset: auto; grid-row: 2; z-index: 5; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px; overflow: hidden; pointer-events: none; }
+.eeTrace .etPhaseBridge span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.eeTrace .etBoard > .etLines { grid-row: 3; }
+.eeTrace .etBoard > .etZones { grid-row: 3; height: auto; min-height: 0; }
+.eeTrace .etFlags { width: 208px; grid-template-rows: 1fr 1fr; }
+.eeTrace .etFlags button { min-width: 0; white-space: normal; }

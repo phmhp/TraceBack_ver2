@@ -222,3 +222,17 @@ html body .vbBench.bench4.qa2 .b4Monitor .ovGraph .ovRow svg { height: 22px; wid
 .b4HypNow i { font-style: normal; font: 800 12px/1 Pretendard, system-ui; padding: 4px 8px; border-radius: 999px; background: #9b6b64; color: #fff8f2; }
 .b4HypNow b { font: 800 15px/1.2 Pretendard, system-ui; color: #3f302c; }
 .b4HypNow small { font: 600 13px/1 Pretendard, system-ui; color: #7a5a53; }
+
+/* Pick screen: two hypotheses are a deliberate comparison, not a thin text
+   list stretched across a dark empty canvas. Use bright paper cards with a
+   clear numbered visual anchor and a compact evidence panel beside them. */
+.vbBench.bench4.qa2 .b4Pick { grid-template-columns: minmax(0, 1.35fr) minmax(300px, .9fr); gap: 12px; padding: 12px; background: linear-gradient(135deg, #eef7f1, #fff8e8); border-radius: 12px; }
+.vbBench.bench4.qa2 .b4HypList { gap: 10px; grid-auto-rows: minmax(112px, 1fr); }
+.vbBench.bench4.qa2 .b4HypList li { grid-template-columns: 38px auto minmax(0, 1fr) auto; padding: 12px 14px; border: 2px solid #d8c89e; background: #fffdf4; box-shadow: 0 3px 0 rgba(126, 101, 57, .12); }
+.vbBench.bench4.qa2 .b4HypList li.now { border-color: #d69556; background: #fff4c9; box-shadow: 0 0 0 3px rgba(214, 149, 86, .18), 0 3px 0 rgba(126, 101, 57, .12); }
+.vbBench.bench4.qa2 .b4HypList li i { width: 34px; height: 34px; background: #6a9d78; font-size: 15px; }
+.vbBench.bench4.qa2 .b4HypList li b { font-size: 16px; line-height: 1.35; }
+.vbBench.bench4.qa2 .b4HypList li em { padding: 5px 8px; border-radius: 999px; background: #e8f1e5; color: #4a7954; }
+.vbBench.bench4.qa2 .b4HypDetail { padding: 16px; border-color: #d8c89e; background: #fffdf4; box-shadow: 0 3px 0 rgba(126, 101, 57, .12); }
+.vbBench.bench4.qa2 .b4HypDetail h3 { font-size: 21px; }
+.vbBench.bench4.qa2 .b4Criteria { background: #eef7f1; border-color: #a9c8ad; }

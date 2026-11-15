@@ -276,11 +276,11 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   const directiveLines: string[] = phase === "symptom"
     ? [`${DRIVER}의 말과 주행 기록을 보면 기준과 값이 다른 출력이 하나 있어요.`, "그 출력이 거꾸로 따라갈 출발점이에요.", "아래 카드 중 기준과 이번 값이 다른 카드를 골라요."]
     : phase === "trace"
-      ? [`지금 기준 신호는 ${dom(focus).label}이에요.`, `이 신호에 영향을 줬을 후보를 하나씩 볼게요. (후보 ${candNo || suspects.length}/${suspects.length})`, "먼저 달라졌으면 ← 영향을 줬어요, 정상이거나 나중에 달라졌으면 → 영향을 주지 않았어요를 눌러요."]
+          ? [`지금 기준 신호는 ${dom(focus).label}이에요.`, `이 신호에 영향을 줬을 후보를 하나씩 볼게요. (후보 ${candNo || suspects.length}/${suspects.length})`, "먼저 달라졌으면 ↑ 영향을 줬어요, 정상이거나 나중에 달라졌으면 ↓ 영향을 주지 않았어요를 눌러요."]
       : !sectionDone
         ? [`첫 편차는 ${dom(data.first).label}${josa(dom(data.first).label, "이군요", "군요")}! 들어오는 값은 모두 정상인데 여기서부터 달라졌어요.`, "그렇다면 이 편차가 일어난 위치로 의심되는 곳은 어디일까요?", "가장 의심되는 구간을 골라요. 필요하면 구조 보기를 눌러요."]
         : !allSorted
-          ? [`의심 구간은 ${sectionPick1}${josa(sectionPick1, "으로", "로")} 좁혀졌어요!`, "이 구간에서 편차가 생긴 원인 후보(가설)를 하나씩 볼게요.", "이미 아니라고 할 수 있으면 → 후보에서 빼고, 아직 모르면 ← 후보에 올려요."]
+          ? [`의심 구간은 ${sectionPick1}${josa(sectionPick1, "으로", "로")} 좁혀졌어요!`, "이 구간에서 편차가 생긴 원인 후보(가설)를 하나씩 볼게요.", "이미 아니라고 할 수 있으면 ↓ 후보에서 빼고, 아직 모르면 ↑ 후보에 올려요."]
           : carryPool.length > 1 && !carryId
             ? [`가설 후보가 ${carryPool.length}개 남았어요.`, "실험대에서는 가장 유력한 후보부터 시험해요.", "가장 유력해 보이는 후보 하나를 골라요."]
             : ["가설 정리가 끝났어요!", "다음에는 이 구간이 정상일 때의 동작을 요구사항을 보고 퍼즐로 맞춰 볼 거예요.", "준비되면 다음을 눌러요."];
@@ -306,7 +306,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     <StageFolderSubtitle step="board" className="etStageFolder" action="관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요." detail={<>출발 증거: {scenario.symptom} <i>|</i> 추적 대상: 신호·제어 경로</>} />
     <StageIntro id="trace-v2" stage="STEP 02" title="도미노 역추적" goal="운전자가 느낀 출력에서 거꾸로 올라가며 첫 편차를 찾아요" steps={[
       { icon: "camera", text: "운전자가 느낀 이상(출력)이 출발점이에요. 기준과 값이 다른 출력을 골라요." },
-      { icon: "search", text: "그 출력에 영향을 줬을 신호가 카드로 하나씩 나와요. 이상이 있고 먼저 달라졌으면 ← 영향을 줬어요, 아니면 → 영향을 주지 않았어요를 눌러요." },
+      { icon: "search", text: "그 출력에 영향을 줬을 신호가 카드로 하나씩 나와요. 이상이 있고 먼저 달라졌으면 ↑ 영향을 줬어요, 아니면 ↓ 영향을 주지 않았어요를 눌러요." },
       { icon: "clipboard", text: "영향을 준 신호가 다음 기준이 돼요. 더 이상 영향을 준 신호가 없으면 거기가 첫 편차예요. 그 위치로 의심 구간을 고르고 원인 가설 후보를 정리해요." },
     ]} />
     <main className="dtLayout etLayout">
@@ -357,11 +357,11 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
               <div className="etCandText"><small>후보 {candNo}/{suspects.length} · {dom(cand).zone}</small><b>{dom(cand).label}</b>
                 <span>{numify(`기준 ${refText(dom(cand))} · 이번 ${fmt(dom(cand).run)}${dom(cand).unit ? ` ${dom(cand).unit}` : ""}`)}</span>
                 <span>{dom(cand).status === "bad" ? numify(`달라진 시점 ${fmt(dom(cand).t!)} ${unit} (${dom(focus).label}${josa(dom(focus).label, "은", "는")} ${fmt(dom(focus).t!)} ${unit})`) : dom(cand).status === "tol" ? "허용 범위 안이에요" : "기준과 같아요 (달라지지 않음)"}</span></div>
-              <div className="etFlags"><button className="yes" onClick={() => stamp(cand, "likely")}><kbd>←</kbd>영향을 줬어요</button><button className="no" onClick={() => stamp(cand, "refuted")}>영향을 주지 않았어요<kbd>→</kbd></button></div>
+              <div className="etFlags"><button className="yes" onClick={() => stamp(cand, "likely")}><kbd>↑</kbd>영향을 줬어요</button><button className="no" onClick={() => stamp(cand, "refuted")}>영향을 주지 않았어요<kbd>↓</kbd></button></div>
             </article> : <span className="etAsk">다음 기준 신호로 넘어가는 중이에요…</span>}</div>
             : !sectionDone ? <div className="etDock etDockSection"><div className="etChoices">{data.section.choices.map((c, index) => <button key={c.label} className={sectionPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}><kbd>{index + 1}</kbd>{c.label}</button>)}</div><button className="etInside" onClick={() => { setMemoTab(memoTab === "zone" ? "evidence" : "zone"); play("pop"); }}>{memoTab === "zone" ? "구조 닫기" : "첫 편차 발생 의심 구간 보기"}</button></div>
               : nextHyp ? <div className="etDock"><article className="etCand hyp"><div className="etCandText"><small>가설 후보 {hypNo}/{meta.hypotheses.length}</small><b><span className="etTag" data-tag={HYP_TAG[nextHyp.id]}>{HYP_TAG[nextHyp.id]}</span>{nextHyp.label}</b></div>
-                  <div className="etFlags"><button className="yes" onClick={() => sortHyp(nextHyp.id, "hold")}><kbd>←</kbd>후보에 올려요</button><button className="no" onClick={() => sortHyp(nextHyp.id, "out")}>후보에서 빼요<kbd>→</kbd></button></div></article></div>
+                  <div className="etFlags"><button className="yes" onClick={() => sortHyp(nextHyp.id, "hold")}><kbd>↑</kbd>후보에 올려요</button><button className="no" onClick={() => sortHyp(nextHyp.id, "out")}>후보에서 빼요<kbd>↓</kbd></button></div></article></div>
                 : carryPool.length > 1 && !carryId ? <div className="etDock"><div className="etChoices">{carryPool.map((id, index) => <button key={id} onClick={() => { setCarry(id); play("pop"); }}><kbd>{index + 1}</kbd><span className="etTag" data-tag={HYP_TAG[id]}>{HYP_TAG[id]}</span>{meta.hypotheses.find(h => h.id === id)?.label}</button>)}</div></div>
                   : <div className="etDock"><span className="etAsk">먼저 시험할 가설: <b>{meta.hypotheses.find(h => h.id === carryId)?.label ?? "없음"}</b>{carryPool.length > 1 && <button className="etDockLink" onClick={() => { setCarry(""); play("pop"); }}>다시 고르기</button>} · 후보에서 뺌 {meta.hypotheses.filter(h => sorted[h.id] === "out").length} · 후보에 올림 {heldIds.length} · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span></div>}
       </section>
