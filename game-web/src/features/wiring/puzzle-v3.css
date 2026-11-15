@@ -92,3 +92,12 @@
 .rpFolderPaper table { width: 100%; border-collapse: collapse; }
 .rpFolderPaper td { padding: 6px 6px; border-bottom: 1px dashed #d8c2ba; font: 600 13px/1.3 Pretendard, system-ui; color: #4a3a36; }
 .rpFolderPaper td code { font: 700 13px/1.3 ui-monospace, Menlo, monospace; background: rgba(155, 107, 100, .12); padding: 1px 5px; border-radius: 4px; }
+
+/* 2026-11-15: signal path selection (system / E/E level): nodes on a network picture */
+.rpWorld.pathMode .rpPiece { border-radius: 16px; }
+.rpWorld.pathMode .rpPiece.hw { background: linear-gradient(180deg, #e8f1f6, #d6e5ee); }
+.rpWorld.pathMode .rpPiece.sw { background: linear-gradient(180deg, #f3ece2, #e6dbcb); }
+.rpBus { position: absolute; height: 26px; display: flex; align-items: center; gap: 10px; padding: 0 14px; box-sizing: border-box; border-radius: 13px; background: linear-gradient(180deg, #6b7f8c, #55687a); color: #f4f8fb; white-space: nowrap; pointer-events: none; }
+.rpBus b { font: 800 13px/1 Pretendard, system-ui; }
+.rpBus span { font: 600 12px/1 Pretendard, system-ui; opacity: .92; }
+.rpBusTap { position: absolute; width: 4px; height: 36px; border-radius: 2px; background: #55687a; pointer-events: none; }

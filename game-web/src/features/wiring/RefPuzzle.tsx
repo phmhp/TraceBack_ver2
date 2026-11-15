@@ -36,6 +36,8 @@ type Ref = {
   req: { text: string; slot: number }[];
   blocks: Record<string, Blk>;
   notes: { domain: DomainId; feature: number; name: string }[];
+  /** "path": the pieces are E/E structure nodes on a signal path (network picture), not logic blocks. */
+  ui?: "blocks" | "path";
   field: Record<string, string>; // values recorded in the faulty drive (only where they differ from the reference)
 };
 // bench views: the SW unit under test, and the SW components (SWC) that make up the ECU software
@@ -212,7 +214,7 @@ const REF: Record<CaseId, Ref> = {
     field: { wait: "500 ms에 실패", main: "명령 없음", ready: "READY 꺼짐" },
   },
   gear: {
-    domain: "변속·주차", feature: "변속 레버 → 통신 → VCU 수신 → 구동 지령", ecu: "VCU", program: "gear_fallback_n",
+    domain: "변속·주차", feature: "변속 레버 → 통신 → VCU 수신 → 구동 지령", ecu: "VCU", program: "gear_fallback_n", ui: "path",
     board: ["lever", "gw", "can", "rx", "cmd", "motor"], gaps: [1, 3],
     spares: ["direct", "rxB", "hold", "rx", "gw"], joints: ["round", "square", "square", "tri", "tri"],
     side: { pieces: ["cluster"], into: 3, value: "D 표시", label: "클러스터가 따로 받는 변속 값" },
@@ -709,7 +711,8 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const goBench = () => { send({ type: "COMPILE", program: ref.program }); send({ type: "OPEN_BENCH" }); };
   const coach = state.completedCases.length ? "" : !filled ? "gaps" : !connected ? "check" : !confirmed ? "confirm" : "next";
   const sideLit = connected;
-  const jointsIo = (slot: number) => ({ in: slot > 0 ? ref.joints[slot - 1] : undefined, out: slot < n - 1 ? ref.joints[slot] : undefined });
+  const pathMode = ref.ui === "path";   // signal path (E/E structure) instead of logic blocks
+  const jointsIo = (slot: number) => pathMode ? {} : ({ in: slot > 0 ? ref.joints[slot - 1] : undefined, out: slot < n - 1 ? ref.joints[slot] : undefined });
   const piece = (b: Blk, px: number, py: number, opts: { io?: { in?: Nub; out?: Nub }; locked?: boolean; cls?: string }) =>
     <div key={`${opts.locked ? "fixed" : "move"}-${b.id}`} className={`rpPiece ${b.kind === "hw" ? "hw" : "sw"} ${opts.locked ? "locked" : ""} ${opts.cls ?? ""}`}
       style={{ left: px, top: py, ...({ "--piece": opts.io ? piecePath(opts.io) : "inset(6px 12px 6px 12px round 12px)" } as React.CSSProperties) }}
@@ -753,8 +756,10 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
           </div>
         </div>
         <div className="rpBoardZoom rpZoomTools" role="group" aria-label="퍼즐 확대 축소" onPointerDown={event => event.stopPropagation()}><button onClick={() => setScale(value => Math.max(.45, value - .1))}>−</button><button onClick={fitStage}>맞춤</button><button onClick={() => setScale(value => Math.min(1.25, value + .1))}>+</button></div>
-        <div className="rpSizer" style={{ width: W * scale, height: H * scale }}><div className={`rpWorld ${connected ? "flowing" : ""}`} style={{ width: W, height: H, transform: `scale(${scale})` }}>
+        <div className="rpSizer" style={{ width: W * scale, height: H * scale }}><div className={`rpWorld ${connected ? "flowing" : ""} ${pathMode ? "pathMode" : ""}`} style={{ width: W, height: H, transform: `scale(${scale})` }}>
           <div className="rpTray main" style={{ left: slotX(0) - 14, top: MAIN_Y - 66, width: (n - 1) * PITCH + PIECE + 28, height: PIECE + 118 }}><span>입력 → 출력 · 연결이 맞으면 예시 입력의 값이 표시돼요</span></div>
+          {pathMode && <><div className="rpBus" style={{ left: slotX(1) + 20, top: MAIN_Y + PIECE + 30, width: 2 * PITCH + 100 }}><b>CAN 버스</b><span>변속 메시지 20 ms 주기</span></div>
+            {[1, 2].map(k => <i key={`bus-${k}`} className="rpBusTap" style={{ left: slotX(k) + 68, top: MAIN_Y + PIECE - 2 }} />)}</>}
           <div className="rpTray side" style={{ left: slotX(sideStart) - 10, top: SIDE_Y - 12, width: (ref.side.pieces.length - 1) * PITCH + PIECE + 20, height: PIECE + 24 }}><span>{ref.side.label}</span></div>
           <div className="rpTray spare" style={{ left: PAD, top: SPARE_Y - 10, width: W - PAD * 2, height: PIECE + 30 }}><span>남은 조각 · 끌어서 빈칸에 · 두 번 누르면 크게 보기</span></div>
           <svg className={`rpSideWire ${sideLit ? "lit" : ""}`} width={W} height={H}>

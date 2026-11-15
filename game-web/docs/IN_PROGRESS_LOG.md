@@ -13,7 +13,7 @@
 
 ## gear 구현 진행 (tsc 오류 0, 테스트 140 통과, 브라우저 검증 완료: STEP02 도미노, STEP03 퍼즐, STEP04 실험대 → 수리 장면)
 - 완료: CaseId `gear`, 레벨 6(finale은 7로 이동, 허브 7노드), `simModel`(gear 모델·VIEW, 관찰 0.35초), `scenarios`, `verificationContract`, `VerificationLab` 표 전부, `RefPuzzle`(블록 조립 UI로 구현), `experiences`, `DominoBoard/Trace`, `EeTrace`, `CaseFileEnding`, `OpenBook`, `DevMenu`, 이미지 프롬프트 3장, 레이스 고장 `GEAR_FAULT`(faultSchedule, 이벤트 gearChange 0.8초 창, reverseOnly 0.5초 버스트, 두 번째 발생 때 FAULT_CUE), 테스트 `tests/gear-case.test.mjs`.
-- 남음 gear: (1) 레이스 화면(`?qa=CHASE_RESUME&case=gear`)과 엔딩(`?qa=ENDING&case=gear`) 브라우저 확인 (2) 새 퍼즐 UI '신호 경로 선택'(RefPuzzle에 모드 추가; 지금은 블록 조립 UI로 동작) (3) 사용자 이미지 대기: 변속 레버·게이트웨이 부품 사진(임시로 accel_pedal/can_harness/diagnostic_port 썸네일 사용), 증거 3장(`motor_reverse_log`, `dtc_gear_timeout`, `bus_load_scope`).
+- 남음 gear: (1) 레이스 화면은 로드·안내 카드 확인함(실제 주행 트리거는 단위 테스트로 검증, 브라우저 rAF 정지로 플레이 확인 못 함) (2) 신호 경로 UI는 1차 구현 완료(`ref.ui: "path"` → 노드 박스 + CAN 버스 막대). 더 다듬으려면 `puzzle-v3.css`의 `.pathMode`/`.rpBus` 수정 (3) 사용자 이미지 대기: 변속 레버·게이트웨이 부품 사진(임시로 accel_pedal/can_harness/diagnostic_port 썸네일 사용), 증거 3장(`motor_reverse_log`, `dtc_gear_timeout`, `bus_load_scope`).
 - 기억할 점: 벤치 QA 기본 입력(`qaDeriv`)은 gear만 항상 `reqa`(버스 부하 85 %). 3D 벤치 부품 id는 `gear_selector`(포트 gear_out → VCU gear_in).
 
 ## 다음 할 일 (순서)
