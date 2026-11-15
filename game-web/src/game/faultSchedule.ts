@@ -82,6 +82,8 @@ export type FaultEffect = {
   steerScale?: number;
   /** READY is lost: the car loses drive and must be restarted with R. */
   shutdown?: boolean;
+  /** every start attempt fails (permanent prestart fault); after this many attempts the fault cue fires. */
+  startFails?: number;
   /** before the start: READY cannot be established until the player has pressed R this many times. */
   readyBlockedTries?: number;
   /** drive torque cut: no acceleration at all, coasting only. */
@@ -226,6 +228,7 @@ export function mergeEffects(effects: readonly FaultEffect[]): FaultEffect {
     if (e.brakeScale !== undefined) out.brakeScale = (out.brakeScale ?? 1) * e.brakeScale;
     if (e.steerScale !== undefined) out.steerScale = (out.steerScale ?? 1) * e.steerScale;
     if (e.shutdown) out.shutdown = true;
+    if (e.startFails !== undefined) out.startFails = Math.max(out.startFails ?? 0, e.startFails);
     if (e.readyBlockedTries !== undefined) out.readyBlockedTries = Math.max(out.readyBlockedTries ?? 0, e.readyBlockedTries);
     if (e.driveCut) out.driveCut = true;
     if (e.reverseOnly) out.reverseOnly = true;
@@ -343,10 +346,23 @@ export const REGEN_FAULT: FaultSpec = {
   chase: { note: "Speed rises without the pedal: the gap widens, but a crash costs speed and gap; stopping lets the police close in." },
 };
 
+/**
+ * C01 (docs/fault-cases/c01_ready_fail.md): the precharge wait limit is 500 ms instead of 1500 ms, so READY is never reached.
+ * Prestart, permanent: every start attempt (R key) fails; after 3 attempts the fault cue fires.
+ */
+export const READY_FAULT: FaultSpec = {
+  id: "case-ready", caseId: "ready",
+  trigger: { phase: "prestart" },
+  persistence: "permanent",
+  effect: { startFails: 3, cluster: { lamps: ["HV 시스템 점검"] } },
+  chase: { note: "The car cannot start: it stays at 0 km/h and the police close in at 24 km/h until the cause is found and repaired." },
+};
+
 /** Fault specs that run in a race mode. `caseId` is the case of the campaign (the case that was repaired last when resuming). */
 export function levelFaults(mode: "normal" | "resume" | "assist" | "ship", caseId: string): FaultSpec[] {
   if (mode === "normal") return [PROPULSION_FAULT];
   if (mode === "resume" && caseId === "propulsion") return [THERMAL_FAULT];
   if (mode === "resume" && caseId === "regen") return [REGEN_FAULT];
+  if (mode === "resume" && caseId === "ready") return [READY_FAULT];
   return [];
 }

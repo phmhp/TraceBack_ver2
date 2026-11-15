@@ -16,6 +16,9 @@
 | 제동 | `regen_request` | `regen_request__EVID.png` |
 | 제동 | `brake_actual` | `brake_actual__EVID.png` |
 | 회생 | `accel_trend` | `accel_trend__EVID.png` |
+| 시동 | `ready_off` | `ready_off__EVID.png` |
+| 시동 | `dtc_precharge` | `dtc_precharge__EVID.png` |
+| 시동 | `hv_bus_scope` | `hv_bus_scope__EVID.png` |
 
 ## 구동 · pedal_raw
 
@@ -171,4 +174,43 @@ Composition: the key subject centered and occupying about 70% of the frame; keep
 Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
 Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
 After the image, reply with only this file name (never draw it in the image): accel_trend__EVID.png
+```
+
+## 시동 · ready_off
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A car instrument cluster after a start attempt with no READY indicator lit, only a high-voltage system warning lamp glowing amber.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): ready_off__EVID.png
+```
+
+## 시동 · dtc_precharge
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A diagnostic tablet screen showing a stored fault entry with a freeze-frame table of timestamps and voltages, an engineer's hand holding it beside an open service port.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): dtc_precharge__EVID.png
+```
+
+## 시동 · hv_bus_scope
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: An oscilloscope on a test bench showing a rising exponential voltage curve from a high-voltage bus, probes clipped to an inverter capacitor terminal.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): hv_bus_scope__EVID.png
 ```

@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 const at = (completed) => ({ ...initialCampaign(), scene: "LEVEL_SELECT", completedCases: completed });
 
 test("N01 level: bonus level 4 after thermal, finale is level 5", () => {
-  assert.deepEqual(LEVELS.map(l => [l.level, l.kind, l.caseId]), [[1, "required", "propulsion"], [2, "required", "thermal"], [3, "bonus", "brake"], [4, "bonus", "regen"], [5, "finale", null]]);
+  assert.deepEqual(LEVELS.map(l => [l.level, l.kind, l.caseId]), [[1, "required", "propulsion"], [2, "required", "thermal"], [3, "bonus", "brake"], [4, "bonus", "regen"], [5, "bonus", "ready"], [6, "finale", null]]);
   const regenLevel = LEVELS[3];
   assert.equal(levelStatus(at([]), regenLevel), "locked");
   assert.equal(levelStatus(at(["propulsion", "thermal"]), regenLevel), "open");
@@ -21,8 +21,8 @@ test("N01 level: bonus level 4 after thermal, finale is level 5", () => {
   assert.equal(cue.scene, "FAULT_CUE"); assert.equal(cue.caseId, "regen");
   assert.equal(dispatch(cue, { type: "CONTINUE_FAULT" }).scene, "BOARD");
   assert.equal(dispatch(at(["propulsion"]), { type: "START_LEVEL", level: 4 }).scene, "LEVEL_SELECT", "locked before thermal");
-  assert.equal(dispatch(at(["propulsion", "thermal"]), { type: "START_LEVEL", level: 5 }).scene, "SHIP_ESCAPE");
-  assert.equal(dispatch(at(["propulsion"]), { type: "START_LEVEL", level: 5 }).scene, "LEVEL_SELECT", "finale needs both required levels");
+  assert.equal(dispatch(at(["propulsion", "thermal"]), { type: "START_LEVEL", level: 6 }).scene, "SHIP_ESCAPE");
+  assert.equal(dispatch(at(["propulsion"]), { type: "START_LEVEL", level: 6 }).scene, "LEVEL_SELECT", "finale needs both required levels");
 });
 
 test("N01 repair returns to the level screen with stars and keeps the other levels", () => {
@@ -41,7 +41,7 @@ test("N01 data is consistent: sheet numbers, one true hypothesis, board first de
   assert.ok(meta.hypotheses.some(h => /HW/.test(h.label)), "a hardware cause appears only as a refutable candidate");
   // the board data is a .tsx file (React + CSS imports), so it is checked from the source text
   const src = readFileSync(new URL("../src/features/board/DominoTrace.tsx", import.meta.url), "utf8");
-  const board = src.slice(src.indexOf('  regen: {\n    start: "accel"'), src.indexOf("export const fmt"));
+  const board = src.slice(src.indexOf('  regen: {\n    start: "accel"'), src.indexOf('  ready: {\n    start: "ready"'));
   assert.match(board, /start: "accel", first: "vcu_out"/);
   const times = Object.fromEntries([...board.matchAll(/id: "(\w+)"[^\n]*status: "bad", t: (\d+)/g)].map(m => [m[1], Number(m[2])]));
   assert.equal(times.vcu_out, 10);

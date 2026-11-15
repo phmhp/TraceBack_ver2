@@ -42,6 +42,7 @@ const SCOPE: Record<CaseId, { unit: { name: string; ids: string[] }; swc: { name
   propulsion: { unit: { name: "토크 요청 SWC", ids: ["filter", "map", "permit"] }, swc: [{ name: "APS 입력 SWC", ids: ["corr", "filter"] }, { name: "토크 요청 SWC", ids: ["map", "permit"] }, { name: "토크 중재 SWC", ids: ["min", "ramp"] }, { name: "통신 SWC", ids: ["out"] }] },
   thermal: { unit: { name: "팬 제어 SWC", ids: ["hyst", "pi"] }, swc: [{ name: "온도 SWC", ids: ["range", "filter"] }, { name: "팬 제어 SWC", ids: ["hyst", "pi"] }] },
   brake: { unit: { name: "제동 배분 SWC", ids: ["rmin", "rest", "press"] }, swc: [{ name: "제동 요구 SWC", ids: ["recv"] }, { name: "제동 배분 SWC", ids: ["rmin", "rest", "press"] }] },
+  ready: { unit: { name: "프리차지 시퀀스 SWC", ids: ["pre", "wait", "main"] }, swc: [{ name: "시동 조건 SWC", ids: ["cond"] }, { name: "프리차지 시퀀스 SWC", ids: ["pre", "wait", "main"] }] },
   regen: { unit: { name: "토크 지령 SWC", ids: ["sign", "rlim", "ramp"] }, swc: [{ name: "회생 요청 수신 SWC", ids: ["rrecv"] }, { name: "토크 지령 SWC", ids: ["sign", "rlim", "ramp"] }, { name: "통신 SWC", ids: ["out"] }] },
 };
 
@@ -177,6 +178,37 @@ const REF: Record<CaseId, Ref> = {
     notes: [{ domain: "drive", feature: 2, name: "구동 · 토크 배분·제한" }, { domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조" }],
     field: { sign: "+40 Nm", rlim: "+40 Nm", ramp: "+40 Nm ↗", out: "CAN +40 Nm", inv: "모터 +40 Nm · +0.5 m/s²" },
   },
+  ready: {
+    domain: "고전압 전원", feature: "시동 요청 → 프리차지 → READY", ecu: "VCU", program: "precharge_timeout_1500",
+    board: ["req", "cond", "pre", "wait", "main", "ready"], gaps: [3, 4],
+    spares: ["weld", "waitB", "lock", "main", "wait"], joints: ["round", "square", "square", "tri", "tri"],
+    side: { pieces: ["bms"], into: 3, value: "시동 허용 1", label: "BMS가 보내는 시동 허용" },
+    req: [
+      { text: "브레이크를 밟고 시동 버튼을 누르면 시동 요청이 VCU로 들어온다", slot: 0 },
+      { text: "VCU가 시동 조건(브레이크 ON · BMS 허용)을 확인한다", slot: 1 },
+      { text: "조건이 맞으면 프리차지 접촉기를 닫아 인버터 커패시터를 먼저 충전한다", slot: 2 },
+      { text: "버스 전압이 팩 전압의 95 %(380 V)에 닿을 때까지 기다린다. 대기 시간은 1500 ms이다", slot: 3 },
+      { text: "95 %에 닿으면 주 접촉기를 닫는다", slot: 4 },
+      { text: "READY로 전환되고 고전압이 연결된다", slot: 5 },
+    ],
+    blocks: {
+      req: { id: "req", label: "시동 요청 · 브레이크", kind: "hw", img: `${T}brake_pedal.png`, out: "시동 1 · 브레이크 ON", from: "고전압 전원 · 프리차지·접촉기" },
+      cond: { id: "cond", label: "시동 조건 확인", kind: "check", out: "허용 ✓", from: "고전압 전원 · 프리차지·접촉기" },
+      pre: { id: "pre", label: "프리차지 접촉기 닫기", kind: "state", out: "충전 시작", from: "고전압 전원 · 프리차지·접촉기" },
+      wait: { id: "wait", label: "프리차지 대기", tag: "표 A", spec: "설정값: 버스 95 % 도달까지 대기, 시간 제한 1500 ms", kind: "state", out: "750 ms에 95 %", from: "고전압 전원 · 프리차지·접촉기" },
+      waitB: { id: "waitB", label: "프리차지 대기", tag: "표 B", spec: "설정값: 버스 95 % 도달까지 대기, 시간 제한 500 ms", kind: "state", bad: "500 ms에 실패", from: "고전압 전원 · 프리차지·접촉기",
+        why: "실행 결과 500 ms에 시퀀스가 실패해요. 요구사항은 '시간 제한 1500 ms'예요. 같은 '프리차지 대기'라도 설정값이 달라요." },
+      main: { id: "main", label: "주 접촉기 닫기", kind: "state", out: "접촉기 닫힘", from: "고전압 전원 · 프리차지·접촉기" },
+      weld: { id: "weld", label: "용착 진단", kind: "check", from: "고전압 전원 · 프리차지·접촉기",
+        why: "'용착 진단'은 접촉기가 달라붙었는지 확인하는 블록이에요. 시동 순서 안에는 들어가지 않아요." },
+      lock: { id: "lock", label: "충전구 잠금 확인", kind: "switch", from: "충전 · 연결·잠금 확인",
+        why: "'충전구 잠금 확인'은 충전 도메인의 블록이에요. 시동 순서에는 없어요." },
+      ready: { id: "ready", label: "READY · HV 연결", kind: "hw", img: `${T}vcu.png`, out: "READY ✓", from: "고전압 전원 · 프리차지·접촉기" },
+      bms: { id: "bms", label: "BMS 시동 허용", kind: "hw", img: `${T}bms.png`, out: "시동 허용 1", from: "고전압 전원 · 팩 안전 판단" },
+    },
+    notes: [{ domain: "power", feature: 1, name: "고전압 전원 · 프리차지·접촉기" }, { domain: "power", feature: 0, name: "고전압 전원 · 팩 안전 판단" }],
+    field: { wait: "500 ms에 실패", main: "명령 없음", ready: "READY 꺼짐" },
+  },
 };
 
 // SW blocks take the garage's own picto/tag rule, so the piece looks exactly like the garage block
@@ -188,7 +220,7 @@ const doesOf = (b: Blk) => b.does ?? (b.kind === "hw" ? "실제 부품" : plainT
 const eunNeun = (word: string) => { const c = word.charCodeAt(word.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? "은" : "는"; };
 
 // table/setting pieces show their values on the face, so same-name candidates are told apart by the requirement numbers
-const FACE: Record<string, string> = { map: "60% → 204 Nm", mapB: "60% → 92 Nm", hyst: "65°C 켜짐 · 60°C 꺼짐", hystB: "95°C 켜짐 · 90°C 꺼짐", press: "2.1 m/s² → 42 bar", pressB: "2.1 m/s² → 8 bar", sign: "음수 → 음수", signB: "음수 → 양수" };
+const FACE: Record<string, string> = { map: "60% → 204 Nm", mapB: "60% → 92 Nm", hyst: "65°C 켜짐 · 60°C 꺼짐", hystB: "95°C 켜짐 · 90°C 꺼짐", press: "2.1 m/s² → 42 bar", pressB: "2.1 m/s² → 8 bar", sign: "음수 → 음수", signB: "음수 → 양수", wait: "95 %까지 · 한도 1500 ms", waitB: "95 %까지 · 한도 500 ms" };
 function PieceFace({ b }: { b: Blk }) {
   return <>
     {b.kind === "hw"
@@ -428,6 +460,7 @@ const WHY: Record<CaseId, string> = {
   thermal: "냉각수가 뜨거워지면 팬을 돌려 구동계 온도를 지키기 위해서예요.",
   brake: "브레이크를 밟은 만큼 회생과 마찰 제동을 나눠 차를 세우기 위해서예요.",
   regen: "발을 뗐을 때 회생 요청이 정확한 방향의 토크로 바뀌어야 차가 의도대로 감속하기 때문이에요.",
+  ready: "전압이 충분히 오르기 전에 주 접촉기를 닫으면 돌입 전류가 커서 위험하므로, 충전이 끝날 때까지 기다려야 해요.",
 };
 // The final actuator reacts in 3D: normal output when the rig matches the requirement, a weaker one when it does not.
 const ACTUATOR: Record<CaseId, { id: string; ok: string; weak: string }> = {
@@ -435,6 +468,7 @@ const ACTUATOR: Record<CaseId, { id: string; ok: string; weak: string }> = {
   thermal: { id: "cooling_fan", ok: "팬 1850 rpm · 정상 냉각", weak: "팬이 켜지지 않아요 · 온도 상승" },
   brake: { id: "brake_caliper", ok: "캘리퍼 42 bar · 정상 감속", weak: "압력 부족 · 감속이 약해요" },
   regen: { id: "traction_motor", ok: "모터 −40 Nm · 정상 회생 감속", weak: "토크가 반대 방향 · 오히려 가속해요" },
+  ready: { id: "vcu", ok: "버스 380 V · 주 접촉기 닫힘 · READY", weak: "대기 중 실패 · READY가 안 켜져요" },
 };
 function ActuatorReaction({ caseId, ok }: { caseId: CaseId; ok: boolean }) {
   const a = ACTUATOR[caseId];
@@ -454,6 +488,7 @@ const RIG_GOAL: Record<CaseId, string> = {
   thermal: "팬 요청 계산 SW인지, PWM 출력 어댑터 SW인지",
   brake: "배분 계산 SW인지, 압력 명령 I/O 어댑터 SW인지",
   regen: "VCU 토크 지령 변환 SW인지, 그 뒤 CAN·인버터 경로인지",
+  ready: "프리차지 대기 시간 설정인지, 프리차지 회로(저항·접촉기)인지",
 };
 /** STEP03 산출물: 정상 시나리오 요구사항 문장 (STEP04 시험 자료함에서 그대로 참고). */
 export const normalScenarioLines = (caseId: CaseId) => SPEC[caseId].lines;
@@ -463,6 +498,7 @@ const SHEET_PURPOSE: Record<CaseId, string> = {
   thermal: "팬 요청 계산 SW와 PWM 출력 SW 중 원인 구분",
   brake: "배분 계산 SW와 압력 출력 SW 중 원인 구분",
   regen: "VCU 변환 SW와 인버터 이후 경로 중 원인 구분",
+  ready: "프리차지 대기 설정과 프리차지 회로 중 원인 구분",
 };
 const SPEC: Record<CaseId, { text: string; lines: string[]; input?: { label: string; unit: string; min: number; max: number; at: number }; expect: string }> = {
   propulsion: { text: "페달 0~100% → 토크 요청 0~340 Nm 선형 · 가용 토크 한계 260 Nm(BMS·온도) · D단·READY일 때만 통과",
@@ -475,6 +511,8 @@ const SPEC: Record<CaseId, { text: string; lines: string[]; input?: { label: str
     lines: ["브레이크 페달을 55% 밟으면 목표 감속은 3.2\u00a0m/s²이다.", "회생 제동은 배터리가 받을 수 있는 만큼만 쓰고, 나머지는 마찰 제동이 채운다.", "마찰 제동 1\u00a0m/s²는 브레이크 압력 20\u00a0bar로 만든다."], expect: "페달 55% → 감속 3.2 m/s²" },
   regen: { text: "페달 0%·40 km/h 이상에서 코스팅 회생 · 토크 지령은 회생 요청과 같은 방향(음수) · 크기는 회생 한계 이내",
     lines: ["가속 페달 0%이고 40\u00a0km/h 이상이면 코스팅 회생이 동작한다.", "토크 지령은 회생 요청과 같은 방향(음수)이다. 요청 −40\u00a0Nm이면 지령도 −40\u00a0Nm이다.", "회생 크기는 BMS가 허용하는 한계(60\u00a0Nm) 이내이고, 평지에서 80\u00a0Nm당 1\u00a0m/s²로 감속한다."], expect: "회생 요청 −40 Nm → 토크 지령 −40 Nm → 가감속 −0.5 m/s²" },
+  ready: { text: "시동 요청 → 프리차지 접촉기 → 버스 95 %(380 V)까지 대기(시간 제한 1500 ms) → 주 접촉기 → READY",
+    lines: ["브레이크를 밟고 시동 요청이 오면 프리차지 접촉기를 닫아 버스를 먼저 충전한다.", "버스 전압이 팩 전압의 95 %(400\u00a0V 팩이면 380\u00a0V)에 닿으면 주 접촉기를 닫아 READY로 전환한다.", "프리차지 대기 시간(시간 제한)은 1500\u00a0ms이다. 정상 충전은 약 750\u00a0ms가 걸린다."], expect: "시동 요청 → 750 ms 부근 버스 380 V 이상 → 주 접촉기 명령 → READY" },
 };
 /** Value leaving each board slot for an example input (same numbers as simModel: 3.4 Nm/%, limit 260, 65/60 °C, 1850 rpm). */
 function exampleValue(caseId: CaseId, id: string, x: number, mapId = "map"): string | null {

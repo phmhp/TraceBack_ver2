@@ -83,6 +83,24 @@ export const SCENARIOS: Record<CaseId, Scenario> = {
       { id: "inv_wire", label: "인버터·모터 상 배선이 반대로 연결됐다", desc: "하드웨어 배선 오류 가능성" },
     ],
   },
+  ready: {
+    title: "시동 버튼을 눌러도 READY가 켜지지 않음",
+    chapter: "선택 사건 · 시동 시퀀스",
+    symptom: "브레이크를 밟고 시동 버튼을 눌러도 READY가 켜지지 않고 HV 시스템 점검 표시등이 켜집니다. 몇 번을 눌러도 같습니다.",
+    root: "seq_timeout",
+    repair: "프리차지 대기 시간을 설계값 1500 ms로 복원하고 시퀀스 타이밍 시험 추가",
+    evidence: [
+      { id: "ready_off", label: "시동 시도 3회가 모두 READY 없이 끝남", value: "계기판 READY 없음 · HV 시스템 점검 표시등", kind: "주행 현상" },
+      { id: "dtc_precharge", label: "프리차지 실패 진단 코드가 저장됨", value: "실패 시각 500 ms · 팩 400 V · 버스 345.9 V", kind: "진단 기록" },
+      { id: "hv_bus_scope", label: "HV 버스 전압이 500 ms 시점에 345.9 V로 측정됨", value: "정상 충전 곡선 · 95 %(380 V)는 약 750 ms", kind: "물리 응답" },
+    ],
+    hypotheses: [
+      { id: "bms_link", label: "BMS가 시동 허용 신호를 보내지 않았다", desc: "통신 신호 오류 가능성" },
+      { id: "start_cond", label: "VCU 시동 조건 판정이 틀렸다", desc: "입력 조건 판정 오류 가능성" },
+      { id: "seq_timeout", label: "프리차지 대기 시간 설정이 틀렸다", desc: "시퀀스 타이밍 설정 오류" },
+      { id: "precharge_hw", label: "프리차지 저항·접촉기가 불량이다", desc: "하드웨어 고장 가능성" },
+    ],
+  },
 };
 
 // ── Scenario registry (one source for race → board → puzzle → bench → repair) ──────────────
@@ -238,6 +256,40 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
       ], decideAt: ["embedded", "vehicle"], decide: "통합 SW·제어기 I/O 시험: 인버터에 닿기 전 지령부터 +40 Nm면 반박",
       hold: {
         unit: { seen: "회생 요청 · 변환 출력(부호 반대)", unseen: "인버터 이후 토크와 배선", why: "SW 단위 시험에는 인버터와 모터 배선이 없어요.", next: ["embedded", "vehicle"] },
+      } },
+    ],
+  },
+  ready: {
+    domain: "고전압 전원",
+    goal: "시퀀스의 대기 시간이 실제 물리 응답(프리차지 충전 시간)보다 짧을 때, 같은 입력에서 SW 시퀀스와 프리차지 회로를 구분한다. 진단 코드가 있어도 원인은 시험으로 가른다.",
+    trigger: "시동 전: 브레이크를 밟고 시동 버튼(R 키)을 누를 때(레이스 출발 직후 3회 실패 → 고장 컷신)",
+    injection: "VCU 시동 시퀀스 SWC(PrechargeSeq)의 프리차지 대기 시간 설정값이 1500 ms 대신 500 ms (simModel ready · faultSchedule READY_FAULT)",
+    faultModel: "프리차지 500 ms에 시퀀스 타임아웃 → 버스 345.9 V(95 % 미달 정상 진행 중) → 주 접촉기 명령 없음 → READY 없음 · 점검 표시등",
+    normalSpec: "시동 요청 시 프리차지 접촉기를 닫고 버스 전압이 팩 전압(400 V)의 95 %(380 V) 이상이면 주 접촉기를 닫아 READY. 충전 τ=250 ms로 95 %는 약 750 ms, 대기 시간 1500 ms",
+    fix: "프리차지 대기 시간을 1500 ms로 복원하고 시퀀스 타이밍 시험 추가",
+    regression: "같은 임베디드 SW·I/O 시험(시동 요청, 프리차지 곡선 τ=250 ms) PASS + 영향 범위 신호",
+    status: "optional", review: "수치 일치 확인(400×(1−e^(−t/250ms)): 500 ms 345.9 V, 750 ms 380.1 V, 1500 ms 399.0 V). 진단은 정탐이나 원인 미지정",
+    hypotheses: [
+      { id: "bms_link", label: "BMS 시동 허용 신호", truth: false, stage1: "도미노 역추적: BMS 시동 허용이 1로 기준과 같았어요.", rules: [
+        { levels: ["swint"], need: { req: ["same"] }, verdict: "refuted", why: "시동 요청 입력이 기준과 같아요." },
+      ] },
+      { id: "start_cond", label: "VCU 시동 조건 판정(브레이크·기어·시동 버튼)", truth: false, stage1: "도미노 역추적: 시동 요청과 브레이크 입력이 기준대로 인식됐어요.", rules: [
+        { levels: ["vehicle"], need: { req: ["same"] }, verdict: "refuted", why: "시동 요청 입력이 기준과 같아요." },
+      ] },
+      { id: "seq_timeout", label: "VCU 프리차지 시퀀스의 대기 시간 설정", truth: true, rules: [
+        { levels: ["embedded"], need: { vbus: ["same"], tmo: ["lower"], seq: ["higher"] }, verdict: "supported", why: "버스 전압 곡선은 정상인데 시퀀스가 설정 500 ms에 먼저 실패해요(필요한 시간은 약 750 ms)." },
+      ], decideAt: ["embedded"], decide: "통합 SW·제어기 I/O 시험: 버스 전압 곡선 정상 · 대기 시간 설정 500 ms · 시퀀스 실패를 함께 보면 지지",
+      hold: {
+        unit: { seen: "시동 요청 · 대기 시간 설정 500 ms · 시퀀스 실패", unseen: "HV 버스 전압 곡선", why: "SW 단위 시험은 전압 입력이 스텁이라 버스가 언제 95 %에 닿는지 알 수 없어서, 500 ms가 너무 짧은지 판단할 수 없어요.", next: ["embedded"] },
+        swint: { seen: "시동 요청 · 시퀀스 실패 · 대기 시간 설정", unseen: "실제 충전 곡선", why: "PC에서 SW만 연결해서는 프리차지 회로 응답 시간을 볼 수 없어 설정이 짧은지 나눌 수 없어요.", next: ["embedded"] },
+        vehicle: { seen: "버스 전압 곡선 정상 · 주 접촉기 명령 없음 · READY 없음", unseen: "시퀀스 상태 · 대기 시간 설정", why: "차량에서는 시퀀스 내부를 볼 수 없어 대기 시간 설정이 원인인지 다른 조건인지 나눌 수 없어요.", next: ["embedded"] },
+      } },
+      { id: "precharge_hw", label: "프리차지 저항·접촉기 (HW)", truth: false, rules: [
+        { levels: ["embedded", "vehicle"], need: { vbus: ["same"] }, verdict: "refuted", why: "버스 전압이 정상 충전 곡선을 그려요. 저항·접촉기 응답은 정상이에요." },
+      ], decideAt: ["embedded", "vehicle"], decide: "통합 SW·제어기 I/O 시험: 버스 전압이 정상 충전 곡선이면 반박",
+      hold: {
+        unit: { seen: "시동 요청 · 시퀀스 상태", unseen: "HV 버스 전압", why: "SW 단위 시험에는 프리차지 회로가 없어요.", next: ["embedded", "vehicle"] },
+        swint: { seen: "시동 요청 · 시퀀스 상태 · 주 접촉기 명령", unseen: "HV 버스 전압", why: "PC 통합 시험에는 프리차지 회로가 없어요.", next: ["embedded", "vehicle"] },
       } },
     ],
   },

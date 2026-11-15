@@ -33,7 +33,10 @@ export const LEVELS: LevelDef[] = [
   { level: 4, kind: "bonus", caseId: "regen", title: "발을 떼도 가속해요", domainLabel: "구동·회생", icon: "bolt",
     teaser: "가속 페달에서 발을 뗐는데 오히려 빨라져요.", phase: "코스팅(페달 해제) 구간", learn: "값의 크기가 맞아도 부호가 틀리면 정반대로 동작한다는 것을 SW 단위 시험으로 확인", difficulty: 1, principles: ["회생 요청은 부호(방향)까지 정해진 인터페이스 규약이에요.", "크기가 맞아도 부호가 틀리면 정반대로 움직여요.", "진단 모니터는 작동 범위 밖이면 고장을 못 잡아요."],
     garage: [{ domain: "drive", feature: 2 }, { domain: "brake", feature: 1 }] },
-  { level: 5, kind: "finale", caseId: null, title: "최종 탈출", domainLabel: "해적선", icon: "flag",
+  { level: 5, kind: "bonus", caseId: "ready", title: "시동이 안 걸려요", domainLabel: "고전압 전원", icon: "battery",
+    teaser: "시동 버튼을 눌러도 READY가 켜지지 않아요.", phase: "시동 전 시퀀스", learn: "상태기계의 대기 시간과 실제 물리 응답을 함께 보는 시험", difficulty: 2, principles: ["프리차지는 커패시터를 먼저 충전한 뒤 주 접촉기를 닫는 순서예요.", "대기 시간이 실제 충전 시간보다 짧으면 정상 동작도 실패로 판정돼요.", "진단 코드는 어느 단계에서 실패했는지 알려 주고 원인은 시험으로 가려요."],
+    garage: [{ domain: "power", feature: 1 }] },
+  { level: 6, kind: "finale", caseId: null, title: "최종 탈출", domainLabel: "해적선", icon: "flag",
     teaser: "수리한 차로 부두까지 달려 해적선에 올라타요.", phase: "부두 구간 주행", learn: "수리 후에도 정상 동작이 이어지는지 확인", difficulty: 1, principles: ["수리 후에도 같은 시험으로 정상 동작을 확인해요.", "정상 기준은 요구사항에서 나오고 시험 기준이 돼요.", "추리, 시험, 수리, 재시험이 검증의 기본 흐름이에요."], garage: [] },
 ];
 
@@ -44,12 +47,12 @@ export function levelStatus(state: Campaign, def: LevelDef): LevelStatus {
   if (def.caseId && done(def.caseId)) return "cleared";
   if (def.level === 1) return "open";
   if (def.level === 2) return done("propulsion") ? "open" : "locked";
-  if (def.level === 3 || def.level === 4) return done("thermal") ? "open" : "locked";
+  if (def.level >= 3 && def.level <= 5) return done("thermal") ? "open" : "locked";
   return done("propulsion") && done("thermal") ? "open" : "locked";
 }
 
 export function lockedReason(def: LevelDef) {
   if (def.level === 2) return "1레벨을 클리어하면 열려요.";
-  if (def.level === 3 || def.level === 4) return "2레벨을 클리어하면 열려요.";
+  if (def.level >= 3 && def.level <= 5) return "2레벨을 클리어하면 열려요.";
   return "1·2레벨을 클리어하면 열려요.";
 }

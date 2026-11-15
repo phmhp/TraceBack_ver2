@@ -8,7 +8,7 @@ const SCENES: [string, string][] = [
   ["BOARD", "STEP02 도미노"], ["WIRING", "STEP03 퍼즐"], ["TWIN_BENCH", "STEP04 실험대"], ["REPAIR", "수리"],
   ["CHASE_RESUME", "주행 복귀"], ["SHIP_ESCAPE", "해적선"], ["ENDING", "엔딩"],
 ];
-const CASES: [string, string][] = [["propulsion", "구동"], ["thermal", "열관리"], ["brake", "제동"], ["regen", "회생"]];
+const CASES: [string, string][] = [["propulsion", "구동"], ["thermal", "열관리"], ["brake", "제동"], ["regen", "회생"], ["ready", "시동"]];
 
 function clickFirst(selector: string) {
   const el = [...document.querySelectorAll<HTMLButtonElement>(selector)].find(b => !b.disabled && b.offsetParent !== null);

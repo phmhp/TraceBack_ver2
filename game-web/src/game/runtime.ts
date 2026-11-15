@@ -1,4 +1,4 @@
-export type CaseId = "propulsion" | "thermal" | "brake" | "regen";
+export type CaseId = "propulsion" | "thermal" | "brake" | "regen" | "ready";
 
 export type InvestigationStep = "locked" | "board" | "wiring" | "bench" | "repair" | "done";
 export type JourneyStageId = "garage" | "heist" | "race" | "board" | "wiring" | "bench" | "repair" | "escape";
@@ -62,16 +62,17 @@ export const initialCampaign = (): Campaign => ({
   caseId: "propulsion",
   completedCases: [],
   levelStars: {},
-  investigationProgress: { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked" },
+  investigationProgress: { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked", ready: "locked" },
   optionalBrake: "undecided",
   checkpoint: "start",
-  evidence: { propulsion: [], thermal: [], brake: [], regen: [] },
-  hypothesis: { propulsion: "", thermal: "", brake: "", regen: "" },
+  evidence: { propulsion: [], thermal: [], brake: [], regen: [], ready: [] },
+  hypothesis: { propulsion: "", thermal: "", brake: "", regen: "", ready: "" },
   program: {
     propulsion: "underreport_45pct",
     thermal: "open_loop_fan",
     brake: "friction_only",
     regen: "regen_sign_dropped",
+    ready: "precharge_timeout_500",
   },
   collisions: 0,
   hints: 0,
@@ -116,8 +117,9 @@ const investigationStepForScene = (scene: Scene): InvestigationStep => {
   return "locked";
 };
 const unlockInvestigation = (s: Campaign, step: InvestigationStep) => {
-  s.investigationProgress ??= { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked" };
+  s.investigationProgress ??= { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked", ready: "locked" };
   s.investigationProgress.regen ??= "locked"; s.evidence.regen ??= []; s.hypothesis.regen ??= ""; s.program.regen ??= "regen_sign_dropped";
+  s.investigationProgress.ready ??= "locked"; s.evidence.ready ??= []; s.hypothesis.ready ??= ""; s.program.ready ??= "precharge_timeout_500";
   if (stepRank(step) > stepRank(s.investigationProgress[s.caseId])) {
     s.investigationProgress[s.caseId] = step;
   }
@@ -235,7 +237,7 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
         ? enter(s, "LEVEL_SELECT")
         : reject(s, "GARAGE_TUTORIAL_REQUIRED");
     case "START_LEVEL": {
-      // Levels follow a fixed order (no random faults): 1 propulsion → 2 thermal → 3 brake (bonus) → 4 regen (bonus) → 5 final escape.
+      // Levels follow a fixed order (no random faults): 1 propulsion → 2 thermal → 3 brake (bonus) → 4 regen (bonus) → 5 ready (bonus) → 6 final escape.
       if (s.scene !== "LEVEL_SELECT") return reject(s, "LEVEL_SELECT_REQUIRED");
       const level = Number(event.level);
       const done = (id: CaseId) => s.completedCases.includes(id);
@@ -247,7 +249,10 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       // level 4 (N01): a race first; the fault shows up when the player lifts the pedal at speed (REGEN_FAULT), then FAULT_CUE → BOARD
       if (level === 4 && done("thermal") && !done("regen"))
         return enter({ ...s, caseId: "regen", checkpoint: "regen_start" }, "CHASE_RESUME");
-      if (level === 5 && done("propulsion") && done("thermal"))
+      // level 5 (C01): the race starts with failed start attempts (READY_FAULT, prestart), then FAULT_CUE → BOARD
+      if (level === 5 && done("thermal") && !done("ready"))
+        return enter({ ...s, caseId: "ready", checkpoint: "ready_start" }, "CHASE_RESUME");
+      if (level === 6 && done("propulsion") && done("thermal"))
         return enter({ ...s, optionalBrake: s.optionalBrake === "accepted" ? "accepted" : "skipped" }, "SHIP_ESCAPE");
       return reject(s, "LEVEL_LOCKED");
     }
@@ -314,14 +319,15 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
         thermal: { evidence: ["motor_temp", "fan_command", "fan_actual"], root: "fan_actuator" },
         brake: { evidence: ["brake_request", "regen_request", "brake_actual"], root: "brake_actuator" },
         regen: { evidence: ["accel_trend", "regen_request", "torque_cmd"], root: "vcu_sign" },
+        ready: { evidence: ["ready_off", "dtc_precharge", "hv_bus_scope"], root: "seq_timeout" },
       };
       s.evidence[s.caseId] = answers[s.caseId].evidence;
       s.hypothesis[s.caseId] = answers[s.caseId].root;
       return s;
     }
     case "DEV_SOLVE": {
-      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign" };
-      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied" };
+      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign", ready: "seq_timeout" };
+      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500" };
       s.hypothesis[s.caseId] = roots[s.caseId];
       s.program[s.caseId] = programs[s.caseId];
       return s;
@@ -445,8 +451,8 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       }
       return s.policeGapMeters <= 0 ? enter(s, "CAUGHT") : s;
     case "GUIDED_REPAIR": {
-      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign" };
-      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied" };
+      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign", ready: "seq_timeout" };
+      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500" };
       s.hypothesis[s.caseId] = roots[s.caseId];
       s.program[s.caseId] = programs[s.caseId];
       return enter(unlockInvestigation(s, "repair"), "REPAIR");

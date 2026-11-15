@@ -181,6 +181,41 @@ const BASE: Record<CaseId, ContractBase> = {
     limitation: "부호가 처음 달라지는 위치를 시험하며, 진단 모니터가 동작하지 않은 이유는 이 시험의 범위 밖이다.",
     createdBy: "STEP03",
   },
+  ready: {
+    version: 1,
+    caseId: "ready",
+    objective: "시동 시퀀스가 실패하는 원인이 프리차지 대기 시간 설정인지 프리차지 회로인지, 같은 시동 요청에서 버스 전압 곡선과 시퀀스 상태를 함께 보고 구분한다.",
+    preconditions: ["P단", "브레이크 ON", "팩 400 V", "BMS 시동 허용 1"],
+    stimulus: { label: "시동 요청", sequence: "시동 요청 0→1 / 0.05 s · 1.6 s 관찰" },
+    expectedSignal: "주 접촉기 명령과 READY",
+    observations: [
+      { id: "input", label: "시동 요청" },
+      { id: "control", label: "프리차지 시퀀스 상태" },
+      { id: "output", label: "HV 버스 전압" },
+    ],
+    comparison: { baseline: "STEP03 정상 기준 장치", sameInput: true, timeAxis: "0~1.6 s 동일 시간축", units: "V, ms, 상태" },
+    execution: {
+      initial: [
+        { signalId: "gearPark", value: 1, unit: "bool" },
+        { signalId: "brakePedal", value: 1, unit: "bool" },
+        { signalId: "packVoltage", value: 400, unit: "V" },
+        { signalId: "bmsAllow", value: 1, unit: "bool" },
+        { signalId: "prechargeTau", value: 250, unit: "ms" },
+      ],
+      stimulus: { signalId: "startRequest", startValue: 0, endValue: 1, unit: "bool", rampSeconds: 0.05, holdSeconds: 1.55 },
+      durationSeconds: 1.6,
+      observationSignalIds: {
+        unit: ["req", "tmo", "seq"],
+        swint: ["req", "seq", "tmo", "main"],
+        embedded: ["vbus", "seq", "tmo", "main"],
+        vehicle: ["req", "vbus", "main", "ready"],
+      },
+      expectedOutputs: [{ signalId: "main", value: 1, unit: "bool", tolerance: 0.1 }],
+      comparisonTolerancePercent: 2,
+    },
+    limitation: "시퀀스의 대기 시간과 물리 응답을 비교하며, 진단 코드가 어느 원인인지 알려 주지 못하는 이유는 이 시험의 범위 밖이다.",
+    createdBy: "STEP03",
+  },
 };
 
 export function buildVerificationContract(caseId: CaseId, input: {
@@ -252,5 +287,10 @@ const CONTRACT_SIGNAL_LABEL: Record<string, string> = {
   regenAvailable: "회생 제동 가용 감속도",
   aps: "가속 페달 입력",
   regenRequest: "회생 요청",
+  startRequest: "시동 요청",
+  gearPark: "변속 위치 P",
+  packVoltage: "팩 전압",
+  bmsAllow: "BMS 시동 허용",
+  prechargeTau: "프리차지 충전 시정수",
 };
 export const contractSignalLabel = (signalId: string) => CONTRACT_SIGNAL_LABEL[signalId] ?? signalId;

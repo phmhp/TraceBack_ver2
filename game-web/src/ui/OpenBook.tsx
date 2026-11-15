@@ -19,6 +19,9 @@ const BOOK: Record<CaseId, { domain: DomainId; feature: number; name: string; re
     { domain: "drive", feature: 2, name: "구동 · 토크 배분·제한", req: "회생 요청은 부호까지 정해진 값이에요. 가속 페달 0%·40 km/h 이상에서 토크 지령은 회생 요청과 같은 방향(−40 Nm)이고, 평지에서 −0.5 m/s²로 감속해요." },
     { domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조", req: "회생 요청은 감속 방향(음수)으로 VCU에 전달돼요. 회생 크기는 배터리가 받을 수 있는 한계 이내예요." },
   ],
+  ready: [
+    { domain: "power", feature: 1, name: "고전압 전원 · 프리차지·접촉기", req: "시동 요청이 오면 프리차지 접촉기로 인버터 커패시터를 먼저 충전하고, 버스 전압이 팩 전압의 95 %(400 V 팩이면 380 V)에 닿으면 주 접촉기를 닫아 READY가 돼요. 충전에는 약 750 ms가 걸리고 대기 시간은 1500 ms예요." },
+  ],
   brake: [{ domain: "brake", feature: 1, name: "제동 · 회생·마찰 협조", req: "페달 55% → 목표 감속 3.2 m/s². 회생은 배터리가 받을 수 있는 만큼, 나머지는 마찰(1 m/s²당 20 bar)." }],
 };
 

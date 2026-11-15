@@ -125,6 +125,27 @@ const experimentConfig: Record<CaseId, ExperimentConfig> = {
     lesson: "같은 회생 요청을 넣고 변환 출력의 부호를 비교해 부호 반영이 빠진 SW 경계를 찾았습니다.",
     probeCopy: { input: "회생 요청", control: "VCU 토크 지령 변환", output: "모터 토크" },
   },
+  ready: {
+    requirementId: "REQ-PWR-02",
+    requirement: "시동 요청 시 버스 전압이 팩 전압의 95 %에 닿으면 주 접촉기를 닫아 READY가 되어야 하고, 프리차지 대기 시간은 1500 ms이다.",
+    missionTitle: "시동을 거는 순간을 재현하라",
+    missionBrief: "출발 전 브레이크를 밟고 시동 버튼을 누른 순간을 재현하고, 프리차지 시퀀스가 처음 갈라지는 경계를 확인합니다.",
+    precondition: "P · 브레이크 ON · 팩 400 V · BMS 허용",
+    stimuli: [
+      { label: "정상 시동", hint: "충전 시정수 250 ms", sequence: "시동 0→1 / 0.05 s" },
+      { label: "저온 시동", hint: "충전이 더 느린 경계", sequence: "시동 0→1 · 시정수 350 ms" },
+      { label: "시동 요청 없음", hint: "시퀀스가 돌지 않음", sequence: "시동 0 유지" },
+    ],
+    target: 0,
+    probe: "control",
+    expected: "READY",
+    healthyActual: "READY",
+    faultyActual: "실패",
+    mismatch: "프리차지 시퀀스 상태",
+    technique: "SW·회로 모델 동시 관찰",
+    lesson: "버스 전압 곡선과 시퀀스 상태를 함께 비교해 대기 시간 설정이 충전 시간보다 짧은 경계를 찾았습니다.",
+    probeCopy: { input: "시동 요청", control: "프리차지 시퀀스", output: "HV 버스 전압" },
+  },
 };
 
 const lenses: { id: BenchTab; label: string; short: string; observation: string }[] = [
@@ -173,6 +194,12 @@ const rigParts: Record<CaseId, readonly RigPart[]> = {
     { cell: [2, 1], role: "TRANSFER", label: "CAN 토크 지령", signal: "−40 Nm", kind: "transfer" },
     { cell: [3, 1], role: "PHYSICAL OUTPUT", label: "인버터 · 모터", signal: "회생 −40 Nm", kind: "output" },
   ],
+  ready: [
+    { cell: [0, 0], role: "DRIVER INPUT", label: "시동 요청 · 브레이크", signal: "시동 1", kind: "input" },
+    { cell: [1, 0], role: "CONTROL", label: "VCU 프리차지 시퀀스", signal: "대기 · 전이", kind: "controller" },
+    { cell: [2, 1], role: "PRECHARGE", label: "프리차지 접촉기·저항", signal: "버스 충전", kind: "transfer" },
+    { cell: [3, 1], role: "HV BUS", label: "HV 버스 · 주 접촉기", signal: "380 V 이상", kind: "output" },
+  ],
 };
 
 function ComponentCutout({ part }: { part: RigPart }) {
@@ -218,6 +245,7 @@ const systemScenario: Record<CaseId, { input: string; network: string; response:
   thermal: { input: "열부하 78.4°C", network: "Thermal ECU ↔ VCU ↔ BMS", response: "온도 기울기 · 팬 응답", units: "-1.8°C/min · 1850 RPM" },
   brake: { input: "제동 요구 55%", network: "Brake ECU ↔ VCU ↔ ABS", response: "감속도 · 휠 슬립", units: "3.2 m/s² · 4%" },
   regen: { input: "회생 요청 −40 Nm", network: "Brake ECU ↔ VCU ↔ Inverter", response: "가감속 · 모터 토크", units: "−0.5 m/s² · −40 Nm" },
+  ready: { input: "시동 요청 · 브레이크 ON", network: "VCU ↔ BMS ↔ 접촉기 드라이버", response: "버스 전압 · READY", units: "380 V · READY 1" },
 };
 
 function SystemNetworkVisual({ caseId, running, works, conclusive }: { caseId: CaseId; running: boolean; works: boolean; conclusive: boolean }) {
@@ -305,6 +333,17 @@ const softwareFlows: Record<CaseId, { nodes: SoftwareFlowNode[]; mismatchIndex: 
       { stage: "FEEDBACK", label: "차량 가감속", expected: "−0.5 m/s²", faulty: "+0.5 m/s²", kind: "output" },
     ],
   },
+  ready: {
+    mismatchIndex: 2,
+    nodes: [
+      { stage: "INPUT", label: "시동 요청 · 브레이크", expected: "1 / ON", faulty: "1 / ON" },
+      { stage: "VALIDATE", label: "시동 조건 확인", expected: "허용", faulty: "허용", kind: "decision" },
+      { stage: "SEQ", label: "프리차지 접촉기 닫기", expected: "충전 시작", faulty: "충전 시작" },
+      { stage: "WAIT", label: "프리차지 대기", expected: "750 ms에 95 %", faulty: "500 ms에 실패" },
+      { stage: "OUTPUT", label: "주 접촉기 명령", expected: "닫기", faulty: "없음" },
+      { stage: "FEEDBACK", label: "READY 상태", expected: "켜짐", faulty: "꺼짐", kind: "output" },
+    ],
+  },
 };
 
 function SoftwareLogicVisual({ caseId, running, works, conclusive, reference }: { caseId: CaseId; running: boolean; works: boolean; conclusive: boolean; reference: boolean }) {
@@ -356,12 +395,18 @@ const levelCheck: Record<CaseId, { answer: BenchTab; why: string; wrong: string 
     why: "의심 구간이 VCU 토크 지령 변환 SW예요. SW만 따로 실행하는 단위 시험에서 회생 요청과 변환 출력의 부호를 바로 비교할 수 있어요.",
     wrong: "그 레벨은 하드웨어 경로까지 포함해 위치를 좁히기 어렵거나, 더 앞선 레벨에서 바로 볼 수 있어요.",
   },
+  ready: {
+    answer: "embedded",
+    why: "의심 구간이 프리차지 시퀀스 SW예요. 제어기 I/O까지 연결해 버스 전압 곡선과 대기 시간 설정을 함께 봐야 설정이 충전 시간보다 짧은지 가를 수 있어요.",
+    wrong: "그 레벨로는 실제 충전 곡선과 대기 시간 설정을 함께 볼 수 없거나, 더 높은 레벨이어도 시퀀스 내부를 볼 수 없어요.",
+  },
 };
 const regressionTests: Record<CaseId, string[]> = {
   propulsion: ["브레이크를 함께 밟으면 구동 토크 차단", "APS 두 센서 값이 어긋나면 토크 제한", "P단에서는 페달을 밟아도 토크 0"],
   thermal: ["냉각수 온도가 내려가면 팬 정지(히스테리시스)", "팬 피드백이 없으면 고장 코드·경고", "출력 제한 해제 후 정상 가속 복귀"],
   brake: ["회생 가능 범위에서는 회생 우선", "ABS 작동 시 압력 조절 정상", "브레이크 경고등 소등"],
   regen: ["평지 코스팅 시 회생 감속 유지", "회생·마찰 제동 협조 전환 정상", "가속 시 구동 토크 방향 정상"],
+  ready: ["시동 재시도 시 READY 성공", "접촉기 용착 진단 정상", "충전 중 시동 인터록 유지"],
 };
 
 function VerificationReport({ caseId, config, works, actual, onDone, onClose }: { caseId: CaseId; config: ExperimentConfig; works: boolean; actual: string; onDone: () => void; onClose: () => void }) {
@@ -527,12 +572,14 @@ const CHAIN_PHOTO: Record<CaseId, [string, string, string]> = {
   thermal: ["motor_temp_sensor", "thermal_ecu", "cooling_fan"],
   brake: ["brake_pedal", "brake_ecu", "brake_caliper"],
   regen: ["brake_ecu", "vcu", "traction_motor"],
+  ready: ["brake_pedal", "vcu", "bms"],
 };
 const WAVES: Record<CaseId, string[]> = {
   propulsion: ["M4 30 H76", "M4 30 H18 L28 12 H76", "M4 30 H16 L19 4 H76"],
   thermal: ["M4 20 H76", "M4 20 H38 L42 16 H76", "M4 26 H14 C40 24 52 10 76 6"],
   brake: ["M4 30 H20 L36 26 H76", "M4 30 H18 L30 14 H76", "M4 30 H16 L19 4 H76"],
   regen: ["M4 30 H20 L36 26 H76", "M4 30 H18 L30 14 H76", "M4 30 H16 L19 4 H76"],
+  ready: ["M4 30 H20 L36 26 H76", "M4 30 H18 L30 14 H76", "M4 30 H16 L19 4 H76"],
 };
 type Fix = { label: string; img: string; ok: boolean; why: string };
 const FIXES: Record<CaseId, Fix[]> = {
@@ -555,6 +602,11 @@ const FIXES: Record<CaseId, Fix[]> = {
     { label: "회생 요청의 부호 규약을 정의대로 반영하고 부호 시험 추가", img: "/assets/ending-thumbs/vcu.png", ok: true, why: "부호 반영이 빠진 변환 SW를 고치고, 같은 오류가 다시 들어오지 않게 부호 단위 시험을 추가했어요." },
     { label: "코스팅 중 가속 페달 off일 때 토크 지령을 0으로 고정", img: "/assets/ending-thumbs/vcu.png", ok: false, why: "증상만 가려요. 회생 감속이 사라져 감속감이 없고 연비와 제동 협조가 깨져요." },
     { label: "모터 최대 토크 한계를 낮추기", img: "/assets/ending-thumbs/traction_motor.png", ok: false, why: "가속이 줄 뿐 지령의 부호 오류는 그대로예요." },
+  ],
+  ready: [
+    { label: "프리차지 대기 시간을 1500 ms로 복원하고 시퀀스 타이밍 시험 추가", img: "/assets/ending-thumbs/vcu.png", ok: true, why: "대기 시간 설정을 설계값으로 되돌리고, 같은 오류가 다시 들어오지 않게 타이밍 시험을 추가했어요." },
+    { label: "타임아웃이 나면 주 접촉기를 강제로 닫기", img: "/assets/ending-thumbs/vcu.png", ok: false, why: "증상만 가려요. 전압이 모자란 채로 닫으면 돌입 전류와 접촉기 용착 위험이 생겨요." },
+    { label: "프리차지 저항 값을 키우기", img: "/assets/ending-thumbs/bms.png", ok: false, why: "충전이 더 느려질 뿐 대기 시간 설정은 그대로라 실패는 그대로예요." },
   ],
 };
 const STEP_NAMES = ["재현 입력", "관측 경계", "고치기 전 실행", "고치기", "다시 실행 · 회귀"];
@@ -594,6 +646,13 @@ const SIGNALS: Record<CaseId, { seconds: number; first: number; list: Sig[] }> =
     { name: "CAN 토크 지령 (구동분)", unit: "Nm", zone: "CAN", ref: () => 0, fault: u => 40 * lag(u, .05, .1), max: 80 },
     { name: "모터 토크 (구동분)", unit: "Nm", zone: "부품", ref: () => 0, fault: u => 40 * lag(u, .07, .1), max: 80 },
     { name: "차량 가속 (구동분)", unit: "m/s²", zone: "차량", ref: () => 0, fault: u => .5 * lag(u, .1, .1), max: 2 },
+  ] },
+  ready: { seconds: 1.6, first: 2, list: [
+    { name: "시동 요청", unit: "", zone: "센서", ref: u => ramp(u, .03), fault: u => ramp(u, .03), max: 1 },
+    { name: "HV 버스 전압", unit: "V", zone: "부품", ref: u => 400 * (1 - Math.exp(-u * 6.4)), fault: u => 400 * (1 - Math.exp(-u * 6.4)), max: 450 },
+    { name: "시퀀스 상태 (3 = 실패)", unit: "", zone: "제어기 SW", ref: u => (u < .5 ? 1 : 2), fault: u => (u < .31 ? 1 : 3), max: 3 },
+    { name: "주 접촉기 명령", unit: "", zone: "제어기 SW I/O", ref: u => (u < .5 ? 0 : 1), fault: () => 0, max: 1 },
+    { name: "READY 상태", unit: "", zone: "차량", ref: u => (u < .52 ? 0 : 1), fault: () => 0, max: 1 },
   ] },
 };
 const SIM_TABS: { id: string; label: string; sub: string }[] = [
@@ -644,6 +703,9 @@ const TEST_ANSWER: Record<CaseId, { method: Method[]; deriv: Deriv[]; input: str
   regen: { method: ["req"], deriv: ["reqa"], input: "회생 요청 −40 Nm 유지 · 페달 0% · 60 km/h",
     whyM: { req: "'회생 요청 −40 Nm → 토크 지령 −40 Nm' 요구를 그대로 확인하는 방법이에요.", iface: "요청의 크기·형식은 맞고 방향 규약이 문제라, 인터페이스 값 비교로도 볼 수 있지만 요구사항 입력이 가장 직접적이에요.", inject: "고장을 일부러 넣는 방법이에요. 이미 발생한 고장을 재현하는 이번 시험에는 맞지 않아요." },
     whyD: { reqa: "요구사항 '요청 −40 Nm → 지령 −40 Nm'에서 입력과 기대값을 바로 뽑을 수 있어요.", bound: "최대 회생(−80 Nm) 경계에서도 부호가 반대로 나와 오류는 같게 드러나요. 대표 입력으로 충분해요.", equiv: "회생 요청 0 Nm은 부호를 바꿔도 0이라 이 오류를 드러내지 못해요.", guess: "근거 없이 고르기보다 요구사항 값을 쓰는 게 확실해요.", usecase: "실제 주행 기록엔 요청이 계속 변해 부호 오류가 섞여 보여요." } },
+  ready: { method: ["req"], deriv: ["reqa", "bound"], input: "시동 요청 0→1 · 충전 시정수 250 ms",
+    whyM: { req: "'시동 요청 → 750 ms 부근 95 % → READY' 요구를 그대로 확인하는 방법이에요.", iface: "신호 형식 문제가 아니에요. 시퀀스의 시간 설정을 보는 시험이에요.", inject: "고장을 일부러 넣는 방법이에요. 이미 발생한 고장을 재현하는 이번 시험에는 맞지 않아요." },
+    whyD: { reqa: "요구사항 '시동 요청 → 750 ms에 95 %'에서 입력과 기대값을 바로 뽑을 수 있어요.", bound: "충전이 더 느린 저온 경계(시정수 350 ms)에서도 대기 시간이 충분해야 해요. 같은 설정 오류가 더 뚜렷해요.", equiv: "시동 요청이 없으면 시퀀스가 돌지 않아 이 오류를 드러내지 못해요.", guess: "근거 없이 고르기보다 요구사항 입력을 쓰는 게 확실해요.", usecase: "실제 시동 기록은 시도 횟수만 남아 설정 값을 가르기 어려워요." } },
 };
 const SIM_INPUT: Record<Deriv, Tech> = { reqa: "req", equiv: "req", guess: "req", bound: "boundary", usecase: "soak" };
 // v7: only test-case derivations whose input really differs in the numeric model are offered, per case,
@@ -670,6 +732,11 @@ const CASE_DERIVS: Record<CaseId, { id: Deriv; tech: Tech; input: string }[]> = 
     { id: "bound", tech: "boundary", input: "경계 조건 · 회생 요청 −80 Nm (최대 회생)" },
     { id: "equiv", tech: "req", input: "다른 입력 구간 · 회생 요청 0 Nm (회생 없음)" },
   ],
+  ready: [
+    { id: "reqa", tech: "req", input: "요구사항 기준 · 시동 요청, 충전 시정수 250 ms" },
+    { id: "bound", tech: "boundary", input: "경계 조건 · 저온 시동, 충전 시정수 350 ms" },
+    { id: "equiv", tech: "req", input: "다른 입력 구간 · 시동 요청 없음" },
+  ],
 };
 /**
  * 2026-11-12: each input condition is a real, different stimulus (STEP03 contract = the case reproduction input).
@@ -691,6 +758,10 @@ const INPUT_EXEC: Record<CaseId, Partial<Record<Deriv, (base: VerificationExecut
   },
   regen: {
     bound: base => ({ ...base, stimulus: { ...base.stimulus, endValue: -80 } }),
+    equiv: base => ({ ...base, stimulus: { ...base.stimulus, startValue: 0, endValue: 0 } }),
+  },
+  ready: {
+    bound: base => ({ ...base, initial: base.initial.map(item => item.signalId === "prechargeTau" ? { ...item, value: 350 } : item) }),
     equiv: base => ({ ...base, stimulus: { ...base.stimulus, startValue: 0, endValue: 0 } }),
   },
 };
@@ -732,6 +803,11 @@ const INPUT_INFO: Record<CaseId, Partial<Record<Deriv, { tag: string; purpose: s
     bound: { tag: "경계 조건 시험 · 최대 회생", purpose: "회생 요청 −80 Nm에서도 토크 지령이 같은 방향으로 나오는지 확인" },
     equiv: { tag: "다른 입력 구간 시험 · 회생 없음", purpose: "회생 요청이 0이면 지령도 0이어야 해요. 이 구간이 기준과 같은지 확인" },
   },
+  ready: {
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "고장 당시와 같은 시동 요청에서 버스가 95 %에 닿고 주 접촉기가 닫혀 READY가 되는지 확인" },
+    bound: { tag: "경계 조건 시험 · 저온 시동", purpose: "충전이 더 느린 조건(시정수 350 ms, 95 %는 약 1050 ms)에서도 대기 시간이 충분한지 확인" },
+    equiv: { tag: "다른 입력 구간 시험 · 시동 요청 없음", purpose: "시동 요청이 없으면 시퀀스가 돌지 않고 접촉기도 열려 있어야 해요. 이 구간이 기준과 같은지 확인" },
+  },
 };
 const fmtNum = (v: number) => Number.isInteger(v) ? String(v) : v.toFixed(1);
 /** Plain description of the executed stimulus: values, change shape and hold time. */
@@ -765,6 +841,12 @@ const CAUSES: Record<CaseId, { hyp: string; name: string; type: string; where: s
     { hyp: "vcu_sign", name: "토크 지령 변환의 회생 부호 반영 누락", type: "수치·부호 오류(인터페이스 규약 불일치)", where: "VCU · 토크 지령 변환 SWC", desc: "회생 요청의 크기만 쓰고 부호를 버려 지령이 반대 방향으로 나감", img: CAUSE_IMG.board("torque_cmd") },
     { hyp: "inv_wire", name: "인버터·모터 상 배선 반대 연결 (HW)", type: "하드웨어 배선 오류", where: "모터 상 배선", desc: "상 순서가 바뀌어 토크 방향이 반대로 나옴", img: CAUSE_IMG.part("traction_motor") },
   ],
+  ready: [
+    { hyp: "bms_link", name: "BMS 시동 허용 신호 오류", type: "통신 신호 오류", where: "BMS · 시동 허용", desc: "허용 신호가 오지 않아 시동 조건이 충족되지 않음", img: CAUSE_IMG.part("bms") },
+    { hyp: "start_cond", name: "VCU 시동 조건 판정 오류", type: "SW 로직 오류(조건 판정)", where: "VCU · 시동 조건", desc: "브레이크·기어 조건을 잘못 판정해 시퀀스가 시작되지 않음", img: CAUSE_IMG.part("brake_pedal") },
+    { hyp: "seq_timeout", name: "프리차지 대기 시간 설정 오류", type: "구성·파라미터 오류(시퀀스 타이밍)", where: "VCU 시퀀스", desc: "설계값 1500 ms 대신 500 ms가 들어가 정상 충전 중에 실패로 판정", img: CAUSE_IMG.part("vcu") },
+    { hyp: "precharge_hw", name: "프리차지 저항·접촉기 불량 (HW)", type: "하드웨어 고장", where: "프리차지 회로", desc: "충전이 정상 곡선을 못 그려 시간 안에 전압이 오르지 않음", img: CAUSE_IMG.part("can_harness") },
+  ],
 };
 // Verification levels (what is verified) — ISO 26262-6 §9, §10, §11 and ISO 26262-4 §7.
 // Test environments (where it runs: MIL/SIL/PIL/HIL/차량) are a separate axis, shown as chips.
@@ -780,6 +862,7 @@ const LV_ANSWER: Record<CaseId, { answer: Lv; why: string }> = {
   thermal: { answer: "embedded", why: "의심 구간이 PWM 출력 어댑터 SW예요. 통합 SW·제어기 I/O 시험에서 요청값과 실제 출력값을 함께 보면 가장 먼저 잡을 수 있어요." },
   brake: { answer: "embedded", why: "의심 구간이 압력 명령 I/O 어댑터 SW예요. 통합 SW·제어기 I/O 시험에서 계산값과 전송값을 비교하면 가장 먼저 잡을 수 있어요." },
   regen: { answer: "unit", why: "의심 구간이 VCU 토크 지령 변환 SW예요. SW 단위 시험에서 회생 요청과 변환 출력의 부호를 나란히 보면 가장 먼저 잡을 수 있어요." },
+  ready: { answer: "embedded", why: "의심 구간이 프리차지 시퀀스 SW예요. 통합 SW·제어기 I/O 시험에서 버스 전압 곡선과 대기 시간 설정을 함께 보면 가장 먼저 가를 수 있어요." },
 };
 
 // v6 (level → technique quiz → compare) kept unused; v7 below follows docs/REDESIGN_2026-11-08.md
@@ -997,10 +1080,10 @@ function OverlayGraph({ list, upto, look, note }: { list: Series[]; upto: number
 // Mission B · 고장 재현: field condition — does the same symptom come back, and where does it first split?
 // Every choice runs for real (no locked "answer"); stars come from the total test cost.
 const LV_COST: Record<Lv, number> = { unit: 1, swint: 2, embedded: 3, vehicle: 5 };
-const BEST_COST: Record<CaseId, number> = { propulsion: 2, thermal: 10, brake: 10, regen: 1 };
-const ROOT_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "rpm", brake: "line", regen: "vcuOut" };
+const BEST_COST: Record<CaseId, number> = { propulsion: 2, thermal: 10, brake: 10, regen: 1, ready: 3 };
+const ROOT_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "rpm", brake: "line", regen: "vcuOut", ready: "tmo" };
 /** The function the case fault lives in, read from the NORMAL model: pedal processing, fan PWM duty, friction pressure command. */
-const FAULT_PATH_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "duty", brake: "cmd", regen: "vcuOut" };
+const FAULT_PATH_SIGNAL: Record<CaseId, string> = { propulsion: "proc", thermal: "duty", brake: "cmd", regen: "vcuOut", ready: "seq" };
 /** Did this input make the normal design use the faulty function at all? (If not, normal and fault runs are identical by construction.) */
 function exercisesFaultPath(caseId: CaseId, levels: Record<string, Series[]>) {
   return Object.values(levels).flat().filter(sig => sig.id === FAULT_PATH_SIGNAL[caseId]).some(sig => Math.max(...sig.ref.map(Math.abs)) > span(sig) * .02);
@@ -1303,6 +1386,12 @@ const QUESTIONS: Record<CaseId, { hyp: string; ask: string }[]> = {
     { hyp: "pedal", ask: "가속 페달 값이 틀린 건가요?" },
     { hyp: "vcu_sign", ask: "VCU가 회생 요청의 부호를 놓친 건가요?" },
     { hyp: "inv_wire", ask: "인버터 배선이 반대로 연결된 건가요?" },
+  ],
+  ready: [
+    { hyp: "bms_link", ask: "BMS가 시동 허용을 보내지 않은 건가요?" },
+    { hyp: "start_cond", ask: "VCU 시동 조건 판정이 틀린 건가요?" },
+    { hyp: "seq_timeout", ask: "프리차지 대기 시간 설정이 틀린 건가요?" },
+    { hyp: "precharge_hw", ask: "프리차지 저항·접촉기가 불량인 건가요?" },
   ],
 };
 const TEST_CARD: Record<Lv, { name: string; pic: "chip" | "grid" | "monitor" | "car" }> = {

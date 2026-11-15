@@ -187,6 +187,36 @@ export const CASES: Record<CaseId, CaseData> = {
       lesson: "변환 SW가 회생 요청의 크기만 쓰고 부호를 버려, 지령이 반대 방향(+40 Nm)으로 나갔어요.",
     },
   },
+  ready: {
+    start: "ready", first: "seq_state", timeUnit: "ms",
+    req: "요구사항: 시동 요청이 오면 프리차지 후 버스 전압이 95 %(380 V)에 닿을 때 주 접촉기를 닫아 READY가 되어야 한다. 대기 시간은 1500 ms이다.",
+    doms: [
+      { id: "ready", label: "READY 상태", img: CLUSTER, zone: "차량", ref: "켜짐", run: "꺼짐", unit: "", status: "bad", t: 520, causes: ["main_cmd", "pack_v", "aux_v"], ev: "ready_off" },
+      { id: "main_cmd", label: "VCU 주 접촉기 명령", img: E("vcu"), zone: "제어기", ref: "닫기", run: "안 닫음", unit: "", status: "bad", t: 510, causes: ["seq_state", "dtc", "bms_ok"] },
+      { id: "seq_state", label: "VCU 시동 시퀀스 상태", img: E("vcu"), zone: "제어기", ref: "대기 중", run: "실패", unit: "", status: "bad", t: 500, causes: ["start_req", "vbus", "bms_ok"], ev: "dtc_precharge" },
+      // trap: abnormal, but it changed LATER than the domino it is offered for
+      { id: "dtc", label: "계기판 점검 표시등", img: CLUSTER, zone: "차량", ref: "꺼짐", run: "켜짐", unit: "", status: "bad", t: 1000 },
+      OK("aux_disp", "12 V 보조 전원", CAR, "차량", 12.6, "V"),
+      OK("pack_disp", "팩 전압 (계기판)", CAR, "차량", 400, "V"),
+      OK("aux_v", "12 V 보조 전원", E("can_harness"), "부품", 12.6, "V"),
+      { ...OK("vbus", "HV 버스 전압 (500 ms)", E("bms"), "부품", 345.9, "V"), ev: "hv_bus_scope" },
+      OK("pack_v", "팩 전압", E("bms"), "센서", 400, "V"),
+      OK("bms_ok", "BMS 시동 허용", E("bms"), "CAN", "허용", ""),
+      OK("start_req", "시동 요청·브레이크", E("brake_pedal"), "센서", "입력됨", ""),
+    ],
+    section: { name: "VCU 프리차지 시퀀스 SW 경계", choices: [
+      { label: "BMS 시동 허용 판단 (전압·절연·온도 조건)", ok: false, why: "BMS 시동 허용은 1로 기준과 같았어요. 허용 판단은 정상이에요." },
+      { label: "VCU 시동 조건 판정 (브레이크·기어·시동 버튼)", ok: false, why: "시동 요청과 브레이크 입력은 기준대로 인식됐어요. 조건 판정은 정상이에요." },
+      { label: "VCU 프리차지 시퀀스 (접촉기 순서·대기 시간·전이)", ok: true, why: "입력과 버스 전압은 정상인데 시퀀스가 먼저 실패로 넘어갔어요. 어떤 설정·전이 오류인지는 검증에서 가려요." },
+    ] },
+    zoom: {
+      where: "VCU 프리차지 시퀀스", kind: "sw",
+      reference: [["시동 요청", "수신"], ["대기 시간", "1500 ms"], ["주 접촉기 명령", "닫기"]],
+      run: [["시동 요청", "수신"], ["대기 시간", "500 ms"], ["주 접촉기 명령", "없음"]],
+      culprit: "프리차지 대기 시간 설정",
+      lesson: "대기 시간이 충전에 걸리는 시간(약 750 ms)보다 짧은 500 ms로 들어가, 정상 충전 중에 실패로 판정했어요.",
+    },
+  },
 };
 
 export const fmt = (value: number | string) => typeof value === "string" ? value : Number.isInteger(value) ? String(value) : value.toFixed(1);

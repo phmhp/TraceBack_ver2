@@ -116,6 +116,25 @@ function regen(tech: Tech, fault: boolean, execution?: VerificationExecution) {
   }, s => ({ ped: 0, req: s.req, vcuOut: s.sgn, ramp: s.ramp, cansig: s.can, can: s.can, mot: s.mot, acc: s.acc, spd: s.v * 3.6 }));
 }
 
+// ── 시동(프리차지): 시동 요청 → (조건 확인 → 프리차지 접촉기 → 대기[버스 95 % 또는 타임아웃] → 주 접촉기) → READY ──
+function ready(tech: Tech, fault: boolean, execution?: VerificationExecution) {
+  // req: normal precharge (tau 250 ms) · boundary: cold start, slower charging (tau 350 ms) · replay: same as req
+  const tau = (execution ? initialValue(execution, "prechargeTau", 250) : tech === "boundary" ? 350 : 250) / 1000;
+  const pack = initialValue(execution, "packVoltage", 400);
+  const timeout = fault ? .5 : 1.5;                                  // the fault: the wait limit of the design (1500 ms) is configured as 500 ms
+  const seconds = execution?.durationSeconds ?? 1.6;
+  return integrate(seconds, { req: 0, tStart: -1, vbus: 0, seq: 0, main: 0, ready: 0 }, (s, t, dt) => {
+    s.req = execution ? rampInput(execution, t) : t < .05 ? 0 : 1;
+    if (s.req >= .5 && s.tStart < 0) { s.tStart = t; s.seq = 1; }    // 1 = PRECHARGE
+    if (s.tStart >= 0) s.vbus = pack * (1 - Math.exp(-(t - s.tStart) / tau));
+    if (s.seq === 1) {
+      if (s.vbus >= pack * .95) { s.seq = 2; s.main = 1; }           // 2 = READY: main contactor closed
+      else if (t - s.tStart >= timeout) s.seq = 3;                   // 3 = FAIL: precharge timeout
+    }
+    s.ready = s.seq === 2 ? 1 : 0;
+  }, s => ({ req: s.req, bms: 1, tmo: timeout * 1000, seq: s.seq, vbus: s.vbus, main: s.main, ready: s.ready }));
+}
+
 type Def = { id: string; name: string; unit: string; min?: number; max: number; src: string; model?: boolean };
 // per level: which signals exist there. `model: true` = taken from the healthy run (plant is a model at that level)
 const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
@@ -226,9 +245,34 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
       { id: "acc", name: "차량 가감속", unit: "m/s²", min: -2, max: 2, src: "acc" },
     ],
   },
+  ready: {
+    unit: [
+      { id: "req", name: "입력값 인가 · 시동 요청", unit: "", max: 1, src: "req", model: true },
+      { id: "tmo", name: "프리차지 대기 시간 설정", unit: "ms", max: 2000, src: "tmo" },
+      { id: "seq", name: "시동 시퀀스 상태 (1 대기 · 2 READY · 3 실패)", unit: "", max: 3, src: "seq" },
+    ],
+    swint: [
+      { id: "req", name: "시동 요청 SWC 출력", unit: "", max: 1, src: "req", model: true },
+      { id: "seq", name: "프리차지 시퀀스 SWC 상태 (1 대기 · 2 READY · 3 실패)", unit: "", max: 3, src: "seq" },
+      { id: "tmo", name: "프리차지 대기 시간 설정", unit: "ms", max: 2000, src: "tmo" },
+      { id: "main", name: "주 접촉기 명령", unit: "", max: 1, src: "main" },
+    ],
+    embedded: [
+      { id: "vbus", name: "HV 버스 전압 (프리차지 회로 모델)", unit: "V", max: 450, src: "vbus", model: true },
+      { id: "seq", name: "시퀀스 상태 (1 대기 · 2 READY · 3 실패)", unit: "", max: 3, src: "seq" },
+      { id: "tmo", name: "프리차지 대기 시간 설정", unit: "ms", max: 2000, src: "tmo" },
+      { id: "main", name: "주 접촉기 명령", unit: "", max: 1, src: "main" },
+    ],
+    vehicle: [
+      { id: "req", name: "시동 요청 (로거)", unit: "", max: 1, src: "req", model: true },
+      { id: "vbus", name: "HV 버스 전압 (실부품 연결)", unit: "V", max: 450, src: "vbus", model: true },
+      { id: "main", name: "주 접촉기 명령 (로거)", unit: "", max: 1, src: "main" },
+      { id: "ready", name: "READY 상태", unit: "", max: 1, src: "ready" },
+    ],
+  },
 };
-const MODELS = { propulsion, thermal, brake, regen };
-const TIME: Record<CaseId, [number, string]> = { propulsion: [3, "s"], thermal: [8, "분(압축)"], brake: [3, "s"], regen: [5.5, "s"] };
+const MODELS = { propulsion, thermal, brake, regen, ready };
+const TIME: Record<CaseId, [number, string]> = { propulsion: [3, "s"], thermal: [8, "분(압축)"], brake: [3, "s"], regen: [5.5, "s"], ready: [1.6, "s"] };
 
 /** Reference = healthy design, run = field fault (or the fixed design). Same input for both. */
 export function simulate(caseId: CaseId, tech: Tech, fixed: boolean, execution?: VerificationExecution): SimResult {

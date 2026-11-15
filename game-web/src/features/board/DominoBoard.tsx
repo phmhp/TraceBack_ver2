@@ -110,6 +110,22 @@ const CASES: Record<CaseId, { nodes: SigNode[]; zoom: Zoom }> = {
       lesson: "회생 요청의 부호를 버려 토크 지령이 반대 방향으로 나갔어요.",
     },
   },
+  // legacy board (unused by the live flow, kept for the type): same chain as DominoTrace.ready
+  ready: {
+    nodes: [
+      { id: "start_req", label: "시동 요청·브레이크", x: 2.5, y: 14, ref: "입력됨", run: "입력됨", status: "ok" },
+      { id: "seq_state", label: "VCU 시동 시퀀스 상태", x: 19.5, y: 12, ref: "대기 중", run: "실패", status: "bad", t: 10, role: "origin", ev: "dtc_precharge" },
+      { id: "main_cmd", label: "VCU 주 접촉기 명령", x: 39.5, y: 12, ref: "닫기", run: "안 닫음", status: "bad", t: 20, parent: "seq_state", role: "effect" },
+      { id: "ready", label: "READY 상태", x: 80, y: 12, ref: "켜짐", run: "꺼짐", status: "bad", t: 30, parent: "main_cmd", role: "effect", ev: "ready_off" },
+    ],
+    zoom: {
+      where: "VCU", kind: "sw",
+      reference: [["시동 요청", "수신"], ["대기 시간", "1500 ms"], ["주 접촉기 명령", "닫기"]],
+      run: [["시동 요청", "수신"], ["대기 시간", "500 ms"], ["주 접촉기 명령", "없음"]],
+      culprit: "프리차지 대기 시간 설정",
+      lesson: "대기 시간이 충전 시간보다 짧아 정상 충전 중에 실패로 판정했어요.",
+    },
+  },
 };
 type Zoom = { where: string; kind: "sw" | "hw"; reference: [string, string][]; run: [string, string][]; part?: [string, string, string]; culprit: string; lesson: string };
 

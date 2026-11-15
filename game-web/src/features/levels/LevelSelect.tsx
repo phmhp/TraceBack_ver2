@@ -11,8 +11,8 @@ import "./level-select.css";
 
 type Send = React.Dispatch<any>;
 // node positions on the 1100x440 road drawing
-const POS = [{ x: 110, y: 310 }, { x: 330, y: 170 }, { x: 550, y: 310 }, { x: 770, y: 170 }, { x: 990, y: 300 }];
-const ROAD = `M 20 380 C 70 380 70 310 110 310 S 270 170 330 170 S 490 310 550 310 S 710 170 770 170 S 930 300 990 300 L 1070 300`;
+const POS = [{ x: 90, y: 310 }, { x: 280, y: 170 }, { x: 470, y: 310 }, { x: 660, y: 170 }, { x: 850, y: 310 }, { x: 1010, y: 190 }];
+const ROAD = `M 20 380 C 60 380 60 310 90 310 S 230 170 280 170 S 420 310 470 310 S 610 170 660 170 S 800 310 850 310 S 960 190 1010 190 L 1075 190`;
 
 const Stars = ({ n }: { n: number }) => <span className="lvStars" aria-label={`별 ${n}개`}>{[1, 2, 3].map(i => <i key={i} className={i <= n ? "on" : ""}>★</i>)}</span>;
 
