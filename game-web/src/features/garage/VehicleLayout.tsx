@@ -60,19 +60,19 @@ const PLACE: Record<string, Place> = {
   eps_ecu: { p: [.22, .66, -.62], target: .24 },
   // high voltage
   hv_battery: { p: [0, .16, .05], target: 2.35 },
-  bms: { p: [.45, .3, .42], target: .24 },
-  main_contactor: { p: [-.52, .28, -.45], target: .28 },
-  isolation_monitor: { p: [-.52, .28, -.12], target: .12 },
-  cell_monitor_board: { p: [.22, .27, .28], target: .18 },
-  hv_junction_box: { p: [-.48, .62, -.32], target: .28 },
+  bms: { p: [0, .4, .35], target: .24 },
+  main_contactor: { p: [-.48, .62, -.82], target: .28 },
+  isolation_monitor: { p: [-.48, .62, -.62], target: .12 },
+  cell_monitor_board: { p: [0, .35, .2], target: .18 },
+  hv_junction_box: { p: [-.42, .72, -.72], target: .28 },
   charging_port: { p: [.88, .8, .82], r: [0, Math.PI, 0], target: .24 },
-  obc: { p: [.42, .45, .18], target: .48 },
-  dcdc_converter: { p: [-.46, .58, .2], target: .3 },
-  lv_battery: { p: [-.55, .55, .62], target: .32 },
+  obc: { p: [.42, .72, -.65], target: .48 },
+  dcdc_converter: { p: [-.46, .74, -.5], target: .3 },
+  lv_battery: { p: [-.55, .48, -.3], target: .32 },
   // thermal
-  thermal_ecu: { p: [-.58, .82, .22], r: [0, H, 0], target: .24 },
-  cooling_pump: { p: [-.42, .34, .48], target: .28 },
-  coolant_valve: { p: [-.2, .44, .5], r: [0, H, 0], target: .18 },
+  thermal_ecu: { p: [-.58, .82, -.45], r: [0, H, 0], target: .24 },
+  cooling_pump: { p: [-.45, .5, -.9], target: .28 },
+  coolant_valve: { p: [-.2, .58, -.9], r: [0, H, 0], target: .18 },
   cooling_fan: { p: [-.72, .5, -1.72], r: [0, H, 0], target: .58 },
   radiator: { p: [0, .5, -1.8], r: [0, H, 0], target: 1.45 },
   // suspension (front-left corner unless noted)
@@ -235,11 +235,13 @@ function ContextWheel({ position, active }: { position: V3; active: boolean }) {
   // The garage vehicle uses -X as its front, so the left/right axle is Z.
   // Keep the tyre face in the X/Y plane and rotate every moving wheel part
   // around Z; rotating around X makes the rim face the vehicle's front.
-  useFrame((_, delta) => { if (wheel.current && active) wheel.current.rotation.z -= delta * 7; });
+  useFrame((_, delta) => { if (wheel.current && active) wheel.current.rotation.x -= delta * 7; });
   return <group position={position} ref={wheel}>
-    <mesh><torusGeometry args={[.27 * U, .07 * U, 12, 40]} /><meshStandardMaterial color="#2a302f" transparent opacity={.72} roughness={.8} /></mesh>
+    <group rotation={[0, Math.PI / 2, 0]}>
+      <mesh><torusGeometry args={[.27 * U, .07 * U, 12, 40]} /><meshStandardMaterial color="#2a302f" transparent opacity={.72} roughness={.8} /></mesh>
+      {[0, 1, 2, 3].map(index => <mesh key={index} rotation={[0, 0, index * Math.PI / 2]}><boxGeometry args={[.035 * U, .34 * U, .025 * U]} /><meshStandardMaterial color="#aeb7b2" metalness={.55} roughness={.35} /></mesh>)}
+    </group>
     <PartModel id="wheel" scale={U * 1.7} input={0} castShadow={false} />
-    {[0, 1, 2, 3].map(index => <mesh key={index} rotation={[0, 0, index * Math.PI / 2]}><boxGeometry args={[.035 * U, .34 * U, .025 * U]} /><meshStandardMaterial color="#aeb7b2" metalness={.55} roughness={.35} /></mesh>)}
   </group>;
 }
 
