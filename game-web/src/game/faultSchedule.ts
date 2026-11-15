@@ -358,11 +358,26 @@ export const READY_FAULT: FaultSpec = {
   chase: { note: "The car cannot start: it stays at 0 km/h and the police close in at 24 km/h until the cause is found and repaired." },
 };
 
+/**
+ * C04 (docs/fault-cases/c04_gear_fallback.md): the VCU gear-receive fallback value is R instead of N, so a launch right after a shift under bus load
+ * pulls the car backwards for 0.5 s. Event trigger (gear change), intermittent. The sheet's 0.3 s window is widened to 0.8 s in the race because the
+ * keyboard needs a human reaction; the bench model keeps the 0.3 s timing.
+ */
+export const GEAR_FAULT: FaultSpec = {
+  id: "case-gear", caseId: "gear",
+  trigger: { phase: "event", afterEvent: "gearChange", withinSec: .8, pedal: "applied", gear: "D", maxSpeedKph: 25 },
+  persistence: "intermittent",
+  burst: { onSec: .5, offSec: 2 },
+  effect: { reverseOnly: true },
+  chase: { note: "The car jerks backwards for half a second at the start: the gap shrinks by the reverse distance and recovers once it moves forward again." },
+};
+
 /** Fault specs that run in a race mode. `caseId` is the case of the campaign (the case that was repaired last when resuming). */
 export function levelFaults(mode: "normal" | "resume" | "assist" | "ship", caseId: string): FaultSpec[] {
   if (mode === "normal") return [PROPULSION_FAULT];
   if (mode === "resume" && caseId === "propulsion") return [THERMAL_FAULT];
   if (mode === "resume" && caseId === "regen") return [REGEN_FAULT];
   if (mode === "resume" && caseId === "ready") return [READY_FAULT];
+  if (mode === "resume" && caseId === "gear") return [GEAR_FAULT];
   return [];
 }

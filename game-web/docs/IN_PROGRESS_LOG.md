@@ -11,10 +11,10 @@
 - 사건 `gear`(C04 변속 폴백, 시트 `docs/fault-cases/c04_gear_fallback.md`) 구현 시작 전. 방법: `src/game/runtime.ts`의 `CaseId`에 `"gear"` 추가 → `npx tsc --noEmit`이 알려 주는 `Record<CaseId,…>` 표를 전부 채움 → `EeTrace.tsx`의 `Record<string,…>` 표(LAMP, QUOTE, TRACE, OBSERVED, REPLAY, SUBSYS)도 채움(tsc가 못 잡음).
 - 주의: `CaseId`만 추가하고 멈추면 tsc 오류 60여 곳이 생긴다. 그 상태로 커밋하지 말 것(작은 단위로 끝까지 채운 뒤 커밋).
 
-## gear 구현 진행 (tsc 오류 0, 테스트 135 통과 상태로 커밋)
-- 완료: CaseId `gear`, 레벨 6(finale은 7로 이동, 허브 7노드), `simModel`(gear 모델·VIEW), `scenarios`, `verificationContract`, `VerificationLab` 표 전부 + `exercisesFaultPath`(gap 기준), `RefPuzzle`(블록 조립 UI로 먼저 구현: 레버·게이트웨이·CAN·수신 표 A/B·함정 직결/마지막 값 유지), `experiences`, `DominoBoard/Trace`, `EeTrace` 문자열 표, `CaseFileEnding`, `OpenBook`, `DevMenu`, 이미지 프롬프트 3장(motor_reverse_log, dtc_gear_timeout, bus_load_scope).
-- 남음 gear: (1) 레이스 고장 `GEAR_FAULT`(faultSchedule: launch 시점 + 변속 후 경과 시간 FaultContext 필드, reverseOnly 0.5초) (2) 신호 경로 선택 UI(RefPuzzle에 새 모드, 현재는 블록 조립 UI로 동작) (3) 브라우저 검증(`?embed=1&qa=BOARD&case=gear` 등) (4) gear 전용 테스트 파일 (5) 증거 이미지·시프터/게이트웨이 부품 이미지는 사용자 제작 전까지 기존 썸네일로 대체(USER_TODO).
-- 주의: 이미지 대체 — 변속 레버는 `accel_pedal.png`, 클러스터/진단은 `diagnostic_port.png`, 게이트웨이는 `can_harness.png`를 임시로 사용.
+## gear 구현 진행 (tsc 오류 0, 테스트 140 통과, 브라우저 검증 완료: STEP02 도미노, STEP03 퍼즐, STEP04 실험대 → 수리 장면)
+- 완료: CaseId `gear`, 레벨 6(finale은 7로 이동, 허브 7노드), `simModel`(gear 모델·VIEW, 관찰 0.35초), `scenarios`, `verificationContract`, `VerificationLab` 표 전부, `RefPuzzle`(블록 조립 UI로 구현), `experiences`, `DominoBoard/Trace`, `EeTrace`, `CaseFileEnding`, `OpenBook`, `DevMenu`, 이미지 프롬프트 3장, 레이스 고장 `GEAR_FAULT`(faultSchedule, 이벤트 gearChange 0.8초 창, reverseOnly 0.5초 버스트, 두 번째 발생 때 FAULT_CUE), 테스트 `tests/gear-case.test.mjs`.
+- 남음 gear: (1) 레이스 화면(`?qa=CHASE_RESUME&case=gear`)과 엔딩(`?qa=ENDING&case=gear`) 브라우저 확인 (2) 새 퍼즐 UI '신호 경로 선택'(RefPuzzle에 모드 추가; 지금은 블록 조립 UI로 동작) (3) 사용자 이미지 대기: 변속 레버·게이트웨이 부품 사진(임시로 accel_pedal/can_harness/diagnostic_port 썸네일 사용), 증거 3장(`motor_reverse_log`, `dtc_gear_timeout`, `bus_load_scope`).
+- 기억할 점: 벤치 QA 기본 입력(`qaDeriv`)은 gear만 항상 `reqa`(버스 부하 85 %). 3D 벤치 부품 id는 `gear_selector`(포트 gear_out → VCU gear_in).
 
 ## 다음 할 일 (순서)
 1. gear 사건 표 채우기(STEP02/03/04, 시나리오, 계약, 엔딩, 오픈북).

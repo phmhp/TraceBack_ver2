@@ -225,7 +225,7 @@ export const CASES: Record<CaseId, CaseData> = {
       { id: "motor_cmd", label: "모터 토크 지령", img: E("traction_motor"), zone: "부품", ref: "0", run: "-60", unit: "Nm", status: "bad", t: 200, causes: ["vcu_gear", "gw_out", "lever"], ev: "motor_reverse_log" },
       { id: "vcu_gear", label: "VCU가 쓰는 기어 값", img: E("vcu"), zone: "제어기", ref: "N", run: "R", unit: "", status: "bad", t: 100, causes: ["gw_out", "lever", "brake_in"], ev: "dtc_gear_timeout" },
       // trap: the cluster shows D (it receives the shift on its own path), which is normal
-      OK("cluster_gear", "계기판 기어 표시", CLUSTER, "차량", "D", ""),
+      OK("cluster_gear", "클러스터 기어 표시", CLUSTER, "제어기", "D", ""),
       OK("steer_ok", "조향 반응", CAR, "차량", 100, "%"),
       OK("decel_ok", "제동 감속", CAR, "차량", 3.2, "m/s²"),
       { ...OK("gw_out", "게이트웨이 출력 기어", E("can_harness"), "CAN", "D", ""), ev: "bus_load_scope" },

@@ -155,7 +155,7 @@ const experimentConfig: Record<CaseId, ExperimentConfig> = {
     missionBrief: "레버를 D로 바꾸고 바로 출발한 순간을 버스 부하와 함께 재현하고, VCU가 쓰는 기어 값이 처음 갈라지는 지점을 확인합니다.",
     precondition: "P → D · 브레이크 해제 · 버스 부하 85 %",
     stimuli: [
-      { label: "변속 직후 출발", hint: "버스 부하 85 % · 간격 120 ms", sequence: "P→D 후 0.2 s에 페달 40 %" },
+      { label: "변속 직후 출발", hint: "버스 부하 85 % · 간격 120 ms", sequence: "P→D 후 페달 40 % · 0.35 s 관찰" },
       { label: "경계 부하", hint: "버스 부하 70 % · 간격 90 ms", sequence: "P→D 후 페달 40 %" },
       { label: "한가한 버스", hint: "버스 부하 40 % · 간격 20 ms", sequence: "P→D 후 페달 40 %" },
     ],
@@ -708,12 +708,12 @@ const SIGNALS: Record<CaseId, { seconds: number; first: number; list: Sig[] }> =
     { name: "주 접촉기 명령", unit: "", zone: "제어기 SW I/O", ref: u => (u < .5 ? 0 : 1), fault: () => 0, max: 1 },
     { name: "READY 상태", unit: "", zone: "차량", ref: u => (u < .52 ? 0 : 1), fault: () => 0, max: 1 },
   ] },
-  gear: { seconds: 0.6, first: 3, list: [
-    { name: "변속 레버 위치", unit: "", zone: "센서", ref: u => (u < .17 ? 0 : 1), fault: u => (u < .17 ? 0 : 1), max: 1 },
-    { name: "게이트웨이 출력 기어", unit: "", zone: "CAN", ref: u => (u < .17 ? 0 : 1), fault: u => (u < .17 ? 0 : 1), max: 1 },
-    { name: "변속 메시지 간격", unit: "ms", zone: "CAN", ref: u => (u >= .17 && u < .67 ? 120 : 20), fault: u => (u >= .17 && u < .67 ? 120 : 20), max: 150 },
-    { name: "VCU 기어 값 (-1 R · 0 N)", unit: "", zone: "제어기 SW", ref: u => (u < .67 ? 0 : 1), fault: u => (u >= .17 && u < .67 ? -1 : u < .17 ? 0 : 1), max: 1 },
-    { name: "구동 지령", unit: "Nm", zone: "제어기 SW I/O", ref: u => (u < .67 ? 0 : 60), fault: u => (u >= .17 && u < .67 ? -60 : u < .17 ? 0 : 60), max: 90 },
+  gear: { seconds: 0.35, first: 3, list: [
+    { name: "변속 레버 위치", unit: "", zone: "센서", ref: u => (u < .29 ? 0 : 1), fault: u => (u < .29 ? 0 : 1), max: 1 },
+    { name: "게이트웨이 출력 기어", unit: "", zone: "CAN", ref: u => (u < .29 ? 0 : 1), fault: u => (u < .29 ? 0 : 1), max: 1 },
+    { name: "변속 메시지 간격", unit: "ms", zone: "CAN", ref: u => (u >= .29 && u < 1.01 ? 120 : 20), fault: u => (u >= .29 && u < 1.01 ? 120 : 20), max: 150 },
+    { name: "VCU 기어 값 (-1 R · 0 N)", unit: "", zone: "제어기 SW", ref: u => (u < 1.01 ? 0 : 1), fault: u => (u >= .29 && u < 1.01 ? -1 : u < .29 ? 0 : 1), max: 1 },
+    { name: "구동 지령", unit: "Nm", zone: "제어기 SW I/O", ref: u => (u < 1.01 ? 0 : 60), fault: u => (u >= .29 && u < 1.01 ? -60 : u < .29 ? 0 : 60), max: 90 },
   ] },
 };
 const SIM_TABS: { id: string; label: string; sub: string }[] = [
@@ -1496,7 +1496,7 @@ const TEST_CARD: Record<Lv, { name: string; pic: "chip" | "grid" | "monitor" | "
 /** Short subtitle under each test level (tab names stay short). */
 const LEVEL_SUB: Record<Lv, string> = { unit: "SW 단독 실행 · PC 환경 · 제어기·부품은 모델", swint: "여러 SW 연결 · PC 환경 · 부품은 모델", embedded: "SW와 제어기 입출력 연결 · 부품은 모델", vehicle: "SW·제어기·실제 부품 통합 실행" };
 const QA_LEVELS: Lv[] = ["unit", "embedded", "vehicle"];
-const qaDeriv = (caseId: CaseId, lv: Lv): Deriv => lv === "unit" || lv === "swint" ? "reqa" : CASE_DERIVS[caseId].some(d => d.id === "usecase") ? "usecase" : "bound";
+const qaDeriv = (caseId: CaseId, lv: Lv): Deriv => caseId === "gear" || lv === "unit" || lv === "swint" ? "reqa" : CASE_DERIVS[caseId].some(d => d.id === "usecase") ? "usecase" : "bound";
 type Answer = "supported" | "refuted" | "open";
 const ANSWER_KO: Record<Answer, string> = { supported: "원인으로 보여요", refuted: "원인이 아니에요", open: "아직 몰라요" };
 

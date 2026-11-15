@@ -221,22 +221,22 @@ const BASE: Record<CaseId, ContractBase> = {
     caseId: "gear",
     objective: "변속 직후 출발에서 차가 뒤로 움찔하는 원인이 변속 수신의 폴백 값 설정인지 레버·게이트웨이인지, 같은 입력에서 버스 메시지 간격과 VCU 기어 값을 함께 보고 구분한다.",
     preconditions: ["P → D 변속", "브레이크 해제", "버스 부하 85 %"],
-    stimulus: { label: "변속 직후 출발", sequence: "P→D 후 페달 0→40 % / 0.05 s · 0.6 s 관찰" },
+    stimulus: { label: "변속 직후 출발", sequence: "P→D 후 페달 0→40 % / 0.05 s · 0.35 s 관찰" },
     expectedSignal: "VCU 기어 값과 구동 지령",
     observations: [
       { id: "input", label: "변속 레버 위치" },
       { id: "control", label: "VCU 기어 값" },
       { id: "output", label: "구동 지령" },
     ],
-    comparison: { baseline: "STEP03 정상 기준 장치", sameInput: true, timeAxis: "0~0.6 s 동일 시간축", units: "ms, 기어 값, Nm" },
+    comparison: { baseline: "STEP03 정상 기준 장치", sameInput: true, timeAxis: "0~0.35 s 동일 시간축", units: "ms, 기어 값, Nm" },
     execution: {
       initial: [
         { signalId: "busLoad", value: 85, unit: "%" },
         { signalId: "gearLever", value: 1, unit: "D" },
         { signalId: "brakePedal", value: 0, unit: "bool" },
       ],
-      stimulus: { signalId: "accelPedal", startValue: 0, endValue: 40, unit: "%", rampSeconds: 0.05, holdSeconds: 0.55 },
-      durationSeconds: 0.6,
+      stimulus: { signalId: "accelPedal", startValue: 0, endValue: 40, unit: "%", rampSeconds: 0.05, holdSeconds: 0.3 },
+      durationSeconds: 0.35,
       observationSignalIds: {
         unit: ["lever", "g", "cmd"],
         swint: ["lever", "g", "cmd"],

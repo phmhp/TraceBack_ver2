@@ -141,7 +141,7 @@ function gear(tech: Tech, fault: boolean, execution?: VerificationExecution) {
   // req: bus load 85 % right after the shift (gap 120 ms) · boundary: bus load 70 % (gap 90 ms, still under the timeout) · replay: same as req
   const load = initialValue(execution, "busLoad", tech === "boundary" ? 70 : 85);
   const gapMs = load >= 80 ? 120 : load >= 60 ? 90 : 20;           // worst-case message gap while the bus is busy
-  const seconds = execution?.durationSeconds ?? 0.6;
+  const seconds = execution?.durationSeconds ?? 0.35;
   const pedalAt = execution ? 0 : .2;
   return integrate(seconds, { lever: 0, gap: 20, tmo: 0, g: 0, cmd: 0, mot: 0, v: 0, ped: 0 }, (s, t, dt) => {
     s.lever = t < .1 ? 0 : 1;                                       // 0 = P, 1 = D
@@ -318,7 +318,7 @@ const VIEW: Record<CaseId, Record<Lv, Def[]>> = {
   },
 };
 const MODELS = { propulsion, thermal, brake, regen, ready, gear };
-const TIME: Record<CaseId, [number, string]> = { propulsion: [3, "s"], thermal: [8, "분(압축)"], brake: [3, "s"], regen: [5.5, "s"], ready: [1.6, "s"], gear: [0.6, "s"] };
+const TIME: Record<CaseId, [number, string]> = { propulsion: [3, "s"], thermal: [8, "분(압축)"], brake: [3, "s"], regen: [5.5, "s"], ready: [1.6, "s"], gear: [0.35, "s"] };
 
 /** Reference = healthy design, run = field fault (or the fixed design). Same input for both. */
 export function simulate(caseId: CaseId, tech: Tech, fixed: boolean, execution?: VerificationExecution): SimResult {

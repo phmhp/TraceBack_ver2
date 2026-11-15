@@ -101,7 +101,7 @@ function useCampaign() {
       const qaDistance = Number.isFinite(requestedDistance) && requestedDistance >= 0 ? requestedDistance : undefined;
       return hydrateCampaign({
         scene: qaScene,
-        caseId: (["propulsion", "thermal", "brake", "regen", "ready"].includes(params.get("case") ?? "") ? params.get("case") : "propulsion") as Campaign["caseId"], // dev: ?qa=WIRING&case=thermal
+        caseId: (["propulsion", "thermal", "brake", "regen", "ready", "gear"].includes(params.get("case") ?? "") ? params.get("case") : "propulsion") as Campaign["caseId"], // dev: ?qa=WIRING&case=thermal
         previousScene: qaScene === "PAUSE" ? "CHASE_NORMAL" : undefined,
         completedCases: isFinale ? ["propulsion", "thermal"] : isResume ? ["propulsion"] : [],
         evidence: { propulsion: ["pedal_raw", "pedal_processed", "torque_cmd"], thermal: [], brake: [], regen: [], ready: [], gear: [] },
@@ -1435,7 +1435,7 @@ function Ending({
             <span>
               필수 사건
               <b>
-                {state.completedCases.filter((x) => x !== "brake" && x !== "regen" && x !== "ready").length} / 2
+                {state.completedCases.filter((x) => x !== "brake" && x !== "regen" && x !== "ready" && x !== "gear").length} / 2
                 완료
               </b>
             </span>

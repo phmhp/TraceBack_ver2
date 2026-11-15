@@ -29,7 +29,7 @@ import { CAR_CONTACT, TRACK_LENGTH, TRAFFIC_COUNT, resetTrafficStall, stallTraff
 import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
 import { CYCLE_JUNCTIONS, ROAD_ZONES, zoneBrakeFactor, zonesAt, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
 import { CLIMB_ZONE, FINAL_ESCAPE_M, OVERTAKE_ZONE } from "./game/course";
-import { DEMO_FAULTS, PROPULSION_FAULT, REGEN_FAULT, levelFaults, policeSpeedKph, secondsToCatch, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
+import { DEMO_FAULTS, GEAR_FAULT, PROPULSION_FAULT, REGEN_FAULT, levelFaults, policeSpeedKph, secondsToCatch, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
 import { StageIntro } from "./ui/Verdict";
 // Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
 const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
@@ -1678,6 +1678,8 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const keys = useRef(new Set<string>());
   const collisionCooldown = useRef(0);
   const zoneThrottle = useRef(0); // seconds of full throttle inside the overtake zone
+  const gearHits = useRef(0);     // C04: how many times the fallback reverse burst started (FAULT_CUE after the second)
+  const [gearHitCount, setGearHitCount] = useState(0);
   // fault schedule model: runtime state per spec, merged effect of the last frame, event clocks, R-restart tries
   const faultRuntime = useRef<Record<string, FaultRuntime>>({});
   const faultFx = useRef<FaultEffect>({});
@@ -1801,6 +1803,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
             const step = stepFault(spec, faultRuntime.current[spec.id] ?? newFaultRuntime(), faultCtx, dt, Math.random, demo && faultRestarted.current);
             faultRuntime.current[spec.id] = step.runtime; effects.push(step.effect);
             if (spec.id === PROPULSION_FAULT.id || spec.id === REGEN_FAULT.id) zoneThrottle.current = step.runtime.heldSec; // seconds of throttle inside the zone (symptom / FAULT_CUE)
+            if (spec.id === GEAR_FAULT.id && (faultRuntime.current[spec.id]?.burstLeft ?? 0) === 0 && step.runtime.burstLeft > 0) { gearHits.current += 1; setGearHitCount(gearHits.current); }
           }
           faultRestarted.current = false; fx = mergeEffects(effects); faultFx.current = fx;
           if (fx.shutdown && driveMission === "idle") setDriveMission("restart");
@@ -1983,6 +1986,8 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       fired.current = true; send({ type: "FAULT_CUE", caseId: "thermal", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
     } else if (mode === "resume" && state.caseId === "regen" && zoneThrottle.current >= 2.2) {
       fired.current = true; send({ type: "FAULT_CUE", caseId: "regen", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
+    } else if (mode === "resume" && state.caseId === "gear" && gearHits.current >= 2) {
+      fired.current = true; send({ type: "FAULT_CUE", caseId: "gear", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
     } else if (mode === "resume" && state.caseId === "thermal" && sim.distance >= FINAL_ESCAPE_M) {
       fired.current = true; send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "START_FINAL_ESCAPE" });
     } else if (mode === "ship" && celebrated) {
@@ -2012,7 +2017,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     if (sim.gap > 0 && eta < 40) return { kind: "chase", title: "경찰 접근", text: `이 속도로는 약 ${Math.max(1, Math.round(eta))}초 뒤 따라잡혀요 · ${sim.speed < 0 ? "후진 중" : sim.speed < 4 ? "다시 출발하세요" : "속도를 올리세요"}` };
     return null;
   })();
-  const symptom = (mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80) || (mode === "resume" && state.caseId === "regen" && zoneThrottle.current > .8) || (startFails > 0 && startAttempts >= 1);
+  const symptom = (mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80) || (mode === "resume" && state.caseId === "regen" && zoneThrottle.current > .8) || (mode === "resume" && state.caseId === "gear" && gearHitCount >= 1) || (startFails > 0 && startAttempts >= 1);
   // Regression drive after a repair: the same condition that exposed the fault is measured on the live race model.
   // propulsion: full pedal for 1.5 s → measured acceleration vs this model's healthy value (46·min(1, 70/v) km/h/s; the fault scaled it by 0.45)
   // thermal: sustained throttle for 2 s → coolant temperature and output limit (the fault had ≥ 84 °C and a 55 km/h limit)
@@ -2046,7 +2051,9 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       ? { icon: "road" as IconName, title: "장거리 고속 구간", text: "가속을 유지해 속도를 지키세요" }
       : mode === "resume" && state.caseId === "regen" && sim.distance < state.raceDistance + 400
         ? { icon: "road" as IconName, title: "코스팅 구간", text: "40 km/h 이상으로 달린 뒤 가속 페달에서 발을 떼 보세요" }
-        : null;
+        : mode === "resume" && state.caseId === "gear" && sim.distance < state.raceDistance + 400
+          ? { icon: "road" as IconName, title: "정차 후 출발", text: "정차해 브레이크(S)를 밟고 D(4)로 바꾼 뒤 바로 가속(W)해 보세요" }
+          : null;
   useEffect(() => {
     if (mode !== "assist" || parking || sim.distance < assistTarget) return;
     setParking(true);
@@ -2114,7 +2121,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       {impact > 0 && impactLevel >= 2 && <div className="catReact" key={`c${impact}`} role="status"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><b>{impactLevel === 3 ? "으앗!" : "앗!"}</b></div>}
       {regression?.title && <div className={`regressionCard ${regression.ok ? "ok" : "no"}`} role="status"><i><Icon name="repeat" /></i><span><small>같은 조건 재주행</small><b>{regression.title}</b><em>{regression.text}</em></span></div>}
       {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i><Icon name={zone.icon} /></i><span><small>주행 구간</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
-      {symptom && <div className="faultBeacon" role="alert"><span /><div><small>차량 경고</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : state.caseId === "regen" ? "발을 뗐는데 속도가 올라감" : state.caseId === "ready" ? "HV 시스템 점검 표시등" : "파워다운 표시등 · 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
+      {symptom && <div className="faultBeacon" role="alert"><span /><div><small>차량 경고</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : state.caseId === "regen" ? "발을 뗐는데 속도가 올라감" : state.caseId === "gear" ? "D인데 차가 뒤로 움찔함" : state.caseId === "ready" ? "HV 시스템 점검 표시등" : "파워다운 표시등 · 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
       {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
       {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>주행 미션</small><b>{driveMission === "red" ? "적색 신호 정지 · 제동 시퀀스 기록" : startFails > 0 ? `시동 시도 ${Math.min(startAttempts + 1, startFails)}/${startFails} · R 키로 시동 걸기` : readyTries > 0 ? `READY 재인가 · R 키 ${readyTries}회 더` : "정차 후 READY 재인가 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(612-sim.distance))}m · S로 부드럽게 제동 · 정지선 이탈 금지` : startFails > 0 ? (startAttempts > 0 ? "READY가 켜지지 않아요 · 점검 표시등을 확인하세요" : "브레이크를 밟은 상태로 시동을 걸어 출발하세요") : "이 재출발 기록이 열관리 고장 재현 미션의 초기조건이 됩니다"}</span></div>}
       {mode === "ship" && sim.distance >= TRACK_LENGTH - 230 && <div className="finalRampCommit"><small>도착 지점</small><b>{deckSettled ? "갑판 정차 완료 · 탈출 성공" : sim.distance >= DECK_TOUCH ? "해적선 갑판 착지 · 자동 감속" : sim.distance >= RAMP_START ? "실물 오르막 램프 진입" : "해적선 연결 램프 접근"}</b><span>{sim.distance >= RAMP_END && sim.distance < DECK_TOUCH ? "차량 도약 중 · 측면 카메라" : sim.distance >= DECK_TOUCH ? "네 바퀴 착지 확인 · 엔딩 전환 준비" : "중앙 유도 · 램프와 갑판 충돌면 활성"}</span></div>}
@@ -2865,8 +2872,8 @@ const BENCH_PARTS: Record<CaseId, { input: string; ecu: string; output: string; 
     { from: [0, "pressure_cmd_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
   ready: { input: "bms", ecu: "vcu", output: "inverter", labels: ["BMS", "VCU", "인버터·HV 버스"], wires: [
     { from: [0, "pressure_cmd_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
-  gear: { input: "lever", ecu: "vcu", output: "inverter", labels: ["변속 레버", "VCU", "인버터·모터"], wires: [
-    { from: [0, "pressure_cmd_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
+  gear: { input: "gear_selector", ecu: "vcu", output: "inverter", labels: ["변속 레버", "VCU", "인버터·모터"], wires: [
+    { from: [0, "gear_out"], to: [1, "gear_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
 };
 const BENCH_SLOTS: { position: [number, number, number]; scale: number }[] = [{ position: [-2.25, .62, 0], scale: .94 }, { position: [0, .72, 0], scale: 1.12 }, { position: [2.25, .68, 0], scale: .96 }];
 function EmbeddedBenchScene({ caseId, running, works }: { caseId: CaseId; running: boolean; works: boolean }) {
