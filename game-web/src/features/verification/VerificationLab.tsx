@@ -1407,7 +1407,7 @@ export function TwinBenchV7({ state, send }: { state: Campaign; send: Send }) {
     if (i !== first) { setBubble(`${sig.name}${eunNeun(sig.name)} 가장 먼저 갈라진 신호가 아니에요. 빨간 세로선이 가장 왼쪽에 있는 신호를 찾으세요.`); showVerdict(false); return; }
     const upstreamProbed = first === 0 || list.slice(0, first).some((_, k) => probes.includes(key(k)));
     if (!upstreamProbed) { setBubble("앞쪽 신호를 하나도 보지 않아서, 여기서 처음 갈라졌는지 확신할 수 없어요. 앞쪽에 관측점을 하나 꽂고 다시 실행하세요."); showVerdict(false); return; }
-    if (sig.id !== ROOT_SIGNAL[caseId]) { setBubble(`이 레벨에서 처음 갈라진 곳은 ${sig.name}예요. 하지만 이 레벨에서는 그 앞의 계산이나 부품을 볼 수 없어요. 더 안쪽을 관찰할 수 있는 레벨에서 다시 확인하세요.`); showVerdict(false, "더 안쪽"); return; }
+    if (sig.id !== ROOT_SIGNAL[caseId]) { setBubble(`이 레벨에서 처음 갈라진 곳은 ${sig.name}예요. 하지만 이 레벨에서는 그 앞의 계산이나 부품을 볼 수 없어요. 더 깊은 내부 신호를 관찰할 수 있는 시험 수준에서 다시 확인하세요.`); showVerdict(false, "더 깊은 단계"); return; }
     const open = hyps.filter(h => h.truth ? h.status !== "supported" : h.status !== "refuted");
     if (noteRows.length) { setBubble("판정 노트를 먼저 끝내세요. 이번 결과가 각 가설에 무엇을 뜻하는지 정해야 결론을 낼 수 있어요."); showVerdict(false); return; }
     if (open.length) { setBubble(`처음 갈라진 곳은 맞아요. 하지만 아직 근거로 정리하지 못한 가설이 있어요: ${open.map(h => h.label).join(", ")}. 이 가설을 가를 관측점을 꽂고 다시 시험한 뒤 판정하세요.`); showVerdict(false, "추가 증거 필요"); return; }
@@ -1438,13 +1438,13 @@ export function TwinBenchV7({ state, send }: { state: Campaign; send: Send }) {
       : caseId === "propulsion" ? <BenchVisual tab="vehicle" caseId={caseId} running={running} works={plantReal ? fixed || firstMismatch(list) === null : true} /> : <EmbeddedBench3D caseId={caseId} running={running} works={plantReal ? fixedView : true} />;
   const tabNote = viewTab === "ecu" && !ecuReal ? "이 레벨에서는 제어기 하드웨어가 연결되지 않아요. SW만 PC에서 실행해요."
     : viewTab === "plant" && !plantReal ? "이 레벨에서는 부품·차량이 모델로 대체돼요. 실제 부품 고장은 여기서 보이지 않아요." : "";
-  const missions = [["A", "정상 시나리오 확인"], ["B", "고장 재현·원인 확정"], ["fix", "수정"], ["C", "재시험·회귀"]] as const;
+  const missions = [["A", "정상 시나리오 확인"], ["B", "고장 재현·원인 확정"], ["fix", "수정"], ["C", "수리 적용·주행 복귀"]] as const;
   const mIndex = mission === "done" ? 4 : missions.findIndex(([id]) => id === mission);
   const todo = mission === "A" ? ["시험 레벨 고르기", "입력값 고르기", `관측점 꽂기 (최대 ${PROBE_LIMIT}개)`, "실행 → PASS/FAIL 판정"]
     : mission === "B" ? ["사건 조건 입력 고르기", "입력 쪽·출력 쪽 관측점", "실행", "가장 먼저 갈라진 신호에 깃발"]
       : mission === "C" ? ["같은 레벨·입력으로 실행", "PASS 확인", "회귀 시험"] : [];
 
-  const missionLabel = mission === "A" ? "미션 A · 정상 시나리오 확인" : mission === "B" ? "미션 B · 고장 재현" : mission === "C" ? "재시험 · 회귀" : mission === "fix" ? "결과 보고 · 조치 요청" : "완료";
+  const missionLabel = mission === "A" ? "미션 A · 정상 시나리오 확인" : mission === "B" ? "미션 B · 고장 재현" : mission === "C" ? "수리 적용 · 주행 복귀" : mission === "fix" ? "결과 보고 · 조치 요청" : "완료";
   const missionGoal = mission === "A" ? "요구사항 입력을 넣었을 때 요구사항대로 동작하는지 확인합니다. FAIL이 나오는 레벨에 결함이 있어요."
     : mission === "B" ? "사건이 난 조건을 넣어 같은 증상을 재현하고, 가장 먼저 갈라지는 신호를 찾아 원인을 확정합니다."
       : mission === "C" ? "고친 설계를 같은 조건으로 다시 시험하고, 영향 범위를 회귀 시험합니다." : "";
@@ -1474,7 +1474,7 @@ export function TwinBenchV7({ state, send }: { state: Campaign; send: Send }) {
     <StageIntro id="bench" title="시뮬레이션 검증" goal="의심 구간을 실제로 시험해서 원인을 증명하는 단계예요." steps={[
       { icon: "monitor", text: "레벨·입력·관측점을 골라 시험해요. 왼쪽 탭으로 같은 결과를 SW·제어기·부품 관점에서 볼 수 있어요." },
       { icon: "clipboard", text: "시험이 끝나면 판정 노트에서 결과가 각 가설을 지지하는지, 반박하는지, 판단할 수 없는지 직접 골라요." },
-      { icon: "flag", text: "근거로 원인 하나만 남으면 처음 갈라진 신호에 깃발 → 검증 결과 보고서 → 조치 요청 → 재시험." },
+      { icon: "flag", text: "근거로 원인 하나만 남으면 처음 갈라진 신호에 깃발 → 검증 결과 보고서 → 수리 적용 → 주행 복귀." },
     ]} />
     <main className="vbLayout">
       {plan}

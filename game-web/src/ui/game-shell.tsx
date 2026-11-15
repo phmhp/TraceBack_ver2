@@ -83,7 +83,7 @@ export function GameHeader({
       </div>
       <span className="gameHeaderSpacer" aria-hidden="true" />
     </header>
-    {distanceMeters !== undefined && <PursuitHud gap={distanceMeters} distance={raceDistanceMeters ?? 0} />}
+    {distanceMeters !== undefined && !SLOW_TIME_SCENES.includes(progressScene ?? "") && <PursuitHud gap={distanceMeters} distance={raceDistanceMeters ?? 0} />}
     {progressScene && SLOW_TIME_SCENES.includes(progressScene) && <span className="timeDilation" role="status" title="추리하는 동안 추격 시간은 천천히 흐릅니다"><i aria-hidden="true" />추리 중 · 시간 1/30</span>}
     </>
   );

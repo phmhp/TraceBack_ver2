@@ -1284,8 +1284,8 @@ const DECK_STOP = DECK_TOUCH + 12;
 // A coastal route made of long straights, a switchback, a tunnel bend and a
 // final open approach. Road, traffic, minimap and vehicle all share this map.
 const ROUTE_POINTS = [
-  [0, 0], [180, 2.4], [390, -4.8], [610, -1.2], [840, 5.6],
-  [1070, 2.1], [1290, -5.2], [1510, -2.4], [1740, 4.2], [1980, 1.6], [2200, 0],
+  [0, 0], [180, 5.2], [390, -9.5], [610, -3.1], [840, 11.5],
+  [1070, 4.4], [1290, -10.8], [1510, -4.2], [1740, 9.2], [1980, -5.8], [2200, 0],
 ] as const;
 const routeX = (distance: number) => {
   const s = THREE.MathUtils.clamp(distance, ROUTE_POINTS[0][0], ROUTE_POINTS.at(-1)![0]);

@@ -491,7 +491,7 @@ function Title({
   const [panel, setPanel] = useState<"none" | "settings" | "keys">("none");
   const [prefs, setPrefsState] = useState(soundPrefs());
   const STAGE_NAME: Record<string, string> = { GARAGE_L1: "정비소", LEVEL_SELECT: "레벨 선택", DRIVE_BRIEFING: "범행·도주", CHASE_NORMAL: "주행", FAULT_CUE: "주행", BOARD: "원인 역추적", WIRING: "퍼즐", TWIN_BENCH: "실험대", VERIFY_FAIL: "실험대", REPAIR: "수리", CHASE_RESUME: "주행", SHIP_ESCAPE: "해적선", SHIP_BOARDING: "해적선" };
-  const savedLabel = saved?.scene && STAGE_NAME[saved.scene] ? `${STAGE_NAME[saved.scene]} 단계 · 추격차와 ${Math.round(saved.policeGapMeters ?? 0)}m` : null;
+  const savedLabel = saved?.scene && STAGE_NAME[saved.scene] ? `${STAGE_NAME[saved.scene]} 단계${saved.scene.startsWith("GARAGE") || saved.scene === "LEVEL_SELECT" ? "" : ` · 추격차와 ${Math.round(saved.policeGapMeters ?? 0)}m`}` : null;
   useEffect(() => {
     const key = (event: KeyboardEvent) => { if (event.key === "Enter" && panel === "none") { event.preventDefault(); if (savedLabel && saved) send({ type: "LOAD_SAVE", save: saved }); else send({ type: "NEW_GAME" }); } if (event.key === "Escape") setPanel("none"); };
     addEventListener("keydown", key); return () => removeEventListener("keydown", key);

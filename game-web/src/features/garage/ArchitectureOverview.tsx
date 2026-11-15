@@ -38,6 +38,7 @@ export function ArchitectureOverview({ icons, onPick, onShow3d }: { icons: Recor
     }));
   }, [signal, open]);
   const pickGroup = (group: DomainGroup | null) => { setSignal(null); setOpen(group); };
+  const openSignal = (index: number) => { const group = EV_DOMAINS[COORD_SIGNALS[index].from].group; setOpen(group); setSignal(index); };
 
   const active = signal === null ? null : COORD_SIGNALS[signal];
   const involved = new Set<DomainId>(active ? [active.from, ...active.to] : []);
@@ -56,6 +57,10 @@ export function ArchitectureOverview({ icons, onPick, onShow3d }: { icons: Recor
         <small>도메인 {ids.length}개 · 열어 보기</small>
       </button>;
     })}</div>
+    <section className="archCoordPreview" aria-label="도메인 협조 신호 미리보기">
+      <header><b><Icon name="signal" /> 도메인 협조 신호</b><small>각 영역은 네트워크로 한계를 주고받으며 함께 차량을 제어합니다.</small></header>
+      <div>{COORD_SIGNALS.slice(0, 6).map((item, index) => <button key={item.name} onClick={() => openSignal(index)}><strong>{EV_DOMAINS[item.from].label}</strong><i>→</i><strong>{item.to.map(id => EV_DOMAINS[id].label).join(" · ")}</strong><span>{item.name}</span></button>)}</div>
+    </section>
   </div>;
 
   return <div className="mechanismViewer archView" ref={root}>

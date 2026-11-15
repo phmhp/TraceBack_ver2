@@ -233,7 +233,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   type Pol = { id: string; kind: string; title: string; sub: string; photo: React.ReactNode; dom?: Dom };
   const evidenceCards = [...(chain.length ? [start] : []), ...measured.map(dom)].filter((d, i, all) => all.findIndex(x => x.id === d.id) === i);
   const pols: Pol[] = [
-    ...evidenceCards.filter(d => d.status === "bad").map(d => ({ id: d.id, kind: `m s-${d.status}`, title: d.label, sub: "이상으로 판정한 신호", photo: <Photo src={d.img} />, dom: d })),
+    ...evidenceCards.filter(d => d.status === "bad").map(d => ({ id: d.id, kind: `m s-${d.status}`, title: d.label, sub: `이상 판정 · ${d.zone} · 기준 ${refText(d)} / 이번 ${fmt(d.run)}${d.unit ? ` ${d.unit}` : ""}`, photo: <Photo src={d.img} />, dom: d })),
   ];
   const zoomed = pols.find(item => item.id === zoomPol);
   // the enlarged polaroid closes with Enter or Esc (captured so the stage keys underneath do not react)
@@ -245,6 +245,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   }, [zoomPol]);
   const evidencePages = Math.max(1, Math.ceil(pols.length / 6));
   const visiblePols = pols.slice(evidencePage * 6, evidencePage * 6 + 6);
+  const pathMeasured = chain.filter(id => measured.includes(id));
   const coach = state.completedCases.length ? "" : phase === "symptom" ? "output" : phase === "trace" ? "measure" : !sectionDone ? "section" : !allSorted ? "sort" : "next";
   const mugStatus = (id: string): keyof typeof STAMP_KO => stamps[id] ?? (measured.includes(id) ? "measured" : "untested");
   // symptom cards: the felt symptom plus unaffected outputs only (a wrong card must be clearly wrong: reference = this drive).
@@ -273,7 +274,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     : phase === "trace"
       ? [`지금 기준 신호는 ${dom(focus).label}이에요.`, `이 신호에 영향을 줬을 후보를 하나씩 볼게요. (후보 ${candNo || suspects.length}/${suspects.length})`, "먼저 달라졌으면 ← 영향을 줬어요, 정상이거나 나중에 달라졌으면 → 영향을 주지 않았어요를 눌러요."]
       : !sectionDone
-        ? [`첫 편차는 ${dom(data.first).label}${josa(dom(data.first).label, "이군요", "군요")}! 들어오는 값은 모두 정상인데 여기서부터 달라졌어요.`, "그렇다면 이 편차가 일어난 위치로 의심되는 곳은 어디일까요?", "가장 의심되는 곳을 골라요. 궁금하면 안쪽 보기를 눌러요."]
+        ? [`첫 편차는 ${dom(data.first).label}${josa(dom(data.first).label, "이군요", "군요")}! 들어오는 값은 모두 정상인데 여기서부터 달라졌어요.`, "그렇다면 이 편차가 일어난 위치로 의심되는 곳은 어디일까요?", "가장 의심되는 구간을 골라요. 필요하면 구조 보기를 눌러요."]
         : !allSorted
           ? [`의심 구간은 ${sectionPick1}${josa(sectionPick1, "으로", "로")} 좁혀졌어요!`, "이 구간에서 편차가 생긴 원인 후보(가설)를 하나씩 볼게요.", "이미 아니라고 할 수 있으면 → 후보에서 빼고, 아직 모르면 ← 후보에 올려요."]
           : carryPool.length > 1 && !carryId
@@ -323,7 +324,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       <section className="etEvidence">
         <header><nav className="etEvidenceTabs" role="tablist" aria-label="증거 패널">
           <button role="tab" aria-selected={memoTab === "evidence"} className={memoTab === "evidence" ? "on" : ""} onClick={() => setMemoTab("evidence")}>증거</button>
-          <button role="tab" aria-selected={memoTab === "measure"} className={memoTab === "measure" ? "on" : ""} onClick={() => setMemoTab("measure")}>확인한 신호</button>
+          <button role="tab" aria-selected={memoTab === "measure"} className={memoTab === "measure" ? "on" : ""} onClick={() => setMemoTab("measure")}>역추적 경로</button>
           {phase === "hyp" && <button role="tab" aria-selected={memoTab === "zone"} className={memoTab === "zone" ? "on" : ""} onClick={() => setMemoTab("zone")}>의심 구간 구조</button>}
           {phase === "hyp" && sectionDone && <button role="tab" aria-selected={memoTab === "hyp"} className={memoTab === "hyp" ? "on" : ""} onClick={() => setMemoTab("hyp")}>가설 후보</button>}
         </nav><OpenBookButton caseId={caseId} /></header>
@@ -332,8 +333,8 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
             <i className="pin" /><span className="polPhoto">{item.photo}</span><b>{item.title}</b><small>{item.sub}</small>
           </button>)}</div>{evidencePages > 1 && <div className="polPager"><button disabled={evidencePage === 0} onClick={() => setEvidencePage(page => Math.max(0, page - 1))}>이전</button><span>{evidencePage + 1}/{evidencePages}</span><button disabled={evidencePage >= evidencePages - 1} onClick={() => setEvidencePage(page => Math.min(evidencePages - 1, page + 1))}>다음</button></div>}</>}
           {memoTab === "measure" && <div className="etMeasureTab" role="tabpanel" aria-label="확인한 신호">
-            {measured.length ? <ul className="etChecked">{[...measured].reverse().map(id => { const d = dom(id); const st = stamps[id]; return <li key={id} className={`s-${d.status}`}><b>{d.label}</b><span>{numify(`기준 ${refText(d)} · 이번 ${fmt(d.run)}${d.unit ? ` ${d.unit}` : ""}`)}</span><em className={st ?? "now"}>{st ? STAMP_KO[st] : "확인 중"}</em></li>; })}</ul>
-              : <p className="etEmpty"><Icon name="search" /> 후보 카드를 판단하면 확인한 신호가 여기에 쌓여요.</p>}
+            {pathMeasured.length ? <ul className="etChecked">{[...pathMeasured].reverse().map(id => { const d = dom(id); const st = stamps[id]; return <li key={id} className={`s-${d.status}`}><b>{d.label}</b><span>{numify(`기준 ${refText(d)} · 이번 ${fmt(d.run)}${d.unit ? ` ${d.unit}` : ""}`)}</span><em className={st ?? "now"}>{st ? STAMP_KO[st] : "확인 중"}</em></li>; })}</ul>
+              : <p className="etEmpty"><Icon name="search" /> 역추적 경로가 아직 없어요. 후보를 판단하면 경로가 쌓여요.</p>}
             {chain.length > 0 && <div className="etReasonPath"><small>거슬러 올라간 경로</small><div className="etStack flow">{[...chain].reverse().map((id, row) => <React.Fragment key={id}><span className={row === 0 ? "top" : ""}>{dom(id).label}</span>{row < chain.length - 1 && <i aria-hidden="true">→</i>}</React.Fragment>)}</div></div>}
           </div>}
           {memoTab === "zone" && <div className="etZoneTab" role="tabpanel" aria-label="의심 구간 구조">{SUBSYS[caseId] ? <div className="etZoom inline"><b><Icon name="search" /> {SUBSYS[caseId].where} 구조</b><div className="etZoomCol"><span className="io ok">들어오는 값<em>{SUBSYS[caseId].inLabel}</em></span>{SUBSYS[caseId].stages.map(st => <React.Fragment key={st}><i aria-hidden="true">↓</i><span className="stage">{st}<em>?</em></span></React.Fragment>)}<i aria-hidden="true">↓</i><span className="io bad">나가는 값<em>{SUBSYS[caseId].outLabel}</em></span></div></div> : null}</div>}
@@ -354,7 +355,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
                 <span>{dom(cand).status === "bad" ? numify(`달라진 시점 ${fmt(dom(cand).t!)} ${unit} (${dom(focus).label}${josa(dom(focus).label, "은", "는")} ${fmt(dom(focus).t!)} ${unit})`) : dom(cand).status === "tol" ? "허용 범위 안이에요" : "기준과 같아요 (달라지지 않음)"}</span></div>
               <div className="etFlags"><button className="yes" onClick={() => stamp(cand, "likely")}><kbd>←</kbd>영향을 줬어요</button><button className="no" onClick={() => stamp(cand, "refuted")}>영향을 주지 않았어요<kbd>→</kbd></button></div>
             </article> : <span className="etAsk">다음 기준 신호로 넘어가는 중이에요…</span>}</div>
-            : !sectionDone ? <div className="etDock etDockSection"><div className="etChoices">{data.section.choices.map((c, index) => <button key={c.label} className={sectionPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}><kbd>{index + 1}</kbd>{c.label}</button>)}</div><button className="etInside" onClick={() => { setMemoTab(memoTab === "zone" ? "evidence" : "zone"); play("pop"); }}>{memoTab === "zone" ? "안쪽 닫기" : "안쪽 보기"}</button></div>
+            : !sectionDone ? <div className="etDock etDockSection"><div className="etChoices">{data.section.choices.map((c, index) => <button key={c.label} className={sectionPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}><kbd>{index + 1}</kbd>{c.label}</button>)}</div><button className="etInside" onClick={() => { setMemoTab(memoTab === "zone" ? "evidence" : "zone"); play("pop"); }}>{memoTab === "zone" ? "구조 닫기" : "첫 편차 발생 의심 구간 보기"}</button></div>
               : nextHyp ? <div className="etDock"><article className="etCand hyp"><div className="etCandText"><small>가설 후보 {hypNo}/{meta.hypotheses.length}</small><b><span className="etTag" data-tag={HYP_TAG[nextHyp.id]}>{HYP_TAG[nextHyp.id]}</span>{nextHyp.label}</b></div>
                   <div className="etFlags"><button className="yes" onClick={() => sortHyp(nextHyp.id, "hold")}><kbd>←</kbd>후보에 올려요</button><button className="no" onClick={() => sortHyp(nextHyp.id, "out")}>후보에서 빼요<kbd>→</kbd></button></div></article></div>
                 : carryPool.length > 1 && !carryId ? <div className="etDock"><div className="etChoices">{carryPool.map((id, index) => <button key={id} onClick={() => { setCarry(id); play("pop"); }}><kbd>{index + 1}</kbd><span className="etTag" data-tag={HYP_TAG[id]}>{HYP_TAG[id]}</span>{meta.hypotheses.find(h => h.id === id)?.label}</button>)}</div></div>
@@ -513,7 +514,7 @@ export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
     <StageIntro id="trace-v3" title="도미노 역추적" goal="증상에서 거꾸로 따라가 처음 쓰러진 도미노, 즉 처음 어긋난 곳을 찾아요. 원인은 검증 단계에서 시험으로 확인해요." steps={[
       { icon: "layers", text: "왼쪽 E/E 그림에서 부품을 눌러 재요. 오른쪽에 증거 사진이 쌓여요." },
       { icon: "search", text: "출력 쪽부터 거꾸로. 정상인 부품 바로 다음에서 이상이 시작되면 그곳이 처음 어긋난 곳이에요." },
-      { icon: "target", text: "'처음 어긋난 곳 지목'을 누르고 그 부품을 고른 뒤, 안쪽 의심 구간을 골라요." },
+      { icon: "target", text: "'처음 어긋난 곳 지목'을 누르고 그 부품을 고른 뒤, 의심 구간을 골라요." },
     ]} />
     <main className="dtLayout tbLayout">
       <section className={`tbBoard ${picking ? "picking" : ""}`}>
@@ -521,7 +522,7 @@ export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
         <EeBlueprint chain={chain.map(node => node.label)} roles={chain.map(node => node.role)} active={chain.length} removed={null} onPick={pick} signals={trace.signals} marks={marks} showPath={i => measured.includes(i) && measured.includes(i + 1)} />
         {found && SUBSYS[caseId] && <div className="etZoom" aria-label="처음 어긋난 곳 들여다보기"><b><Icon name="search" /> {SUBSYS[caseId].where} 안 들여다보기</b>
           <div className="etZoomRow"><span className="io ok">들어오는 값<em>{SUBSYS[caseId].inLabel}</em></span>{SUBSYS[caseId].stages.map(st => <React.Fragment key={st}><i>→</i><span className="stage">{st}<em>?</em></span></React.Fragment>)}<i>→</i><span className="io bad">나가는 값<em>{SUBSYS[caseId].outLabel}</em></span></div>
-          <small>안쪽 중 어디가 원인인지는 아직 몰라요. 검증 단계에서 시험으로 가려요.</small></div>}
+          <small>이 구조에서 어느 처리 단계가 원인인지는 아직 몰라요. 검증 단계에서 시험으로 가려요.</small></div>}
       </section>
       <aside className="tbEvidence">
         <header><b><Icon name="camera" /> 증거</b><small>{scenario.title}</small><OpenBookButton caseId={caseId} /></header>

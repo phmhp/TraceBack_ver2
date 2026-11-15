@@ -3061,3 +3061,25 @@ body:has(.pursuitHud) .stageFolderSubtitle { padding-right: 420px !important; }
 .eeTrace .etReasonPath span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .eeTrace .etEvidence .pol { grid-template-rows: minmax(0, 1fr) auto auto; }
 .eeTrace .etEvidence .pol > b, .eeTrace .etEvidence .pol > small { width: 100%; min-width: 0; }
+
+/* 2026-11-15 feedback pass: the bottom action area is the working area;
+   the next action stays compact instead of stealing the whole row. */
+:is(.eeTrace .etLayout, .refPuzzle.v2 .rp3Work, .vbBench.bench4.qa2 .b4Work) {
+  grid-template-rows: 56px minmax(0, 1fr) 220px !important;
+}
+:is(.eeTrace .etLayout > .etNextCell, .refPuzzle.v2 .rp3Work > .rpNextCell, .vbBench.bench4.qa2 .b4Work > .b4NextCell) {
+  align-items: center !important; justify-content: stretch !important;
+}
+:is(.eeTrace .etNextCell button, .refPuzzle.v2 .rpNextCell button, .vbBench.bench4.qa2 .b4NextCell button) {
+  flex: none !important; width: 100% !important; height: 48px !important; min-height: 48px !important; padding: 0 16px !important;
+  font: 800 16px/1 Pretendard, system-ui !important;
+}
+/* FlowStepCard (E/E) and the ordinary flow row share the same inner geometry. */
+.garageV2 .garageFooterRow > .garageFlowPanel { height: 122px !important; min-height: 122px !important; }
+.garageV2 .garageFooterRow > .garageFlowPanel > .flowStepCard,
+.garageV2 .garageFooterRow > .garageFlowPanel > div:not(.flowStepCard) { height: 54px !important; min-height: 54px !important; box-sizing: border-box; }
+.garageV2 .garageFooterRow > .garageFlowPanel > .flowStepCard { height: 100% !important; min-height: 0 !important; }
+.garageV2 .garageFooterRow > .garageFlowPanel .flowStepBody,
+.garageV2 .garageFooterRow > .garageFlowPanel > div:not(.flowStepCard) { align-items: stretch !important; }
+/* Verdict stamps use the same compact noun labels and never push outside the canvas. */
+html body .verdictLayer .verdictStamp { max-width: 72vw !important; padding: 6px 18px !important; border-width: 5px !important; font-size: 42px !important; line-height: 1 !important; }
