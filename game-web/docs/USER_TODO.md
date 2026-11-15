@@ -8,6 +8,9 @@
   - 규칙: 한 장씩, 프롬프트 코드블록 통째로 붙여넣기, 2장 이상·글자·테두리가 나오면 버리고 재요청, CUT은 같은 부품의 REF 먼저 첨부
 - [ ] 저장 후 확인: `npm run assets:check` (아직 없는 파일 목록이 나옴, 목표 0/15)
 - [ ] 15장을 다 만들면 저에게 알려 주기 → 새 부품 3D·카드 연결
+- [ ] C04 변속 폴백 사건 이미지 (지금은 임시 이미지로 대체해 둔 상태 — 만들면 교체)
+  - 증거 사진 3장: `motor_reverse_log`(후진 토크 로그), `dtc_gear_timeout`(통신 타임아웃 진단 코드), `bus_load_scope`(버스 부하 85 % 화면). 프롬프트는 `image-prompts/12-case-evidence.md`
+  - 부품 사진 3장(`public/assets/ending-thumbs/`): `gear_selector.png` 변속 레버·시프터(지금 `accel_pedal.png` 임시), `gateway.png` 게이트웨이(지금 `can_harness.png` 임시), `cluster.png` 계기판 변속 표시(지금 `diagnostic_port.png` 임시). 교체 위치: `src/features/wiring/RefPuzzle.tsx`(REF.gear), `src/features/verification/VerificationLab.tsx`(CAUSES.gear), `src/features/board/DominoTrace.tsx`(gear 도미노 이미지)
 - [ ] (나중) 고양이 표정 세트 — 볼트·너트 각 4~6종(평온, 집중, 놀람, 안도, 기쁨, 실망). 레이싱 개편 승인 뒤 프롬프트를 드립니다
 
 ## B. 사건 시트 교차 확인 (GPT)
