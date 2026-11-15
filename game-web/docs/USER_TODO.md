@@ -36,3 +36,9 @@
 - 위치: `public/assets/cat-expr/` · 파일명 `lou-<표정>.png`, `ming-<표정>.png` (볼트=lou, 너트=ming), 정사각에 가까운 얼굴 한 장씩.
 - 표정 이름: `joy`(기쁨), `relief`(안도), `calm`(평온), `focus`(집중), `shock`(놀람), `letdown`(실망). 엔딩이 실제로 쓰는 조합: 성공 상(joy/joy), 중(relief/focus), 하(calm/relief), 체포(letdown/shock). 파일이 없으면 기존 초상 사진이 그대로 나옵니다.
 - 레이싱 충돌 때의 고양이 반응도 같은 세트를 쓸 예정(지금은 신원 기준 이미지 + 문구).
+
+## C01 사건 시트 (2026-11-14 초안, 승인 대기)
+- [ ] `docs/fault-cases/c01_ready_fail.md` 읽고 승인 또는 수정 지시 (구현은 승인 뒤)
+- [ ] GPT 교차 검토: `docs/fault-cases/CROSSCHECK_PROMPT.md` 방법으로 시트 절 단위 검토 → 결과를 시트 12절에 기록 (특히 3·4절 프리차지 수치와 5절 DTC 표현)
+- [ ] 결정: 레벨 배치(N01 다음 5레벨 선택 / 필수로 승격), STEP03 전용 상태 전이도 UI를 지금 만들지 이번엔 블록 조립으로 갈지
+- [ ] (나중) 증거 이미지 2장 `ready_off`, `hv_bus_scope`

@@ -10,7 +10,7 @@
 | 4 | `DIAGNOSTICS_AND_FUTURE.md` | 진단(DTC·경고등) 채널, 기능안전·AUTOSAR 확장을 위한 예약 필드 |
 | 5 | `CHECKLIST.md` | 구현 후 화면별 대조 검수표 |
 | 6 | `LEVEL_PROGRESSION_AND_LEARNING_LINKS.md` | 레벨형 진행과 정비소 학습 연결 설계 (승인 대기) |
-| 예시 | `n01_regen_sign.md`(첫 사건 시트, 승인 대기), `speedo.md`(R16으로 제외, 보관) | 사건 시트 작성 예 |
+| 예시 | `n01_regen_sign.md`(첫 사건, 구현 완료), `c01_ready_fail.md`(둘째 사건, 시동 전·프리차지 타임아웃, 초안·교차 검토 대기), `speedo.md`(R16으로 제외, 보관) | 사건 시트 작성 예 |
 | 참고 | `AUDIT_EXISTING_2026-11-14.md` | 기존 3사건을 규칙에 비춰 검수한 결과와 수정 내역 |
 | 참고 | `../DESIGN_DECISIONS_V3.md` | 단계별 화면·데이터 계약(7절 사건 추가 파일 표 포함) |
 

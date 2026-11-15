@@ -117,3 +117,4 @@ WP1 잔여(동적 상태 잘림 점검·STEP01 H1) → WP2 DEV 메뉴 → WP3 ST
 - 2026-11-14 새 사건 N01(`regen`, 회생 부호 오류) 구현: STEP02~04·허브(4레벨 선택, 탈출은 5레벨)·엔딩·정비소 노트 연결, 모델 `simModel.regen`, 테스트 `tests/regen-case.test.mjs`. **레이스 고장 트리거는 미연결**(제동 사건과 같은 선택 레벨 형태). 새 사건을 더 추가할 때는 `CaseId`에 추가해 `tsc -b`가 알려주는 `Record<CaseId,…>` 표를 모두 채우고, EeTrace의 `Record<string,…>` 표(LAMP·QUOTE·TRACE·OBSERVED·REPLAY·SUBSYS)는 타입 오류가 안 나므로 따로 확인한다. 브라우저 확인 때 STEP04 시험 실행이 멈추면 패널이 안 그려져서이니 화면 캡처로 깨운다. C01·C05·C08·C12는 사건 시트 작성부터 필요.
 - 2026-11-14 터널·야간 구간 연출 완료(`ROAD_ZONES` tunnel 700~860, night 1520~1690). 남은 환경: 경사·저온·눈부심 연출.
 - 2026-11-14 N01 레이스 연결: 레벨 4 시작 → 레이스(`REGEN_FAULT`) → 고장 컷신 → STEP02. 레벨 시작 전이는 `runtime.ts` START_LEVEL 4(`CHASE_RESUME`, caseId regen).
+- 2026-11-14 둘째 사건 시트 작성: `docs/fault-cases/c01_ready_fail.md`(C01 시동 불가, 프리차지 타임아웃 500 vs 1500 ms, 시동 전·영구, 임베디드에서 판정). 승인 전에는 코드를 쓰지 않는다. 다음 후보 시트: C05(저속 회생·마찰 전환), C08(시간 경과 간헐), C12(P 해제 후 밀림) — 한 번에 하나씩.
