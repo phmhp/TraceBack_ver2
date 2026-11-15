@@ -118,8 +118,8 @@ test("contract and STEP04 progress data survive JSON storage round trips", () =>
 test("live STEP04 sends computed BENCH_RESULT values instead of hardcoded success", () => {
   const source = readFileSync(new URL("../src/features/verification/VerificationLab.tsx", import.meta.url), "utf8");
   const live = source.slice(source.indexOf("export function TwinBenchExperience"));
-  assert.match(live, /pass: retestPassed, causeCorrect/);
+  assert.match(live, /pass: canApply, causeCorrect/);
   assert.doesNotMatch(live, /pass: true, causeCorrect: true/);
-  assert.match(live, /lastRun\?\.fixed && lastRun\.verdict === "PASS"/);
+  assert.match(live, /const canApply = phase === "ab" && abDone && causeOk/);
   assert.match(live, /answers\[trueHypothesis\]\?\.answer === "supported"/);
 });

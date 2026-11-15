@@ -85,7 +85,7 @@ test("STEP04 A/B: removing the true cause matches the normal model; a wrong caus
 });
 
 test("STEP04 learning flow: purpose, material roles, input cards, PASS/FAIL meaning, evidence guide", () => {
-  assert.match(live04, /title="실험대" goal="추리한 고장 원인 가설이 실제 원인인지 시험으로 확인합니다\."/);
+  assert.match(live04, /title="실험대" goal="도미노에서 세운 가설이 진짜 원인인지 시험으로 확인해요"/);
   assert.match(live04, /className="b4MatTabs"/); // materials live in the side panel tabs (no pop-up scrim)
   assert.match(live04, /className="qaMatRole"><b>정상 기준<\/b>/);
   assert.match(live04, /className="qaMatRole"><b>고장 당시 기록<\/b>/);

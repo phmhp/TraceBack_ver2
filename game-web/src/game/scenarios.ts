@@ -324,7 +324,7 @@ export function hypothesisStatus(caseId: CaseId, runs: BenchRun[]) {
     return { ...h, status, why };
   });
 }
-export const HYP_LABEL: Record<HypStatus, string> = { untested: "미시험", open: "추가 증거 필요", supported: "지지됨", refuted: "반박됨" };
+export const HYP_LABEL: Record<HypStatus, string> = { untested: "아직 안 봄", open: "아직 몰라요", supported: "원인으로 보여요", refuted: "원인이 아니에요" };
 
 /** What ONE bench run allows the player to conclude about each hypothesis (the answer key for the judgment note). */
 export function judgeRun(caseId: CaseId, run: BenchRun) {

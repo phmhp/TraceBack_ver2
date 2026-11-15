@@ -7,7 +7,7 @@ export const STEP_ROADMAP: Record<RoadmapStepId, { no: string; alias: string; me
   garage: { no: "STEP 01", alias: "정비소", meaning: "차량 동작 원리", subs: ["차량 전체", "기능 흐름", "부품·E/E", "SW 구성", "SW 로직"] },
   board: { no: "STEP 02", alias: "도미노 추적", meaning: "원인 역추적", subs: ["증상 확인", "역방향 추적", "가설 정리"] },
   puzzle: { no: "STEP 03", alias: "퍼즐", meaning: "정상 기준·시험 준비", subs: ["정상 기준 구성", "연결·값 확인", "시험 설계 확정"] },
-  bench: { no: "STEP 04", alias: "실험대", meaning: "가설 실험·수리", subs: ["시험 설계", "실행·판정", "원인 제거 확인", "수리·재시험"] },
+  bench: { no: "STEP 04", alias: "실험대", meaning: "가설 실험", subs: ["시험 설계", "실행·판정", "원인 제거 확인"] },
 };
 
 /** `max` = furthest sub-step the player has unlocked; `goTo` jumps to a reached sub-step (back is free, forward is locked). */

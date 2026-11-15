@@ -358,7 +358,7 @@ test("STEP04 2026-11-12 verifies each hypothesis with its own runs and simplifie
   assert.match(live, /setRunning\(true\); setU\(0\); setFeedback\(null\); setViewTab\("graph"\)/);
   assert.match(live, /setViewTab\(viewOf\(lv\)\);/);
   // wording and report
-  assert.match(live, /시험 결과가 선택한 고장 원인 가설을 뒷받침합니까\?/);
+  assert.match(live, /이 결과를 보면, 이 가설이 원인 같나요\?/);
   assert.doesNotMatch(live, /검증 결과 보고 · \{DRIVER_NAME\}에게/);
   assert.match(live, /설명: \{a\?\.why\}/);
   assert.match(verificationLab, /VCU 내부 계산 SW가 잘못된 건가요\?/);

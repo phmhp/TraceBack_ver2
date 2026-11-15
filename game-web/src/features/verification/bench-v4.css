@@ -104,3 +104,35 @@
 .vbBench.bench4.qa2 .b4Doc .finalJudge header { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .vbBench.bench4.qa2 .b4Doc .finalJudge header * { white-space: nowrap !important; }
 .vbBench.bench4.qa2 .rpFace.tight { white-space: normal !important; font-size: 9.5px !important; line-height: 1.1; text-align: center; letter-spacing: 0; }
+
+/* 2026-11-15: dock = Directive (left) + question/choices (right), same layout as STEP02 */
+.vbBench.bench4.qa2 .b4Work > .b4Dock { flex-direction: row; align-items: stretch; gap: 12px; }
+.vbBench.bench4.qa2 .b4Dock > .directive { flex: 0 0 44%; min-width: 0; }
+.vbBench.bench4.qa2 .b4Dock .qaActionDock { flex: 1 1 0; flex-direction: column; align-items: stretch; justify-content: center; gap: 6px; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion { flex: none; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion small, .vbBench.bench4.qa2 .b4Dock .qaQuestion span { display: none !important; }
+.vbBench.bench4.qa2 .b4Dock .qaChoices { flex-wrap: wrap; }
+.vbBench.bench4.qa2 .b4Dock .qaChoices button { white-space: normal; line-height: 1.2; padding: 4px 10px; text-align: left; }
+.vbBench.bench4.qa2 .b4Dock .qaChoices.causeRow { flex-wrap: nowrap; }
+.vbBench.bench4.qa2 .b4Dock .causeMini { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; align-items: flex-start; min-height: 74px; padding: 4px 8px; border-radius: 10px; border: 1.5px solid #c9a9a0; background: #fff8f2; cursor: pointer; }
+.vbBench.bench4.qa2 .b4Dock .causeMini b { font: 800 12px/1.2 Pretendard, system-ui; color: #3f302c; word-break: keep-all; }
+.vbBench.bench4.qa2 .b4Dock .causeMini .causePhoto { display: none; }
+.vbBench.bench4.qa2 .b4Dock .causeMini .causeType { display: none; }
+.vbBench.bench4.qa2 .b4Dock .causeMini.right { border-color: #3f7a55; background: #eef8f0; }
+.vbBench.bench4.qa2 .b4Dock .causeMini.wrong { border-color: #a0281e; background: #fdeeea; }
+.reportStage .reportList { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.reportStage .reportList li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 8px 12px; border-radius: 10px; border: 1.5px solid #d8c2ba; background: #fffaf4; }
+.reportStage .reportList li b { font: 800 14px/1.3 Pretendard, system-ui; color: #3f302c; display: flex; gap: 6px; align-items: center; }
+.reportStage .reportList li em { font: 800 13px/1.3 Pretendard, system-ui; font-style: normal; color: #7a4a44; }
+.reportStage .reportList li span { grid-column: 1 / -1; font: 500 13px/1.35 Pretendard, system-ui; color: #4a3a36; }
+.reportStage .reportList li.a-supported em { color: #3f7a55; }
+.reportStage .reportList li.a-refuted em { color: #a0281e; }
+.reportStage .reportList li.a-skip { opacity: .65; }
+.vbBench .etTag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 999px; font: 700 11px/1.4 Pretendard, system-ui; background: #efe3dc; color: #6b4a44; vertical-align: 1px; }
+.vbBench .etTag[data-tag="HW"] { background: #f3dcd6; color: #8a2f25; }
+.vbBench .etTag[data-tag="센서"] { background: #dfeaf3; color: #2f5273; }
+.vbBench .etTag[data-tag="통신"] { background: #e2efdc; color: #3d5a34; }
+.vbBench .etTag[data-tag="SW 로직"] { background: #eadff3; color: #54357a; }
+.vbBench .etTag[data-tag="SW 설정"] { background: #f4e9cf; color: #75571a; }
+.eeTrace .etChecked { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.eeTrace .etChecked li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 6px 8px; border-radius: 8px; background: #fffaf5; border: 1px solid #e1d3c4; }
