@@ -126,8 +126,11 @@ test("STEP02 keeps evidence and reasoning stack in the persisted right rail with
   const liveTrace = eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3"));
   assert.match(liveTrace, /const \[memoTab, setMemoTab\] = useState<MemoTab>\(\["evidence", "measure", "zone", "hyp"\]\.includes\(saved\.memoTab\)/);
   assert.match(liveTrace, /attached, sorted, memoTab, bubble/);
+  // v5: the right rail is a read-only archive (tabs 증거 / 확인한 신호 / 구간 안쪽 / 가설 후보); every choice is made in the bottom dock
+  assert.match(liveTrace, /확인한 신호/);
+  assert.match(liveTrace, /가설 후보/);
   assert.match(liveTrace, /etEvidenceTabs/);
-  assert.match(liveTrace, /역추적 경로/);
+  assert.match(liveTrace, /거슬러 올라간 경로/);
   assert.doesNotMatch(liveTrace, /etEvidenceAttach/);
   assert.match(liveTrace, /etReasonPath/);
   // N-S02-01 (2026-11-11): the stack shows only the trace; selected candidates and hypotheses stay internal.
@@ -140,8 +143,8 @@ test("STEP02 keeps evidence and reasoning stack in the persisted right rail with
   // v4 (2026-11-14): the dock asks one question at a time; candidates are measured by tapping board nodes.
   assert.match(liveTrace, /etDockTrace/);
   assert.match(latestCss, /\.etEvidence > header > \.etEvidenceTabs/);
-  assert.match(latestCss, /\.etMugs \{ display: flex !important/);
-  assert.match(latestCss, /\.etCandidateRow \{[\s\S]*overflow: hidden/);
+  assert.match(liveTrace, /etCand/);
+  assert.match(liveTrace, /<Directive /);
 });
 
 test("FB-P0-01 makes the STEP02 rail a folder-tabbed evidence and reasoning board", () => {
@@ -271,7 +274,7 @@ test("M-01 through M-06 keep the whole view, fixed evidence slots, reverse trace
   assert.match(experience, /showAllDomains/);
   assert.match(eeTrace, /visiblePols/);
   assert.match(eeTrace, /polPager/);
-  assert.match(eeTrace, /역추적 경로/);
+  assert.match(eeTrace, /거슬러 올라간 경로/);
   assert.doesNotMatch(eeTrace.slice(eeTrace.indexOf("export function EeTraceV2"), eeTrace.indexOf("// ===== v3")), /<DominoFall/);
   assert.match(refPuzzle, /rpZoomTools/);
   assert.match(refPuzzle, /rpTrackZoom/);
@@ -327,10 +330,10 @@ test("STEP02 2026-11-12 bottom dock asks one question at a time and shares polar
   assert.doesNotMatch(liveTrace, /고장 당시 입력 재생/);
   assert.doesNotMatch(liveTrace, /위가 최근에 찾은 단계|위가 최초 편차 쪽/);
   assert.match(liveTrace, /etDockSymptom/);
-  assert.match(liveTrace, /className="pol etPol"/);
-  assert.match(latestCss, /\.eeTrace \.etSusp \.etPol \{[^}]*aspect-ratio: 88 \/ 107/);
+  // v5: candidates and symptom choices are polaroid cards in the bottom dock (photo + label + values), judged with keys
+  assert.match(liveTrace, /className="etCardPol"/);
+  assert.match(liveTrace, /ArrowLeft/);
   assert.match(latestCss, /object-fit: contain !important/);
-  assert.match(latestCss, /\.eeTrace \.pol \{ overflow: visible !important; \}/);
 });
 
 test("STEP01 2026-11-12 shows 정비소 and fits E/E 3D parts inside their chip slot", () => {

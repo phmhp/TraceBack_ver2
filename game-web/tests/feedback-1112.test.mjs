@@ -24,11 +24,13 @@ test("STEP02: every suspect must be judged before moving to the next output", ()
 });
 
 test("STEP02: change times used by the feedback are shown on the play surface", () => {
-  assert.match(live02, /부터 달라짐`/); // shortened copy: "{time}부터 달라짐"
   assert.match(live02, /달라진 시점/);
-  assert.match(live02, /먼저 달라졌나요/);
+  // v5 (2026-11-15): one candidate card at a time, judged with the arrow keys ("flag game"); the question names the base signal
+  assert.match(live02, /영향을 줬어요/);
+  assert.match(live02, /영향을 주지 않았어요/);
+  assert.match(live02, /먼저 달라졌으면/);
   assert.doesNotMatch(live02, /재기|재 보세요/);
-  assert.match(live02, /후보 노드를 눌러 측정하세요/);
+  assert.match(live02, /지금 기준 신호는/);
   assert.match(live02, /먼저 시험할 가설/);
 });
 

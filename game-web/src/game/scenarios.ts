@@ -126,6 +126,18 @@ export type ScenarioMeta = {
 };
 const SW: Lv[] = ["unit", "swint"];
 
+/** Cause-kind tag shown on every hypothesis card (player-facing grouping of the fault categories A-L; HW is only ever a refutable candidate). */
+export type HypTag = "SW 로직" | "SW 설정" | "통신" | "센서" | "HW";
+export const HYP_TAG: Record<string, HypTag> = {
+  aps: "센서", vcu_sw: "SW 로직", vcu_hw: "HW", drive: "HW",
+  fan_sw: "SW 로직", fan_path: "SW 로직", fan_motor: "SW 로직",
+  blend_sw: "SW 로직", hyd_path: "SW 설정", caliper: "SW 로직",
+  brake_sw: "SW 로직", pedal: "센서", vcu_sign: "SW 로직", inv_wire: "HW",
+  bms_link: "통신", start_cond: "SW 로직", seq_timeout: "SW 설정", precharge_hw: "HW",
+  req_calc: "SW 로직", fade_mismatch: "SW 설정", fric_io: "SW 설정", wheel_hw: "HW",
+  lever_hw: "HW", gw_map: "통신", gear_fallback: "SW 설정", interlock: "SW 로직",
+};
+
 export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
   propulsion: {
     domain: "구동",

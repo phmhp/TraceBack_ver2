@@ -1,0 +1,11 @@
+/* spoken step direction: avatar + name, then one sentence per line */
+.directive { display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
+.directive > img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex: none; margin-top: 2px; }
+.directive .directiveBody { min-width: 0; display: grid; gap: 3px; }
+.directive .directiveBody > b { font: 800 12.5px/1 Pretendard, system-ui; color: #7a4a44; }
+.directive ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.directive li { position: relative; padding-left: 12px; font: 600 13px/1.3 Pretendard, system-ui; color: #3f302c; }
+.directive li::before { content: ""; position: absolute; left: 0; top: .55em; width: 5px; height: 5px; border-radius: 50%; background: #c9a39c; }
+.directive li:last-child { color: #5a4440; font-weight: 700; }
+.directive .directiveNote { margin: 1px 0 0; padding: 2px 8px; border-radius: 8px; background: #e8eddf; color: #3d5a34; font: 600 12px/1.25 Pretendard, system-ui; }
+.directive .directiveNote.bad { background: #f3dcd6; color: #8a2f25; }
