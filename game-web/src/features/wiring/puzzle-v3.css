@@ -71,3 +71,24 @@
 .rpFromLine { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .rpGarageLink { all: unset; box-sizing: border-box; cursor: pointer; padding: 3px 10px; border-radius: 999px; background: #9b6b64; color: #fff8f2; font: 700 12px/1.2 Pretendard, system-ui; white-space: nowrap; }
 .rpGarageLink:focus-visible { outline: 3px solid #4a3a36; outline-offset: 2px; }
+
+/* 2026-11-15: Directive dock + folder-style design sheet popup */
+.rp3Work .rpFoot { flex-direction: row !important; align-items: stretch !important; gap: 12px; }
+.rp3Work .rpFoot > .directive { flex: 0 0 46%; min-width: 0; }
+.rpSheetTab .rpFolderOpen { all: unset; box-sizing: border-box; cursor: pointer; margin: 0 0 6px auto; display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; background: #9b6b64; color: #fff8f2; font: 700 12px/1 Pretendard, system-ui; }
+.rpFolderBack { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: rgba(60, 40, 36, .45); }
+.rpFolder { width: 820px; max-width: 94vw; }
+.rpFolderTabs { display: flex; align-items: flex-end; gap: 4px; padding-left: 18px; }
+.rpFolderTabs span { padding: 8px 20px 6px; border-radius: 12px 12px 0 0; background: #d9b9a0; color: #6b4a44; font: 700 14px/1 Pretendard, system-ui; }
+.rpFolderTabs span.on { background: #fff6e4; color: #3f302c; font-weight: 800; padding-top: 11px; }
+.rpFolderTabs button { all: unset; margin-left: auto; cursor: pointer; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: #fff6e4; color: #6b4a44; font: 800 18px/1 Pretendard, system-ui; }
+.rpFolderPaper { padding: 20px 26px 24px; border-radius: 6px 14px 14px 14px; background: #fff6e4; border: 2px solid #c9a98a; box-shadow: 0 14px 30px rgba(60, 40, 36, .35); word-break: keep-all; }
+.rpFolderPaper small { font: 700 12px/1 Pretendard, system-ui; color: #8a6a63; }
+.rpFolderPaper h3 { margin: 6px 0 10px; font: 800 20px/1.2 Pretendard, system-ui; color: #3f302c; }
+.rpFolderPaper .ssPurpose { display: flex; gap: 10px; align-items: baseline; margin: 0 0 12px; font: 600 14px/1.4 Pretendard, system-ui; }
+.rpFolderPaper .ssPurpose span { font-weight: 800; color: #8a5a52; flex: none; }
+.rpFolderCols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.rpFolderPaper h4 { margin: 0 0 6px; font: 800 14px/1 Pretendard, system-ui; color: #7a4a44; }
+.rpFolderPaper table { width: 100%; border-collapse: collapse; }
+.rpFolderPaper td { padding: 6px 6px; border-bottom: 1px dashed #d8c2ba; font: 600 13px/1.3 Pretendard, system-ui; color: #4a3a36; }
+.rpFolderPaper td code { font: 700 13px/1.3 ui-monospace, Menlo, monospace; background: rgba(155, 107, 100, .12); padding: 1px 5px; border-radius: 4px; }

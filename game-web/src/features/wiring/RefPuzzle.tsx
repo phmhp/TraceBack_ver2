@@ -24,6 +24,7 @@ import { buildVerificationContract, contractSignalLabel, contractStorageKey, typ
 import { ReplayConfirm } from "../../ui/ReplayConfirm";
 import { MissionBar } from "../../ui/MissionBar";
 import { OpenBookButton, OpenBookModal } from "../../ui/OpenBook";
+import { Directive } from "../../ui/Directive";
 import "./puzzle-v3.css";
 
 type Send = React.Dispatch<any>;
@@ -556,6 +557,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const [bookFocus, setBookFocus] = useState<string | null>(null);   // block label shown in the 정비소 노트 popup
   const [sheetStep, setSheetStep] = useState(Boolean(saved.sheetStep));   // step 3: the test-design draft is open
   const [panelTab, setPanelTab] = useState<"req" | "sheet">(saved.sheetStep ? "sheet" : "req");
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [viewStep, setViewStep] = useState<number | null>(null);          // roadmap chip pointing back; null = follow progress
   const [replayOpen, setReplayOpen] = useState(false);
   const [scale, setScale] = useState(.8);
@@ -678,6 +680,13 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const mission = (viewStep ?? stepNow) === 0 ? { action: !filled ? `빈칸 ${remainingGaps}개에 조각 넣기` : "연결 확인으로 구성 검증하기", question: "정상이라면 어떤 로직이어야 할까?" }
     : (viewStep ?? stepNow) === 1 ? { action: "예시 입력을 움직여 값을 요구사항과 비교하기", question: "칸마다 나오는 값이 요구사항과 같을까?" }
       : { action: confirmed ? "설계서 확인 후 다음으로" : "시험 설계서를 확인하고 기준 확정하기", question: "이 기준으로 무엇을 시험할까?" };
+  // spoken directions: what the player just did, what this step is, how to do it
+  const dirStep = viewStep ?? stepNow;
+  const dirLines: string[] = dirStep === 0
+    ? [`도미노에서 의심 구간을 ${section}${(() => { const c = section.charCodeAt(section.length - 1) - 44032; return c >= 0 && c < 11172 ? (c % 28 === 0 || c % 28 === 8 ? "로" : "으로") : /[0-9013678LMNRlmnr]$/.test(section) ? "으로" : "로"; })()} 좁혔어요. 이 퍼즐은 그 구간이 정상이라면 어떻게 동작해야 하는지 맞춰 보는 거예요.`, "오른쪽 요구사항을 읽고, 빈칸에 들어갈 조각을 골라 끌어다 놓아요.", filled ? "다 채웠어요. 연결 확인을 눌러요." : "조각을 누르면 하는 일과 표 값을 볼 수 있어요."]
+    : dirStep === 1
+      ? ["조각 연결이 맞았어요. 이제 값이 맞는지 볼 차례예요.", "예시 입력을 움직이면 칸마다 값이 표시창에 나와요.", "표시창 값이 요구사항과 같으면 아래 버튼을 눌러요."]
+      : ["요구사항과 같은 걸 확인했어요. 이 값이 정상 기준이 돼요.", "시험 설계서에는 어떤 입력을 넣고 어떤 값이 나와야 하는지 적혀 있어요.", confirmed ? "기준이 확정됐어요. 다음으로 넘어가요." : "내용을 확인하고 이 기준으로 확정해요."];
   useDevActions({ solve, label: "STEP03" });
   return <div className="refPuzzle v2" data-coach={coach}>
     {reaction && <ActuatorReaction key={reaction} caseId={caseId} ok={reaction === "ok"} />}
@@ -743,6 +752,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
         {ref.req.map((r, k) => <div key={r.text} className={`${ref.gaps.includes(r.slot) ? "gap" : ""} ${confirmed ? "done" : ""}`}><i>{confirmed ? "✓" : k + 1}</i><span>{numify(r.text)}</span></div>)}
           <p className="rpWhy"><b>왜 필요한가</b> {WHY[caseId]}</p>
         </div> : <div className="rpSheetTab" role="tabpanel" aria-label="시험 설계서">
+          <button className="rpFolderOpen" onClick={() => setSheetOpen(true)}><Icon name="clipboard" /> 폴더로 크게 보기</button>
           <small>시험 설계서 · STEP04로 넘어가는 기준</small>
           <h3>{contract.stimulus.label}</h3>
           <p className="ssPurpose"><span>시험 목적</span><b>{SHEET_PURPOSE[caseId]}</b></p>
@@ -759,10 +769,10 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
         </div>}
       </aside>
       <footer className="rpFoot">
-        <div className="rpMing"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><b>{ENGINEER}</b><span>{numify(msg)}</span></div>
+        <Directive who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={dirLines} note={numify(msg) as unknown as string} />
         <div className="rpDockRow">
           {connected && spec.input && !sheetStep && <label className="rpSlider"><small>예시 입력 · {spec.input.label}</small><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label>}
-          {confirmed ? <button className="rpExpect" onClick={() => setPanelTab("sheet")}><small><Icon name="clipboard" /> 시험 설계서 보기</small><b>{spec.expect}</b></button>
+          {confirmed ? <button className="rpExpect" onClick={() => setSheetOpen(true)}><small><Icon name="clipboard" /> 시험 설계서 보기</small><b>{spec.expect}</b></button>
             : sheetStep ? <button className="rpRun" onClick={commit}>이 기준으로 확정</button>
               : connected ? <button className="rpRun" onClick={confirm}>요구사항과 같아요 · 설계서 작성</button>
                 : <button className="rpRun" disabled={!filled || check?.status === "running"} onClick={startCheck}>{!filled ? `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음` : check?.status === "running" ? "확인 중…" : "연결 확인"}</button>}
@@ -770,6 +780,26 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       </footer>
       <div className="rpNextCell"><button className="rpNext stageProgressAction" disabled={!confirmed} onClick={goBench}>다음 →</button></div>
     </div>
+    {sheetOpen && contract && <div className="rpFolderBack" role="dialog" aria-modal="true" aria-label="시험 설계서 폴더" onClick={() => setSheetOpen(false)}>
+      <div className="rpFolder" onClick={event => event.stopPropagation()}>
+        <div className="rpFolderTabs"><span className="on">시험 설계서</span><span>요구사항</span><button aria-label="닫기" onClick={() => setSheetOpen(false)}>×</button></div>
+        <div className="rpFolderPaper">
+          <small>STEP04 실험대로 넘어가는 기준 · {RIG_GOAL[caseId]}</small>
+          <h3>{contract.stimulus.label}</h3>
+          <p className="ssPurpose"><span>시험 목적</span><b>{SHEET_PURPOSE[caseId]}</b></p>
+          <div className="rpFolderCols">
+            <div><h4>입력 조건</h4><table><tbody>
+              {contract.execution.initial.map(item => <tr key={item.signalId}><td>{contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code></td><td>{item.unit}</td></tr>)}
+              <tr className="ssInput"><td>{contractSignalLabel(contract.execution.stimulus.signalId)} (입력)</td><td><code>{contract.execution.stimulus.startValue} → {contract.execution.stimulus.endValue}</code></td><td>{contract.execution.stimulus.unit}</td></tr>
+              <tr className="ssInput"><td>변화 · 유지</td><td><code>{contract.execution.stimulus.rampSeconds} · {contract.execution.stimulus.holdSeconds}</code></td><td>s</td></tr>
+            </tbody></table></div>
+            <div><h4>예상 출력 조건</h4><table><tbody>
+              {contract.execution.expectedOutputs.map((item, index) => <tr key={item.signalId}><td>{index === 0 ? contract.expected.signal : contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code></td><td><code>±{item.tolerance}</code></td><td>{item.unit}</td></tr>)}
+            </tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </div>}
     {bookFocus !== null && <OpenBookModal caseId={caseId} layer={3} focus={bookFocus} onClose={() => setBookFocus(null)} />}
     {replayOpen && <ReplayConfirm impact="기존 시험 계약과 STEP04의 실행 기록·판정도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); reset(); }} />}
   </div>;
