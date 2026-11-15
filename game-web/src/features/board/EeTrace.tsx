@@ -180,6 +180,10 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     else { setMistakes(n => n + 1); showVerdict(false); }
   };
   const sectionDone = Boolean(sectionPick && data.section.choices.find(c => c.label === sectionPick)?.ok);
+  // The first deviation has been located once the board enters the hypothesis phase.
+  // Keep this explicit: the phase bridge and the highlighted structure must not
+  // depend on a legacy v1 variable that is not part of EeTraceV2 state.
+  const found = phase === "hyp";
   const sortHyp = (id: string, pick: "out" | "hold") => {
     const h = meta.hypotheses.find(item => item.id === id)!;
     const right = h.stage1 ? "out" : "hold";
