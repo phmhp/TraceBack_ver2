@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { Icon, type IconName } from "../../ui/Icon";
-import { COORD_SIGNALS, DOMAIN_GROUPS, DOMAIN_ORDER, EV_DOMAINS, OVERVIEW_IO, type DomainId } from "./evData";
+import { COORD_SIGNALS, DOMAIN_GROUPS, DOMAIN_ORDER, EV_DOMAINS, OVERVIEW_IO, type DomainGroup, type DomainId } from "./evData";
 
 type Line = { key: string; d: string };
 
@@ -9,6 +9,7 @@ export function ArchitectureOverview({ icons, onPick, onShow3d }: { icons: Recor
   const root = useRef<HTMLDivElement>(null);
   const buttons = useRef<Partial<Record<DomainId, HTMLButtonElement | null>>>({});
   const [signal, setSignal] = useState<number | null>(null);
+  const [open, setOpen] = useState<DomainGroup | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
 
   useLayoutEffect(() => {
@@ -35,14 +36,32 @@ export function ArchitectureOverview({ icons, onPick, onShow3d }: { icons: Recor
       const bend = Math.abs(to.x - from.x) > 6 ? ` V${(y1 + y2) / 2} H${to.x}` : "";
       return [{ key: `${COORD_SIGNALS[signal].name}-${target}`, d: `M${from.x} ${y1}${bend} L${to.x} ${y2}` }];
     }));
-  }, [signal]);
+  }, [signal, open]);
+  const pickGroup = (group: DomainGroup | null) => { setSignal(null); setOpen(group); };
 
   const active = signal === null ? null : COORD_SIGNALS[signal];
   const involved = new Set<DomainId>(active ? [active.from, ...active.to] : []);
 
+  const groupCards = <div className="archGroupPick">
+    <p className="archAsk">먼저 살펴볼 영역을 고르세요. 영역 안에서 도메인, 기능 순서로 들어가요.<button className="arch3d" onClick={onShow3d}><Icon name="car" /> 3D 차량</button></p>
+    <div className="archGroupCards">{DOMAIN_GROUPS.map((group, gi) => {
+      const ids = DOMAIN_ORDER.filter(id => EV_DOMAINS[id].group === group);
+      const io = OVERVIEW_IO[group];
+      return <button key={group} className={`archGroupCard g-${gi}`} onClick={() => pickGroup(group)}>
+        <h3>{group}</h3>
+        <span className="agIo"><i>입력</i>{io.inputs.join(" · ")}</span>
+        <span className="agIo"><i>출력</i>{io.outputs.join(" · ")}</span>
+        <span className="agDomains">{ids.map(id => <em key={id}><Icon name={icons[id]} />{EV_DOMAINS[id].label}</em>)}</span>
+        <small>도메인 {ids.length}개 · 열어 보기</small>
+      </button>;
+    })}</div>
+  </div>;
+
   return <div className="mechanismViewer archView" ref={root}>
-    <div className="archCols">
-      {DOMAIN_GROUPS.map(group => {
+    {open === null ? groupCards : <>
+    <nav className="archCrumb" aria-label="현재 위치"><button onClick={() => pickGroup(null)}>전체 영역</button><span>›</span>{DOMAIN_GROUPS.map(group => <button key={group} className={group === open ? "on" : ""} onClick={() => pickGroup(group)}>{group}</button>)}<small>도메인을 누르면 기능을 볼 수 있어요</small></nav>
+    <div className="archCols one">
+      {DOMAIN_GROUPS.filter(group => group === open).map(group => {
         const ids = DOMAIN_ORDER.filter(id => EV_DOMAINS[id].group === group);
         const io = OVERVIEW_IO[group];
         return <div className="archRow" key={group}>
@@ -60,12 +79,13 @@ export function ArchitectureOverview({ icons, onPick, onShow3d }: { icons: Recor
       })}
       <div className="archNet"><Icon name="signal" /><b>차량 네트워크</b><span>CAN · 이더넷 · 게이트웨이로 모든 도메인이 연결돼요</span></div>
     </div>
+    </>}
     <svg className="archLines" aria-hidden="true"><defs><marker id="archHead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#c4553a" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></marker></defs>{lines.map(line => <path key={line.key} d={line.d} markerEnd="url(#archHead)" />)}</svg>
-    <div className="archSignals">
+    {open !== null && <div className="archSignals">
       <b>협조 신호</b>
       {COORD_SIGNALS.map((item, index) => <button key={item.name} className={signal === index ? "on" : ""} onClick={() => setSignal(signal === index ? null : index)}>{item.name}</button>)}
       <button className="arch3d" onClick={onShow3d}><Icon name="car" /> 3D 차량</button>
-    </div>
-    <p className="archNote">{active ? `${EV_DOMAINS[active.from].label} → ${active.to.map(id => EV_DOMAINS[id].label).join("·")} · ${active.purpose}` : "도메인을 누르면 기능을 볼 수 있어요. 아래 협조 신호를 누르면 도메인 사이 신호가 보여요."}</p>
+    </div>}
+    <p className="archNote">{active ? `${EV_DOMAINS[active.from].label} → ${active.to.map(id => EV_DOMAINS[id].label).join("·")} · ${active.purpose}` : open === null ? "" : "아래 협조 신호를 누르면 도메인 사이 신호가 보여요."}</p>
   </div>;
 }
