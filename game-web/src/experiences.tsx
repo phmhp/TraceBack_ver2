@@ -963,13 +963,18 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       </button>)}
     </nav>
     <main className="garageStudio">
-      <nav className="domainTabs" aria-label="도메인 선택">
+      {!chosen && <nav className="domainTabs" aria-label="도메인 선택">
         <button className={`allDomains ${!chosen ? "active" : ""}`} onClick={showAllDomains}><span><Icon name="car" /></span><b>전체보기</b></button>
         {DOMAIN_GROUPS.map(group => <div key={group} className="domainGroup" style={{ "--n": DOMAIN_ORDER.filter(id => domainContent[id].group === group).length } as React.CSSProperties}>
           <em className="groupName">{group}</em>
           <div className="groupBtns">{DOMAIN_ORDER.filter(id => domainContent[id].group === group).map(id => { const learned = Array.from(completedLessons).some(key => key.startsWith(`${id}-`)); return <button key={id} className={`${chosen && domain === id ? "active" : ""} ${learned ? "learned" : ""}`} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span><Icon name={DOMAIN_ICON[id]} /></span><b>{domainContent[id].label}</b>{learned && <small>✓</small>}</button>; })}</div>
         </div>)}
-      </nav>
+      </nav>}
+      {chosen && <nav className="garageBreadcrumb" aria-label="현재 정비소 위치">
+        <button onClick={showAllDomains}><Icon name="car" /> 차량 전체</button><span>›</span>
+        <b>{content.group}</b><span>›</span><strong>{content.label}</strong>
+        <button className="changeDomain" onClick={showAllDomains}>영역 바꾸기</button>
+      </nav>}
       <section className="garageMechanismCard">
         {chosen ? <header className="garageVizTag"><small>{learningLayers[routeLevel].name} › {content.label} › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
           : <header className="garageVizTag"><small>{learningLayers[routeLevel].name} › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "부품·E/E와 SW 층은 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레일로 같은 기능을 더 깊게 봅니다."}</p></header>}

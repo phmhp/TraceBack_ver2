@@ -15,6 +15,12 @@
 }
 .garageV2 .gv3Work > .missionBar { grid-area: mission; }
 .garageV2 .gv3Work .domainTabs { grid-area: domains; display: flex !important; gap: 10px; align-items: stretch; }
+.garageV2 .gv3Work .garageBreadcrumb { grid-area: domains; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(155, 107, 100, .28); background: rgba(255, 253, 246, .88); color: #7a4a44; }
+.garageV2 .gv3Work .garageBreadcrumb button { min-height: 34px; padding: 0 10px; border: 1.5px solid #c9a39c; border-radius: 999px; background: #fffaf5; color: #6f4b46; font: 800 13px/1 Pretendard, system-ui; white-space: nowrap; }
+.garageV2 .gv3Work .garageBreadcrumb button:first-child { display: inline-flex; align-items: center; gap: 5px; }
+.garageV2 .gv3Work .garageBreadcrumb b, .garageV2 .gv3Work .garageBreadcrumb strong { font: 800 14px/1 Pretendard, system-ui; white-space: nowrap; }
+.garageV2 .gv3Work .garageBreadcrumb strong { color: #9b6b64; }
+.garageV2 .gv3Work .garageBreadcrumb .changeDomain { margin-left: auto; }
 .garageV2 .gv3Work .garageLayerNav { grid-area: rail; display: flex !important; flex-direction: column; gap: 0; padding: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; }
 .garageV2 .gv3Work .garageMechanismCard { grid-area: stage; position: relative !important; min-height: 0; overflow: hidden; }
 .garageV2 .gv3Work .domainFunctionShelf { grid-area: side; overflow: auto; min-height: 0; }
@@ -65,6 +71,8 @@
 
 /* the flow panel fills its grid row exactly (legacy min-height:122px used to push it, and the next button, below the workspace) */
 .garageV2 .gv3Work .garageFlowPanel { height: 100% !important; min-height: 0 !important; max-height: none !important; box-sizing: border-box; }
+.garageV2 .gv3Work .garageFlowPanel > div { height: 100% !important; min-height: 0 !important; align-items: stretch; }
+.garageV2 .gv3Work .garageFlowPanel > div > button { height: 100% !important; min-height: 0 !important; }
 .garageV2 .gv3Work .garageFooterRow > .garageProceed { min-height: 0 !important; }
 
 

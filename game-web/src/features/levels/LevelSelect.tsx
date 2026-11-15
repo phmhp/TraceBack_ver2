@@ -16,6 +16,16 @@ type Send = React.Dispatch<any>;
 const POS = [{ x: 70, y: 310 }, { x: 230, y: 170 }, { x: 390, y: 310 }, { x: 550, y: 170 }, { x: 710, y: 310 }, { x: 870, y: 170 }, { x: 1020, y: 310 }];
 const ROAD = `M 20 380 C 50 380 45 ${POS[0].y} ${POS[0].x} ${POS[0].y} ` + POS.slice(1).map(q => `S ${q.x - 50} ${q.y} ${q.x} ${q.y}`).join(" ") + " L 1075 310";
 
+const EPISODE_ART: Record<string, { image: string; alt: string; caption: string }> = {
+  propulsion: { image: "/assets/board-photos/torque_cmd.png", alt: "구동 신호 기록", caption: "페달을 밟아도 토크가 줄어든 주행 기록" },
+  thermal: { image: "/assets/board-photos/thermal_protection.png", alt: "열관리 보호 동작 기록", caption: "열 보호가 작동해 출력이 제한된 순간" },
+  brake: { image: "/assets/ending-thumbs/brake_caliper.png", alt: "제동 부품", caption: "제동 입력과 실제 감속을 비교하는 사건" },
+  regen: { image: "/assets/board-photos/regen_request.png", alt: "회생 요청 기록", caption: "페달을 놓았을 때 회생 요청이 바뀐 순간" },
+  ready: { image: "/assets/ending-thumbs/vcu.png", alt: "VCU 제어기", caption: "시동 시퀀스가 READY로 넘어가지 않은 사건" },
+  gear: { image: "/assets/ending-thumbs/diagnostic_port.png", alt: "통신 진단 기록", caption: "변속 신호가 늦게 도착한 출발 순간" },
+  cold: { image: "/assets/ending-thumbs/brake_ecu.png", alt: "제동 제어기", caption: "저온 회생 한계가 잘못 적용된 감속 순간" },
+};
+
 const Stars = ({ n }: { n: number }) => <span className="lvStars" aria-label={`별 ${n}개`}>{[1, 2, 3].map(i => <i key={i} className={i <= n ? "on" : ""}>★</i>)}</span>;
 
 export function LevelSelect({ state, send }: { state: Campaign; send: Send }) {
@@ -52,9 +62,11 @@ export function LevelSelect({ state, send }: { state: Campaign; send: Send }) {
 }
 
 function LevelCard({ def, status, stars }: { def: LevelDef; status: "cleared" | "open" | "locked"; stars: number }) {
+  const art = def.caseId ? EPISODE_ART[def.caseId] : { image: "/assets/stitch23/fault-breakdown.png", alt: "해적선 탈출 장면", caption: "수리한 차로 이어지는 최종 탈출" };
   return <div className="lvCard">
     <small>{def.kind === "bonus" ? "선택 레벨" : def.kind === "finale" ? "마지막 레벨" : `${def.level}레벨`} · {def.domainLabel}</small>
     <h2>{def.title}</h2>
+    <figure className="lvEpisodeArt"><img src={art.image} alt={art.alt} /><figcaption><b>EPISODE {def.level}</b><span>{art.caption}</span></figcaption></figure>
     <p className="lvTeaser">{status === "locked" ? "아직 잠겨 있어요." : def.teaser}</p>
     <dl>
       <div><dt>시점</dt><dd>{status === "locked" ? "?" : def.phase}</dd></div>

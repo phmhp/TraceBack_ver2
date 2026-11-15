@@ -8,8 +8,12 @@
 - 상태: `npx tsc --noEmit` 오류 없음, `npm test` 135 통과.
 
 ## 현재 작업
-- 사건 `gear`(C04 변속 폴백, 시트 `docs/fault-cases/c04_gear_fallback.md`) 구현 시작 전. 방법: `src/game/runtime.ts`의 `CaseId`에 `"gear"` 추가 → `npx tsc --noEmit`이 알려 주는 `Record<CaseId,…>` 표를 전부 채움 → `EeTrace.tsx`의 `Record<string,…>` 표(LAMP, QUOTE, TRACE, OBSERVED, REPLAY, SUBSYS)도 채움(tsc가 못 잡음).
-- 주의: `CaseId`만 추가하고 멈추면 tsc 오류 60여 곳이 생긴다. 그 상태로 커밋하지 말 것(작은 단위로 끝까지 채운 뒤 커밋).
+- 사용자 피드백 29항목 후속 수정 중. 최신 구현을 다시 대조한 결과, 정비소 내부 breadcrumb, 레벨 선택 사건 그래픽, 도미노 증거 필터·단계 브리지, E/E 부품 층 채도, 공통 하단 높이 보정을 반영했다.
+- 문서: `docs/FEEDBACK_2026-11-15_B.md`에 29항목 상태를 갱신했고, `docs/TERMINOLOGY_GLOSSARY_V3.md`를 추가했다. `PLAYER_FLOW_AUDIT_2026-11-15.md`의 실험대 흐름도 R21에 맞게 고쳤다.
+- 브라우저에서 최신 변경을 확인한 뒤, 레이싱 코스 다양화·3D 모델 전수 대조·전수 UI 검수 순서로 이어간다. 전용 고양이 사건 이미지와 C04/C06 증거 이미지는 사용자 에셋 승인 대기다.
+
+## 주의
+- `node`/`npm` 실행 파일이 현재 셸 PATH에 없어 자동 테스트를 아직 실행하지 못했다. 브라우저 개발 서버(포트 5183)는 이미 실행 중이며 Chrome에서 화면 대조를 진행한다.
 
 ## gear 구현 진행 (tsc 오류 0, 테스트 140 통과, 브라우저 검증 완료: STEP02 도미노, STEP03 퍼즐, STEP04 실험대 → 수리 장면)
 - 완료: CaseId `gear`, 레벨 6(finale은 7로 이동, 허브 7노드), `simModel`(gear 모델·VIEW, 관찰 0.35초), `scenarios`, `verificationContract`, `VerificationLab` 표 전부, `RefPuzzle`(블록 조립 UI로 구현), `experiences`, `DominoBoard/Trace`, `EeTrace`, `CaseFileEnding`, `OpenBook`, `DevMenu`, 이미지 프롬프트 3장, 레이스 고장 `GEAR_FAULT`(faultSchedule, 이벤트 gearChange 0.8초 창, reverseOnly 0.5초 버스트, 두 번째 발생 때 FAULT_CUE), 테스트 `tests/gear-case.test.mjs`.
@@ -26,9 +30,7 @@
 - 임시 이미지: 증거 3장(`cold_decel_log`, `regen_limit_compare`, `battery_temp_view`) 미제작, 부품은 기존 썸네일(`bms`, `brake_ecu`, `can_harness`, `traction_motor`, `motor_temp_sensor`, `brake_caliper`) 사용
 
 ## 다음 할 일 (순서)
-1. gear 사건 표 채우기(STEP02/03/04, 시나리오, 계약, 엔딩, 오픈북).
-2. 신호 경로 선택 퍼즐 UI(`RefPuzzle.tsx`), 시트 7절.
-3. 네트워크 수치 모델(`simModel.ts`)과 레이스 고장(`faultSchedule.ts` `launch` 시점 + 변속 경과 시간).
-4. 테스트(`tests/ready-case.test.mjs` 참고), 1600x900 검증, 문서 갱신.
-5. (완료) 레벨별 해적선 엔딩 흐름.
-6. (완료) 상태 전이도 채우기 유형: C01 `ready`를 `ui: "state"`로 배정. 도메인 수준 사건 C06 시트 초안 작성(`fault-cases/c06_cold_regen_limit.md`), 사용자 승인 후 구현(C04 구현 절차와 같은 순서).
+1. Chrome 1600×900에서 정비소 전체보기 → 영역 → 도메인 breadcrumb, 도미노 증거/신호 탭, 레벨 선택 그래픽 카드의 잘림·겹침을 확인한다.
+2. 레이싱 코스 `trackFrame`/미니맵을 실제 지도형 분기 코스로 개편하고, 고장 없는 주행 시간을 사건별로 점검한다.
+3. 3D 부품의 크기·기울기·위치·포트 배선을 `PartShowroom`과 정비소 화면에서 전수 대조한다.
+4. `docs/fault-cases/CHECKLIST.md`와 29항목 tracker를 기준으로 1600×900 UI 전수 검수 후 테스트·빌드 환경을 복구해 실행한다.

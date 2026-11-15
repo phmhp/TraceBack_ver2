@@ -7,6 +7,12 @@
 }
 .eeTrace .etLayout > .missionBar { grid-column: 1 / -1; grid-row: 1; }
 .eeTrace .etLayout > .etBoard { grid-column: 1; grid-row: 2; }
+.eeTrace .etBoard { position: relative; }
+.eeTrace .etPhaseBridge { position: absolute; z-index: 5; left: 16px; right: 16px; top: 46px; display: flex; align-items: center; justify-content: center; gap: 7px; pointer-events: none; }
+.eeTrace .etPhaseBridge span { padding: 4px 10px; border-radius: 999px; background: #fffdf6dd; border: 1.5px solid #d9c9b3; color: #8a7a6a; font: 800 11px/1 Pretendard, system-ui; white-space: nowrap; }
+.eeTrace .etPhaseBridge span.on { color: #fff8f2; background: #9b6b64; border-color: #6f4b46; box-shadow: 0 2px 0 #6f4b46; }
+.eeTrace .etPhaseBridge span.done { color: #3f7a55; background: #e8eddf; border-color: #8a9a78; }
+.eeTrace .etPhaseBridge i { color: #9b6b64; font-style: normal; font-weight: 900; }
 .eeTrace .etLayout > .etEvidence { grid-column: 2; grid-row: 2; }
 .eeTrace .etLayout > .etMugs { grid-column: 1 / -1; grid-row: 3; }
 .eeTrace .etLayout > .etBubble { grid-column: 1 / -1; grid-row: 4; max-width: none; justify-self: stretch; }

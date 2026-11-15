@@ -104,8 +104,8 @@
 .eeBlueprint .eePhoto { display: none; width: 34px; height: 34px; object-fit: contain; margin-right: 5px; vertical-align: middle; border-radius: 6px; background: #fff; }
 .eeBlueprint.layer-mix .eePhoto, .eeBlueprint.layer-part .eePhoto { display: inline-block; }
 .eeBlueprint.layer-part .eeEcu, .eeBlueprint.layer-part .eeBus { background: transparent !important; border-color: #d8e0dc80 !important; }
-.eeBlueprint.layer-part .eeEcu > b, .eeBlueprint.layer-part .eeBus > span, .eeBlueprint.layer-part .eeBus > i, .eeBlueprint.layer-part .eePower, .eeBlueprint.layer-part .eeCol > small { opacity: .3; }
-.eeBlueprint.layer-part .eeFlow { opacity: .35; }
+.eeBlueprint.layer-part .eeEcu > b, .eeBlueprint.layer-part .eeBus > span, .eeBlueprint.layer-part .eeBus > i, .eeBlueprint.layer-part .eePower, .eeBlueprint.layer-part .eeCol > small { opacity: .78; }
+.eeBlueprint.layer-part .eeFlow { opacity: .62; }
 .eeBlueprint.layer-mix .eeEcu, .eeBlueprint.layer-mix .eeBus { opacity: .7; }
 .eeInspector { position: absolute; z-index: 9; width: 300px; padding: 8px 10px; border-radius: 10px; background: #fffdf6; border: 1.5px solid #c9a98f; box-shadow: 0 8px 22px rgba(40, 25, 10, .22); animation: vrPop .25s; }
 .eeInspector header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }

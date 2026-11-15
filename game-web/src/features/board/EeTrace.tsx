@@ -233,9 +233,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   type Pol = { id: string; kind: string; title: string; sub: string; photo: React.ReactNode; dom?: Dom };
   const evidenceCards = [...(chain.length ? [start] : []), ...measured.map(dom)].filter((d, i, all) => all.findIndex(x => x.id === d.id) === i);
   const pols: Pol[] = [
-    { id: "quote", kind: "quote", title: `${DRIVER} 진술`, sub: "운전자 체감", photo: <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /> },
-    { id: "lamp", kind: "lamp", title: "계기판", sub: LAMP[caseId].label, photo: <img src="/assets/intake/images/HMI/instrument_cluster__EVID-fault.png" alt="" /> },
-    ...evidenceCards.map(d => ({ id: d.id, kind: `m s-${d.status}`, title: d.label, sub: d.status === "bad" ? "기준과 다름" : d.status === "tol" ? "허용 범위 안" : "기준과 같음", photo: <Photo src={d.img} />, dom: d })),
+    ...evidenceCards.filter(d => d.status === "bad").map(d => ({ id: d.id, kind: `m s-${d.status}`, title: d.label, sub: "이상으로 판정한 신호", photo: <Photo src={d.img} />, dom: d })),
   ];
   const zoomed = pols.find(item => item.id === zoomPol);
   // the enlarged polaroid closes with Enter or Esc (captured so the stage keys underneath do not react)
@@ -312,6 +310,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       {/* center: whole-vehicle reverse trace */}
       <section className={`etBoard phase-${phase}`} ref={boardRef}>
         <header><b><Icon name="layers" /> 도미노 역추적 판</b><small>{phase === "symptom" ? "기준과 다른 출력을 고르세요" : phase === "trace" ? `지금 출력: ${dom(focus).label}` : "센서 → 제어기 → CAN → 부품 → 차량"}</small>{phase === "hyp" && sectionDone && <button className="stageReplayBtn etStageReplay" onClick={() => setReplayOpen(true)}>다시 풀기</button>}</header>
+        <div className="etPhaseBridge" aria-label="추리 진행 단계"><span className={phase === "symptom" ? "on" : "done"}>첫 편차 출력</span><i>→</i><span className={phase === "trace" ? "on" : phase === "hyp" ? "done" : ""}>첫 편차 신호</span><i>→</i><span className={found && !sectionDone ? "on" : sectionDone ? "done" : ""}>의심 구간</span><i>→</i><span className={sectionDone ? "on" : ""}>가설 후보</span></div>
         <svg className="etLines">{lines.map((l, i) => <path key={i} d={l.d} className={l.hot ? "hot" : "path"} />)}</svg>
         <div className="etZones">{ZONES.map(zone => <div key={zone} className="etZone">
           <small><Icon name={ZONE_ICON[zone]} /> {zone}</small>
@@ -325,7 +324,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
         <header><nav className="etEvidenceTabs" role="tablist" aria-label="증거 패널">
           <button role="tab" aria-selected={memoTab === "evidence"} className={memoTab === "evidence" ? "on" : ""} onClick={() => setMemoTab("evidence")}>증거</button>
           <button role="tab" aria-selected={memoTab === "measure"} className={memoTab === "measure" ? "on" : ""} onClick={() => setMemoTab("measure")}>확인한 신호</button>
-          {phase === "hyp" && <button role="tab" aria-selected={memoTab === "zone"} className={memoTab === "zone" ? "on" : ""} onClick={() => setMemoTab("zone")}>구간 안쪽</button>}
+          {phase === "hyp" && <button role="tab" aria-selected={memoTab === "zone"} className={memoTab === "zone" ? "on" : ""} onClick={() => setMemoTab("zone")}>의심 구간 구조</button>}
           {phase === "hyp" && sectionDone && <button role="tab" aria-selected={memoTab === "hyp"} className={memoTab === "hyp" ? "on" : ""} onClick={() => setMemoTab("hyp")}>가설 후보</button>}
         </nav><OpenBookButton caseId={caseId} /></header>
         <div className="etEvidenceContent">
@@ -337,7 +336,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
               : <p className="etEmpty"><Icon name="search" /> 후보 카드를 판단하면 확인한 신호가 여기에 쌓여요.</p>}
             {chain.length > 0 && <div className="etReasonPath"><small>거슬러 올라간 경로</small><div className="etStack flow">{[...chain].reverse().map((id, row) => <React.Fragment key={id}><span className={row === 0 ? "top" : ""}>{dom(id).label}</span>{row < chain.length - 1 && <i aria-hidden="true">→</i>}</React.Fragment>)}</div></div>}
           </div>}
-          {memoTab === "zone" && <div className="etZoneTab" role="tabpanel" aria-label="의심 구간">{SUBSYS[caseId] ? <div className="etZoom inline"><b><Icon name="search" /> {SUBSYS[caseId].where} 안쪽</b><div className="etZoomCol"><span className="io ok">들어오는 값<em>{SUBSYS[caseId].inLabel}</em></span>{SUBSYS[caseId].stages.map(st => <React.Fragment key={st}><i aria-hidden="true">↓</i><span className="stage">{st}<em>?</em></span></React.Fragment>)}<i aria-hidden="true">↓</i><span className="io bad">나가는 값<em>{SUBSYS[caseId].outLabel}</em></span></div></div> : null}</div>}
+          {memoTab === "zone" && <div className="etZoneTab" role="tabpanel" aria-label="의심 구간 구조">{SUBSYS[caseId] ? <div className="etZoom inline"><b><Icon name="search" /> {SUBSYS[caseId].where} 구조</b><div className="etZoomCol"><span className="io ok">들어오는 값<em>{SUBSYS[caseId].inLabel}</em></span>{SUBSYS[caseId].stages.map(st => <React.Fragment key={st}><i aria-hidden="true">↓</i><span className="stage">{st}<em>?</em></span></React.Fragment>)}<i aria-hidden="true">↓</i><span className="io bad">나가는 값<em>{SUBSYS[caseId].outLabel}</em></span></div></div> : null}</div>}
           {memoTab === "hyp" && <div className="etHypTab" role="tabpanel" aria-label="가설 후보">{meta.hypotheses.map(h => <article key={h.id} className={`etHyp ${sorted[h.id] ?? "todo"}`}><b><span className="etTag" data-tag={HYP_TAG[h.id]}>{HYP_TAG[h.id]}</span>{h.label}</b><em>{sorted[h.id] === "out" ? "후보에서 뺌" : sorted[h.id] === "hold" ? "후보에 올림" : "아직 안 봄"}</em></article>)}</div>}
         </div>
       </section>
