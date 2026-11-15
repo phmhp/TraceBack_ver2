@@ -1281,10 +1281,24 @@ const RAMP_END = RAMP_START + 52;
 const RAMP_RISE = 3.55;
 const DECK_TOUCH = RAMP_END + 18;
 const DECK_STOP = DECK_TOUCH + 12;
+// A coastal route made of long straights, a switchback, a tunnel bend and a
+// final open approach. Road, traffic, minimap and vehicle all share this map.
+const ROUTE_POINTS = [
+  [0, 0], [180, 2.4], [390, -4.8], [610, -1.2], [840, 5.6],
+  [1070, 2.1], [1290, -5.2], [1510, -2.4], [1740, 4.2], [1980, 1.6], [2200, 0],
+] as const;
+const routeX = (distance: number) => {
+  const s = THREE.MathUtils.clamp(distance, ROUTE_POINTS[0][0], ROUTE_POINTS.at(-1)![0]);
+  const found = ROUTE_POINTS.findIndex((point, i) => i > 0 && s <= point[0]);
+  const index = Math.min(ROUTE_POINTS.length - 2, Math.max(0, found < 0 ? ROUTE_POINTS.length - 2 : found - 1));
+  const a = ROUTE_POINTS[index], b = ROUTE_POINTS[index + 1];
+  const t = THREE.MathUtils.smoothstep((s - a[0]) / (b[0] - a[0]), 0, 1);
+  return THREE.MathUtils.lerp(a[1], b[1], t);
+};
 const trackFrame = (distance: number, lane = 0) => {
   const s = THREE.MathUtils.clamp(distance, -40, TRACK_LENGTH + 80);
-  const centerX = Math.sin(s / 74) * 5.4 + Math.sin(s / 181) * 3.2;
-  const dx = Math.cos(s / 74) * (5.4 / 74) + Math.cos(s / 181) * (3.2 / 181);
+  const centerX = routeX(s);
+  const dx = (routeX(s + 2) - routeX(s - 2)) / 4;
   const yaw = -Math.atan2(dx, 1);
   return {
     x: centerX + Math.cos(yaw) * lane,
@@ -2103,12 +2117,12 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button></div>
       <div className="raceTripHud"><span><small>주행시간</small><b>{formatRaceTime(sim.elapsed)}</b></span></div>
     </div>
-    {sim.elapsed >= 12 && <PursuitRouteBar distance={sim.distance} gap={sim.gap} />}
+    {policeJoined && sim.elapsed >= 12 && <PursuitRouteBar distance={sim.distance} gap={sim.gap} />}
     <div className="cockpitGauge cluster1109" aria-label="계기판"><small>속도</small><b>{Math.round(sim.speed)}</b><span>km/h</span><div><i style={{ width: `${Math.min(100, sim.speed)}%` }} /></div>
       <p className="clusterRow"><span className="prnd">{(["P", "R", "N", "D"] as const).map(g => <i key={g} className={gear === g ? "on" : ""}>{g}</i>)}</span><em className={driveMission === "restart" ? "readyOff" : "readyOn"}>{driveMission === "restart" ? "READY 꺼짐" : "READY"}</em></p>
       <p className="clusterRow sub"><span>회생 {regen}단계</span>{state.caseId === "thermal" && <span>냉각수 {Math.round(sim.heat)}°C</span>}{symptom && <span className="warn">{mode === "normal" ? "출력 저하" : "출력 제한"}</span>}</p></div>
     <RearMirror3D gap={sim.gap} visible={policeInWorld} />
-    <div className="raceMiniMap"><b>미니맵</b><svg viewBox="0 0 90 100"><path d={MINIMAP_PATH} /><circle className="cop" cx={mapPolice.x} cy={mapPolice.y} r="4" /><circle className="me" cx={mapPlayer.x} cy={mapPlayer.y} r="4.5" /></svg><small><i /> 자차 <em /> 경찰</small></div>
+    <div className="raceMiniMap"><b>미니맵</b><svg viewBox="0 0 90 100"><path d={MINIMAP_PATH} />{policeJoined && <circle className="cop" cx={mapPolice.x} cy={mapPolice.y} r="4" />}<circle className="me" cx={mapPlayer.x} cy={mapPlayer.y} r="4.5" /></svg><small><i /> 자차 {policeJoined && <><em /> 경찰</>}</small></div>
     <div className="raceControls keyBar">
       {/* two rows per item: keys on top, meaning underneath */}
       {([[["↑"], "가속"], [["↓"], "브레이크"], [["←", "→"], "조향"], [["1", "~", "4"], "기어 P·R·N·D"], [["Q", "E"], "회생 강·약"], [["R"], "READY"], [["Esc"], "멈춤"]] as [string[], string][]).map(([keys, meaning]) =>
