@@ -396,7 +396,7 @@ function RemovedPartMarker({ position }: { position: [number, number, number] })
   </group>;
 }
 
-function DomainFlowRig({ domain, feature, activeStep = 0, compact = false, running = true, removed = null }: { domain: DomainId; feature: number; activeStep?: number; compact?: boolean; running?: boolean; removed?: number | null }) {
+function DomainFlowRig({ domain, feature, activeStep = 0, compact = false, running = true, removed = null, showWiring = true }: { domain: DomainId; feature: number; activeStep?: number; compact?: boolean; running?: boolean; removed?: number | null; showWiring?: boolean }) {
   const labels = getFeatureLayer(domain, feature, 1);
   const last = labels.length - 1;
   const positions = labels.map((_, index) => {
@@ -412,7 +412,7 @@ function DomainFlowRig({ domain, feature, activeStep = 0, compact = false, runni
   return <group scale={compact ? .58 : labels.length > 5 ? .68 : .76}>
     <DomainSignatureModels domain={domain} activeStep={activeStep} />
     {labels.map((label, index) => { const position = positions[index]; const kind = hardwareKindFor(domain, label, index, last); const role = index === 0 ? "INPUT" : index === last ? "OUTPUT" : /ECU|VCU|BMS|CAN/.test(label) ? "CONTROL" : "PLANT"; return removed === index ? <RemovedPartMarker key={`${label}-${index}`} position={position} /> : <GarageFlowPart key={`${label}-${index}`} label={label} position={position} kind={kind} active={activeStep === index} running={running} role={role} partId={partModelFor(domain, label)} inspect={compact ? undefined : { domain, feature, index }} />; })}
-    {positions.slice(0, -1).map((position, index) => { const next = positions[index + 1]; const scaleOf = (i: number) => activeStep === i ? 1.08 : .82; return <SignalCable key={`${position.join("-")}`} from={portPoint(domain, labels[index], position, scaleOf(index), "out") ?? [position[0] + .32, position[1] + .04, position[2]]} to={portPoint(domain, labels[index + 1], next, scaleOf(index + 1), "in") ?? [next[0] - .32, next[1] + .04, next[2]]} color={removed !== null && (index === removed || index + 1 === removed) ? "#e0483c" : index < activeStep ? "#f2c653" : index === activeStep ? "#ff7b49" : domain === "brake" ? "#4b9dc1" : domain === "steer" ? "#8d75b6" : domain === "power" ? "#4a9a82" : "#7ca8b3"} />; })}
+    {showWiring && positions.slice(0, -1).map((position, index) => { const next = positions[index + 1]; const scaleOf = (i: number) => activeStep === i ? 1.08 : .82; return <SignalCable key={`${position.join("-")}`} from={portPoint(domain, labels[index], position, scaleOf(index), "out") ?? [position[0] + .32, position[1] + .04, position[2]]} to={portPoint(domain, labels[index + 1], next, scaleOf(index + 1), "in") ?? [next[0] - .32, next[1] + .04, next[2]]} color={removed !== null && (index === removed || index + 1 === removed) ? "#e0483c" : index < activeStep ? "#f2c653" : index === activeStep ? "#ff7b49" : domain === "brake" ? "#4b9dc1" : domain === "steer" ? "#8d75b6" : domain === "power" ? "#4a9a82" : "#7ca8b3"} />; })}
     {!compact && <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0,-.04,0]}><ringGeometry args={[3.45,3.55,96]} /><meshStandardMaterial color="#c3d2cb" transparent opacity={.42} /></mesh>}
   </group>;
 }
@@ -467,7 +467,7 @@ function FullVehicleSystem({ domain, feature, activeStep, shell = false, inputOn
 }
 
 // Whole vehicle: every domain's chain side by side (selected domain runs, others idle)
-function AllDomainsSystem({ domain, overlay = false }: { domain: DomainId | null; overlay?: boolean }) {
+function AllDomainsSystem({ domain, overlay = false, showWiring = true }: { domain: DomainId | null; overlay?: boolean; showWiring?: boolean }) {
   const ids = Object.keys(domainContent) as DomainId[];
   const slot = (index: number): [number, number, number] => { const col = index % 3, row = Math.floor(index / 3); return [(col - 1) * 3.7, 0, (row - 1) * 3.3]; };
   // labels live outside the rigs so a slow part model never hides a name
@@ -480,11 +480,11 @@ function AllDomainsSystem({ domain, overlay = false }: { domain: DomainId | null
   const spacer = <PartLabel className="labelSpacer" position={[0, -20, 0]}>{" "}</PartLabel>;
   if (overlay) return <group rotation={[0, -.18, 0]}>
     {spacer}{labels}
-    {ids.map((id, index) => <group key={id} position={[0, index * .02, 0]}><DomainFlowRig domain={id} feature={0} running={domain === null || id === domain} /></group>)}
+    {ids.map((id, index) => <group key={id} position={[0, index * .02, 0]}><DomainFlowRig domain={id} feature={0} running={domain === null || id === domain} showWiring={showWiring} /></group>)}
   </group>;
   return <group>
     {spacer}{labels}
-    {ids.map((id, index) => <group key={id} position={slot(index)} scale={.78}><DomainFlowRig domain={id} feature={0} compact running={domain === null || id === domain} /></group>)}
+    {ids.map((id, index) => <group key={id} position={slot(index)} scale={.78}><DomainFlowRig domain={id} feature={0} compact running={domain === null || id === domain} showWiring={showWiring} /></group>)}
   </group>;
 }
 
@@ -572,7 +572,8 @@ function SwcView({ domain, feature, activeStep, onPick }: { domain: DomainId; fe
 function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, onDomain, noDomain = false, onJump, inputOn = false, eeLayer = "logic", onEeLayerChange, selectedVehiclePart = null, onVehiclePartSelect }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; onDomain?: (id: DomainId) => void; noDomain?: boolean; onJump?: (level: number, step: number) => void; inputOn?: boolean; eeLayer?: EeLayer; onEeLayerChange?: (layer: EeLayer) => void; selectedVehiclePart?: number | null; onVehiclePartSelect?: (index: number) => void }) {
   const [shell, setShell] = useState(false);
   const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "grid" : "one");
-  const [overview3d, setOverview3d] = useState(false);
+  // The first garage screen is a visual vehicle map. Logic cards remain one click away.
+  const [overview3d, setOverview3d] = useState(true);
   const [inspect, setInspect] = useState<number | null>(null);
   useEffect(() => setInspect(null), [domain, feature, level]);
   const allDomains = view3d !== "one";
@@ -608,7 +609,7 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
       <color attach="background" args={["#eef5ef"]} />
       <hemisphereLight intensity={2.25} color="#fff8e5" groundColor="#6d8c7b" />
       <directionalLight castShadow={!allDomains} position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
-      {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} selectedIndex={selectedVehiclePart} onSelect={onVehiclePartSelect} />}
+      {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} showWiring={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} selectedIndex={selectedVehiclePart} onSelect={onVehiclePartSelect} />}
       <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={allDomains ? 2.5 : .8} maxDistance={allDomains ? 22 : 10} maxPolarAngle={Math.PI * .49} target={allDomains ? [0, .65, 0] : [0, .55, 0]} />
     </Canvas>
     <span className="liveBadge"><i /> 드래그 회전 · 휠 확대{level === 0 && !allDomains ? " · 부품 클릭 선택" : ""}</span>

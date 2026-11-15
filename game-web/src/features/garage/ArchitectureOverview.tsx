@@ -51,6 +51,7 @@ export function ArchitectureOverview({ icons, onPick, onShow3d }: { icons: Recor
       return <button key={group} className={`archGroupCard g-${gi}`} onClick={() => pickGroup(group)}>
         <h3>{group}</h3>
         <p className="agPurpose">{GROUP_ROLE[group]}</p>
+        <div className="archGroupVisual" aria-hidden="true"><span><Icon name="signal" /></span><i>→</i><div>{ids.map(id => <em key={id} style={{ "--domain": EV_DOMAINS[id].accent } as React.CSSProperties}><Icon name={icons[id]} /></em>)}</div><i>→</i><span><Icon name="car" /></span></div>
         <span className="agIo"><i>입력</i>{io.inputs.join(" · ")}</span>
         <span className="agIo"><i>출력</i>{io.outputs.join(" · ")}</span>
         <span className="agDomains">{ids.map(id => <em key={id}><Icon name={icons[id]} />{EV_DOMAINS[id].label}</em>)}</span>
