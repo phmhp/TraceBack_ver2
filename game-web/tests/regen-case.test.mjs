@@ -16,7 +16,10 @@ test("N01 level: bonus level 4 after thermal, finale is level 5", () => {
   assert.equal(levelStatus(at(["propulsion", "thermal"]), regenLevel), "open");
   assert.equal(levelStatus(at(["propulsion", "thermal", "regen"]), regenLevel), "cleared");
   const started = dispatch(at(["propulsion", "thermal"]), { type: "START_LEVEL", level: 4 });
-  assert.equal(started.scene, "BOARD"); assert.equal(started.caseId, "regen");
+  assert.equal(started.scene, "CHASE_RESUME", "a race first; the fault cue leads to the board"); assert.equal(started.caseId, "regen");
+  const cue = dispatch({ ...started, scene: "CHASE_RESUME" }, { type: "FAULT_CUE", caseId: "regen", distance: 1700, gap: 90, elapsed: 200 });
+  assert.equal(cue.scene, "FAULT_CUE"); assert.equal(cue.caseId, "regen");
+  assert.equal(dispatch(cue, { type: "CONTINUE_FAULT" }).scene, "BOARD");
   assert.equal(dispatch(at(["propulsion"]), { type: "START_LEVEL", level: 4 }).scene, "LEVEL_SELECT", "locked before thermal");
   assert.equal(dispatch(at(["propulsion", "thermal"]), { type: "START_LEVEL", level: 5 }).scene, "SHIP_ESCAPE");
   assert.equal(dispatch(at(["propulsion"]), { type: "START_LEVEL", level: 5 }).scene, "LEVEL_SELECT", "finale needs both required levels");

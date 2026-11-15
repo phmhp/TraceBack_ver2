@@ -244,8 +244,9 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       if (level === 2 && done("propulsion") && !done("thermal")) return enter(s, "CHASE_RESUME");
       if (level === 3 && done("thermal") && !done("brake"))
         return enter(unlockInvestigation({ ...s, caseId: "brake", optionalBrake: "accepted" }, "board"), "BOARD");
+      // level 4 (N01): a race first; the fault shows up when the player lifts the pedal at speed (REGEN_FAULT), then FAULT_CUE → BOARD
       if (level === 4 && done("thermal") && !done("regen"))
-        return enter(unlockInvestigation({ ...s, caseId: "regen" }, "board"), "BOARD");
+        return enter({ ...s, caseId: "regen", checkpoint: "regen_start" }, "CHASE_RESUME");
       if (level === 5 && done("propulsion") && done("thermal"))
         return enter({ ...s, optionalBrake: s.optionalBrake === "accepted" ? "accepted" : "skipped" }, "SHIP_ESCAPE");
       return reject(s, "LEVEL_LOCKED");

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { PROPULSION_FAULT, THERMAL_FAULT, levelFaults, DEMO_FAULTS, newFaultRuntime, stepFault, mergeEffects, applyEffectToSpeed, gapRateMps, policeSpeedKph, secondsToCatch, triggerHolds } from "../src/game/faultSchedule.ts";
+import { REGEN_FAULT, PROPULSION_FAULT, THERMAL_FAULT, levelFaults, DEMO_FAULTS, newFaultRuntime, stepFault, mergeEffects, applyEffectToSpeed, gapRateMps, policeSpeedKph, secondsToCatch, triggerHolds } from "../src/game/faultSchedule.ts";
 
 const ctx = (o = {}) => ({ speedKph: 0, pedal: 0, braking: false, gear: "D", steerAbs: 0, distanceM: 0, elapsedS: 0, sinceEvent: {}, zones: [], ready: true, ...o });
 const run = (spec, frames, rand = () => 0.5) => {
@@ -112,4 +112,16 @@ test("migrated cases: propulsion fault needs the zone and the pedal, keeps its t
   assert.equal(run(THERMAL_FAULT, seconds(1, ctx({ distanceM: 1400, heat: 70 }))).active, false);
   assert.equal(run(THERMAL_FAULT, seconds(1, ctx({ distanceM: 1200, heat: 90 }))).active, false);
   assert.equal(run(THERMAL_FAULT, seconds(1, ctx({ distanceM: 1400, heat: 85 }))).effect.speedCapKph, 55);
+});
+
+test("N01 race fault: lifting the pedal at 40 km/h or more accelerates the car and the cue time accumulates", () => {
+  assert.deepEqual(levelFaults("resume", "regen").map(s => s.id), ["case-regen"]);
+  assert.deepEqual(levelFaults("normal", "regen").map(s => s.id), ["case-propulsion"]);
+  assert.equal(run(REGEN_FAULT, seconds(2, ctx({ speedKph: 30 }))).active, false, "below 40 km/h");
+  assert.equal(run(REGEN_FAULT, seconds(2, ctx({ speedKph: 80, pedal: 1 }))).active, false, "pedal pressed");
+  const on = run(REGEN_FAULT, seconds(3, ctx({ speedKph: 80 })));
+  assert.equal(on.active, true); assert.equal(on.effect.coastAccelKphPerS, 6);
+  assert.ok(on.runtime.heldSec >= 2.2, "the fault cue (2.2 s) is reachable in 3 s of coasting");
+  const kept = run(REGEN_FAULT, [...seconds(3, ctx({ speedKph: 80 })), ...seconds(2, ctx({ speedKph: 80, pedal: 1 }))]);
+  assert.ok(kept.runtime.heldSec >= 2.2, "kept while the pedal is pressed again (decay 0)");
 });

@@ -1,6 +1,6 @@
 # N01 발을 떼면 오히려 가속해요 (회생 토크 부호 오류)  — 1차 선정 입문 사건
 
-상태: **구현됨 (2026-11-14, STEP02~04·레벨 허브·엔딩) · 레이스 고장 트리거는 미연결(아래 구현 메모)**   작성: 2026-11-14   템플릿: `TEMPLATE_CASE_SHEET.md`   규칙: R1~R16
+상태: **구현됨 (2026-11-14, STEP02~04·레벨 허브·엔딩) · 레이스 고장 트리거 연결됨(2026-11-14)**   작성: 2026-11-14   템플릿: `TEMPLATE_CASE_SHEET.md`   규칙: R1~R16
 레벨 배치: 미정(제안: 기존 구동·열관리 다음 3레벨, 제동 사건은 선택 레벨 유지). 구현 시 새 `CaseId`(예: `regen`)가 필요합니다.
 
 ## 0. 한 줄 요약
@@ -153,3 +153,8 @@
 - 파일: scenarios.ts(SCENARIOS·META 가설 4개), verificationContract.ts, simModel.ts(`regen` 모델, 부호 있는 신호를 위해 `Series.min`·`span` 추가), DominoTrace.tsx(CASES.regen, 부호 있는 값은 문자열), EeTrace.tsx, RefPuzzle.tsx, VerificationLab.tsx(표 20곳), CaseFileEnding.tsx, OpenBook.tsx, experiences.tsx(경고등·대사·측정 레일 등), levels.ts, runtime.ts, StaticCutscenes.tsx(수리 문구).
 - 시트와 다르게 한 점: 시험 신호는 시트 7절의 슬라이더 대신 STEP04 입력 파생 3종(요구사항 −40 Nm / 경계 −80 Nm / 회생 없음 0 Nm, 0 Nm는 오류를 드러내지 못함)으로 구현.
 - 검증: tests/regen-case.test.mjs(레벨 전이·수리·데이터 일관성·판정), 브라우저로 STEP02(위반 0)·STEP03(위반 0)·STEP04(원인 제거 PASS·수리·재시험 PASS) 확인. 증거 이미지 `accel_trend`는 이미지 프롬프트에 추가됨(`docs/image-prompts`), 이미지는 사용자 제작 대기.
+
+### 레이스 연결 (2026-11-14)
+- 레벨 4 시작 → `CHASE_RESUME`(caseId `regen`) 레이스. `REGEN_FAULT`(src/game/faultSchedule.ts): 40 km/h 이상에서 가속 페달을 떼면 코스팅 중 +6 km/h/s 가속, 느낌 시간이 2.2초 쌓이면 `FAULT_CUE`(caseId `regen`) → 볼트 대사 → `CONTINUE_FAULT` → STEP02. 0.8초부터 계기판 옆 경고 카드 "발을 뗐는데 속도가 올라감"(경고등은 없음).
+- 시작 안내 카드 "코스팅 구간: 40 km/h 이상으로 달린 뒤 가속 페달에서 발을 떼 보세요"는 조작 안내일 뿐 원인 단서가 아니다.
+- 확인: 브라우저로 레이스 → 고장 컷신 → 도미노 추적(STEP02) 진입, `tests/regen-case.test.mjs`·`fault-schedule.test.mjs`.

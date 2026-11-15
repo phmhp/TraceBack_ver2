@@ -330,9 +330,23 @@ export const THERMAL_FAULT: FaultSpec = {
   chase: { note: "Output limited to 55 km/h below the police speed: the gap shrinks until the cooling fault is repaired." },
 };
 
+/**
+ * N01 (docs/fault-cases/n01_regen_sign.md): the regeneration sign is dropped, so lifting the pedal at 40 km/h or more
+ * makes the car accelerate (+6 km/h per s, the wrong-direction coasting torque). `heldSec` = seconds of the fault being felt
+ * (kept while the speed stays above 40 km/h); the fault cue fires after 2.2 s.
+ */
+export const REGEN_FAULT: FaultSpec = {
+  id: "case-regen", caseId: "regen",
+  trigger: { phase: "release", minSpeedKph: 40, holdSec: .4, decay: 0 },
+  persistence: "permanent",
+  effect: { coastAccelKphPerS: 6 },
+  chase: { note: "Speed rises without the pedal: the gap widens, but a crash costs speed and gap; stopping lets the police close in." },
+};
+
 /** Fault specs that run in a race mode. `caseId` is the case of the campaign (the case that was repaired last when resuming). */
 export function levelFaults(mode: "normal" | "resume" | "assist" | "ship", caseId: string): FaultSpec[] {
   if (mode === "normal") return [PROPULSION_FAULT];
   if (mode === "resume" && caseId === "propulsion") return [THERMAL_FAULT];
+  if (mode === "resume" && caseId === "regen") return [REGEN_FAULT];
   return [];
 }
