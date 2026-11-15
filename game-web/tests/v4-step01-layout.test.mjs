@@ -144,7 +144,7 @@ test("STEP02 keeps evidence and reasoning stack in the persisted right rail with
   assert.match(liveTrace, /etDockTrace/);
   assert.match(latestCss, /\.etEvidence > header > \.etEvidenceTabs/);
   assert.match(liveTrace, /etCand/);
-  assert.match(liveTrace, /<Directive /);
+  assert.match(liveTrace, /<NutGuide /);
 });
 
 test("FB-P0-01 makes the STEP02 rail a folder-tabbed evidence and reasoning board", () => {
@@ -248,8 +248,8 @@ test("K-7 exposes every simulation view to Chrome QA without a technique-name qu
   }
   assert.match(verificationLab, /requestedView/);
   assert.match(verificationLab, /같은 입력:/);
-  assert.match(verificationLab, /가설 지지/);
-  assert.match(verificationLab, /가설 반박/);
+  assert.match(verificationLab, /원인으로 보여요/);
+  assert.match(verificationLab, /원인이 아니에요/);
   assert.match(verificationLab, /판단 보류/);
   assert.match(verificationLab, /PASS/);
   assert.match(verificationLab, /FAIL/);
@@ -263,7 +263,7 @@ test("FB-P1-07 verifies the repaired software against one same-condition baselin
   assert.match(bench, /동일 조건 기준선 비교 검증/);
   assert.match(bench, /정상 기준선/);
   assert.match(bench, /수정 후 결과/);
-  assert.match(bench, /정상 범위 충족 여부 표시됨/);
+  assert.match(bench, /원인 제거 모델/);
   assert.match(bench, /inNormalRange\(sig\) \? "충족" : "미충족"/);
   assert.doesNotMatch(bench, /regression\.forEach/);
   assert.doesNotMatch(bench, /▶ 정상·사건 동시 실행/);
@@ -281,7 +281,7 @@ test("M-01 through M-06 keep the whole view, fixed evidence slots, reverse trace
   assert.match(latestCss, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\) !important/);
   assert.match(latestCss, /receiptPrint/);
   assert.match(verificationLab, /모니터링/);
-  assert.match(verificationLab, /qaTabQuestion/);
+  assert.match(verificationLab, /b4Levels/);
   assert.match(latestCss, /aspect-ratio: 3 \/ 4/);
 });
 
@@ -353,17 +353,17 @@ test("STEP04 2026-11-12 verifies each hypothesis with its own runs and simplifie
   assert.match(verificationLab, /const runKey = \(fixed: boolean, lv: Lv, hyp = ""\) => \(fixed \? "fixed" : `\$\{hyp\}:fault-\$\{lv\}`\)/);
   assert.match(live, /runs\[runKey\(fixed, level, q\?\.hyp\)\]/);
   assert.match(live, /const selectHypothesis = \(k: number\)/);
-  assert.match(live, /questions\.findIndex\(\(item, k\) => k !== qi && !nextAnswers\[item\.hyp\]\)/);
+  assert.match(live, /questions\.findIndex\(\(item, k\) => k !== qi && !answers\[item\.hyp\]\)/);
   // monitoring while running, back to the level view afterwards
-  assert.match(live, /setRunning\(true\); setU\(0\); setFeedback\(null\); setViewTab\("graph"\)/);
+  assert.match(live, /setRunning\(true\); setU\(0\); setFeedback\(null\); setJudged\(false\)/);
   assert.match(live, /setViewTab\(viewOf\(lv\)\);/);
   // wording and report
-  assert.match(live, /이 결과를 보면, 이 가설이 원인 같나요\?/);
+  assert.match(live, /이 결과를 보면 이 가설이 원인 같을까\?/);
   assert.doesNotMatch(live, /검증 결과 보고 · \{DRIVER_NAME\}에게/);
-  assert.match(live, /설명: \{a\?\.why\}/);
+  assert.match(live, /numify\(a\.why\)/);
   assert.match(verificationLab, /VCU 내부 계산 SW가 잘못된 건가요\?/);
   // materials: STEP02 then STEP03, no "이번 시험 조건" chip, STEP03 normal scenario shown
-  assert.ok(live.indexOf("STEP02 고장 재현 로그 열기") < live.indexOf("STEP03 시험 설계서 열기"));
+  assert.ok(live.indexOf("시험 설계서 열기") < live.indexOf("고장 기록 열기"));
   assert.doesNotMatch(live, /<Icon name="monitor" \/> 이번 시험 조건/);
   assert.match(live, /normalScenarioLines\(caseId\)/);
   // TC line only reads signals observable on the current level (UI-V3-17)

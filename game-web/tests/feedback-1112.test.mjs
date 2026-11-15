@@ -86,13 +86,13 @@ test("STEP04 A/B: removing the true cause matches the normal model; a wrong caus
 
 test("STEP04 learning flow: purpose, material roles, input cards, PASS/FAIL meaning, evidence guide", () => {
   assert.match(live04, /title="실험대" goal="도미노에서 세운 가설이 진짜 원인인지 시험으로 확인해요"/);
-  assert.match(live04, /className="b4MatTabs"/); // materials live in the side panel tabs (no pop-up scrim)
-  assert.match(live04, /className="qaMatRole"><b>정상 기준<\/b>/);
-  assert.match(live04, /className="qaMatRole"><b>고장 당시 기록<\/b>/);
+  assert.match(live04, /rpFolderBack/); // 2026-11-15: 시험 설계서·고장 기록 open as a folder-style document pop-up
+  assert.match(live04, /정상일 때 어떤 입력에서 어떤 출력이 나와야 하는지/);
+  assert.match(live04, /실제 고장 때 신호가 정상과 얼마나 달랐는지/);
   // input cards: test type + purpose, sequence printed from the executed contract (not hand-written)
   assert.match(lab, /const INPUT_INFO: Record<CaseId/);
   assert.match(lab, /function inputSequenceText\(execution: VerificationExecution, base: VerificationExecution\)/);
-  assert.match(live04, /inputSequenceText\(exec, contract\.execution\)/);
+  assert.match(live04, /inputSequenceText\(contractForInput\(caseId, contract, d\.id, d\.tech\)\.execution, contract\.execution\)/);
   // PASS/FAIL is a test result, not the cause judgement; deviating signals are listed from the assessment
   assert.match(live04, /관찰한 출력이 정상 기준의 기대값·허용 범위를 만족했어요/);
   assert.match(live04, /a\.outOfRangeSignalIds, \.\.\.a\.expectedOutputFailures/);
@@ -100,8 +100,8 @@ test("STEP04 learning flow: purpose, material roles, input cards, PASS/FAIL mean
   // evidence guide and next-level hint come from the scenario rules
   assert.match(live04, /const decisiveLevels = QA_LEVELS\.filter/);
   assert.match(live04, /다음에는 \$\{next\.join\(" 또는 "\)\}을 골라 이 가설로 다시 실행하세요/);
-  assert.match(live04, /className="finalJudge"/);
-  assert.match(live04, /<span>한계<\/span>\{contract\.limitation\}/);
+  assert.match(live04, /b4WhyLevel/); // 2026-11-15: after each run, why this level can / cannot decide this hypothesis
+  assert.match(live04, /judgeNote/);
 });
 
 test("Scenario data: hold reasons and deciding levels match the judging rules under each fault", async () => {
@@ -217,7 +217,7 @@ test("STEP04 input conditions matter: an input outside the fault condition passe
   assert.match(lab, /equiv: \{ tag: "다른 입력 구간 시험"/);
   assert.match(lab, /tag: "경계값 시험 · 입력 상한", purpose: "페달 100%\(입력 범위 끝\)에서 토크 요청이 가용 한계 260 Nm를 넘지 않게 제한되는지 확인"/);
   assert.match(live04, /PASS가 고장이 없다는 뜻은 아니에요/);
-  assert.match(live04, /<p className="qaSimCaption"><b>비교 방식<\/b>같은 입력 → 정상 설계 모델 vs 시험 대상 SW\(고장 요인 포함\)<\/p>/);
+  assert.match(live04, /b4ModelBar/); assert.match(live04, /고장 시나리오 모델/);
 });
 
 test("Pursuit keeps closing during STEP02–04 at 0.2 m/s (visible on the HUD)", () => {

@@ -1227,17 +1227,20 @@ function SeriesTrace({ sig, upto, probed }: { sig: Series; upto: number; probed:
 const clampTo = (v: number) => Math.max(0, Math.min(1.05, v));
 
 /** Normal scenario (dashed, full) overlaid with this test (solid, drawn up to `upto`); red mark = first divergence. */
-function OverlayGraph({ list, upto, look, note }: { list: Series[]; upto: number; look: Set<string>; note?: string }) {
+const fmtSig = (sig: Series, v: number) => `${v.toFixed(sig.max < 10 ? 1 : 0)} ${sig.unit}`;
+function OverlayGraph({ list, upto, look, note, cursor }: { list: Series[]; upto: number; look: Set<string>; note?: string; cursor?: number }) {
   return <div className="ovGraph">
-    <p className="ovLegend"><i className="ref" /> 정상 시나리오 <i className="run" /> 이번 시험 <i className="split" /> 처음 달라진 때</p>
+    <p className="ovLegend"><i className="ref" /> 정상 시나리오 모델 <i className="run" /> 고장 시나리오 모델(시험 대상) <i className="split" /> 처음 달라진 때</p>
     {note && <p className="ovNote">{note}</p>}
     {list.map(sig => {
       const n = sig.ref.length - 1, last = Math.round(upto * n), d = divergeIndex(sig);
+      const ci = cursor === undefined ? last : Math.round(cursor * n);
       const y = (v: number) => (34 - clampTo((v - (sig.min ?? 0)) / span(sig)) * 30).toFixed(1);
       const pts = (arr: number[], to: number) => arr.slice(0, to + 1).map((v, i) => `${(i / n * 200).toFixed(1)},${y(v)}`).join(" ");
       return <div key={sig.id} className={`ovRow ${look.has(sig.id) ? "look" : ""}`}>
         <span>{sig.name}<small>{sig.unit}</small></span>
-        <svg className="vbTrace" viewBox="0 0 200 36" preserveAspectRatio="none"><polyline className="ref" points={pts(sig.ref, n)} />{upto > 0 && <polyline className={`run ${d === null ? "ok" : ""}`} points={pts(sig.run, last)} />}{d !== null && upto > 0 && last >= d && <g className="split"><line x1={d / n * 200} y1="0" x2={d / n * 200} y2="36" /></g>}</svg>
+        <svg className="vbTrace" viewBox="0 0 200 36" preserveAspectRatio="none"><polyline className="ref" points={pts(sig.ref, n)} />{upto > 0 && <polyline className={`run ${d === null ? "ok" : ""}`} points={pts(sig.run, last)} />}{d !== null && upto > 0 && last >= d && <line className="split" x1={d / n * 200} x2={d / n * 200} y1="0" y2="36" />}{cursor !== undefined && <line className="ruler" x1={ci / n * 200} x2={ci / n * 200} y1="0" y2="36" />}</svg>
+        <em className="ovVals">{upto > 0 || cursor !== undefined ? <><code className="r">{fmtSig(sig, sig.ref[ci])}</code><code className="x">{upto > 0 ? fmtSig(sig, sig.run[ci]) : "—"}</code></> : "—"}</em>
       </div>;
     })}
   </div>;
@@ -1860,6 +1863,8 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   } });
   const [panelTab, setPanelTab] = useState<"cond" | "result" | "mat">("mat");
   const [matTab, setMatTab] = useState<"tc" | "log">("tc");
+  const [docOpen, setDocOpen] = useState<"tc" | "log" | null>(null);
+  const [judged, setJudged] = useState(false);   // the current hypothesis was answered: the dock offers "next hypothesis / other level"
   // final cause chosen after the report, and the A/B comparison run (normal model vs. cause-removed model)
   const [cause, setCause] = useState<string | null>(savedProgress.cause ?? null);
   const [abDone, setAbDone] = useState<boolean>(Boolean(savedProgress.abDone));
@@ -2000,7 +2005,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       return;
     }
     if (!materialsReady) { setBubble("먼저 시험 자료(STEP03 시험 설계서, STEP02 고장 재현 로그)를 확인하세요."); play("error"); return; }
-    setRunning(true); setU(0); setFeedback(null); setViewTab("graph"); play("zip");
+    setRunning(true); setU(0); setFeedback(null); setJudged(false); play("zip");
     if (!fixed) setCost(c => c + LV_COST[level]);
     const started = performance.now(), lst = list, lv = level, isFixed = fixed;
     const tick = () => {
@@ -2041,14 +2046,14 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     if (pick === "open" && lastRun.exercised === false) {
       play("pop");
       const text = `판단 보류로 기록했어요. ${NOT_EXERCISED_WHY} 고장이 생기는 조건을 지나는 입력으로 다시 실행하세요.`;
-      setFeedback({ ok: true, text: "판단 보류 · 이 입력은 고장 조건을 지나지 않음 → 입력 조건을 바꿔 다시 실행" }); setBubble(text); return;
+      setFeedback({ ok: true, text: "아직 몰라요로 기록했어요. 이 입력은 고장이 생기는 조건을 지나지 않았어요. 입력 조건을 바꿔 다시 실행해 보세요." }); setBubble(text); setJudged(true); return;
     }
     if (pick === "open") {
       play("pop"); setHeld(prev => ({ ...prev, [q.hyp]: [...new Set([...(prev[q.hyp] ?? []), lastRun.level])] }));
       const hold = hypDef?.hold?.[lastRun.level];
       const next = (hold?.next ?? decisiveLevels).filter(lv => lv !== lastRun.level).map(lv => TEST_CARD[lv].name);
       const text = `판단 보류로 기록했어요. ${TEST_CARD[lastRun.level].name}에서는 ${hold ? `이 가설을 가를 신호(${hold.unseen})를 볼 수 없어요. ${hold.why}` : "이 가설을 가를 신호를 볼 수 없어요."}${next.length ? ` 다음에는 ${next.join(" 또는 ")}을 골라 이 가설로 다시 실행하세요.` : " 다른 시험 수준에서 다시 실행하세요."}`;
-      setFeedback({ ok: true, text: hold ? `판단 보류 · 이 시험에서 볼 수 없는 신호: ${hold.unseen}${next.length ? ` → 다음: ${next.join(" 또는 ")}` : ""}` : text }); setBubble(text); return;
+      setFeedback({ ok: true, text: hold ? `아직 몰라요로 기록했어요. ${TEST_CARD[lastRun.level].name}에서는 ${hold.unseen}을(를) 볼 수 없어요. ${hold.why}${next.length ? ` ${next.join(" 또는 ")}에서 확인해 보세요.` : ""}` : text }); setBubble(text); setJudged(true); return;
     }
     const evidence = `${TEST_CARD[lastRun.level].name} · ${keyAns.need.map(id => lastRun.vals[id]).filter(Boolean).join(", ")}`;
     const nextAnswers = { ...answers, [q.hyp]: { answer: pick, why: keyAns.why, evidence } };
@@ -2056,12 +2061,24 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     showVerdict(true, ANSWER_KO[pick]); play("stamp");
     setFeedback({ ok: true, text: `${keyAns.why} → ${ANSWER_KO[pick]}` });
     setBubble(`${keyAns.why} → "${ANSWER_KO[pick]}"`);
-    window.setTimeout(() => {
-      const nextIndex = pick === "supported" ? -1 : questions.findIndex((item, k) => k !== qi && !nextAnswers[item.hyp]); // a correct "원인으로 보여요" ends the hypothesis checks
-      setFeedback(null);
-      if (nextIndex >= 0) { setQi(nextIndex); setPickedDeriv(qaDeriv(caseId, level)); setU(runs[runKey(false, level, questions[nextIndex].hyp)] ? 1 : 0); setBubble(`다음은 가설 ${nextIndex + 1}이에요. 이 가설로 시험을 직접 실행해야 판정할 수 있어요. 시험 수준과 입력 조건을 고르세요.`); }
-      else { setPhase("report"); setBubble(""); }
-    }, 1100);
+    setJudged(true);
+  };
+  // after a hypothesis is answered the player moves on explicitly (next hypothesis, another test level, or the final cause)
+  const unansweredOthers = questions.findIndex((item, k) => k !== qi && !answers[item.hyp]);
+  const hypDone = Boolean(q && answers[q.hyp]);
+  const goNextHypothesis = () => {
+    const stop = answers[q?.hyp ?? ""]?.answer === "supported";
+    setJudged(false); setFeedback(null); setBubble(""); play("pop");
+    if (!stop && unansweredOthers >= 0) { setQi(unansweredOthers); setPhase("pick"); setU(0); }
+    else setPhase("report");
+  };
+  const tryAnotherLevel = () => { setJudged(false); setFeedback(null); setBubble(""); setPhase("pick"); setU(0); play("pop"); };
+  const replayRun = () => {
+    if (running || !lastRun) return;
+    setRunning(true); setU(0);
+    const started = performance.now();
+    const tick = () => { const next = Math.min(1, (performance.now() - started) / 2000); setU(next); if (next < 1) requestAnimationFrame(tick); else setRunning(false); };
+    requestAnimationFrame(tick);
   };
   const pickCause = (hyp: string) => {
     if (running) return;
@@ -2115,6 +2132,16 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       : caseId === "propulsion" ? <BenchVisual tab="vehicle" caseId={caseId} running={running} works={show3d === "normal" || (plantReal ? works : true)} /> : <EmbeddedBench3D caseId={caseId} running={running} works={show3d === "normal" || (plantReal ? works : true)} />;
   const realChips = <span className="qaReal"><i className="on">SW 실물</i><i className={ecuReal ? "on" : ""}>제어기 {ecuReal ? "실물" : "없음"}</i><i className={plantReal ? "on" : ""}>부품·차량 {plantReal ? "실물" : "모델"}</i></span>;
 
+  const tabNote = viewTab === "ecu" && !ecuReal ? "이 시험에는 제어기 하드웨어가 연결되지 않아요. SW만 PC에서 실행해요."
+    : viewTab === "plant" && !plantReal ? "이 시험에는 실제 부품·차량이 연결되지 않아요. 부품은 모델이 대신해요." : "";
+  // why THIS test level can / cannot decide THIS hypothesis (shown after the run)
+  const judgeNote = shown && lastRun && hypDef ? (() => {
+    const decides = hypDef.decideAt ? hypDef.decideAt.includes(lastRun.level) : hypDef.rules.some(rule => !rule.levels || rule.levels.includes(lastRun.level));
+    const hold = hypDef.hold?.[lastRun.level];
+    if (lastRun.exercised === false) return { can: false, text: NOT_EXERCISED_WHY };
+    if (decides) return { can: true, text: hypDef.decide ?? "이 수준에서 이 가설을 가를 신호를 볼 수 있어요." };
+    return { can: false, text: hold ? `${hold.unseen}을(를) 볼 수 없어요. ${hold.why}${hold.next.length ? ` ${hold.next.map(lv => TEST_CARD[lv].name).join(" 또는 ")}에서 확인할 수 있어요.` : ""}` : "이 수준에서는 이 가설을 가를 신호를 볼 수 없어요." };
+  })() : null;
   const b4Mission = stepIdx === 0 ? { action: "먼저 확인할 가설의 시험 고르기", question: "이 가설은 어떤 시험으로 확인할 수 있을까?" }
     : stepIdx === 1 ? { action: shown ? "시험 결과 보고 판단하기" : "시험 실행하고 정상과 비교하기", question: "이 결과를 보면 이 가설이 원인 같을까?" }
       : { action: phase === "report" ? "최종 고장 원인 고르기" : "원인을 없앤 모델 확인하기", question: "원인을 없애면 정상으로 돌아올까?" };
@@ -2122,6 +2149,8 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   // spoken direction (what was just done / what happens now / how to do it)
   const causeName = CAUSES[caseId].find(item => item.hyp === cause)?.name ?? "";
   const b4Lines: string[] = !contractReady ? ["시험 설계서를 불러오지 못했어요.", "퍼즐 단계에서 만든 시험 설계서가 있어야 시험할 수 있어요.", "위 안내의 설계서 다시 발급을 눌러요."]
+    : phase === "lab" && judged && hypDone ? [`이 가설은 "${ANSWER_KO[answers[q?.hyp ?? ""].answer]}"로 정리했어요.`, "원인으로 보이면 바로 최종 원인을 고르고, 아니면 다음 가설을 이어서 확인해요.", "아래 버튼으로 다음 단계로 가요."]
+    : phase === "lab" && judged ? ["아직 몰라요로 기록했어요. 이 시험으로는 이 가설을 가를 수 없었어요.", "오른쪽에서 왜 판단할 수 없는지 확인해 보세요.", "다른 시험 수준으로 다시 확인하거나, 다음 가설로 넘어가요."]
     : phase === "pick" ? [`도미노에서 정리한 가설 중 "${hypothesisGoal}"(${qi + 1}/${questions.length})부터 확인해요.`, "이 가설이 원인이라면 어떤 신호가 달라질지 생각해 보세요.", "그 신호를 볼 수 있는 시험 카드를 하나 골라요."]
     : phase === "lab" && running ? ["시험을 실행하고 있어요.", "정상 모델과 시험 대상에 같은 입력이 들어가요.", "끝나면 결과 표가 채워져요."]
     : phase === "lab" && shown ? [`시험이 끝났어요. 시험 결과: ${lastRun ? VERDICT_KO[lastRun.verdict] : ""}`, "정상 기준과 처음 달라지는 곳이 이 가설에서 예상한 모습과 같은지 봐요.", "아래 세 가지 중에서 골라요."]
@@ -2132,6 +2161,21 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     : !abDone ? [`최종 원인으로 ${causeName}${/[가-힣]$/.test(causeName) && (causeName.charCodeAt(causeName.length-1)-44032)%28===0 ? "를" : /[가-힣]$/.test(causeName) ? "을" : "을(를)"} 골랐어요.`, "이 원인을 없앤 모델이 정상 모델과 같아지는지 확인해요.", "두 모델 동시 실행을 눌러요."]
     : causeOk ? ["원인을 없애니 정상 모델과 같아졌어요!", "이 원인이 맞았다는 뜻이에요.", "수리 적용을 눌러 주행으로 돌아가요."]
     : ["원인을 없애도 정상과 달라요.", "고른 원인이 실제 원인이 아니라는 뜻이에요.", "최종 원인을 다시 골라요."];
+  const levelCard = (lv: Lv) => <button key={lv} className="b4Card" onClick={() => pickTest(lv)}><i><Icon name={TEST_CARD[lv].pic} /></i><b>{TEST_CARD[lv].name}</b><small>{LEVEL_SUB[lv]}</small></button>;
+  const dockChoices: React.ReactNode = !contractReady ? <p className="b4DockMsg">시험 설계서를 불러오지 못했어요. STEP03에서 다시 발급해 주세요.</p>
+    : phase === "pick" ? <div className="b4Cards">{QA_LEVELS.map(levelCard)}</div>
+    : phase === "report" ? <div className="b4Cards">{CAUSES[caseId].map(item => <button key={item.hyp} className={`b4Card cause ${cause === item.hyp ? causeOk ? "right" : "wrong" : ""}`} onClick={() => pickCause(item.hyp)}><span className="causePhoto"><i className="pin" /><span className="causePhotoWin"><img src={item.img} alt="" /></span></span><span className="etTag" data-tag={HYP_TAG[item.hyp]}>{HYP_TAG[item.hyp]}</span><b>{item.name}</b><span className="causeType">{item.type}</span></button>)}</div>
+    : phase === "ab" ? <div className="b4Cards">{!abDone ? <button className="b4Card run" disabled={running} onClick={runAb}><b>▶ 두 모델 동시 실행</b><small>정상 모델과 원인을 없앤 모델</small></button>
+        : causeOk ? <button className="b4Card run" onClick={finish}><b>수리 적용 · 주행 복귀 →</b><small>원인을 없앤 모델이 정상과 같아요</small></button>
+          : <button className="b4Card" onClick={() => { setPhase("report"); setCause(null); setAbDone(false); setMistakes(n => n + 1); play("pop"); }}><b>최종 원인 다시 고르기</b><small>정상과 달라요</small></button>}</div>
+    : running ? <p className="b4DockMsg">시험을 실행하고 있어요. 위 화면에서 두 모델이 움직여요.</p>
+    : judged ? <div className="b4Cards">
+        {!hypDone && <button className="b4Card" onClick={tryAnotherLevel}><i><Icon name="monitor" /></i><b>다른 시험 수준으로 확인하기</b><small>이 가설을 가를 수 있는 수준으로 다시 시험</small></button>}
+        {(hypDone || unansweredOthers >= 0) && <button className="b4Card run" onClick={goNextHypothesis}><i><Icon name="search" /></i><b>{answers[q?.hyp ?? ""]?.answer === "supported" || unansweredOthers < 0 ? "최종 원인 고르러 가기" : "다음 가설 검증하러 가기"}</b><small>{answers[q?.hyp ?? ""]?.answer === "supported" || unansweredOthers < 0 ? "가설 확인 결과를 보고 원인을 정해요" : `가설 ${unansweredOthers + 1}/${questions.length}을 이어서 확인해요`}</small></button>}
+      </div>
+    : shown ? <div className="b4Cards">{(["supported", "refuted", "open"] as Answer[]).map(a => <button key={a} className={`b4Card ans-${a}`} onClick={() => answer(a)}><b>{ANSWER_BTN[a][0]}</b><small>{ANSWER_BTN[a][1]}</small></button>)}</div>
+    : needsInputPick ? <div className="b4Cards">{CASE_DERIVS[caseId].map(d => { const info = INPUT_INFO[caseId][d.id]; return <button key={d.id} className="b4Card input" onClick={() => { setPickedDeriv(d.id); play("pop"); }}><em>{info?.tag ?? "시험 입력"}</em><b>{info?.purpose ?? d.input}</b><small>입력 · {inputSequenceText(contractForInput(caseId, contract, d.id, d.tech).execution, contract.execution)}</small></button>; })}</div>
+    : <div className="b4Cards"><button className="b4Card run" disabled={!contractReady} onClick={run}><b>▶ 시험 실행</b><small>{numify(tech.input)}</small></button>{CASE_DERIVS[caseId].length > 1 && <button className="b4Card" onClick={() => { setPickedDeriv(null); play("pop"); }}><b>입력 조건 바꾸기</b><small>다른 시험 입력 고르기</small></button>}</div>;
   const coach = state.completedCases.length ? "" : phase === "lab" && !shown ? "run" : phase === "lab" ? "answer" : "";
   return <div className="vbBench v7 qa qa2 bench4" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
@@ -2146,52 +2190,43 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     <div className="b4Work">
       <MissionBar action={b4Mission.action} question={b4Mission.question} progress={{ now: stepIdx + 1, total: 3 }} />
       <section className="b4Stage">
-        {phase === "pick" ? <div className="b4Col">{hypStrip}<section className="vbStage qaPick">
-        <p className="qaPickQuestion"><small>{DRIVER_NAME}의 질문 {numify(`${qi + 1}/${questions.length}`)}</small>“{q.ask}”</p>
-        <div className="qaCriteria big"><small><Icon name="target" /> 판단 기준</small><p>{numify(PREDICT[q.hyp])}</p></div>
-        <h2>어떤 시험으로 확인할까요?</h2>
-        <div className="vbChoices qaTests">{QA_LEVELS.map(lv => <button key={lv} onClick={() => pickTest(lv)}><i><Icon name={TEST_CARD[lv].pic} /></i><b>{TEST_CARD[lv].name}</b><small className="vbGroup">{`0${QA_LEVELS.indexOf(lv) + 1}`}</small><em>{LEVEL_SUB[lv]}</em></button>)}</div>
-      </section>
-</div>
-          : phase === "report" ? <section className="vbStage v7Fix reportStage">
-          <h2><Icon name="target" /> 가설 확인 결과</h2>
-          <ul className="reportList">{questions.map(item => { const a = answers[item.hyp]; const h = meta.hypotheses.find(x => x.id === item.hyp); return <li key={item.hyp} className={a ? `a-${a.answer}` : "a-skip"}><b><span className="etTag" data-tag={HYP_TAG[item.hyp]}>{HYP_TAG[item.hyp]}</span>{h?.label ?? item.ask}</b><em>{a ? ANSWER_KO[a.answer] : "시험하지 않았어요"}</em><span>{a ? numify(a.why) : "앞의 가설이 원인으로 확인되어 시험하지 않았어요."}</span></li>; })}</ul>
-        </section>
-
-          : phase === "repair" ? <section className="vbStage v7Fix">
-          <h2><Icon name="wrench" /> 이 원인을 제거할 수리 방법을 고르세요</h2>
-          <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}><img src={item.img} alt="" /><b>{item.label}</b></button>)}</div>
-        </section>
-
+        {phase === "pick" ? <div className="b4Pick">
+          <ol className="b4HypList" aria-label="검증할 고장 원인 가설">{questions.map((item, k) => { const a = answers[item.hyp]; const h = meta.hypotheses.find(x => x.id === item.hyp); const st = a ? ANSWER_KO[a.answer] : held[item.hyp]?.length ? "아직 몰라요" : k === qi ? "지금 확인" : "대기"; return <li key={item.hyp} className={`${k === qi ? "now" : ""} ${a ? `a-${a.answer}` : ""}`}><i>{k + 1}</i><span className="etTag" data-tag={HYP_TAG[item.hyp]}>{HYP_TAG[item.hyp]}</span><b>{h?.label ?? item.ask}</b><em>{st}</em></li>; })}</ol>
+          <section className="b4HypDetail"><small>지금 확인할 가설 {qi + 1}/{questions.length}</small><h3>{q.ask}</h3>
+            <div className="b4Criteria"><small><Icon name="target" /> 이 가설이 원인이라면</small><p>{numify(PREDICT[q.hyp])}</p></div>
+            <p className="b4Hint2">가장 유력한 가설부터 확인해요. 시험 수준에 따라 볼 수 있는 신호가 달라요.</p></section>
+        </div>
+        : phase === "report" ? <div className="b4Pick b4Report">
+          <ol className="b4HypList" aria-label="가설 확인 결과">{questions.map(item => { const a = answers[item.hyp]; const h = meta.hypotheses.find(x => x.id === item.hyp); return <li key={item.hyp} className={a ? `a-${a.answer}` : "a-skip"}><i>{a ? (a.answer === "supported" ? "●" : "○") : "–"}</i><span className="etTag" data-tag={HYP_TAG[item.hyp]}>{HYP_TAG[item.hyp]}</span><b>{h?.label ?? item.ask}</b><em>{a ? ANSWER_KO[a.answer] : "시험 안 함"}</em></li>; })}</ol>
+          <section className="b4HypDetail"><small>가설 확인을 마쳤어요</small><h3>원인이 하나로 좁혀졌어요</h3><div className="b4Criteria"><small><Icon name="target" /> 근거</small><ul>{questions.map(item => { const a = answers[item.hyp]; return a ? <li key={item.hyp}>{numify(a.why)}</li> : null; })}</ul></div></section>
+        </div>
           : phase === "ab" ? <div className="v7View abView">
               {(["normal", "fixed"] as const).map(side => <section key={side} className={`abPane ab-${side}`}><header><b>{side === "normal" ? "정상 시나리오 시뮬레이션" : "이번 시험 · 고장 원인 제거 시뮬레이션"}</b><small>{side === "normal" ? "정상 설계 모델" : CAUSES[caseId].find(item => item.hyp === cause)?.name ?? "선택한 원인 제거"}</small></header>
                 <div className={`vbSimView abSim ${running ? "running" : ""}`}>{caseId === "propulsion" ? <BenchVisual tab="vehicle" caseId={caseId} running={running} works={side === "normal" || causeOk} /> : <EmbeddedBench3D caseId={caseId} running={running} works={side === "normal" || causeOk} />}{abDone && side === "fixed" && <span className={`vbStamp ${causeOk ? "pass" : "fail"}`}>{causeOk ? "정상과 일치" : "정상과 다름"}</span>}</div>
               </section>)}
             </div>
 
-          : <div className="b4Col">{phase === "lab" && hypStrip}<div className="v7View">
-              <nav className="v7Tabs qaLevelTabs" role="tablist" aria-label="시험 수준과 관찰 화면">{QA_LEVELS.map(lv => { const done = runs[runKey(fixed, lv, q?.hyp)]; const on = viewTab !== "graph" && level === lv; return <button key={lv} role="tab" aria-selected={on} className={on ? "on" : ""} disabled={running || (fixed && lv !== "vehicle")} onClick={() => { selectLevel(lv); play("pop"); }}><b>{TEST_CARD[lv].name}</b><small>{VIEW_SUB[lv]}{done ? <> · <em className={`rv-${done.verdict.toLowerCase()}`}>{VERDICT_KO[done.verdict]}</em></> : ""}</small></button>; })}<button role="tab" aria-selected={viewTab === "graph"} className={`graphTab ${viewTab === "graph" ? "on" : ""}`} onClick={() => { setViewTab("graph"); play("pop"); }}><b>모니터링</b><small>시간축 신호 비교</small></button></nav>
-              {/* qaTabQuestion: the long explanatory copy moved to the action dock; keep the simulation surface labelled for QA. */}
-              <div className={`vbSimView ${running ? "running" : ""}`} aria-label={`같은 입력: ${contract.stimulus.sequence}`}>{tabVisual}
-                {phase === "lab" && materialsReady && needsInputPick && !running && <div className="qaInputGuide" role="group" aria-label="입력 조건 안내">
-                  <p className="qaInputWhy"><b>왜 입력 조건을 고르나요?</b>같은 입력을 정상 설계 모델과 시험 대상 SW(고장 요인 포함)에 넣고 비교해요. 고장이 생기는 조건을 지나는 입력이어야 차이가 보여요.</p>
-                  {CASE_DERIVS[caseId].map(d => { const info = INPUT_INFO[caseId][d.id]; const exec = contractForInput(caseId, contract, d.id, d.tech).execution; return <button key={d.id} className="qaInputCard" onClick={() => { setPickedDeriv(d.id); play("pop"); setBubble(`입력을 '${d.input}'(으)로 골랐어요. 정상 모델과 시험 대상에 같은 입력이 들어가요.`); }}>
-                    <em className="qaInputTag">{info?.tag ?? "시험 입력"}</em><b>{info?.purpose ?? d.input}</b><small>입력 · {inputSequenceText(exec, contract.execution)}</small>
-                  </button>; })}
-                </div>}{shown && lastRun && <span className={`vbStamp ${lastRun.verdict === "PASS" ? "pass" : lastRun.verdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastRun.verdict]}</span>}</div>
-              <p className="qaSimCaption"><b>비교 방식</b>같은 입력 → 정상 설계 모델 vs 시험 대상 SW(고장 요인 포함)</p>
-              {(viewTab === "ecu" || viewTab === "plant") && <span className="v3dToggle">{([["normal", "정상 시나리오"], ["run", "이번 시험"]] as const).map(([id, label]) => <button key={id} className={show3d === id ? "on" : ""} onClick={() => { setShow3d(id); play("pop"); }}>{label}</button>)}</span>}
-            </div>
-</div>}
+        : <div className="b4Lab">
+          <p className="b4HypNow"><i>{qi + 1}/{questions.length}</i><span className="etTag" data-tag={HYP_TAG[q.hyp]}>{HYP_TAG[q.hyp]}</span><b>{meta.hypotheses.find(x => x.id === q.hyp)?.label}</b><small>를 확인하는 중</small></p>
+          <nav className="b4Levels" role="tablist" aria-label="시험 수준">{QA_LEVELS.map(lv => { const r = runs[runKey(false, lv, q?.hyp)]; const on = level === lv; return <button key={lv} role="tab" aria-selected={on} className={`${on ? "on" : ""} ${r ? `v-${r.verdict.toLowerCase()}` : ""}`} disabled={running} onClick={() => selectLevel(lv)}><i><Icon name={TEST_CARD[lv].pic} /></i><b>{TEST_CARD[lv].name}</b><em>{r ? VERDICT_KO[r.verdict] : "미실행"}</em></button>; })}</nav>
+          <div className="b4ModelBar"><b>지금 보는 화면</b>
+            {(viewTab === "ecu" || viewTab === "plant") ? <span className="b4Seg">{([["normal", "정상 시나리오 모델"], ["run", "고장 시나리오 모델 (시험 대상)"]] as const).map(([id, label]) => <button key={id} className={show3d === id ? "on" : ""} onClick={() => { setShow3d(id); play("pop"); }}>{label}</button>)}</span> : <span className="b4Seg"><i>위 정상 시나리오 모델</i><i>아래 고장 시나리오 모델 (시험 대상)</i></span>}
+            <small>{viewTab === "sw" ? "같은 입력을 두 모델에 넣어 위아래로 비교해요." : show3d === "normal" ? "고장이 없는 설계 모델이에요." : "같은 입력을 넣은 고장 상황의 모델이에요."} 원인을 제거한 모델은 마지막 단계에서 확인해요.</small></div>
+          <div className="b4Vis"><div className={`vbSimView ${running ? "running" : ""}`} aria-label={`같은 입력: ${contract.stimulus.sequence}`}>{tabVisual}{tabNote && <span className="v7TabNote">{tabNote}</span>}{shown && lastRun && <span className={`vbStamp ${lastRun.verdict === "PASS" ? "pass" : lastRun.verdict === "FAIL" ? "fail" : "unk"}`}>{VERDICT_KO[lastRun.verdict]}</span>}</div></div>
+          <div className="b4Monitor"><OverlayGraph list={list} upto={running ? u : shown ? 1 : 0} cursor={shown ? u : undefined} look={lookAt} />
+            <div className="b4Scrub"><button disabled={running || !shown} onClick={replayRun}>▶ 다시 재생</button><input type="range" min={0} max={1} step={.01} value={shown ? u : 0} disabled={running || !shown} onChange={event => setU(Number(event.target.value))} aria-label="시험 재생 위치" /><span>{shown ? `${(u * sim.seconds).toFixed(1)} ${sim.timeUnit}` : "실행 전"}</span></div></div>
+        </div>}
       </section>
-      <aside className="b4Panel" aria-label="시험 자료와 결과">
+      <aside className="b4Panel" aria-label="시험 조건과 결과">
         <header><nav role="tablist" aria-label="패널 보기">
-          <button role="tab" aria-selected={panelTab === "cond"} className={panelTab === "cond" ? "on" : ""} disabled={phase === "pick" || phase === "report" || phase === "repair"} onClick={() => setPanelTab("cond")}>조건</button>
-          <button role="tab" aria-selected={panelTab === "result"} className={panelTab === "result" ? "on" : ""} disabled={phase === "pick"} onClick={() => setPanelTab("result")}>결과</button>
-          <button role="tab" aria-selected={panelTab === "mat"} className={panelTab === "mat" ? "on" : ""} onClick={() => setPanelTab("mat")}>자료</button>
+          <button role="tab" aria-selected={panelTab === "result" || panelTab === "mat"} className={panelTab !== "cond" ? "on" : ""} onClick={() => setPanelTab("result")}>결과</button>
+          <button role="tab" aria-selected={panelTab === "cond"} className={panelTab === "cond" ? "on" : ""} disabled={phase === "pick" || phase === "report"} onClick={() => setPanelTab("cond")}>시험 조건</button>
         </nav>{phase === "done" && <button className="stageReplayBtn" onClick={() => setReplayOpen(true)}>다시 풀기</button>}</header>
+        <div className="b4DocBtns"><button onClick={() => { setDocOpen("tc"); setSeen(prev => ({ ...prev, tc: true })); }}><Icon name="clipboard" /> 시험 설계서 열기</button><button onClick={() => { setDocOpen("log"); setSeen(prev => ({ ...prev, log: true })); }}><Icon name="search" /> 고장 기록 열기</button></div>
         <div className="b4PanelBody">
           {!contractReady && <aside className="qaCriteria big" role="alert"><small><Icon name="clipboard" /> 테스트 설계서 오류</small><p>{contractErrors.join(" ")}</p><button onClick={() => send({ type: "OPEN_WIRING" })}>STEP03에서 테스트 설계서 다시 발급</button></aside>}
+          {phase === "pick" || phase === "report" ? <div className="b4Mat"><p className="qaChipEmpty">시험을 실행하면 결과가 여기에 쌓여요. 시험 설계서와 고장 기록은 위 버튼으로 문서처럼 크게 열어 볼 수 있어요.</p></div> : <>
+          {judgeNote && <aside className="b4WhyLevel" aria-label="이 시험 수준의 판단 가능 여부"><small>이 시험 수준으로 이 가설을 판단할 수 있나요?</small><b className={judgeNote.can ? "can" : "cannot"}>{judgeNote.can ? "판단할 수 있어요" : "판단할 수 없어요"}</b><p>{judgeNote.text}</p></aside>}
           {panelTab === "cond" && (phase === "ab" ? <aside className="qaSetupPanel" aria-label="동일 시험 조건">
               <header><small>01 · 동일 조건</small><b>{activeContract.stimulus.label}</b><span>두 모델에 같은 초기 상태·입력·시간축을 적용</span></header>
               <section className="qaConditionBlock"><h3>초기 상태</h3><table><thead><tr><th>신호</th><th>설정값</th><th>단위</th></tr></thead><tbody>{initialConditionRows.map(item => <tr key={item.label}><td>{item.label}</td><td><code>{item.value}</code></td><td>{item.unit}</td></tr>)}</tbody></table></section>
@@ -2212,19 +2247,8 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               <p className="qaSetupNote"><b>관찰 신호</b>{observationGoal}</p>
             </aside>
 )}
-          {panelTab === "result" && phase === "report" && <div className="b4Doc"><article className="v7Report">
-            <header><small>검증 결과 보고</small><b>가설 판정 결과 · 지지 {questions.filter(item => answers[item.hyp]?.answer === "supported").length} · 반박 {questions.filter(item => answers[item.hyp]?.answer === "refuted").length}</b></header>
-            <ul>{questions.map(item => { const a = answers[item.hyp]; const label = meta.hypotheses.find(h => h.id === item.hyp)?.label ?? item.ask; return <li key={item.hyp} className={a?.answer === "supported" ? "hyp-supported" : "hyp-refuted"}><em>{a ? ANSWER_KO[a.answer] : "-"}</em><span><mark className="v7HypName">{label}</mark><span className="v7HypWhy">설명: {a?.why}</span><small>근거: {a?.evidence}</small></span></li>; })}
-              {meta.hypotheses.filter(h => h.stage1 && !questions.some(item => item.hyp === h.id)).map(h => <li key={h.id} className="hyp-refuted"><em>가능성 낮음</em><span><mark className="v7HypName">{h.label}</mark><span className="v7HypWhy">설명: {h.stage1}</span><small>근거: 도미노 역추적 측정</small></span></li>)}</ul>
-            <div className="v7Runs"><small>시험 기록 · 실제로 실행한 시험만 표시</small>{runLog.length ? <ol>{runLog.map((r, k) => { const hypId = r.hyp ?? questions[r.q]?.hyp; const hypIndex = questions.findIndex(item => item.hyp === hypId); const judged = hypId ? answers[hypId] : undefined; const judgement = r.fixed ? "" : judged && judged.evidence.startsWith(TEST_CARD[r.level].name) ? ANSWER_KO[judged.answer] : hypId && held[hypId]?.includes(r.level) ? "판단 보류" : "판정에 쓰지 않음"; return <li key={k}><i>{k + 1}</i><span>{TEST_CARD[r.level].name} · {r.fixed ? "수리 후 재시험" : `가설 ${hypIndex + 1}`}{judgement && <small> · 판정: {judgement}</small>}</span><em className={`rv-${r.verdict.toLowerCase()}`}>{VERDICT_KO[r.verdict]}</em></li>; })}</ol> : <p>이 세션에 저장된 시험 기록이 없어요.</p>}</div>
-          </article></div>}
-          {panelTab === "result" && phase === "repair" && <div className="b4Doc">{(() => { const c = CAUSES[caseId].find(item => item.hyp === cause); const a = cause ? answers[cause] : undefined; return <article className="finalJudge">
-  <header><small>최종 판단 보고</small><b>{c?.name}</b><em>{c?.type}</em></header>
-  <p><span>요약</span>{c?.desc} · 발생 위치 {c?.where}</p>
-  <p><span>관측 근거</span>{a ? `${a.why} (${a.evidence})` : "시험 판정 기록 없음"} · A/B 비교에서 원인을 제거한 모델이 정상 모델과 일치</p>
-  <p><span>한계</span>{contract.limitation}</p>
-</article>; })()}</div>}
-          {panelTab === "result" && phase !== "report" && phase !== "repair" && (phase === "ab" ? <aside className="qaPanel qaObservePanel abPanel" aria-label="A/B 비교 결과">
+
+          {(panelTab === "result" || panelTab === "mat") && (phase === "ab" ? <aside className="qaPanel qaObservePanel abPanel" aria-label="A/B 비교 결과">
               <nav className="abTabs" role="tablist"><button role="tab" aria-selected={abTab === "graph"} className={abTab === "graph" ? "on" : ""} onClick={() => setAbTab("graph")}>모니터링</button><button role="tab" aria-selected={abTab === "result"} className={abTab === "result" ? "on" : ""} disabled={running} onClick={() => setAbTab("result")}>결과</button></nav>
               {abTab === "graph" ? <div className="abGraph"><OverlayGraph list={abSim.levels.vehicle} upto={running ? u : abDone ? 1 : 0} look={new Set()} /><p className="abLegend">점선 = 정상 모델 · 실선 = 원인 제거 모델</p></div>
                 : <section className="qaResultBlock abResult">{(() => { const assessment = abDone ? assessContractRun(activeContract, "vehicle", abSim.levels.vehicle) : null; return <>
@@ -2261,78 +2285,36 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
               </section>
             </aside>
 )}
-          {panelTab === "mat" && <div className="b4Mat">
-        <nav className="b4MatTabs" role="tablist" aria-label="시험 자료"><button role="tab" aria-selected={matTab === "tc"} className={matTab === "tc" ? "on" : ""} onClick={() => openMaterial("tc")}>시험 설계서</button><button role="tab" aria-selected={matTab === "log"} className={matTab === "log" ? "on" : ""} onClick={() => openMaterial("log")}>고장 기록</button></nav>
-        <div className="b4MatBody qaMaterial">
-          {matTab === "tc" && <><h4>STEP03 시험 설계서 · {contract.stimulus.label}</h4>
-            <p className="qaMatRole"><b>정상 기준</b>정상일 때 어떤 입력에서 어떤 출력이 나와야 하는지 확인하는 자료예요.</p>
-            <p className="qaMatLine"><b>무엇을 검증하나요</b>{contract.objective}</p>
-            <div className="qaMatLine"><b>정상 시나리오</b><ul className="qaMatList">{normalScenarioLines(caseId).map(line => <li key={line}>{line}</li>)}</ul></div>
-            <table className="qaMatTable"><thead><tr><th>정상일 때 기대 출력</th><th>기대값</th><th>허용 오차</th><th>단위</th></tr></thead><tbody>{contract.execution.expectedOutputs.map((item, index) => <tr key={item.signalId}><td>{index === 0 ? contract.expected.signal : contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code></td><td><code>±{item.tolerance}</code></td><td>{item.unit}</td></tr>)}</tbody></table>
-            <p className="qaMatLine"><b>이번 시험 입력</b>{pickedDeriv ? tech.input : "아직 고르지 않았어요 · 가운데 카드에서 선택"}</p>
-            <p className="qaMatLine"><b>무엇과 비교하나요</b>같은 입력을 넣은 정상 기준 모델</p>
-            <details className="qaMatMore"><summary>세부 정보</summary><p className="qaMatLine"><b>관찰 신호</b>{contract.observations.map(item => item.label).join(" · ")}</p><p className="qaMatLine"><b>비교 조건</b>{numify(`${contract.comparison.timeAxis} · 허용 ±${contract.execution.comparisonTolerancePercent}%`)}</p></details></>}
-          {matTab === "log" && (step02.linked ? <><h4>STEP02 고장 재현 로그 · 도미노 역추적 결과</h4>
-            <p className="qaMatRole"><b>고장 당시 기록</b>실제 고장 때 입력·출력과 신호가 정상과 얼마나 달랐는지 확인하는 자료예요.</p>
-            <p className="qaMatLine"><b>선택한 가설</b>{meta.hypotheses.find(h => h.id === contract.hypothesisId)?.label ?? meta.hypotheses.find(h => h.id === state.hypothesis[caseId])?.label ?? contract.hypothesisLabel}</p>
-            <p className="qaMatLine"><b>최초 편차 신호</b>{step02.chain.length ? step02.chain[step02.chain.length - 1].label : "기록 없음"}</p>
-            <p className="qaMatLine"><b>의심 구간</b>{step02.section ?? "STEP02에서 구간을 고르지 않음"}</p>
-            {step02.chain.length > 0 ? <table className="qaMatTable"><thead><tr><th>핵심 신호</th><th>정상</th><th>고장</th></tr></thead><tbody>{[...step02.chain].reverse().map(item => <tr key={item.id}><td>{item.label}</td><td><code>{item.ref}</code> {item.unit}</td><td><code>{item.run}</code> {item.unit}</td></tr>)}</tbody></table> : <p className="qaMatLine"><b>핵심 신호</b>기록 없음</p>}
-            <p className="qaMatLine"><b>대표 증거</b>{step02.chain.length ? `증상 ${step02.chain[0].label} → 최초 편차 ${step02.chain[step02.chain.length - 1].label}` : "기록 없음"}</p>
-            {step02.measured.length > 3 && <details className="qaMatMore"><summary>측정한 지점 전체 ({step02.measured.length}곳)</summary><p className="qaMatLine"><b>측정 지점</b>{step02.measured.map(item => item.label).join(" · ")}</p></details>}</> : <p className="qaChipEmpty">STEP02 저장 기록이 이 세션에 없어요. 값을 임의로 채우지 않고 ‘기록 없음’으로 표시해요.</p>)}
-        </div>
-        <details className="b4Help"><summary>시험 수준과 결론 안내</summary>
-        <b>질문 수가 사건마다 다른 이유</b>
-        <p>{questionWhy} 사건마다 의심해 볼 SW 후보가 달라서 질문 수도 달라져요. 후보를 모두 판정해야 수리 조치로 넘어가요.</p>
-        <b>시험 수준과 결론</b>
-        <p>모든 단계에서 실패가 발생할 수 있고, 그 단계에서도 원인을 일부 찾아낼 수 있어요. 다만 무엇을 관찰할 수 있는지와 시험 범위에 따라 결론의 구체성이 달라져요.</p>
-        <p>제어 로직 시험은 내부 판단 오류를 확인하는 데 유용하지만 실제 부품 고장을 직접 보여주지는 못할 수 있어요. 시스템 시험은 차량 동작 이상을 보여주지만 내부 측정이 부족하면 원인을 특정하기 어려워요.</p>
-        <p>같은 시험 수준이라도 어떤 신호를 측정하는지가 중요해요.</p>
-        <ul><li><em>시험 결과</em> 통과(PASS) · 실패(FAIL) · 판정 불가(INCONCLUSIVE) — 요구사항 대비</li><li><em>가설 판단</em> 가설 지지 · 가설 반박 · 판단 보류 — 시험 결과와 별개</li></ul>
-        </details>
-      </div>}
+          </>}
         </div>
       </aside>
       <footer className="b4Dock" aria-live="polite">
-        <NutGuide id={`b4-${caseId}-${phase}-${qi}-${shown ? "r" : running ? "x" : needsInputPick ? "i" : materialsReady ? "m" : "n"}`} who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={b4Lines} ask={b4Lines[b4Lines.length - 1]} note={feedback?.text ?? ""} bad={feedback ? !feedback.ok : false} />
-        {phase === "ab" ? <section className={`qaActionDock phase-ab ${abDone ? "is-result" : running ? "is-running" : "is-ready"} ${running ? "" : "your-turn"}`} aria-label="질문과 선택지">
-              <div className={`qaQuestion ${abDone ? causeOk ? "fb-ok" : "fb-bad" : ""}`}><b>{running ? "두 모델을 동시에 실행하고 있어요" : !abDone ? "정상 모델과 원인을 없앤 모델을 같이 실행할까요?" : causeOk ? "정상 모델과 같아졌어요" : "아직 정상과 달라요"}</b></div>
-              <div className="qaChoices" role="group" aria-label="선택지">{!abDone ? <button className="vbGo qaChoice qaRunButton" disabled={running} onClick={runAb}>▶ 두 모델 동시 실행</button>
-                : causeOk ? <button className="qaChoice qaRunButton" onClick={finish}>수리 적용 · 주행 복귀 →</button>
-                  : <button className="qaChoice" onClick={() => { setPhase("report"); setCause(null); setAbDone(false); setMistakes(n => n + 1); play("pop"); }}>최종 원인 다시 고르기</button>}</div>
-            </section>
-          : phase === "report" ? <section className="qaActionDock phase-report your-turn" aria-label="최종 원인 고르기">
-              <div className="qaQuestion"><b>최종 고장 원인은 무엇일까요?</b></div>
-              <div className="qaChoices causeRow" role="group" aria-label="최종 원인">{CAUSES[caseId].map(item => <button key={item.hyp} className={`causeMini ${cause === item.hyp ? causeOk ? "right" : "wrong" : ""}`} onClick={() => pickCause(item.hyp)}><span className="causePhoto"><i className="pin" /><span className="causePhotoWin"><img src={item.img} alt="" /></span></span><span className="etTag" data-tag={HYP_TAG[item.hyp]}>{HYP_TAG[item.hyp]}</span><b>{item.name}</b><span className="causeType">{item.type}</span></button>)}</div>
-            </section>
- : phase === "lab" ? <section className={`qaActionDock phase-${phase} ${shown ? "is-result" : running ? "is-running" : "is-ready"} ${running ? "" : "your-turn"}`} aria-label="질문과 선택지">
-              {(() => {
-                const matBtn = (kind: "tc" | "log", label: string) => <button key={kind} className={`qaChoice ${seen[kind] ? "on" : ""}`} onClick={() => openMaterial(kind)}>{seen[kind] ? "✓ " : ""}{label}</button>;
-                let question = "", sub = "", choices: React.ReactNode = null;
-                if (!contractReady) { question = "시험 설계서를 불러올 수 없어요"; sub = "STEP03에서 테스트 설계서를 다시 발급하세요."; }
-                else if (phase === "lab" && running) { question = "시험을 실행하고 있어요"; sub = "정상 기준과 같은 입력이 고장 모델에도 들어갑니다."; }
-                else if (phase === "lab" && shown) {
-                  question = "이 결과를 보면, 이 가설이 원인 같나요?"; sub = "";
-                  choices = (["supported", "refuted", "open"] as Answer[]).map(a => <button key={a} className={`qaChoice ans-${a}`} onClick={() => answer(a)}><b>{ANSWER_BTN[a][0]}</b><small>{ANSWER_BTN[a][1]}</small></button>);
-                } else if (phase === "lab" && !materialsReady) {
-                  question = "시험 자료를 확인하세요"; sub = "정상 기준(STEP03)과 고장 당시 기록(STEP02)을 불러온 뒤 시험합니다.";
-                  choices = <>{step02.linked && matBtn("log", "STEP02 고장 재현 로그 열기")}{matBtn("tc", "STEP03 시험 설계서 열기")}</>;
-                } else if (phase === "lab" && needsInputPick) {
-                  question = "확인 목적에 맞는 시험 입력을 고르세요"; sub = "가운데 카드에서 시험 유형·입력 방식·관찰 신호를 비교하고 고르세요. 같은 입력이 정상 모델과 시험 대상에 들어가요.";
-                  choices = CASE_DERIVS[caseId].map(d => <button key={d.id} className="qaChoice" onClick={() => { setPickedDeriv(d.id); play("pop"); setBubble(`입력을 '${d.input}'(으)로 골랐어요. 정상 모델과 시험 대상에 같은 입력이 들어가요.`); }}><span>{INPUT_INFO[caseId][d.id]?.tag ?? numify(d.input)}</span></button>);
-                } else if (phase === "lab") {
-                  question = `${TEST_CARD[level].name}을 실행할까요?`; sub = numify(`입력 조건 · ${tech.input}`) as unknown as string;
-                  choices = <><button className="vbGo qaChoice qaRunButton" disabled={!contractReady} onClick={run}>▶ 시험 실행</button>{CASE_DERIVS[caseId].length > 1 && <button className="qaChoice" onClick={() => { setPickedDeriv(null); play("pop"); }}>입력 조건 바꾸기</button>}</>;
-                } else if (phase === "retest") {
-                  question = "수리한 SW로 같은 조건을 다시 시험할까요?"; sub = shown ? "아직 정상 범위를 벗어난 신호가 있어요. 오른쪽 표를 확인하고 다시 실행하세요." : "초기 조건과 입력은 처음 시험과 같습니다.";
-                  choices = <button className="vbGo qaChoice qaRunButton" disabled={running} onClick={run}>▶ 동일 조건 기준선 비교 실행</button>;
-                } else { question = "정상 범위를 확인했어요"; sub = "정상 범위 충족 여부 표시됨 · 아래 안내에서 수리 적용 후 주행으로 복귀하세요."; }
-                return <><div className={`qaQuestion ${feedback ? feedback.ok ? "fb-ok" : "fb-bad" : ""}`}><small>{phase === "lab" && shown ? "원인 판정" : phase === "lab" && !materialsReady ? "시험 자료 확인" : phase === "lab" && needsInputPick ? "입력 조건" : "시험"}</small><b>{question}</b><span>{sub}</span></div><div className="qaChoices" role="group" aria-label="선택지">{choices}</div></>;
-              })()}
-            </section>
-
-          : <div className="b4Hint" />}
+        <NutGuide id={`b4-${caseId}-${phase}-${qi}-${judged ? "j" : shown ? "r" : running ? "x" : needsInputPick ? "i" : "m"}`} who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={b4Lines} ask={b4Lines[b4Lines.length - 1]} note={feedback?.text ?? ""} bad={feedback ? !feedback.ok : false} />
+        <div className="b4Choices" role="group" aria-label="선택지">{dockChoices}</div>
       </footer>
+      {docOpen && <div className="rpFolderBack" role="dialog" aria-modal="true" aria-label="시험 자료" onClick={() => setDocOpen(null)}>
+        <div className="rpFolder" onClick={event => event.stopPropagation()}>
+          <div className="rpFolderTabs"><button className={`tab ${docOpen === "tc" ? "on" : ""}`} onClick={() => setDocOpen("tc")}>시험 설계서</button><button className={`tab ${docOpen === "log" ? "on" : ""}`} onClick={() => setDocOpen("log")}>고장 기록</button><button aria-label="닫기" onClick={() => setDocOpen(null)}>×</button></div>
+          <div className="rpFolderPaper b4Doc">
+            {docOpen === "tc" ? <>
+              <small>STEP03 시험 설계서 · 정상일 때 어떤 입력에서 어떤 출력이 나와야 하는지</small>
+              <h3>{contract.stimulus.label}</h3>
+              <p className="ssPurpose"><span>검증 목적</span><b>{contract.objective}</b></p>
+              <div className="b4DocCols">
+                <div><h4>정상 시나리오</h4><ul>{normalScenarioLines(caseId).map(line => <li key={line}>{line}</li>)}</ul>
+                  <h4>이번 시험 입력</h4><p>{pickedDeriv ? numify(tech.input) : "시험 입력은 시험 실행 단계에서 골라요."}</p></div>
+                <div><h4>정상일 때 기대 출력</h4><table><thead><tr><th>신호</th><th>기대값</th><th>허용 오차</th></tr></thead><tbody>{contract.execution.expectedOutputs.map((item, index) => <tr key={item.signalId}><td>{index === 0 ? contract.expected.signal : contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code> {item.unit}</td><td><code>±{item.tolerance}</code></td></tr>)}</tbody></table>
+                  <h4>관찰 신호</h4><p>{contract.observations.map(item => item.label).join(" · ")}</p></div>
+              </div></> : <>
+              <small>STEP02 고장 기록 · 실제 고장 때 신호가 정상과 얼마나 달랐는지</small>
+              <h3>{step02.linked ? "도미노 역추적 결과" : "기록 없음"}</h3>
+              {step02.linked ? <><p className="ssPurpose"><span>처음 달라진 신호</span><b>{step02.chain.length ? step02.chain[step02.chain.length - 1].label : "기록 없음"}</b></p>
+                <p className="ssPurpose"><span>의심 구간</span><b>{step02.section ?? "고르지 않음"}</b></p>
+                {step02.chain.length > 0 && <table><thead><tr><th>핵심 신호</th><th>정상</th><th>고장</th></tr></thead><tbody>{[...step02.chain].reverse().map(item => <tr key={item.id}><td>{item.label}</td><td><code>{item.ref}</code> {item.unit}</td><td><code>{item.run}</code> {item.unit}</td></tr>)}</tbody></table>}</>
+                : <p>이 세션에는 도미노 단계 기록이 없어요. 값을 임의로 채우지 않고 기록 없음으로 보여요.</p>}</>}
+          </div>
+        </div>
+      </div>}
       <div className="b4NextCell"><button className="qaFinishBtn stageProgressAction" disabled={!canApply} onClick={finish}>{canApply ? "수리 적용 · 주행 복귀 →" : "다음 →"}</button></div>
     </div>
     {replayOpen && <ReplayConfirm onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); resetStage(); }} />}
