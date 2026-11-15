@@ -46,9 +46,11 @@ const PLACE: Record<string, Place> = {
   park_position_sensor: { p: [-1.52, 0.44, 0.3] },
   park_ecu: { p: [-1.38, 0.58, 0.42] },
   // brakes
-  brake_ecu: { p: [-1.92, 0.78, 0.46] },
-  hydraulic_modulator: { p: [-1.92, 0.64, 0.46] },
-  brake_line: { p: [-1.86, 0.62, 0.52], r: [0, -0.4, 0] },
+  // Brake ECU and hydraulic modulator are side-by-side in the front bay;
+  // keeping them on one vertical stack made the two housings visually merge.
+  brake_ecu: { p: [-2.08, 0.82, 0.42], r: [0, H, 0], s: .92 },
+  hydraulic_modulator: { p: [-1.76, 0.58, 0.42], r: [0, H, 0], s: .86 },
+  brake_line: { p: [-1.76, 0.52, 0.58], r: [0, -0.4, 0], s: .72 },
   brake_caliper: { p: [-1.67, 0.33, 0.7], r: [0, -H, 0] },
   wheel_speed_sensor: { p: [-1.6, 0.26, 0.66], r: [0, -H, 0] },
   // steering
@@ -68,11 +70,11 @@ const PLACE: Record<string, Place> = {
   dcdc_converter: { p: [-1.32, 0.58, 0.42] },
   lv_battery: { p: [-2.0, 0.55, -0.48] },
   // thermal
-  thermal_ecu: { p: [-2.02, 0.66, -0.36] },
-  cooling_pump: { p: [-1.92, 0.34, -0.42] },
-  coolant_valve: { p: [-1.86, 0.44, -0.18] },
-  cooling_fan: { p: [-2.12, 0.5, 0.02], r: [0, H, 0] },
-  radiator: { p: [-2.22, 0.5, 0.0], r: [0, H, 0] },
+  thermal_ecu: { p: [-1.72, 0.82, -0.42], r: [0, H, 0], s: .88 },
+  cooling_pump: { p: [-1.45, 0.34, -0.42], s: .82 },
+  coolant_valve: { p: [-1.18, 0.44, -0.18], r: [0, H, 0], s: .72 },
+  cooling_fan: { p: [-2.18, 0.5, 0.02], r: [0, H, 0], s: .86 },
+  radiator: { p: [-2.42, 0.5, 0.0], r: [0, H, 0], s: .9 },
   // suspension (front-left corner unless noted)
   coil_spring: { p: [-1.67, 0.52, 0.66] },
   damper: { p: [-1.67, 0.46, 0.62] },
@@ -235,7 +237,7 @@ function ContextWheel({ position, active }: { position: V3; active: boolean }) {
 }
 
 /** Faint car around the parts: body outline, floor and four tyres at the real wheel positions. */
-function CarContext({ strong, wheelActive = false }: { strong: boolean; wheelActive?: boolean }) {
+function CarContext({ strong, wheelActive = false, showBody = true, showWheels = true }: { strong: boolean; wheelActive?: boolean; showBody?: boolean; showWheels?: boolean }) {
   const body = useMemo(() => {
     const s = new THREE.Shape();
     // side profile in metres (front = -x): bumper, hood, windshield, roof, rear glass, trunk
@@ -245,9 +247,9 @@ function CarContext({ strong, wheelActive = false }: { strong: boolean; wheelAct
     return s;
   }, []);
   return <group>
-    <mesh position={[0, 0, -.9 * U]}><extrudeGeometry args={[body, { depth: 1.8 * U, bevelEnabled: false }]} /><meshStandardMaterial color="#d94e45" transparent opacity={strong ? .16 : .05} depthWrite={false} side={THREE.DoubleSide} /></mesh>
+    {showBody && <mesh position={[0, 0, -.9 * U]}><extrudeGeometry args={[body, { depth: 1.8 * U, bevelEnabled: false }]} /><meshStandardMaterial color="#d94e45" transparent opacity={strong ? .16 : .05} depthWrite={false} side={THREE.DoubleSide} /></mesh>}
     <mesh position={[0, .05, 0]}><boxGeometry args={[4.4 * U, .02, 1.6 * U]} /><meshStandardMaterial color="#8d9a95" transparent opacity={.25} depthWrite={false} /></mesh>
-    {[-1.67, 1.67].flatMap(x => [-.78, .78].map(z => <ContextWheel key={`${x}${z}`} position={[x * U, .33 * U, z * U]} active={wheelActive} />))}
+    {showWheels && [-1.67, 1.67].flatMap(x => [-.78, .78].map(z => <ContextWheel key={`${x}${z}`} position={[x * U, .33 * U, z * U]} active={wheelActive} />))}
   </group>;
 }
 
@@ -271,10 +273,12 @@ export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell, 
   const arrived = (index: number) => inputOn && energizedStep >= index;
   const signalAt = (index: number) => signals[Math.min(signals.length - 1, Math.round(index * (signals.length - 1) / Math.max(1, getFeatureLayer(domain, feature, 1).length - 1)))];
   const wheelActive = domain === "drive" && [0, 2, 3].includes(feature) && inputOn && energizedStep >= getFeatureLayer(domain, feature, 1).length - 1;
+  const hasWheel = nodes.some(node => node.id === "wheel");
+  const hasBody = nodes.some(node => node.id === "body_shell");
   return <group position={centre} rotation={[0, -.18, 0]}>
     {/* drei Html drops the first label after a canvas remount: a hidden one goes first */}
     <Html position={[0, -40, 0]}><span /></Html>
-    <CarContext strong={shell} wheelActive={wheelActive} />
+    <CarContext strong={shell} wheelActive={wheelActive} showBody={!hasBody} showWheels={!hasWheel} />
     {drivePower && <>
       <SupportPart node={drivePower.battery} active={inputOn} />
       <SupportPart node={drivePower.contactor} active={inputOn} />
