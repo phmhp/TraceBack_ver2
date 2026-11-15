@@ -415,7 +415,9 @@ export function WantedEnding({ state, send }: { state: Campaign; send: React.Dis
       <CaseBrief state={state} escaped />
       <div className="cfActions">
         <button className="cfBtn" onClick={() => send({ type: "TITLE" })}>메인 메뉴</button>
-        <button className="cfBtn cfPrimary" onClick={() => send({ type: "NEW_GAME" })}>새 사건 시작 →</button>
+        {state.levelFinish
+          ? <button className="cfBtn cfPrimary" onClick={() => send({ type: "NEXT_LEVEL" })}>다음 레벨 →</button>
+          : <button className="cfBtn cfPrimary" onClick={() => send({ type: "NEW_GAME" })}>새 사건 시작 →</button>}
       </div>
     </div>
   </div>;

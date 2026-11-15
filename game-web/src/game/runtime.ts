@@ -33,6 +33,8 @@ export type Campaign = {
   previousScene?: Scene;
   forwardScene?: Scene;
   caseId: CaseId;
+  /** after a repair: a clean race to the pirate ship, then this level's ending ("다음 레벨"). Cleared when the next level is chosen. */
+  levelFinish?: boolean;
   completedCases: CaseId[];
   /** stars earned per cleared level (1~3): cleared / correct root cause / no hints */
   levelStars: Partial<Record<CaseId, number>>;
@@ -82,6 +84,7 @@ export const initialCampaign = (): Campaign => ({
   raceElapsedSeconds: 0,
   lastRepairElapsedSeconds: 0,
   lastRepairDistance: 0,
+  levelFinish: false,
   policeGapMeters: 185,
   gapJudgements: {},
   hintClaims: {},
@@ -244,18 +247,20 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       const done = (id: CaseId) => s.completedCases.includes(id);
       if (level === 1 && !done("propulsion"))
         return enter({ ...s, caseId: "propulsion", checkpoint: "city_start", raceDistance: 0, raceElapsedSeconds: 0, lastRepairElapsedSeconds: 0, lastRepairDistance: 0, policeGapMeters: 185 }, "DRIVE_BRIEFING");
-      if (level === 2 && done("propulsion") && !done("thermal")) return enter(s, "CHASE_RESUME");
+      // every level starts its own race from 0 m (2026-11-15: each level ends with the pirate ship)
+      const fresh = { levelFinish: false, raceDistance: 0, raceElapsedSeconds: 0, lastRepairElapsedSeconds: 0, lastRepairDistance: 0, policeGapMeters: 185 };
+      if (level === 2 && done("propulsion") && !done("thermal")) return enter({ ...s, ...fresh, caseId: "propulsion" }, "CHASE_RESUME"); // THERMAL_FAULT runs while the repaired case is propulsion
       if (level === 3 && done("thermal") && !done("brake"))
-        return enter(unlockInvestigation({ ...s, caseId: "brake", optionalBrake: "accepted" }, "board"), "BOARD");
+        return enter(unlockInvestigation({ ...s, ...fresh, caseId: "brake", optionalBrake: "accepted" }, "board"), "BOARD");
       // level 4 (N01): a race first; the fault shows up when the player lifts the pedal at speed (REGEN_FAULT), then FAULT_CUE → BOARD
       if (level === 4 && done("thermal") && !done("regen"))
-        return enter({ ...s, caseId: "regen", checkpoint: "regen_start" }, "CHASE_RESUME");
+        return enter({ ...s, ...fresh, caseId: "regen", checkpoint: "regen_start" }, "CHASE_RESUME");
       // level 5 (C01): the race starts with failed start attempts (READY_FAULT, prestart), then FAULT_CUE → BOARD
       if (level === 5 && done("thermal") && !done("ready"))
-        return enter({ ...s, caseId: "ready", checkpoint: "ready_start" }, "CHASE_RESUME");
+        return enter({ ...s, ...fresh, caseId: "ready", checkpoint: "ready_start" }, "CHASE_RESUME");
       // level 6 (C04): a race first; launching right after a shift under bus load triggers the fallback fault (GEAR_FAULT), then FAULT_CUE → BOARD
       if (level === 6 && done("thermal") && !done("gear"))
-        return enter({ ...s, caseId: "gear", checkpoint: "gear_start" }, "CHASE_RESUME");
+        return enter({ ...s, ...fresh, caseId: "gear", checkpoint: "gear_start" }, "CHASE_RESUME");
       if (level === 7 && done("propulsion") && done("thermal"))
         return enter({ ...s, optionalBrake: s.optionalBrake === "accepted" ? "accepted" : "skipped" }, "SHIP_ESCAPE");
       return reject(s, "LEVEL_LOCKED");
@@ -365,8 +370,11 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       if (s.caseId === "propulsion") { s.policeGapMeters = Math.max(105, s.policeGapMeters); s.checkpoint = "harbor_entry"; }
       else if (s.caseId === "thermal") { s.policeGapMeters = Math.max(115, s.policeGapMeters); s.checkpoint = "dock_approach"; }
       else s.policeGapMeters = Math.max(65, s.policeGapMeters);
-      return enter(s, "LEVEL_SELECT");
+      // the repaired car runs on to the pirate ship; its ending closes the level (NEXT_LEVEL returns to the level screen)
+      return enter({ ...s, levelFinish: true }, "CHASE_RESUME");
     }
+    case "NEXT_LEVEL":
+      return enter({ ...s, levelFinish: false }, "LEVEL_SELECT");
     case "OPTIONAL_PROMPT":
       return enter({ ...s, optionalBrake: "skipped" }, "SHIP_ESCAPE");
     case "START_FINAL_ESCAPE":

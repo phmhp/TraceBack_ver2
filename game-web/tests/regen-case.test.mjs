@@ -27,8 +27,11 @@ test("N01 level: bonus level 4 after thermal, finale is level 5", () => {
 
 test("N01 repair returns to the level screen with stars and keeps the other levels", () => {
   const s = { ...initialCampaign(), scene: "REPAIR", caseId: "regen", completedCases: ["propulsion", "thermal"], hints: 0, gapJudgements: { regen: "correct" } };
-  const done = dispatch(s, { type: "APPLY_REPAIR" });
-  assert.equal(done.scene, "LEVEL_SELECT");
+  const repaired = dispatch(s, { type: "APPLY_REPAIR" });
+  assert.equal(repaired.scene, "CHASE_RESUME", "after the repair the level runs on to the pirate ship");
+  assert.equal(repaired.levelFinish, true);
+  const done = dispatch({ ...repaired, scene: "ENDING" }, { type: "NEXT_LEVEL" });
+  assert.equal(done.scene, "LEVEL_SELECT"); assert.equal(done.levelFinish, false);
   assert.ok(done.completedCases.includes("regen"));
   assert.equal(done.levelStars.regen, 3);
 });

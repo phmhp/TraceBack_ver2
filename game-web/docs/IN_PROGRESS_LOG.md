@@ -16,10 +16,14 @@
 - 남음 gear: (1) 레이스 화면은 로드·안내 카드 확인함(실제 주행 트리거는 단위 테스트로 검증, 브라우저 rAF 정지로 플레이 확인 못 함) (2) 신호 경로 UI는 1차 구현 완료(`ref.ui: "path"` → 노드 박스 + CAN 버스 막대). 더 다듬으려면 `puzzle-v3.css`의 `.pathMode`/`.rpBus` 수정 (3) 사용자 이미지 대기: 변속 레버·게이트웨이 부품 사진(임시로 accel_pedal/can_harness/diagnostic_port 썸네일 사용), 증거 3장(`motor_reverse_log`, `dtc_gear_timeout`, `bus_load_scope`).
 - 기억할 점: 벤치 QA 기본 입력(`qaDeriv`)은 gear만 항상 `reqa`(버스 부하 85 %). 3D 벤치 부품 id는 `gear_selector`(포트 gear_out → VCU gear_in).
 
+## 레벨별 엔딩 (완료, 단위 테스트 통과, 브라우저는 허브만 확인)
+- `runtime.ts`: `levelFinish`, `START_LEVEL`에서 거리 0 초기화, `APPLY_REPAIR` → `CHASE_RESUME`(levelFinish), `NEXT_LEVEL`. `experiences.tsx`: `finishRun`으로 고장·증상·구간 카드 끄고 1700 m에서 `START_FINAL_ESCAPE`. `CaseFileEnding`: levelFinish면 "다음 레벨 →". `LevelSelect`: finale 노드 숨김, 6노드.
+- 확인 못 한 것: 실제 주행(브라우저 rAF 정지)으로 수리 → 1700 m → 엔딩 → 다음 레벨 전체 플레이. 사용자가 한 번 플레이해 확인 필요. 특히 레벨 2에서 열관리 고장(1300 m)까지의 주행 시간.
+
 ## 다음 할 일 (순서)
 1. gear 사건 표 채우기(STEP02/03/04, 시나리오, 계약, 엔딩, 오픈북).
 2. 신호 경로 선택 퍼즐 UI(`RefPuzzle.tsx`), 시트 7절.
 3. 네트워크 수치 모델(`simModel.ts`)과 레이스 고장(`faultSchedule.ts` `launch` 시점 + 변속 경과 시간).
 4. 테스트(`tests/ready-case.test.mjs` 참고), 1600x900 검증, 문서 갱신.
-5. 레벨별 해적선 엔딩 흐름(`docs/PLAYER_FLOW_AUDIT_2026-11-15.md` 4절).
+5. (완료) 레벨별 해적선 엔딩 흐름.
 6. 상태 전이도 채우기 유형 사건·도메인 수준 사건(시트 작성부터).

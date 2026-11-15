@@ -68,3 +68,16 @@ test("C04 data: scenario, board and ending are present and the first deviation i
   assert.ok(Object.entries(times).every(([id, t]) => id === "vcu_gear" || t > times.vcu_gear));
   assert.equal((board.match(/ok: true/g) ?? []).length, 1);
 });
+
+test("per-level ending: every level starts at 0 m, a repair leads to a clean race, the ending offers the next level", () => {
+  for (const [level, done] of [[2, ["propulsion"]], [4, ["propulsion", "thermal"]], [5, ["propulsion", "thermal"]], [6, ["propulsion", "thermal"]]]) {
+    const started = dispatch({ ...at(done), raceDistance: 900, raceElapsedSeconds: 70, levelFinish: true }, { type: "START_LEVEL", level });
+    assert.equal(started.raceDistance, 0, `level ${level} starts from 0 m`);
+    assert.equal(started.levelFinish, false);
+  }
+  const repaired = dispatch({ ...initialCampaign(), scene: "REPAIR", caseId: "gear", completedCases: ["propulsion", "thermal"] }, { type: "APPLY_REPAIR" });
+  assert.equal(repaired.scene, "CHASE_RESUME"); assert.equal(repaired.levelFinish, true);
+  const ship = dispatch({ ...repaired, raceDistance: 1700 }, { type: "START_FINAL_ESCAPE" });
+  assert.equal(ship.scene, "SHIP_ESCAPE");
+  assert.equal(dispatch({ ...ship, scene: "ENDING" }, { type: "NEXT_LEVEL" }).scene, "LEVEL_SELECT");
+});

@@ -1688,7 +1688,8 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const rearState = useRef<RearState>(newRearState());
   const lastGearAt = useRef(-Infinity);
   // C01: every start attempt fails (READY_FAULT); after `startFails` attempts the fault cue fires
-  const startFails = levelFaults(mode, state.caseId).reduce((most, spec) => Math.max(most, spec.effect.startFails ?? 0), 0);
+  const finishRun = state.levelFinish === true; // repaired: a clean run to the pirate ship, no more faults
+  const startFails = finishRun ? 0 : levelFaults(mode, state.caseId).reduce((most, spec) => Math.max(most, spec.effect.startFails ?? 0), 0);
   const startFailsRef = useRef(startFails);
   const [startAttempts, setStartAttempts] = useState(0);
   const startAttemptsRef = useRef(0);
@@ -1793,7 +1794,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         const braking = k.has("s") || k.has("arrowdown");
         // fault schedule model (src/game/faultSchedule.ts): the level's specs plus the dev demo spec, merged into one effect for this frame
         let fx: FaultEffect = {};
-        const faultSpecs = FAULT_DEMO ? [...levelFaults(mode, state.caseId), FAULT_DEMO] : levelFaults(mode, state.caseId);
+        const faultSpecs = finishRun ? [] : FAULT_DEMO ? [...levelFaults(mode, state.caseId), FAULT_DEMO] : levelFaults(mode, state.caseId);
         if (faultSpecs.length) {
           const nowS = now / 1000;
           const faultCtx: FaultContext = { speedKph: previous.speed, pedal: allowed && gear === "D" && (k.has("w") || k.has("arrowup")) ? 1 : 0, braking, gear, steerAbs: Math.abs(previous.steer) / .43, heat: previous.heat, distanceM: previous.distance, elapsedS: previous.elapsed, sinceEvent: { collision: nowS - lastHitAt.current, gearChange: nowS - lastGearAt.current }, zones: zonesAt(previous.distance), ready: driveMission !== "restart" };
@@ -1980,6 +1981,9 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     if (fired.current) return;
     if (sim.gap <= 0) {
       fired.current = true; send({ type: "CAUGHT" });
+    } else if (finishRun) {
+      // repaired level: keep racing to the end of the course, then the pirate ship (SHIP_ESCAPE) and this level's ending
+      if (mode === "resume" && sim.distance >= FINAL_ESCAPE_M) { fired.current = true; send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "START_FINAL_ESCAPE" }); }
     } else if (mode === "normal" && (zoneThrottle.current >= 1.8 || sim.distance >= OVERTAKE_ZONE[1])) {
       fired.current = true; send({ type: "FAULT_CUE", caseId: "propulsion", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
     } else if (mode === "resume" && state.caseId === "propulsion" && (sim.heat >= 84 || sim.distance >= CLIMB_ZONE[1])) {
@@ -2017,7 +2021,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     if (sim.gap > 0 && eta < 40) return { kind: "chase", title: "경찰 접근", text: `이 속도로는 약 ${Math.max(1, Math.round(eta))}초 뒤 따라잡혀요 · ${sim.speed < 0 ? "후진 중" : sim.speed < 4 ? "다시 출발하세요" : "속도를 올리세요"}` };
     return null;
   })();
-  const symptom = (mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80) || (mode === "resume" && state.caseId === "regen" && zoneThrottle.current > .8) || (mode === "resume" && state.caseId === "gear" && gearHitCount >= 1) || (startFails > 0 && startAttempts >= 1);
+  const symptom = !finishRun && ((mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80) || (mode === "resume" && state.caseId === "regen" && zoneThrottle.current > .8) || (mode === "resume" && state.caseId === "gear" && gearHitCount >= 1) || (startFails > 0 && startAttempts >= 1));
   // Regression drive after a repair: the same condition that exposed the fault is measured on the live race model.
   // propulsion: full pedal for 1.5 s → measured acceleration vs this model's healthy value (46·min(1, 70/v) km/h/s; the fault scaled it by 0.45)
   // thermal: sustained throttle for 2 s → coolant temperature and output limit (the fault had ≥ 84 °C and a 55 km/h limit)
@@ -2045,7 +2049,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     }
   }, [sim.speed]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!regression) return; play(regression.ok ? "correct" : "error"); const timer = window.setTimeout(() => setRegression(previous => previous && { ...previous, title: "" }), 7000); return () => clearTimeout(timer); }, [regression?.text]); // eslint-disable-line react-hooks/exhaustive-deps
-  const zone = mode === "normal" && sim.distance >= OVERTAKE_ZONE[0] - 40 && sim.distance < OVERTAKE_ZONE[1]
+  const zone = finishRun ? null : mode === "normal" && sim.distance >= OVERTAKE_ZONE[0] - 40 && sim.distance < OVERTAKE_ZONE[1]
     ? { icon: "finish" as IconName, title: "추월 구간", text: "가속(↑)을 끝까지 밟아 추격차와 거리를 벌리세요" }
     : mode === "resume" && state.caseId === "propulsion" && sim.distance >= CLIMB_ZONE[0] - 40 && sim.distance < CLIMB_ZONE[1]
       ? { icon: "road" as IconName, title: "장거리 고속 구간", text: "가속을 유지해 속도를 지키세요" }
