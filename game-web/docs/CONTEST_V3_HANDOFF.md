@@ -121,3 +121,9 @@ WP1 잔여(동적 상태 잘림 점검·STEP01 H1) → WP2 DEV 메뉴 → WP3 ST
 - 2026-11-14 C01(`ready`, 시동 불가·프리차지 타임아웃) 구현 완료: 5레벨(선택), 탈출은 6레벨. 레이스 `READY_FAULT`(R 키 3회 실패 → 컷신), STEP02~04·엔딩·정비소 노트. 테스트 135개. 다음 후보: C05 → C08 → C12 시트부터(한 번에 하나).
 - 2026-11-14 셋째 사건 시트 작성: `docs/fault-cases/c05_lowspeed_blend.md`(C05, 회생·마찰 전환 구간 불일치, 감속·저속·영구, SW 통합에서 판정, 진단 미탐). 승인 전 코드 없음. 구현 때 필요한 신규 요소: 약한/강한 제동 입력 구분, `FaultEffect` 구간 내 제동 배율, `simModel.blend`. 다음 후보 시트: C08, C12.
 - 2026-11-15 사용자 검토 피드백 대응: (고침) 정비소 전체보기 글자 넘침, 레벨 허브 노드 움직임, 폴라로이드 확대 비율·Enter/Esc. (문서) `PLAYER_FLOW_AUDIT_2026-11-15.md`(단계별 세부 구성+캡처 20장 `docs/captures-2026-11-15/`, 문제 원인, 단순화·실험대·레벨 엔딩 제안, 규칙 R18~R23 제안, 용어 사전), `RACE_VARIATION_MAP.md`(주행 요소 활성 조건·고장 연결), `fault-cases/c04_gear_fallback.md`(시스템 수준 신호 경로 선택 퍼즐용 사건 시트). **제안은 모두 승인 전이며 코드 변경 없음.** 다음 에이전트는 사용자 승인 뒤 감사 문서 7절 순서로 구현(도미노 재설계 먼저, 구현 전 화면 시안 제시).
+
+
+## 2026-11-15 인수인계 갱신
+- 가장 먼저 `docs/IN_PROGRESS_LOG.md`와 `docs/USER_TODO.md`를 읽는다. 미리보기는 `.claude/launch.json`의 `game-web-v3`(포트 5183), 검증은 1600x900.
+- 사건 추가 방법: `CaseId`에 추가 → `npx tsc --noEmit`이 알려 주는 `Record<CaseId,…>` 표를 채우고, tsc가 못 잡는 `EeTrace.tsx`의 `Record<string,…>` 표(LAMP, QUOTE, TRACE, OBSERVED, REPLAY, SUBSYS)와 `main.tsx`의 QA `case` 허용 목록, `DevMenu`의 CASES도 채운다. 예시 커밋: C04 `gear`.
+- 레벨 흐름: 모든 레벨은 0 m에서 시작, 수리 후 `levelFinish` 주행 → 해적선 → 엔딩 → `NEXT_LEVEL`.
