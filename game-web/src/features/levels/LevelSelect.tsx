@@ -29,7 +29,7 @@ export function LevelSelect({ state, send }: { state: Campaign; send: Send }) {
   const say = status === "locked" ? lockedReason(def) : status === "cleared" ? "이미 클리어한 레벨이에요. 다음 레벨을 골라 보세요." : def.kind === "finale" ? "두 필수 레벨을 마쳤어요. 이제 부두로 달려요." : def.kind === "bonus" ? "선택 레벨이에요. 건너뛰고 탈출해도 돼요." : "준비가 되면 시작을 눌러요. 정비소에서 본 내용이 도움이 돼요.";
   return <div className="levelSelect">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="레벨 선택" title="추격 코스" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="레벨 선택" title="추격 코스" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <main className="lvWork">
       <MissionBar action="도전할 레벨을 고르세요" question="이번에는 어떤 고장이 기다릴까요?" progress={{ now: cleared, total: LEVELS.filter(item => item.kind === "required").length + 0 || 1 }} />
       <section className="lvMap" aria-label="레벨 지도">

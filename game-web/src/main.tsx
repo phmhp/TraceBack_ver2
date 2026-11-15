@@ -61,6 +61,7 @@ import "./p4-fix-1109.css";
 import "./ui/stepRoadmap.css";
 import "./features/garage/pedal-lab.css";
 import "./features/garage/garage-v3.css";
+import "./ui/common-layout.css";
 const DevMenu = import.meta.env.DEV ? lazy(() => import("./ui/dev/DevMenu").then(m => ({ default: m.DevMenu }))) : null;
 import { BustedEnding, WantedEnding } from "./ui/CaseFileEnding";
 import { SoundToggle } from "./ui/ComicBurst";

@@ -8,7 +8,7 @@ import { StageIntro, showVerdict } from "../../ui/Verdict";
 import { SAMPLES, span, assessContractRun, divergeIndex, firstMismatch, simulate, type ContractRunAssessment, type Lv, type Series, type Tech } from "./simModel";
 import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
 import { useReportSubStep } from "../../ui/stepRoadmap";
-import { Directive } from "../../ui/Directive";
+import { NutGuide } from "../../ui/NutGuide";
 import { HYP_TAG } from "../../game/scenarios";
 import { useDevActions } from "../../ui/dev/devActions";
 import { play } from "../../ui/sfx";
@@ -2294,7 +2294,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         </div>
       </aside>
       <footer className="b4Dock" aria-live="polite">
-        <Directive who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={b4Lines} note={feedback?.text ?? ""} bad={feedback ? !feedback.ok : false} />
+        <NutGuide id={`b4-${caseId}-${phase}-${qi}-${shown ? "r" : running ? "x" : needsInputPick ? "i" : materialsReady ? "m" : "n"}`} who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={b4Lines} ask={b4Lines[b4Lines.length - 1]} note={feedback?.text ?? ""} bad={feedback ? !feedback.ok : false} />
         {phase === "ab" ? <section className={`qaActionDock phase-ab ${abDone ? "is-result" : running ? "is-running" : "is-ready"} ${running ? "" : "your-turn"}`} aria-label="질문과 선택지">
               <div className={`qaQuestion ${abDone ? causeOk ? "fb-ok" : "fb-bad" : ""}`}><b>{running ? "두 모델을 동시에 실행하고 있어요" : !abDone ? "정상 모델과 원인을 없앤 모델을 같이 실행할까요?" : causeOk ? "정상 모델과 같아졌어요" : "아직 정상과 달라요"}</b></div>
               <div className="qaChoices" role="group" aria-label="선택지">{!abDone ? <button className="vbGo qaChoice qaRunButton" disabled={running} onClick={runAb}>▶ 두 모델 동시 실행</button>

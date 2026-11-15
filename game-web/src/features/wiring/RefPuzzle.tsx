@@ -24,7 +24,7 @@ import { buildVerificationContract, contractSignalLabel, contractStorageKey, typ
 import { ReplayConfirm } from "../../ui/ReplayConfirm";
 import { MissionBar } from "../../ui/MissionBar";
 import { OpenBookButton, OpenBookModal } from "../../ui/OpenBook";
-import { Directive } from "../../ui/Directive";
+import { NutGuide } from "../../ui/NutGuide";
 import "./puzzle-v3.css";
 
 type Send = React.Dispatch<any>;
@@ -866,7 +866,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
         </div>}
       </aside>
       <footer className="rpFoot">
-        <Directive who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={dirLines} note={numify(msg) as unknown as string} />
+        <NutGuide id={`rp-${caseId}-${dirStep}`} who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={dirLines} ask={dirLines[dirLines.length - 1]} note={numify(msg) as unknown as string} />
         <div className="rpDockRow">
           {connected && spec.input && !sheetStep && <label className="rpSlider"><small>예시 입력 · {spec.input.label}</small><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label>}
           {confirmed ? <button className="rpExpect" onClick={() => setSheetOpen(true)}><small><Icon name="clipboard" /> 시험 설계서 보기</small><b>{spec.expect}</b></button>

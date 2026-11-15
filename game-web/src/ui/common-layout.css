@@ -1,0 +1,44 @@
+/* ===== 2026-11-15 common step layout (STEP02 domino · STEP03 puzzle · STEP04 bench) =====
+   mission bar 56 / stage 1fr / dock (taller) ; right column = info panel (tall) + compact next button.
+   The dock = guide block (one short question + "푸는 방법 다시 보기") on the left, the choices on the right. */
+:root { --dock-h: 224px; --next-h: 48px; --btn-h: 48px; }
+html body .refPuzzle.v2 .rp3Work { --dock-h: 176px; }
+
+html body .eeTrace .dtLayout.etLayout,
+html body .refPuzzle.v2 .rp3Work,
+html body .vbBench.bench4.qa2 .b4Work {
+  grid-template-columns: minmax(0, 1fr) 360px !important;
+  grid-template-rows: 56px minmax(0, 1fr) var(--dock-h) !important;
+  gap: 8px !important;
+}
+html body .eeTrace .etLayout > .etEvidence,
+html body .refPuzzle.v2 .rp3Work > .rpPanel,
+html body .vbBench.bench4.qa2 .b4Work > .b4Panel {
+  grid-column: 2 !important; grid-row: 2 / 4 !important; margin-bottom: calc(var(--next-h) + 8px) !important; min-height: 0;
+}
+html body .eeTrace .etLayout > .etNextCell,
+html body .refPuzzle.v2 .rp3Work > .rpNextCell,
+html body .vbBench.bench4.qa2 .b4Work > .b4NextCell {
+  grid-column: 2 !important; grid-row: 3 !important; align-self: end !important; height: var(--next-h) !important; min-height: 0 !important; display: flex !important;
+}
+html body .eeTrace .etNextCell button,
+html body .refPuzzle.v2 .rpNextCell button,
+html body .vbBench.bench4.qa2 .b4NextCell button {
+  flex: 1 !important; width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 0 16px !important;
+  font: 800 16px/1 Pretendard, system-ui !important; white-space: nowrap; border-radius: 14px !important;
+}
+html body .eeTrace .etLayout > .etMugs,
+html body .refPuzzle.v2 .rp3Work > .rpFoot,
+html body .vbBench.bench4.qa2 .b4Work > .b4Dock {
+  grid-column: 1 !important; grid-row: 3 !important; display: flex !important; flex-direction: row !important; align-items: stretch !important; gap: 14px !important;
+  padding: 12px 14px !important; min-height: 0; overflow: hidden !important; box-sizing: border-box;
+}
+html body .eeTrace .etMugs > :not(.nutGuide),
+html body .refPuzzle.v2 .rpFoot > :not(.nutGuide),
+html body .vbBench.bench4.qa2 .b4Dock > :not(.nutGuide) { flex: 1 1 0; min-width: 0; min-height: 0; }
+/* one button language: same height, padding and radius for every choice button in a step dock */
+html body .eeTrace .etMugs button:not(.nutAgain):not(.nutOk),
+html body .refPuzzle.v2 .rpFoot button:not(.nutAgain):not(.nutOk),
+html body .vbBench.bench4.qa2 .b4Dock button:not(.nutAgain):not(.nutOk) {
+  min-height: var(--btn-h); padding: 8px 18px; border-radius: 14px; font: 700 15px/1.25 Pretendard, system-ui; box-sizing: border-box;
+}

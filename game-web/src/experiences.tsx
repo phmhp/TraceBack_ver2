@@ -948,7 +948,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   } });
   return <div className="garageV2">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
-    <GameHeader chapter="정비소" title="차량 도메인 동작 원리" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="정비소" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <StageFolderSubtitle step="garage" className="garageStageFolder" action="차량 기능이 어떤 부품과 신호를 거쳐 동작하는지 확인하세요." detail={<>학습 대상: {chosen ? content.label : "전체 도메인"} <i>|</i> Vehicle/System · E/E · Control SW</>} />
     <StageIntro id="garage" stage="STEP 01" title="정비소" goal="차량 기능이 부품·신호·SW를 거쳐 어떻게 동작하는지 이해하기" steps={[
       { icon: "car", text: "위 탭에서 도메인, 오른쪽에서 기능을 고르기" },
@@ -1185,7 +1185,7 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
   const heistCaptions = ["폭스의 저택 진입", "경보 패널 우회", "금고 발견", "빼앗긴 상금 회수", "경보 발생", "가방 들고 탈출", "직접 만든 차에 탑승", "시동 완료 · 출발 준비"];
   return <div className="driveBriefing heistIntro">
     <SceneBackdrop image={`${A}stitch23/prologue-night-drive.png`} position="center" shade="deep" />
-    <GameHeader chapter="도주 준비" title="부잣집 탈출 작전" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="도주 준비" title="부잣집 탈출 작전" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <main>
       <section className="heistStage">
         <Canvas shadows camera={{position:[0,3.15,9.2],fov:45}} dpr={[1,1.35]} gl={{antialias:true,powerPreference:"high-performance"}}><HeistCutsceneScene onBeat={setHeistFrame} onDone={() => setReady(true)} /></Canvas>
@@ -2098,7 +2098,7 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
       <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button></div>
       <div className="raceTripHud"><span><small>주행시간</small><b>{formatRaceTime(sim.elapsed)}</b></span></div>
     </div>
-    <PursuitRouteBar distance={sim.distance} gap={sim.gap} />
+    {sim.elapsed >= 12 && <PursuitRouteBar distance={sim.distance} gap={sim.gap} />}
     <div className="cockpitGauge cluster1109" aria-label="계기판"><small>속도</small><b>{Math.round(sim.speed)}</b><span>km/h</span><div><i style={{ width: `${Math.min(100, sim.speed)}%` }} /></div>
       <p className="clusterRow"><span className="prnd">{(["P", "R", "N", "D"] as const).map(g => <i key={g} className={gear === g ? "on" : ""}>{g}</i>)}</span><em className={driveMission === "restart" ? "readyOff" : "readyOn"}>{driveMission === "restart" ? "READY 꺼짐" : "READY"}</em></p>
       <p className="clusterRow sub"><span>회생 {regen}단계</span>{state.caseId === "thermal" && <span>냉각수 {Math.round(sim.heat)}°C</span>}{symptom && <span className="warn">{mode === "normal" ? "출력 저하" : "출력 제한"}</span>}</p></div>

@@ -10,7 +10,7 @@ import { numify } from "../../ui/numify";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Campaign } from "../../game/runtime";
 import { HYP_TAG, SCENARIOS, SCENARIO_META } from "../../game/scenarios";
-import { Directive } from "../../ui/Directive";
+import { NutGuide } from "../../ui/NutGuide";
 import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
 import { useReportSubStep } from "../../ui/stepRoadmap";
 import { MissionBar } from "../../ui/MissionBar";
@@ -344,7 +344,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
 
       {/* bottom 150px: spoken direction on the left, the one thing to do on the right (all choices are made here) */}
       <section className="etMugs">
-        <Directive who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={directiveLines} note={bubble} bad={noteBad} />
+        <NutGuide id={`ee-${caseId}-${phase}-${phase === "trace" ? "t" : phase === "hyp" ? (sectionDone ? (carryPool.length > 1 && !carryId ? "carry" : "hyp") : "section") : "s"}`} who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={directiveLines} ask={directiveLines[directiveLines.length - 1]} note={bubble} bad={noteBad} />
         {phase === "symptom" ? <div className="etDock etDockSymptom"><div className="etCards">{symptomChoices.map((d, index) => <button key={d.id} className={`etCard ${shake === d.id ? "shake" : ""}`} onClick={() => pickOutput(d.id)}>
             <kbd>{index + 1}</kbd><span className="etCardPol"><i className="pin" /><span className="polPhoto"><Photo src={d.img} /></span></span>
             <span className="etCardText"><b>{d.label}</b><span>{numify(`기준 ${refText(d)}`)}</span><span>{numify(`이번 ${fmt(d.run)}${d.unit ? ` ${d.unit}` : ""}`)}</span></span></button>)}</div></div>
