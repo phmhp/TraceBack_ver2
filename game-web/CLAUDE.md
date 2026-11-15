@@ -170,7 +170,7 @@
 - 2차: 차고 입력 꾹 누르기(`applyInput`, Space), 도미노 `SUBSYS` 안 들여다보기, 검증 `OverlayGraph` 신호 그래프 탭, 퍼즐 `RIG_GOAL`. 고장 답지·확장안·ChatGPT 회신 형식·설명서 고장 후보 = `docs/FAULT_SCENARIOS_2026-11-09.md`(다음 작업: 새 고장 사건 3~4종, 상태 기반 발생 조건).
 
 ## 2026-11-15 갱신 (v3 작업 인수인계는 `docs/IN_PROGRESS_LOG.md`가 최신)
-- 사건 8개 아님: 구동·열관리·제동·회생·시동(ready)·변속(gear, C04)·저온 회생(cold, C06). 레벨 1~7(선택 3~7), 마지막 탈출은 8레벨(허브에서 숨김). 모든 레벨은 0 m에서 시작하고 수리 후 `levelFinish` 주행 → 해적선 → 엔딩 → `NEXT_LEVEL`.
+- 사건 7개: 구동·열관리·제동·회생·시동(ready)·변속(gear, C04)·저온 회생(cold, C06). 레벨 1~7(선택 3~7), 마지막 탈출은 8레벨(허브에서 숨김). 모든 레벨은 0 m에서 시작하고 수리 후 `levelFinish` 주행 → 해적선 → 엔딩 → `NEXT_LEVEL`.
 - 퍼즐 UI 유형: 블록 조립(기본), 신호 경로(`ui: "path"`: gear·cold), 상태 전이도(`ui: "state"`: ready). 배분표는 `docs/fault-cases/RULES.md` R8 보충.
 - 사건 추가 절차: `docs/CONTEST_V3_HANDOFF.md` 2026-11-15 절. 미리보기는 `.claude/launch.json`의 `game-web-v3`(포트 5183), 검증은 1600x900.
 - 최근 개편: 도미노 한 장씩 판정, 실험대 3단계(수리·재시험 삭제), 정비소 3영역 공개, 퍼즐 Directive 안내와 폴더 설계서. 기록은 `docs/DESIGN_DECISIONS_V3.md`.
