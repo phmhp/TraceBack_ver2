@@ -236,6 +236,13 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
     ...evidenceCards.map(d => ({ id: d.id, kind: `m s-${d.status}`, title: d.label, sub: d.status === "bad" ? "기준과 다름" : d.status === "tol" ? "허용 범위 안" : "기준과 같음", photo: <Photo src={d.img} />, dom: d })),
   ];
   const zoomed = pols.find(item => item.id === zoomPol);
+  // the enlarged polaroid closes with Enter or Esc (captured so the stage keys underneath do not react)
+  useEffect(() => {
+    if (!zoomPol) return;
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape" || event.key === "Enter") { event.preventDefault(); event.stopPropagation(); setZoomPol(null); } };
+    window.addEventListener("keydown", close, true);
+    return () => window.removeEventListener("keydown", close, true);
+  }, [zoomPol]);
   const evidencePages = Math.max(1, Math.ceil(pols.length / 6));
   const visiblePols = pols.slice(evidencePage * 6, evidencePage * 6 + 6);
   const coach = state.completedCases.length ? "" : phase === "symptom" ? "output" : phase === "trace" ? "measure" : !sectionDone ? "section" : !allSorted ? "sort" : "next";
@@ -313,15 +320,21 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       </section>
       <div className="etNextCell"><button className="dtNext stageProgressAction" disabled={!(phase === "hyp" && sectionDone && allSorted && carryId)} onClick={finish}>다음 →</button></div>
     </main>
-    {zoomed && <div className="polZoom" onClick={() => setZoomPol(null)}><article className="polBig" onClick={event => event.stopPropagation()}>
-      <button className="polClose" aria-label="닫기" onClick={() => setZoomPol(null)}>×</button>
-      <i className="pin" />
-      <span className="polPhoto big">{zoomed.photo}</span>
-      <b>{zoomed.title}</b>
+    {zoomed && <div className="polZoom" onClick={() => setZoomPol(null)}><div className="polZoomWrap" onClick={event => event.stopPropagation()}>
+      <article className="polBig">
+        <button className="polClose" aria-label="닫기 (Enter · Esc)" onClick={() => setZoomPol(null)}>×</button>
+        <i className="pin" />
+        <span className="polPhoto big">{zoomed.photo}</span>
+        <b>{zoomed.title}</b>
+      </article>
+      <aside className="polInfo" aria-label="증거 설명">
       {zoomed.id === "quote" && <p>"{QUOTE[caseId]}"<small>이 증상을 만드는 차량 출력을 E/E 판에서 조사하세요.</small></p>}
       {zoomed.id === "lamp" && <p>{LAMP[caseId].label} · {LAMP[caseId].note}<small>경고등은 결과로 켜진 것일 수 있어요.</small></p>}
       {zoomed.dom && <p><span className="polRow"><em>원본 기록</em>기준 <code>{refText(zoomed.dom)}</code> · 이번 <code>{fmt(zoomed.dom.run)}{zoomed.dom.unit ? ` ${zoomed.dom.unit}` : ""}</code></span>{zoomed.dom.t !== undefined && <span className="polRow"><em>달라진 시각</em><code>{fmt(zoomed.dom.t)} {unit}</code></span>}<span className="polRow"><em>위치</em>{zoomed.dom.zone}</span><Gauge dom={zoomed.dom} /></p>}
-    </article></div>}
+    
+        <small className="polKeys">Enter · Esc 로 닫기</small>
+      </aside>
+    </div></div>}
     {replayOpen && <ReplayConfirm impact="STEP03 퍼즐과 STEP04 시험 계약·실행 기록도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); resetStage(); }} />}
   </div>;
 }

@@ -118,7 +118,7 @@
 
 /* overview architecture: inputs | domain groups on one network | outputs */
 .garageV2 .gv3Work .archView { position: absolute !important; inset: 0 !important; display: flex; flex-direction: column; gap: 8px; padding: 44px 18px 10px; box-sizing: border-box; }
-.archView .archCols { flex: 1 1 0; min-height: 0; display: grid; grid-template-rows: 1fr 1fr 0.8fr auto; gap: 8px; }
+.archView .archCols { flex: 1 1 0; min-height: 0; display: grid; grid-template-rows: 1fr 1fr 1fr auto; gap: 8px; }
 .archView .archRow { display: grid; grid-template-columns: 170px 28px minmax(0, 1fr) 28px 170px; align-items: stretch; min-height: 0; }
 .archView .archIo { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0; }
 .archView .archIo li { padding: 5px 8px; border-radius: 8px; background: rgba(255, 255, 255, .78); border: 1px solid rgba(155, 107, 100, .3); font: 700 13px/1.1 Pretendard, system-ui; color: #4a3a36; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

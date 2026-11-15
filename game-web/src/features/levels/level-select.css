@@ -8,10 +8,10 @@
 .lvRoad { fill: none; stroke: #6d675f; stroke-width: 60; stroke-linecap: round; }
 .lvRoadLine { fill: none; stroke: #f4e9c9; stroke-width: 4; stroke-dasharray: 16 14; }
 .lvNode { all: unset; box-sizing: border-box; position: absolute; transform: translate(-50%, -50%); width: 150px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; text-align: center; }
-.lvNode .lvBadge { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: #fff8f2; border: 4px solid #9b6b64; color: #9b6b64; font-size: 30px; box-shadow: 0 4px 0 #6f4b46; transition: transform .12s; }
-.lvNode:hover .lvBadge { transform: translateY(-3px); }
+.lvNode .lvBadge { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: #fff8f2; border: 4px solid #9b6b64; color: #9b6b64; font-size: 30px; box-shadow: 0 4px 0 #6f4b46; transition: background-color .12s, box-shadow .12s; }
+.lvNode:hover .lvBadge { background: #fff1e6; }
 .lvNode:focus-visible .lvBadge { outline: 4px solid #4a3a36; outline-offset: 3px; }
-.lvNode.sel .lvBadge { background: #9b6b64; color: #fff8f2; transform: scale(1.1); }
+.lvNode.sel .lvBadge { background: #9b6b64; color: #fff8f2; box-shadow: 0 4px 0 #6f4b46, 0 0 0 5px rgba(155, 107, 100, .35); }
 .lvNode.locked .lvBadge { background: #e9e3da; border-color: #b8afa3; color: #9a9186; box-shadow: 0 4px 0 #b8afa3; }
 .lvNode.cleared .lvBadge { border-color: #5b9a76; color: #3f7a55; box-shadow: 0 4px 0 #3f7a55; }
 .lvNode.cleared.sel .lvBadge { background: #5b9a76; color: #fff8f2; }
