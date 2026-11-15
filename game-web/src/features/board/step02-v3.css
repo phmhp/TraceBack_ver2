@@ -39,6 +39,14 @@
 .eeTrace .etLayout > .etEvidence { padding: 6px 10px !important; }
 .eeTrace .etEvidence > header { margin-bottom: 2px !important; }
 .eeTrace .etEvidence .polBoard { gap: 4px 8px !important; }
+.eeTrace .etEvidence .polBoard { min-width: 0; }
+.eeTrace .etEvidence .etEmpty { overflow-wrap: anywhere; word-break: keep-all; }
+.eeTrace .etEvidence .pol { min-width: 0; overflow: visible; }
+.eeTrace .etEvidence .polPhoto img { width: 100%; height: 100%; object-fit: contain; }
+.eeTrace .etEvidence .pol.quote .polPhoto { display: grid; place-items: center; background: #fff7e6; }
+.eeTrace .etEvidence .pol.quote .polPhoto img { width: 70%; height: 70%; object-fit: contain; }
+.eeTrace .etBoard .etZones, .eeTrace .etBoard .etNode { filter: none !important; opacity: 1 !important; }
+.eeTrace .etBoard .etLines { pointer-events: none; }
 .eeTrace .etEvidence .polPager { min-height: 0 !important; height: 22px; margin-top: 2px !important; }
 .eeTrace .etEvidenceTabs button { min-height: 0 !important; padding-block: 4px !important; }
 
@@ -152,6 +160,7 @@
 .eeTrace .etChoices button { position: relative; }
 .eeTrace .etChoices button > kbd { position: absolute; top: 4px; left: 6px; }
 .eeTrace .etInside { flex: none; padding: 6px 12px; border-radius: 10px; border: 2px solid #c9a39c; background: #fffaf5; font: 700 12.5px Pretendard, system-ui; color: #6b4a44; cursor: pointer; }
+.eeTrace .etInside { white-space: nowrap; }
 .eeTrace .etTag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 999px; font: 700 11px/1.4 Pretendard, system-ui; background: #efe3dc; color: #6b4a44; vertical-align: 1px; }
 .eeTrace .etTag[data-tag="HW"] { background: #f3dcd6; color: #8a2f25; }
 .eeTrace .etTag[data-tag="센서"] { background: #dfeaf3; color: #2f5273; }
@@ -178,3 +187,6 @@
 .eeTrace .etBoard > .etZones { grid-row: 3; height: auto; min-height: 0; }
 .eeTrace .etFlags { width: 208px; grid-template-rows: 1fr 1fr; }
 .eeTrace .etFlags button { min-width: 0; white-space: normal; }
+.eeTrace .etFlags { grid-template-rows: 1fr 1fr !important; }
+.eeTrace .etFlags .yes { grid-row: 1; }
+.eeTrace .etFlags .no { grid-row: 2; }

@@ -59,13 +59,17 @@ const PLACE: Record<string, Place> = {
   eps_power_pack: { p: [-.22, .42, -.72], r: [0, H, 0], target: .3 },
   eps_ecu: { p: [.22, .66, -.62], target: .24 },
   // high voltage
-  hv_battery: { p: [0, .16, .05], target: 2.35 },
+  // A skateboard pack occupies most of the wheelbase under the seats, not a
+  // small floating electronics box. Keep it low and nearly cabin-width.
+  hv_battery: { p: [0, .18, .05], target: 3.15 },
   bms: { p: [0, .4, .35], target: .24 },
   main_contactor: { p: [-.48, .62, -.82], target: .28 },
   isolation_monitor: { p: [-.48, .62, -.62], target: .12 },
   cell_monitor_board: { p: [0, .35, .2], target: .18 },
   hv_junction_box: { p: [-.42, .72, -.72], target: .28 },
-  charging_port: { p: [.88, .8, .82], r: [0, Math.PI, 0], target: .24 },
+  // The inlet is on the rear-side quarter panel; its face is rotated across
+  // the vehicle body (90° from the longitudinal component orientation).
+  charging_port: { p: [.87, .78, .86], r: [0, H, 0], target: .24 },
   obc: { p: [.42, .72, -.65], target: .48 },
   dcdc_converter: { p: [-.46, .74, -.5], target: .3 },
   lv_battery: { p: [-.55, .48, -.3], target: .32 },
@@ -316,6 +320,14 @@ export function VehiclePlatformOverview() {
         const key = `${node.id}:${node.place.p.map(value => value.toFixed(3)).join(",")}`;
         if (!unique.has(key)) unique.set(key, { ...node, index: index++, copy: 0 });
       }
+    }
+    // The overview is a vehicle architecture view, so retain the physical
+    // parts that can disappear when a domain's first feature is signal-only.
+    for (const id of ["hv_battery", "bms", "inverter", "traction_motor", "steering_rack", "coil_spring", "damper", "charging_port", "obc", "dcdc_converter"]) {
+      const place = PLACE[id];
+      if (!place) continue;
+      const key = `${id}:${place.p.map(value => value.toFixed(3)).join(",")}`;
+      if (!unique.has(key)) unique.set(key, { index: index++, id, place, copy: 0 });
     }
     return [...unique.values()];
   }, []);

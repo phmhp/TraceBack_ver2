@@ -433,7 +433,7 @@ export function DominoTrace({ state, send }: { state: Campaign; send: Send }) {
 
   return <div className="dtBoard">
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="원인 추적" title="도미노 역추적" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="원인 추적" title="도미노" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main className={`dtLayout phase-${phase}`}>
       <header className="dtHead">

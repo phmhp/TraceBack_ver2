@@ -187,7 +187,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
     regression: "같은 SW 단위 시험(페달 60% 계단 입력) PASS + 영향 범위 신호",
     status: "implemented", review: "수치 일치 확인(60×0.45=27, 204×0.45≈92)",
     hypotheses: [
-      { id: "aps", label: "가속 페달 센서·배선", truth: false, stage1: "도미노 역추적: 페달 센서 값 60%가 기준과 같았어요.", rules: [
+      { id: "aps", label: "가속 페달 센서·배선", truth: false, stage1: "도미노: 페달 센서 값 60%가 기준과 같았어요.", rules: [
         { levels: ["vehicle"], need: { aps: ["same"], can: ["lower"] }, verdict: "refuted", why: "페달 값은 같고 CAN 토크만 낮아요." },
       ] },
       { id: "vcu_sw", label: "VCU 페달 처리 SW(계산·보정값)", truth: true, rules: [

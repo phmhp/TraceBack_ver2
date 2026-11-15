@@ -237,6 +237,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   type Pol = { id: string; kind: string; title: string; sub: string; photo: React.ReactNode; dom?: Dom };
   const evidenceCards = [...(chain.length ? [start] : []), ...measured.map(dom)].filter((d, i, all) => all.findIndex(x => x.id === d.id) === i);
   const pols: Pol[] = [
+    { id: "quote", kind: "quote", title: `${DRIVER} 진술`, sub: "운전자 체감", photo: <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /> },
     ...evidenceCards.filter(d => d.status === "bad").map(d => ({ id: d.id, kind: `m s-${d.status}`, title: d.label, sub: `이상 판정 · ${d.zone} · 기준 ${refText(d)} / 이번 ${fmt(d.run)}${d.unit ? ` ${d.unit}` : ""}`, photo: <Photo src={d.img} />, dom: d })),
   ];
   const zoomed = pols.find(item => item.id === zoomPol);
@@ -290,9 +291,9 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       const target = event.target as HTMLElement | null; if (target && /INPUT|TEXTAREA|SELECT/.test(target.tagName)) return;
       const key = event.key, digit = /^[1-3]$/.test(key) ? Number(key) - 1 : -1;
       if (phase === "symptom" && digit >= 0 && symptomChoices[digit]) { event.preventDefault(); pickOutput(symptomChoices[digit].id); }
-      else if (phase === "trace" && cand && (key === "ArrowLeft" || key === "ArrowRight")) { event.preventDefault(); stamp(cand, key === "ArrowLeft" ? "likely" : "refuted"); }
+      else if (phase === "trace" && cand && (key === "ArrowUp" || key === "ArrowDown")) { event.preventDefault(); stamp(cand, key === "ArrowUp" ? "likely" : "refuted"); }
       else if (phase === "hyp" && !sectionDone && digit >= 0 && data.section.choices[digit]) { event.preventDefault(); pickSection(data.section.choices[digit].label); }
-      else if (phase === "hyp" && nextHyp && (key === "ArrowLeft" || key === "ArrowRight")) { event.preventDefault(); sortHyp(nextHyp.id, key === "ArrowLeft" ? "hold" : "out"); }
+      else if (phase === "hyp" && nextHyp && (key === "ArrowUp" || key === "ArrowDown")) { event.preventDefault(); sortHyp(nextHyp.id, key === "ArrowUp" ? "hold" : "out"); }
       else if (phase === "hyp" && sectionDone && allSorted && carryPool.length > 1 && !carryId && digit >= 0 && carryPool[digit]) { event.preventDefault(); setCarry(carryPool[digit]); play("pop"); }
     };
     window.addEventListener("keydown", onKey);
@@ -301,10 +302,10 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   useDevActions({ solve: reveal, label: "STEP02" });
   return <div className="dtBoard eeTrace" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="원인 추적" title="도미노 역추적" distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="원인 추적" title="도미노" distanceMeters={undefined} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <StageFolderSubtitle step="board" className="etStageFolder" action="관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요." detail={<>출발 증거: {scenario.symptom} <i>|</i> 추적 대상: 신호·제어 경로</>} />
-    <StageIntro id="trace-v2" stage="STEP 02" title="도미노 역추적" goal="운전자가 느낀 출력에서 거꾸로 올라가며 첫 편차를 찾아요" steps={[
+    <StageIntro id="trace-v2" stage="STEP 02" title="도미노" goal="운전자가 느낀 출력에서 거꾸로 올라가며 첫 편차를 찾아요" steps={[
       { icon: "camera", text: "운전자가 느낀 이상(출력)이 출발점이에요. 기준과 값이 다른 출력을 골라요." },
       { icon: "search", text: "그 출력에 영향을 줬을 신호가 카드로 하나씩 나와요. 이상이 있고 먼저 달라졌으면 ↑ 영향을 줬어요, 아니면 ↓ 영향을 주지 않았어요를 눌러요." },
       { icon: "clipboard", text: "영향을 준 신호가 다음 기준이 돼요. 더 이상 영향을 준 신호가 없으면 거기가 첫 편차예요. 그 위치로 의심 구간을 고르고 원인 가설 후보를 정리해요." },
@@ -314,7 +315,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
 
       {/* center: whole-vehicle reverse trace */}
       <section className={`etBoard phase-${phase}`} ref={boardRef}>
-        <header><b><Icon name="layers" /> 도미노 역추적 판</b><small>{phase === "symptom" ? "기준과 다른 출력을 고르세요" : phase === "trace" ? `지금 출력: ${dom(focus).label}` : "센서 → 제어기 → CAN → 부품 → 차량"}</small>{phase === "hyp" && sectionDone && <button className="stageReplayBtn etStageReplay" onClick={() => setReplayOpen(true)}>다시 풀기</button>}</header>
+        <header><b><Icon name="layers" /> 도미노 판</b><small>{phase === "symptom" ? "기준과 다른 출력을 고르세요" : phase === "trace" ? `지금 출력: ${dom(focus).label}` : "센서 → 제어기 → CAN → 부품 → 차량"}</small>{phase === "hyp" && sectionDone && <button className="stageReplayBtn etStageReplay" onClick={() => setReplayOpen(true)}>다시 풀기</button>}</header>
         <div className="etPhaseBridge" aria-label="추리 진행 단계"><span className={phase === "symptom" ? "on" : "done"}>첫 편차 출력</span><i>→</i><span className={phase === "trace" ? "on" : phase === "hyp" ? "done" : ""}>첫 편차 신호</span><i>→</i><span className={found && !sectionDone ? "on" : sectionDone ? "done" : ""}>의심 구간</span><i>→</i><span className={sectionDone ? "on" : ""}>가설 후보</span></div>
         <svg className="etLines">{lines.map((l, i) => <path key={i} d={l.d} className={l.hot ? "hot" : "path"} />)}</svg>
         <div className="etZones">{ZONES.map(zone => <div key={zone} className="etZone">
@@ -359,7 +360,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
                 <span>{dom(cand).status === "bad" ? numify(`달라진 시점 ${fmt(dom(cand).t!)} ${unit} (${dom(focus).label}${josa(dom(focus).label, "은", "는")} ${fmt(dom(focus).t!)} ${unit})`) : dom(cand).status === "tol" ? "허용 범위 안이에요" : "기준과 같아요 (달라지지 않음)"}</span></div>
               <div className="etFlags"><button className="yes" onClick={() => stamp(cand, "likely")}><kbd>↑</kbd>영향을 줬어요</button><button className="no" onClick={() => stamp(cand, "refuted")}>영향을 주지 않았어요<kbd>↓</kbd></button></div>
             </article> : <span className="etAsk">다음 기준 신호로 넘어가는 중이에요…</span>}</div>
-            : !sectionDone ? <div className="etDock etDockSection"><div className="etChoices">{data.section.choices.map((c, index) => <button key={c.label} className={sectionPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}><kbd>{index + 1}</kbd>{c.label}</button>)}</div><button className="etInside" onClick={() => { setMemoTab(memoTab === "zone" ? "evidence" : "zone"); play("pop"); }}>{memoTab === "zone" ? "구조 닫기" : "첫 편차 발생 의심 구간 보기"}</button></div>
+              : !sectionDone ? <div className="etDock etDockSection"><div className="etChoices">{data.section.choices.map((c, index) => <button key={c.label} className={sectionPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}><kbd>{index + 1}</kbd>{c.label}</button>)}</div><button className="etInside" onClick={() => { setMemoTab(memoTab === "zone" ? "evidence" : "zone"); play("pop"); }}>{memoTab === "zone" ? "구조 닫기" : "첫 편차 발생 의심 구간 보기"}</button></div>
               : nextHyp ? <div className="etDock"><article className="etCand hyp"><div className="etCandText"><small>가설 후보 {hypNo}/{meta.hypotheses.length}</small><b><span className="etTag" data-tag={HYP_TAG[nextHyp.id]}>{HYP_TAG[nextHyp.id]}</span>{nextHyp.label}</b></div>
                   <div className="etFlags"><button className="yes" onClick={() => sortHyp(nextHyp.id, "hold")}><kbd>↑</kbd>후보에 올려요</button><button className="no" onClick={() => sortHyp(nextHyp.id, "out")}>후보에서 빼요<kbd>↓</kbd></button></div></article></div>
                 : carryPool.length > 1 && !carryId ? <div className="etDock"><div className="etChoices">{carryPool.map((id, index) => <button key={id} onClick={() => { setCarry(id); play("pop"); }}><kbd>{index + 1}</kbd><span className="etTag" data-tag={HYP_TAG[id]}>{HYP_TAG[id]}</span>{meta.hypotheses.find(h => h.id === id)?.label}</button>)}</div></div>
@@ -513,9 +514,9 @@ export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
   const coach = state.completedCases.length ? "" : !replayed ? "replay" : measured.length < 3 ? "measure" : !found ? "pick" : !done ? "section" : !allSorted ? "sort" : "next";
   return <div className="dtBoard tbTrace" data-coach={coach}>
     <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
-    <GameHeader chapter="원인 추적" title="도미노 역추적" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="원인 추적" title="도미노" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
-    <StageIntro id="trace-v3" title="도미노 역추적" goal="증상에서 거꾸로 따라가 처음 쓰러진 도미노, 즉 처음 어긋난 곳을 찾아요. 원인은 검증 단계에서 시험으로 확인해요." steps={[
+    <StageIntro id="trace-v3" title="도미노" goal="증상에서 거꾸로 따라가 처음 쓰러진 도미노, 즉 처음 어긋난 곳을 찾아요. 원인은 검증 단계에서 시험으로 확인해요." steps={[
       { icon: "layers", text: "왼쪽 E/E 그림에서 부품을 눌러 재요. 오른쪽에 증거 사진이 쌓여요." },
       { icon: "search", text: "출력 쪽부터 거꾸로. 정상인 부품 바로 다음에서 이상이 시작되면 그곳이 처음 어긋난 곳이에요." },
       { icon: "target", text: "'처음 어긋난 곳 지목'을 누르고 그 부품을 고른 뒤, 의심 구간을 골라요." },

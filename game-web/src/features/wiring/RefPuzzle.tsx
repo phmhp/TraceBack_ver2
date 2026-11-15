@@ -377,7 +377,9 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
     }
     setDrag(null);
   };
-  const clickGap = (g: number) => { if (picked) { putIn(picked, g); setPicked(null); play("squish"); } };
+  // Placement is intentionally drag-and-drop only. A picked piece is a visual
+  // state, not a second click-to-place interaction.
+  const clickGap = (_g: number) => { setPicked(null); };
 
   // ▶ run: values travel slot by slot and stop at the first mismatch
   const start = () => {
@@ -467,7 +469,7 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
           <span className={`rpSidePill ${sideLit ? "lit" : ""}`} style={{ left: slotX(ref.side.into) + 82, top: (SIDE_Y + MAIN_Y + PIECE) / 2 - 12 }}>{ref.side.value}</span>
           {ref.side.pieces.map((id, k) => piece(ref.blocks[id], slotX(sideStart + k), SIDE_Y, { locked: true, io: { in: k > 0 ? "square" : undefined, out: k < ref.side.pieces.length - 1 ? "square" : undefined }, cls: "side" }))}
           {/* empty gaps */}
-          {ref.gaps.map(g => <button key={`gap-${g}`} className={`rpGap ${picked ? "ready" : ""}`} style={{ left: slotX(g), top: MAIN_Y }} onClick={() => clickGap(g)}><b>?</b><small>{g + 1}번 칸</small></button>)}
+          {ref.gaps.map(g => <button key={`gap-${g}`} className={`rpGap ${drag?.moved ? "ready" : ""}`} style={{ left: slotX(g), top: MAIN_Y }} aria-label={`${g + 1}번 빈칸 · 퍼즐 조각을 끌어 놓으세요`}><b>?</b><small>{g + 1}번 칸</small></button>)}
           {/* fixed pieces of the board */}
           {ref.board.map((id, slot) => ref.gaps.includes(slot) ? null : piece(ref.blocks[id], slotX(slot), MAIN_Y, { io: jointsIo(slot), locked: true }))}
           {/* movable pieces: in a gap or in the spare tray */}
@@ -777,7 +779,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   // spoken directions: what the player just did, what this step is, how to do it
   const dirStep = viewStep ?? stepNow;
   const dirLines: string[] = dirStep === 0
-    ? [`도미노에서 의심 구간을 ${section}${(() => { const c = section.charCodeAt(section.length - 1) - 44032; return c >= 0 && c < 11172 ? (c % 28 === 0 || c % 28 === 8 ? "로" : "으로") : /[0-9013678LMNRlmnr]$/.test(section) ? "으로" : "로"; })()} 좁혔어요. 이 퍼즐은 그 구간이 정상이라면 어떻게 동작해야 하는지 맞춰 보는 거예요.`, stateMode ? "아래 선지에서 전이 조각을 고른 뒤 위 빈 상태를 눌러 넣어요." : "아래 선지에서 조각을 고른 뒤 위 빈칸을 눌러 넣어요.", filled ? "다 채웠어요. 연결 확인을 눌러요." : "아래 조각의 물리 정보와 역할을 보고 골라요."]
+    ? [`도미노에서 의심 구간을 ${section}${(() => { const c = section.charCodeAt(section.length - 1) - 44032; return c >= 0 && c < 11172 ? (c % 28 === 0 || c % 28 === 8 ? "로" : "으로") : /[0-9013678LMNRlmnr]$/.test(section) ? "으로" : "로"; })()} 좁혔어요. 이 퍼즐은 그 구간이 정상이라면 어떻게 동작해야 하는지 맞춰 보는 거예요.`, stateMode ? "아래 선지 조각을 위 빈 상태까지 직접 끌어 놓아요." : "아래 선지 조각을 위 빈칸까지 직접 끌어 놓아요.", filled ? "다 채웠어요. 연결 확인을 눌러요." : "조각의 물리 정보와 역할을 보고 골라요."]
     : dirStep === 1
       ? ["조각 연결이 맞았어요. 이제 값이 맞는지 볼 차례예요.", "예시 입력을 움직이면 칸마다 값이 표시창에 나와요.", "표시창 값이 요구사항과 같으면 아래 버튼을 눌러요."]
       : ["요구사항과 같은 걸 확인했어요. 이 값이 정상 기준이 돼요.", "시험 설계서에는 어떤 입력을 넣고 어떤 값이 나와야 하는지 적혀 있어요.", confirmed ? "기준이 확정됐어요. 다음으로 넘어가요." : "내용을 확인하고 이 기준으로 확정해요."];
@@ -816,7 +818,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
           </svg>
           <span className={`rpSidePill ${sideLit ? "lit" : ""}`} style={{ left: slotX(ref.side.into) + 82, top: (SIDE_Y + MAIN_Y + PIECE) / 2 - 12 }}>{ref.side.value}</span>
           {ref.side.pieces.map((id, k) => piece(ref.blocks[id], slotX(sideStart + k), SIDE_Y, { locked: true, io: { in: k > 0 ? "square" : undefined, out: k < ref.side.pieces.length - 1 ? "square" : undefined }, cls: "side" }))}
-          {ref.gaps.map(g => <button key={`gap-${g}`} className={`rpGap ${picked ? "ready" : ""} ${hoverGap === g ? "near" : ""} ${place[g] ? "taken" : ""}`} style={{ left: slotX(g), top: MAIN_Y }} onClick={() => clickGap(g)} tabIndex={place[g] ? -1 : 0}><b>?</b><small>{g + 1}번 칸</small></button>)}
+          {ref.gaps.map(g => <button key={`gap-${g}`} className={`rpGap ${drag?.moved ? "ready" : ""} ${hoverGap === g ? "near" : ""} ${place[g] ? "taken" : ""}`} style={{ left: slotX(g), top: MAIN_Y }} aria-label={`${g + 1}번 빈칸 · 퍼즐 조각을 끌어 놓으세요`} tabIndex={place[g] ? -1 : 0}><b>?</b><small>{g + 1}번 칸</small></button>)}
           {ref.board.map((id, slot) => ref.gaps.includes(slot) ? null : piece(ref.blocks[id], slotX(slot), MAIN_Y, { io: jointsIo(slot), locked: true }))}
           {ref.spares.map(id => {
             const b = ref.blocks[id], slot = inSlot(id); const dragging = drag?.id === id && drag.moved;
@@ -870,8 +872,8 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
         <NutGuide id={`rp-${caseId}-${dirStep}`} who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={dirLines} ask={dirLines[dirLines.length - 1]} note={numify(msg) as unknown as string} />
         <div className="rpDockRow">
           {dirStep === 0 && !connected && !sheetStep && <div className="rpChoiceTray" aria-label="퍼즐 조각 선지">
-            <small>선지 · 조각을 골라 위 빈칸에 넣기</small>
-            <div>{ref.spares.filter(id => inSlot(id) === null).map(id => { const b = ref.blocks[id]; return <button type="button" key={id} className={`rpChoicePiece ${b.kind === "hw" ? "hw" : "sw"} ${picked === id ? "picked" : ""}`} aria-pressed={picked === id} title={`${b.label} · ${doesOf(b)}`} onClick={() => { setPicked(picked === id ? null : id); play("pop"); }}><PieceFace b={b} /></button>; })}</div>
+            <small>선지 · 조각을 위 빈칸까지 끌어 놓기</small>
+            <div>{ref.spares.filter(id => inSlot(id) === null).map(id => { const b = ref.blocks[id]; return <button type="button" key={id} className={`rpChoicePiece ${b.kind === "hw" ? "hw" : "sw"} ${picked === id ? "picked" : ""}`} aria-pressed={picked === id} title={`${b.label} · 드래그해서 빈칸에 놓기`} onPointerDown={event => onDown(event, id)}><PieceFace b={b} /></button>; })}</div>
           </div>}
           <div className="rpPuzzleAction">
             {connected && spec.input && !sheetStep && <label className="rpSlider"><small>예시 입력 · {spec.input.label}</small><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label>}

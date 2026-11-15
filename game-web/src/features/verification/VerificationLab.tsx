@@ -1737,7 +1737,7 @@ export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) 
           <article className="v7Report">
             <header><small>검증 결과 보고 · {DRIVER_NAME}에게</small><b>원인: {meta.hypotheses.find(h => h.truth)!.label}</b></header>
             <ul>{questions.map(item => { const a = answers[item.hyp]; return <li key={item.hyp} className={a?.answer === "supported" ? "hyp-supported" : "hyp-refuted"}><em>{a ? ANSWER_KO[a.answer] : "-"}</em><span><strong>"{item.ask}"</strong>{a?.why}<small>근거: {a?.evidence}</small></span></li>; })}
-              {meta.hypotheses.filter(h => h.stage1 && !questions.some(item => item.hyp === h.id)).map(h => <li key={h.id} className="hyp-refuted"><em>가능성 낮음</em><span><strong>{h.label}</strong>{h.stage1}<small>근거: 도미노 역추적 측정</small></span></li>)}</ul>
+              {meta.hypotheses.filter(h => h.stage1 && !questions.some(item => item.hyp === h.id)).map(h => <li key={h.id} className="hyp-refuted"><em>가능성 낮음</em><span><strong>{h.label}</strong>{h.stage1}<small>근거: 도미노 측정</small></span></li>)}</ul>
           </article>
           <h2><Icon name="wrench" /> 수정 담당에 요청할 조치를 고르세요</h2>
           <div className="vbChoices">{FIXES[caseId].map((item, index) => <button key={item.label} className={fix === index ? item.ok ? "right" : "wrong" : ""} onClick={() => pickFix(index)}><img src={item.img} alt="" /><b>{item.label}</b></button>)}</div>
@@ -2303,7 +2303,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
                   <h4>관찰 신호</h4><p>{contract.observations.map(item => item.label).join(" · ")}</p></div>
               </div></> : <>
               <small>STEP02 고장 기록 · 실제 고장 때 신호가 정상과 얼마나 달랐는지</small>
-              <h3>{step02.linked ? "도미노 역추적 결과" : "기록 없음"}</h3>
+              <h3>{step02.linked ? "도미노 결과" : "기록 없음"}</h3>
               {step02.linked ? <><p className="ssPurpose"><span>처음 달라진 신호</span><b>{step02.chain.length ? step02.chain[step02.chain.length - 1].label : "기록 없음"}</b></p>
                 <p className="ssPurpose"><span>의심 구간</span><b>{step02.section ?? "고르지 않음"}</b></p>
                 {step02.chain.length > 0 && <table><thead><tr><th>핵심 신호</th><th>정상</th><th>고장</th></tr></thead><tbody>{[...step02.chain].reverse().map(item => <tr key={item.id}><td>{item.label}</td><td><code>{item.ref}</code> {item.unit}</td><td><code>{item.run}</code> {item.unit}</td></tr>)}</tbody></table>}</>
