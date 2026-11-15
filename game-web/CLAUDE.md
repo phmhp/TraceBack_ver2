@@ -169,6 +169,12 @@
 - 3차(원문 전 항목): 점검표 = `docs/PLAYFLOW_FIX_2026-11-09.md`. 차고 조건 미션 `INPUT_MISSION`·3D 입력 부품 누르기(`tb-garage-input`)·E/E 레이어/노드 팝업(`EeBlueprint` layer·inspector)·SW 한 단계, 도미노 입력 재생·화살표 점진 공개(`showPath`)·관찰 증거·가설 정리, 오픈북 `src/ui/OpenBook.tsx`, 퍼즐 `WHY`·`ActuatorReaction`, 검증 입력 조건·3D 정상/이번 토글, 첫 사건 튜토리얼 = 루트 `data-coach` + CSS 하이라이트. 폴라로이드 물성은 사용자 지시로 제외.
 - 2차: 차고 입력 꾹 누르기(`applyInput`, Space), 도미노 `SUBSYS` 안 들여다보기, 검증 `OverlayGraph` 신호 그래프 탭, 퍼즐 `RIG_GOAL`. 고장 답지·확장안·ChatGPT 회신 형식·설명서 고장 후보 = `docs/FAULT_SCENARIOS_2026-11-09.md`(다음 작업: 새 고장 사건 3~4종, 상태 기반 발생 조건).
 
+## 2026-11-15 갱신 (v3 작업 인수인계는 `docs/IN_PROGRESS_LOG.md`가 최신)
+- 사건 8개 아님: 구동·열관리·제동·회생·시동(ready)·변속(gear, C04)·저온 회생(cold, C06). 레벨 1~7(선택 3~7), 마지막 탈출은 8레벨(허브에서 숨김). 모든 레벨은 0 m에서 시작하고 수리 후 `levelFinish` 주행 → 해적선 → 엔딩 → `NEXT_LEVEL`.
+- 퍼즐 UI 유형: 블록 조립(기본), 신호 경로(`ui: "path"`: gear·cold), 상태 전이도(`ui: "state"`: ready). 배분표는 `docs/fault-cases/RULES.md` R8 보충.
+- 사건 추가 절차: `docs/CONTEST_V3_HANDOFF.md` 2026-11-15 절. 미리보기는 `.claude/launch.json`의 `game-web-v3`(포트 5183), 검증은 1600x900.
+- 최근 개편: 도미노 한 장씩 판정, 실험대 3단계(수리·재시험 삭제), 정비소 3영역 공개, 퍼즐 Directive 안내와 폴더 설계서. 기록은 `docs/DESIGN_DECISIONS_V3.md`.
+
 ## 남은 일 (우선순위 순)
 0. 차고(도메인 동작 원리) 페이지를 '정비소 첫날' 단계형 체험으로: 정보 양 줄이기.
 0. 신규 고장 아이디어: 신호 대기 정차 후 READY 꺼짐·재시동 불가(전원 도메인).
