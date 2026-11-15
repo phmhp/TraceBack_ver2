@@ -97,3 +97,10 @@ test("wet zone exists, lengthens braking, and feeds the environment fault trigge
   assert.ok(zoneBrakeFactor(zonesAt(420)) < 1);
   assert.equal(zoneBrakeFactor(zonesAt(100)), 1);
 });
+
+test("tunnel and night zones exist with positions that stay in the 3D driving part", () => {
+  const tags = ROAD_ZONES.map(z => z.tag);
+  assert.ok(tags.includes("tunnel") && tags.includes("night") && tags.includes("wet"));
+  for (const zone of ROAD_ZONES) assert.ok(zone.fromM < zone.toM && zone.toM < 1700, `${zone.tag} ends before the final escape (the ship leg is an illustrated backdrop)`);
+  assert.deepEqual(zonesAt(760), ["tunnel"]); assert.deepEqual(zonesAt(1600), ["night"]);
+});

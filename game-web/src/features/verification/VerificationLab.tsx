@@ -763,7 +763,7 @@ const CAUSES: Record<CaseId, { hyp: string; name: string; type: string; where: s
     { hyp: "brake_sw", name: "회생 요청 계산 SW 오류", type: "SW 로직 오류(요청 계산)", where: "Brake ECU · 제동 배분 SWC", desc: "감속 목표를 잘못 계산해 틀린 회생 요청을 보냄", img: CAUSE_IMG.board("regen_request") },
     { hyp: "pedal", name: "가속 페달 입력 오류", type: "입력 계측 오류", where: "APS 입력 처리", desc: "페달 값이 틀려 코스팅 판단이 어긋남", img: CAUSE_IMG.board("pedal_raw") },
     { hyp: "vcu_sign", name: "토크 지령 변환의 회생 부호 반영 누락", type: "수치·부호 오류(인터페이스 규약 불일치)", where: "VCU · 토크 지령 변환 SWC", desc: "회생 요청의 크기만 쓰고 부호를 버려 지령이 반대 방향으로 나감", img: CAUSE_IMG.board("torque_cmd") },
-    { hyp: "inv_wire", name: "인버터·모터 상 배선 반대 연결 (HW)", type: "하드웨어 배선 오류", where: "모터 U/V/W 배선", desc: "상 순서가 바뀌어 토크 방향이 반대로 나옴", img: CAUSE_IMG.part("traction_motor") },
+    { hyp: "inv_wire", name: "인버터·모터 상 배선 반대 연결 (HW)", type: "하드웨어 배선 오류", where: "모터 상 배선", desc: "상 순서가 바뀌어 토크 방향이 반대로 나옴", img: CAUSE_IMG.part("traction_motor") },
   ],
 };
 // Verification levels (what is verified) — ISO 26262-6 §9, §10, §11 and ISO 26262-4 §7.

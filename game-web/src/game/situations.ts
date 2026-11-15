@@ -149,10 +149,10 @@ export const nearJunction = (distanceM: number, range = 90): boolean => [...CYCL
 /**
  * A stretch of the map with a condition. The SAME table drives the map visuals (rain, wet road, tunnel, night ...) and the
  * `environment` fault trigger (`FaultContext.zones`), so the world and the fault can never disagree.
- * Currently one wet (rain) stretch; more are added per level (docs/fault-cases/RACING_FAULT_MODEL.md section 6).
+ * Currently wet (rain), tunnel and night stretches; more are added per level (docs/fault-cases/RACING_FAULT_MODEL.md section 6).
  */
 export type RoadZone = { tag: "wet" | "tunnel" | "night" | "slope" | "cold" | "glare"; fromM: number; toM: number };
-export const ROAD_ZONES: readonly RoadZone[] = [{ tag: "wet", fromM: 380, toM: 540 }, { tag: "wet", fromM: 1000, toM: 1140 }];
+export const ROAD_ZONES: readonly RoadZone[] = [{ tag: "wet", fromM: 380, toM: 540 }, { tag: "tunnel", fromM: 700, toM: 860 }, { tag: "wet", fromM: 1000, toM: 1140 }, { tag: "night", fromM: 1520, toM: 1690 }];
 /** Grip factor per zone tag for braking (1 = dry road). */
 export const zoneBrakeFactor = (tags: readonly string[]): number => (tags.includes("wet") ? .72 : 1);
 export const zonesAt = (distanceM: number, zones: readonly RoadZone[] = ROAD_ZONES): string[] => zones.filter(z => distanceM >= z.fromM && distanceM <= z.toM).map(z => z.tag);

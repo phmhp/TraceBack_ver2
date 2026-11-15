@@ -27,7 +27,7 @@ import { ArchitectureOverview } from "./features/garage/ArchitectureOverview";
 import { DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainId } from "./features/garage/evData";
 import { CAR_CONTACT, TRACK_LENGTH, TRAFFIC_COUNT, resetTrafficStall, stallTraffic, trafficHitVisual, trafficStateFor } from "./game/traffic";
 import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
-import { CYCLE_JUNCTIONS, zoneBrakeFactor, zonesAt, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
+import { CYCLE_JUNCTIONS, ROAD_ZONES, zoneBrakeFactor, zonesAt, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
 import { CLIMB_ZONE, FINAL_ESCAPE_M, OVERTAKE_ZONE } from "./game/course";
 import { DEMO_FAULTS, PROPULSION_FAULT, levelFaults, policeSpeedKph, secondsToCatch, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
 import { StageIntro } from "./ui/Verdict";
@@ -1340,6 +1340,22 @@ function RoadsideEnvironment() {
   </group>; })}</>;
 }
 
+/** HUD card text per environment zone tag (situations.ts ROAD_ZONES). */
+const ENV_HINT = {
+  wet: { title: "우천 구간", now: "노면이 젖어 제동 거리가 길어져요 · 속도를 줄이세요", soon: "곧 노면이 젖은 구간이에요" },
+  tunnel: { title: "터널 구간", now: "어두워서 시야가 좁아져요 · 앞차와 간격을 유지하세요", soon: "곧 터널이에요 · 전조등을 켜세요" },
+  night: { title: "야간 구간", now: "시야가 좁아요 · 보행자와 앞차를 먼저 확인하세요", soon: "곧 어두운 구간이에요" },
+} as const;
+const TUNNEL_SEGMENTS = ROAD_ZONES.filter(zone => zone.tag === "tunnel").flatMap(zone => Array.from({ length: Math.ceil((zone.toM - zone.fromM) / 12) + 1 }, (_, index) => zone.fromM + index * 12));
+/** Tunnel shell over the road: walls, ceiling and a lamp strip every 12 m (only for ROAD_ZONES tagged "tunnel"). */
+function Tunnels() {
+  return <>{TUNNEL_SEGMENTS.map(distance => { const f = trackFrame(distance); return <group key={`tunnel-${distance}`} position={[f.x, 0, f.z]} rotation={[0, f.yaw, 0]}>
+    {[-8.4, 8.4].map(x => <mesh key={x} position={[x, 2.9, 0]}><boxGeometry args={[.7, 5.8, 12.2]} /><meshStandardMaterial color="#8a8f93" roughness={.9} /></mesh>)}
+    <mesh position={[0, 5.95, 0]}><boxGeometry args={[17.5, .7, 12.2]} /><meshStandardMaterial color="#6f7478" roughness={.9} /></mesh>
+    <mesh position={[0, 5.55, 0]}><boxGeometry args={[1.2, .12, 1.4]} /><meshStandardMaterial color="#fff2c4" emissive="#ffcf70" emissiveIntensity={2.6} /></mesh>
+  </group>; })}</>;
+}
+
 const trafficPalette = ["#737b7d", "#a8ada9", "#4d5559", "#8b9090", "#646b70", "#b6b4ac", "#555d61"];
 
 function CivilianCar({ color, spin = 0 }: { color: string; spin?: number }) {
@@ -1569,6 +1585,7 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false, celebrate
     <TrackStatic ship={ship} signalRed={sim.distance >= 540 && sim.distance <= 612.5} signals={CYCLE_JUNCTIONS.map(j => signalPhase(j, sim.elapsed)[0]).join("")} />
     <TrafficFleet sim={sim} />
     <Pedestrians elapsed={sim.elapsed} />
+    <Tunnels />
     {sim.rear != null && <RearFollower sim={sim} />}
     <group ref={player}>{DEV_LEGACY_CAR ? <Convertible steer={sim.steer} spin={sim.distance * .11} /> : <HeroConvertible steer={sim.steer} spin={sim.distance * .11} speed={sim.speed} cheer={celebrate} />}</group>
     <group ref={police} visible={policeVisible}><PoliceInterceptor spin={sim.distance * .11} /></group>
@@ -1974,7 +1991,8 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     const junction = junctionAhead(sim.distance, sim.elapsed);
     if (junction && junction.phase !== "green") return { kind: "signal", title: junction.phase === "red" ? "적색 신호" : "황색 신호", text: junction.crossing ? `${Math.max(0, Math.round(junction.distanceM))}m 앞 횡단보도 보행자 · 정지선 앞에서 정차` : `${Math.max(0, Math.round(junction.distanceM))}m 앞 정지선` };
     const zoneNow = zonesAt(sim.distance), zoneSoon = zonesAt(sim.distance + 40);
-    if (zoneNow.includes("wet") || zoneSoon.includes("wet")) return { kind: "env", title: "우천 구간", text: zoneNow.includes("wet") ? "노면이 젖어 제동 거리가 길어져요 · 속도를 줄이세요" : "곧 노면이 젖은 구간이에요" };
+    const envTag = (["tunnel", "night", "wet"] as const).find(tag => zoneNow.includes(tag) || zoneSoon.includes(tag));
+    if (envTag) return { kind: "env", title: ENV_HINT[envTag].title, text: zoneNow.includes(envTag) ? ENV_HINT[envTag].now : ENV_HINT[envTag].soon };
     // chase: how long until the police catch up at the current speed (stopping, reversing or an output limit all show up here)
     const eta = secondsToCatch(sim.gap, sim.speed);
     if (sim.gap > 0 && eta < 40) return { kind: "chase", title: "경찰 접근", text: `이 속도로는 약 ${Math.max(1, Math.round(eta))}초 뒤 따라잡혀요 · ${sim.speed < 0 ? "후진 중" : sim.speed < 4 ? "다시 출발하세요" : "속도를 올리세요"}` };
@@ -2068,6 +2086,8 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     {symptom && <ComicBurst tone="fault" side="right" image="/assets/ending-thumbs/accel_pedal.png" title="가속 저하 발생" sound="alarm" />}
     {/* every message card lives in one column under the mirror, so cards never overlap */}
     {zonesAt(sim.distance).includes("wet") && <div className="rainOverlay" aria-hidden="true" />}
+    {zonesAt(sim.distance).includes("tunnel") && <div className="tunnelOverlay" aria-hidden="true" />}
+    {zonesAt(sim.distance).includes("night") && <div className="nightOverlay" aria-hidden="true" />}
     <div className="raceFeed">
       {situationHint && <div className={`situationHint ${situationHint.kind}`} role="status" key={situationHint.kind}><small>{situationHint.kind === "env" ? "환경" : situationHint.kind === "lead" ? "앞차" : situationHint.kind === "rear" ? "후방" : situationHint.kind === "chase" ? "추격" : "교차로"}</small><b>{situationHint.title}</b><em>{situationHint.text}</em></div>}
       {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>↓</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}

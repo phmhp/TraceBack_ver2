@@ -36,3 +36,7 @@
 .rainOverlay::after { background-size: 77px 93px; animation-duration: .38s; opacity: .35; }
 @keyframes rainFall { to { background-position: -40px 120px; } }
 @media (prefers-reduced-motion: reduce) { .rainOverlay::before, .rainOverlay::after { animation: none; } }
+
+/* tunnel: dark shell tint; night: deep blue wash with a soft lit pool ahead of the car (both below the HUD cards) */
+.tunnelOverlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: radial-gradient(ellipse at 50% 62%, rgba(40, 36, 30, 0) 0%, rgba(26, 24, 22, .42) 62%, rgba(14, 12, 10, .66) 100%); }
+.nightOverlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: radial-gradient(ellipse at 50% 70%, rgba(255, 238, 190, .1) 0%, rgba(14, 22, 52, .5) 42%, rgba(6, 10, 30, .74) 100%); }
