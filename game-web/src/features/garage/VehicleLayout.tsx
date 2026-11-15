@@ -11,82 +11,82 @@ import { getPartModel } from "../parts/partModels";
 import { CONNECTIONS } from "../../sim/components";
 import { getComponent } from "../../sim/registry";
 import { getFeatureLayer, partModelFor, type DomainId } from "../../experiences";
+import { CAR_DIMENSIONS, getBodyGeometry } from "../vehicle/carBody";
 
 /** Scene units per metre: the garage car shell is 4.7 m ≈ 7.2 units long. */
 export const U = 1.53;
 type V3 = [number, number, number];
-type Place = { p: V3; r?: V3; s?: number };
+type Place = { p: V3; r?: V3; s?: number; target?: number };
 const H = Math.PI / 2;
 
-// Vehicle frame in metres: front = -X, driver side (left-hand drive) = +Z, y = height above the ground.
-// Front axle x = -1.67, rear axle x = +1.67, wheel centres z = ±0.78, wheel radius 0.33.
+// Vehicle platform frame in metres: front/rear = Z, left/right = X, y = height above ground.
+// This is the same frame as HeroConvertible/carBody: front axle z=-1.18, rear axle z=1.16,
+// wheel centres x=±.745, wheel radius=.34. Every feature uses these fixed coordinates.
 const PLACE: Record<string, Place> = {
   // cabin · driver controls
-  accel_pedal: { p: [-0.98, 0.28, 0.27], r: [0, H, 0] },
-  brake_pedal: { p: [-0.98, 0.28, 0.43], r: [0, H, 0] },
-  steering_wheel: { p: [-0.42, 0.98, 0.37], r: [0, 0, -0.38] },
-  steering_torque_sensor: { p: [-0.62, 0.86, 0.37], r: [0, 0, -0.38] },
-  steering_column: { p: [-0.78, 0.78, 0.37], r: [0, 0, -0.38] },
-  start_button: { p: [-0.72, 0.88, 0.08], r: [0, H, 0] },
-  gear_selector: { p: [-0.38, 0.62, 0.0] },
-  instrument_cluster: { p: [-0.78, 1.02, 0.37], r: [0, H, 0] },
-  vcu: { p: [-1.02, 0.78, -0.22] },
-  imu_sensor: { p: [-0.05, 0.3, 0.0] },
+  accel_pedal: { p: [.27, .28, -.98], r: [0, H, 0], target: .18 },
+  brake_pedal: { p: [.43, .28, -.98], r: [0, H, 0], target: .2 },
+  steering_wheel: { p: [.37, .98, -.42], r: [0, 0, -.38], target: .38 },
+  steering_torque_sensor: { p: [.37, .86, -.62], r: [0, 0, -.38], target: .14 },
+  steering_column: { p: [.37, .78, -.78], r: [0, 0, -.38], target: .32 },
+  start_button: { p: [.08, .88, -.72], r: [0, H, 0], target: .16 },
+  gear_selector: { p: [0, .62, -.38], target: .3 },
+  instrument_cluster: { p: [.37, 1.02, -.78], r: [0, H, 0], target: .5 },
+  vcu: { p: [-.22, .78, -.72], target: .24 },
+  imu_sensor: { p: [0, .3, -.05], target: .1 },
   // front motor room
-  traction_motor: { p: [-1.67, 0.34, -0.2], r: [0, H, 0] },
-  reduction_gear: { p: [-1.67, 0.34, 0.1], r: [0, H, 0] },
-  differential: { p: [-1.67, 0.32, 0.26], r: [0, H, 0] },
-  drive_shaft: { p: [-1.67, 0.33, 0.62], r: [0, H, 0] },
-  wheel: { p: [-1.67, 0.33, 0.78], r: [0, -H, 0] },
-  inverter: { p: [-1.6, 0.6, -0.18] },
-  mcu: { p: [-1.6, 0.68, 0.12] },
-  rotor_position_sensor: { p: [-1.67, 0.34, -0.36], r: [0, H, 0] },
-  motor_temp_sensor: { p: [-1.62, 0.52, -0.24] },
-  park_lock_actuator: { p: [-1.52, 0.48, 0.14] },
-  park_position_sensor: { p: [-1.52, 0.44, 0.3] },
-  park_ecu: { p: [-1.38, 0.58, 0.42] },
+  traction_motor: { p: [-.2, .42, -.98], r: [0, H, 0], target: .62 },
+  reduction_gear: { p: [.18, .4, -.98], r: [0, H, 0], target: .38 },
+  differential: { p: [.42, .36, -.98], r: [0, H, 0], target: .3 },
+  drive_shaft: { p: [.62, .34, -1.18], r: [0, H, 0], target: .55 },
+  wheel: { p: [.745, .34, -1.18], r: [0, -H, 0], target: .22 },
+  inverter: { p: [-.58, .62, -.72], target: .42 },
+  mcu: { p: [-.58, .78, -.62], target: .24 },
+  rotor_position_sensor: { p: [-.2, .52, -.98], r: [0, H, 0], target: .1 },
+  motor_temp_sensor: { p: [-.42, .58, -.98], target: .1 },
+  park_lock_actuator: { p: [.15, .42, .82], target: .18 },
+  park_position_sensor: { p: [.15, .38, .9], target: .1 },
+  park_ecu: { p: [-.32, .62, .72], target: .24 },
   // brakes
-  // Brake ECU and hydraulic modulator are side-by-side in the front bay;
-  // keeping them on one vertical stack made the two housings visually merge.
-  brake_ecu: { p: [-2.08, 0.82, 0.42], r: [0, H, 0], s: .92 },
-  hydraulic_modulator: { p: [-1.76, 0.58, 0.42], r: [0, H, 0], s: .86 },
-  brake_line: { p: [-1.76, 0.52, 0.58], r: [0, -0.4, 0], s: .72 },
-  brake_caliper: { p: [-1.67, 0.33, 0.7], r: [0, -H, 0] },
-  wheel_speed_sensor: { p: [-1.6, 0.26, 0.66], r: [0, -H, 0] },
+  brake_ecu: { p: [-.46, .82, -.58], r: [0, H, 0], target: .24 },
+  hydraulic_modulator: { p: [-.3, .58, -.98], r: [0, H, 0], target: .26 },
+  brake_line: { p: [-.3, .52, -1.05], r: [0, -.4, 0], target: .62 },
+  brake_caliper: { p: [.745, .34, -1.18], r: [0, -H, 0], target: .34 },
+  wheel_speed_sensor: { p: [.78, .43, -1.18], r: [0, -H, 0], target: .1 },
   // steering
-  steering_rack: { p: [-1.42, 0.38, 0.0], r: [0, H, 0] },
-  eps_motor: { p: [-0.9, 0.72, 0.37], r: [0, 0, -0.38] },
-  eps_power_pack: { p: [-1.42, 0.42, -0.32], r: [0, H, 0] },
-  eps_ecu: { p: [-0.86, 0.66, 0.2] },
+  steering_rack: { p: [0, .38, -1.18], r: [0, H, 0], target: .72 },
+  eps_motor: { p: [.24, .72, -.68], r: [0, 0, -.38], target: .3 },
+  eps_power_pack: { p: [-.22, .42, -.72], r: [0, H, 0], target: .3 },
+  eps_ecu: { p: [.22, .66, -.62], target: .24 },
   // high voltage
-  hv_battery: { p: [0.05, 0.16, 0.0], s: 2 },
-  bms: { p: [0.75, 0.26, -0.45] },
-  main_contactor: { p: [-0.78, 0.24, -0.3] },
-  isolation_monitor: { p: [-0.78, 0.24, 0.0] },
-  cell_monitor_board: { p: [0.4, 0.27, 0.3] },
-  hv_junction_box: { p: [-1.32, 0.62, -0.42] },
-  charging_port: { p: [1.95, 0.8, -0.86], r: [0, Math.PI, 0] },
-  obc: { p: [1.72, 0.45, 0.0] },
-  dcdc_converter: { p: [-1.32, 0.58, 0.42] },
-  lv_battery: { p: [-2.0, 0.55, -0.48] },
+  hv_battery: { p: [0, .16, .05], target: 2.35 },
+  bms: { p: [.45, .3, .42], target: .24 },
+  main_contactor: { p: [-.52, .28, -.45], target: .28 },
+  isolation_monitor: { p: [-.52, .28, -.12], target: .12 },
+  cell_monitor_board: { p: [.22, .27, .28], target: .18 },
+  hv_junction_box: { p: [-.48, .62, -.32], target: .28 },
+  charging_port: { p: [.88, .8, .82], r: [0, Math.PI, 0], target: .24 },
+  obc: { p: [.42, .45, .18], target: .48 },
+  dcdc_converter: { p: [-.46, .58, .2], target: .3 },
+  lv_battery: { p: [-.55, .55, .62], target: .32 },
   // thermal
-  thermal_ecu: { p: [-1.72, 0.82, -0.42], r: [0, H, 0], s: .88 },
-  cooling_pump: { p: [-1.45, 0.34, -0.42], s: .82 },
-  coolant_valve: { p: [-1.18, 0.44, -0.18], r: [0, H, 0], s: .72 },
-  cooling_fan: { p: [-2.18, 0.5, 0.02], r: [0, H, 0], s: .86 },
-  radiator: { p: [-2.42, 0.5, 0.0], r: [0, H, 0], s: .9 },
+  thermal_ecu: { p: [-.58, .82, .22], r: [0, H, 0], target: .24 },
+  cooling_pump: { p: [-.42, .34, .48], target: .28 },
+  coolant_valve: { p: [-.2, .44, .5], r: [0, H, 0], target: .18 },
+  cooling_fan: { p: [-.72, .5, -1.72], r: [0, H, 0], target: .58 },
+  radiator: { p: [0, .5, -1.8], r: [0, H, 0], target: 1.45 },
   // suspension (front-left corner unless noted)
-  coil_spring: { p: [-1.67, 0.52, 0.66] },
-  damper: { p: [-1.67, 0.46, 0.62] },
-  cdc_damper: { p: [-1.67, 0.46, 0.62] },
-  body_shell: { p: [-1.67, 0.86, 0.6] },
-  chassis_ecu: { p: [0.95, 0.3, -0.42] },
-  ride_height_sensor: { p: [1.62, 0.3, 0.6], r: [0, -H, 0] },
-  air_spring: { p: [1.67, 0.42, 0.66] },
-  air_compressor: { p: [1.95, 0.26, 0.38] },
-  generic_ecu: { p: [-0.9, 0.7, -0.4] },
-  position_sensor: { p: [-1.52, 0.44, 0.3] },
-  height_sensor: { p: [1.62, 0.3, 0.6] },
+  coil_spring: { p: [.745, .52, -1.18], target: .42 },
+  damper: { p: [.745, .46, -1.18], target: .5 },
+  cdc_damper: { p: [.745, .46, -1.18], target: .28 },
+  body_shell: { p: [.745, .86, -1.18], target: .5 },
+  chassis_ecu: { p: [-.42, .3, .58], target: .24 },
+  ride_height_sensor: { p: [.8, .3, 1.16], r: [0, -H, 0], target: .1 },
+  air_spring: { p: [.745, .42, 1.16], target: .42 },
+  air_compressor: { p: [-.58, .26, .66], target: .4 },
+  generic_ecu: { p: [-.42, .7, .52], target: .24 },
+  position_sensor: { p: [.8, .44, -1.0], target: .1 },
+  height_sensor: { p: [.8, .3, 1.16], target: .1 },
 };
 const NETWORK = new Set(["can_harness", "hv_cable"]);
 const ECU = /^(vcu|mcu|bms|.*_ecu)$/;
@@ -108,6 +108,13 @@ export const FLOW_INFO: Record<string, { label: string; color: string; r: number
 
 type Node = { index: number; id: string; place: Place; copy: number };
 export type Segment = { from: Node; to: Node; flow: string; fromPort?: string; toPort?: string };
+
+/** Convert a model's authored metre geometry to the target physical envelope. */
+function modelScale(node: Node) {
+  if (node.place.s) return U * node.place.s;
+  const target = node.place.target;
+  return U * (target ? target / Math.max(...getPartModel(node.id).size) : 1);
+}
 
 function inferFlow(a: string, b: string): string {
   if (a === "hydraulic_modulator" || a === "brake_line") return "hydraulic_pressure";
@@ -160,11 +167,11 @@ function anchorWorld(node: Node, side: "in" | "out", port?: string): THREE.Vecto
     : ports?.find(item => item.direction === side && names.includes(item.id))?.id
       ?? (model.anchors[side] ? side : names[side === "in" ? 0 : names.length - 1]);
   const a = model.anchors[pick];
-  const s = U * (node.place.s ?? 1);
+  const s = modelScale(node);
   euler.set(...(node.place.r ?? [0, 0, 0]));
   return new THREE.Vector3(a[0] * s, a[1] * s, a[2] * s).applyEuler(euler).add(new THREE.Vector3(...offsetOf(node)));
 }
-const offsetOf = (node: Node): V3 => [node.place.p[0] * U, (node.place.p[1] + node.copy * .14) * U, node.place.p[2] * U];
+const offsetOf = (node: Node): V3 => [node.place.p[0] * U, node.place.p[1] * U, node.place.p[2] * U];
 
 function FlowCable({ a, b, flow, on, tag }: { a: THREE.Vector3; b: THREE.Vector3; flow: string; on: boolean; tag?: string }) {
   const info = FLOW_INFO[flow] ?? FLOW_INFO.digital;
@@ -206,7 +213,7 @@ function PlacedPart({ node, arrived, isInput, domain, feature, selected, onSelec
     onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = isInput ? "pointer" : "help"; }}
     onClick={!isInput ? event => { if ((event as any).delta > 6) return; event.stopPropagation(); onSelect?.(node.index); dispatchEvent(new CustomEvent("tb-garage-step", { detail: { index: node.index } })); } : undefined}
     onDoubleClick={event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: { domain, feature, index: node.index } })); }}>
-    <PartModel id={node.id} scale={U * (node.place.s ?? 1)} input={input} castShadow={false} />
+    <PartModel id={node.id} scale={modelScale(node)} input={input} castShadow={false} />
     {selected && <mesh scale={.34 * U}><sphereGeometry args={[1, 18, 14]} /><meshBasicMaterial color="#e09b35" transparent opacity={.18} depthWrite={false} /></mesh>}
     {(hovered || selected) && <Html center position={[0, .32 * U, 0]} distanceFactor={3.35} zIndexRange={[21, 0]}><span className={`garageVehiclePartLabel ${selected ? "selected" : ""}`}>{label}</span></Html>}
   </group>;
@@ -217,7 +224,7 @@ function SupportPart({ node, active }: { node: Node; active: boolean }) {
   const mode = model.moving[0]?.mode;
   const input = active ? (mode === "spin" ? 9 : mode === "rotate" ? .45 : 1) : 0;
   return <group position={offsetOf(node)} rotation={node.place.r ?? [0, 0, 0]}>
-    <PartModel id={node.id} scale={U * (node.place.s ?? 1)} input={input} castShadow={false} />
+    <PartModel id={node.id} scale={modelScale(node)} input={input} castShadow={false} />
   </group>;
 }
 
@@ -231,25 +238,18 @@ function ContextWheel({ position, active }: { position: V3; active: boolean }) {
   useFrame((_, delta) => { if (wheel.current && active) wheel.current.rotation.z -= delta * 7; });
   return <group position={position} ref={wheel}>
     <mesh><torusGeometry args={[.27 * U, .07 * U, 12, 40]} /><meshStandardMaterial color="#2a302f" transparent opacity={.72} roughness={.8} /></mesh>
-    <group rotation={[0, Math.PI / 2, 0]}><PartModel id="wheel" scale={U * 2.8} input={0} castShadow={false} /></group>
+    <PartModel id="wheel" scale={U * 1.7} input={0} castShadow={false} />
     {[0, 1, 2, 3].map(index => <mesh key={index} rotation={[0, 0, index * Math.PI / 2]}><boxGeometry args={[.035 * U, .34 * U, .025 * U]} /><meshStandardMaterial color="#aeb7b2" metalness={.55} roughness={.35} /></mesh>)}
   </group>;
 }
 
 /** Faint car around the parts: body outline, floor and four tyres at the real wheel positions. */
 function CarContext({ strong, wheelActive = false, showBody = true, showWheels = true }: { strong: boolean; wheelActive?: boolean; showBody?: boolean; showWheels?: boolean }) {
-  const body = useMemo(() => {
-    const s = new THREE.Shape();
-    // side profile in metres (front = -x): bumper, hood, windshield, roof, rear glass, trunk
-    const pts: [number, number][] = [[-2.35, .2], [-2.35, .55], [-2.15, .72], [-1.2, .8], [-0.55, 1.32], [0.55, 1.4], [1.35, 1.28], [1.95, .9], [2.35, .82], [2.35, .2]];
-    pts.forEach(([x, y], k) => (k ? s.lineTo(x * U, y * U) : s.moveTo(x * U, y * U)));
-    s.closePath();
-    return s;
-  }, []);
+  const body = useMemo(() => getBodyGeometry().clone(), []);
   return <group>
-    {showBody && <mesh position={[0, 0, -.9 * U]}><extrudeGeometry args={[body, { depth: 1.8 * U, bevelEnabled: false }]} /><meshStandardMaterial color="#d94e45" transparent opacity={strong ? .16 : .05} depthWrite={false} side={THREE.DoubleSide} /></mesh>}
-    <mesh position={[0, .05, 0]}><boxGeometry args={[4.4 * U, .02, 1.6 * U]} /><meshStandardMaterial color="#8d9a95" transparent opacity={.25} depthWrite={false} /></mesh>
-    {showWheels && [-1.67, 1.67].flatMap(x => [-.78, .78].map(z => <ContextWheel key={`${x}${z}`} position={[x * U, .33 * U, z * U]} active={wheelActive} />))}
+    {showBody && <mesh geometry={body} scale={U}><meshStandardMaterial color="#d94e45" transparent opacity={strong ? .16 : .05} depthWrite={false} side={THREE.DoubleSide} /></mesh>}
+    <mesh position={[0, .05 * U, 0]}><boxGeometry args={[CAR_DIMENSIONS.width * U, .02 * U, CAR_DIMENSIONS.length * U]} /><meshStandardMaterial color="#8d9a95" transparent opacity={.25} depthWrite={false} /></mesh>
+    {showWheels && [-1, 1].flatMap(side => [CAR_DIMENSIONS.frontAxleZ, CAR_DIMENSIONS.rearAxleZ].map(z => <ContextWheel key={`${side}${z}`} position={[side * CAR_DIMENSIONS.wheelX * U, CAR_DIMENSIONS.wheelRadius * U, z * U]} active={wheelActive} />))}
   </group>;
 }
 
@@ -264,11 +264,8 @@ export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell, 
     return { battery, contactor, inverter };
   }, [domain, feature, nodes]);
   const signals = getFeatureLayer(domain, feature, 0);
-  // centre the used parts in the view (the car moves with them)
-  const centre = useMemo(() => {
-    const xs = nodes.map(n => n.place.p[0]), zs = nodes.map(n => n.place.p[2]);
-    return [-(Math.min(...xs) + Math.max(...xs)) / 2 * U, -.25, -(Math.min(...zs) + Math.max(...zs)) / 2 * U] as V3;
-  }, [nodes]);
+  // Keep the model on the shared vehicle platform. Feature changes must not move the car.
+  const centre: V3 = [0, -.25, 0];
   const energizedStep = inputOn ? activeStep : -1;
   const arrived = (index: number) => inputOn && energizedStep >= index;
   const signalAt = (index: number) => signals[Math.min(signals.length - 1, Math.round(index * (signals.length - 1) / Math.max(1, getFeatureLayer(domain, feature, 1).length - 1)))];
