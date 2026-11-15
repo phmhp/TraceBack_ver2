@@ -20,7 +20,7 @@ import { ECUS } from "./sim/components";
 import { getComponent } from "./sim/registry";
 import { Picto, SimulinkDiagram, blockKind, plainText } from "./features/garage/SimulinkDiagram";
 import { EeBlueprint, type EeLayer } from "./features/garage/EeBlueprint";
-import { VehicleLayoutRig, flowLegend } from "./features/garage/VehicleLayout";
+import { VehicleLayoutRig, VehiclePlatformOverview, flowLegend } from "./features/garage/VehicleLayout";
 import { DRIVER, DUO, ENGINEER } from "./game/cast";
 import { Icon, type IconName } from "./ui/Icon";
 import { ArchitectureOverview } from "./features/garage/ArchitectureOverview";
@@ -482,15 +482,16 @@ function AllDomainsSystem({ domain, overlay = false, showWiring = true }: { doma
   const slot = (index: number): [number, number, number] => { const col = index % 3, row = Math.floor(index / 3); return [(col - 1) * 3.7, 0, (row - 1) * 3.3]; };
   // labels live outside the rigs so a slow part model never hides a name
   const labels = ids.map((id, index) => {
-    const position: [number, number, number] = overlay ? [-3.6 + index * 1.2, 2.3 + (index % 2) * .35, 0] : [slot(index)[0], 1.7, slot(index)[2]];
+    const position: [number, number, number] = overlay
+      ? [-2.7 + (index % 6) * 1.08, 2.35 + Math.floor(index / 6) * .32, 0]
+      : [slot(index)[0], 1.7, slot(index)[2]];
     return <PartLabel key={`label-${id}`} className={`allDomainLabel ${id === domain ? "allDomainOn" : ""}`} position={position}><Icon name={DOMAIN_ICON[id]} /> {domainContent[id].label}</PartLabel>;
   });
   // overlay: every domain sits in the same vehicle space, like layers of one car
   // the very first label after the canvas remounts is dropped by the label library, so a hidden one goes first
   const spacer = <PartLabel className="labelSpacer" position={[0, -20, 0]}>{" "}</PartLabel>;
   if (overlay) return <group rotation={[0, -.18, 0]}>
-    {spacer}{labels}
-    {ids.map((id, index) => <group key={id} position={[0, index * .02, 0]}><DomainFlowRig domain={id} feature={0} running={domain === null || id === domain} showWiring={showWiring} /></group>)}
+    {spacer}<VehiclePlatformOverview />
   </group>;
   return <group>
     {spacer}{labels}

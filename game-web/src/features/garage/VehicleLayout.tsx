@@ -253,7 +253,7 @@ function CarContext({ strong, wheelActive = false, showBody = true, showWheels =
   </group>;
 }
 
-export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell, selectedIndex = null, onSelect }: { domain: DomainId; feature: number; activeStep: number; inputOn: boolean; shell: boolean; selectedIndex?: number | null; onSelect?: (index: number) => void }) {
+export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell, selectedIndex = null, onSelect, context = true, showCables = true, showBadges = true }: { domain: DomainId; feature: number; activeStep: number; inputOn: boolean; shell: boolean; selectedIndex?: number | null; onSelect?: (index: number) => void; context?: boolean; showCables?: boolean; showBadges?: boolean }) {
   const { nodes, segments } = useMemo(() => layoutOf(domain, feature), [domain, feature]);
   const drivePower = useMemo(() => {
     if (domain !== "drive" || feature !== 0) return null;
@@ -275,23 +275,51 @@ export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell, 
   return <group position={centre} rotation={[0, -.18, 0]}>
     {/* drei Html drops the first label after a canvas remount: a hidden one goes first */}
     <Html position={[0, -40, 0]}><span /></Html>
-    <CarContext strong={shell} wheelActive={wheelActive} showBody={!hasBody} showWheels={!hasWheel} />
+    {context && <CarContext strong={shell} wheelActive={wheelActive} showBody={!hasBody} showWheels={!hasWheel} />}
     {drivePower && <>
       <SupportPart node={drivePower.battery} active={inputOn} />
       <SupportPart node={drivePower.contactor} active={inputOn} />
-      <FlowCable a={anchorWorld(drivePower.battery, "out", "dc_out")} b={anchorWorld(drivePower.contactor, "in", "hv_in")} flow="electrical_power" on={inputOn} />
-      <FlowCable a={anchorWorld(drivePower.contactor, "out", "hv_out")} b={anchorWorld(drivePower.inverter, "in", "dc_in")} flow="electrical_power" on={inputOn} tag={inputOn ? "고전압 전력 · 구동 에너지" : undefined} />
+      {showCables && <><FlowCable a={anchorWorld(drivePower.battery, "out", "dc_out")} b={anchorWorld(drivePower.contactor, "in", "hv_in")} flow="electrical_power" on={inputOn} />
+        <FlowCable a={anchorWorld(drivePower.contactor, "out", "hv_out")} b={anchorWorld(drivePower.inverter, "in", "dc_in")} flow="electrical_power" on={inputOn} tag={inputOn ? "고전압 전력 · 구동 에너지" : undefined} /></>}
     </>}
     {nodes.map(node => <PlacedPart key={`${node.id}-${node.copy}`} node={node} arrived={arrived(node.index)} isInput={node.index === 0} domain={domain} feature={feature} selected={selectedIndex === node.index} onSelect={onSelect} />)}
-    {segments.map((seg, k) => {
+    {showCables && segments.map((seg, k) => {
       const on = inputOn && energizedStep > seg.from.index;
       const newest = on && energizedStep <= seg.to.index && energizedStep > seg.from.index;
       return <FlowCable key={k} a={anchorWorld(seg.from, "out", seg.fromPort)} b={anchorWorld(seg.to, "in", seg.toPort)} flow={seg.flow} on={on}
         tag={newest ? `${(FLOW_INFO[seg.flow] ?? FLOW_INFO.digital).label} · ${signalAt(seg.to.index)}` : undefined} />;
     })}
-    {nodes.map(node => <Html key={`b-${node.id}-${node.copy}`} center position={[offsetOf(node)[0], offsetOf(node)[1] + .26, offsetOf(node)[2]]} distanceFactor={3.2} zIndexRange={[19, 0]}>
+    {showBadges && nodes.map(node => <Html key={`b-${node.id}-${node.copy}`} center position={[offsetOf(node)[0], offsetOf(node)[1] + .26, offsetOf(node)[2]]} distanceFactor={3.2} zIndexRange={[19, 0]}>
       <span className={`stepBadge ${arrived(node.index) ? "on" : ""}`}>{node.index + 1}</span>
     </Html>)}
+  </group>;
+}
+
+/**
+ * Whole-vehicle overview: merge every domain's physical chain into one platform.
+ * The same ECU, wheel hub, or battery must be rendered once even if several
+ * domain chains refer to it; overlaying eleven complete chains made the old
+ * overview look like a pile of duplicate parts.
+ */
+export function VehiclePlatformOverview() {
+  const domainOrder: DomainId[] = ["drive", "power", "charge", "thermal", "brake", "steer", "suspension", "gear", "vcu", "comm", "adas"];
+  const nodes = useMemo(() => {
+    const unique = new Map<string, Node>();
+    let index = 0;
+    for (const domain of domainOrder) {
+      const chain = layoutOf(domain, 0).nodes;
+      for (const node of chain) {
+        // Body and tyres are supplied by the shared vehicle context in overview mode.
+        if (node.id === "body_shell" || node.id === "wheel") continue;
+        const key = `${node.id}:${node.place.p.map(value => value.toFixed(3)).join(",")}`;
+        if (!unique.has(key)) unique.set(key, { ...node, index: index++, copy: 0 });
+      }
+    }
+    return [...unique.values()];
+  }, []);
+  return <group rotation={[0, -.18, 0]}>
+    <CarContext strong={false} showBody showWheels />
+    {nodes.map(node => <PlacedPart key={`${node.id}-${node.index}`} node={node} arrived={false} isInput={false} domain="drive" feature={0} selected={false} />)}
   </group>;
 }
 
