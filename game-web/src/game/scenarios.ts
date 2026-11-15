@@ -205,7 +205,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
         embedded: { seen: "APS 핀 전압 정상 · CAN 토크 명령 낮음", unseen: "VCU 내부 페달 처리값", why: "입력 회로와 SW가 함께 실행돼 둘 중 어디서 값이 줄었는지 나눌 수 없어요.", next: ["unit"] },
         vehicle: { seen: "페달(로거) 정상 · CAN 토크 낮음", unseen: "VCU 내부 페달 처리값", why: "입력 회로와 SW가 함께 실행돼 둘 중 어디서 값이 줄었는지 나눌 수 없어요.", next: ["unit"] },
       } },
-      { id: "drive", label: "인버터·구동 모터", truth: false, stage1: "도미노 역추적: VCU가 보낸 CAN 토크 명령부터 이미 낮았어요.", rules: [] },
+      { id: "drive", label: "인버터·구동 모터", truth: false, stage1: "도미노: VCU가 보낸 CAN 토크 명령부터 이미 낮았어요.", rules: [] },
     ],
   },
   thermal: {
@@ -253,7 +253,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
     regression: "같은 임베디드 SW·I/O 시험 PASS + 영향 범위 신호",
     status: "optional", review: "선택 사건 · 레이스 고장 트리거 미구현(퍼즐·검증만 진행)",
     hypotheses: [
-      { id: "blend_sw", label: "Brake ECU 회생·마찰 배분 SW", truth: false, stage1: "도미노 역추적: 내부 압력 계산값은 42 bar로 기준과 같았어요.", rules: [
+      { id: "blend_sw", label: "Brake ECU 회생·마찰 배분 SW", truth: false, stage1: "도미노: 내부 압력 계산값은 42 bar로 기준과 같았어요.", rules: [
         { levels: SW, need: { cmd: ["same"] }, verdict: "refuted", why: "SW 시험에서 압력 명령이 요구사항과 같아요." },
       ], decideAt: ["unit"], decide: "SW 단위 시험: 페달 55% 입력에서 마찰 압력 명령이 42 bar로 기준과 같으면 반박",
       hold: {
@@ -286,10 +286,10 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
     regression: "같은 SW 단위 시험(회생 요청 −40 Nm 유지) PASS + 영향 범위 신호",
     status: "optional", review: "수치 일치 확인(40 Nm ÷ 80 = 0.5 m/s²). 진단 미탐: 토크 방향 모니터는 100 Nm 이상에서만 판정",
     hypotheses: [
-      { id: "brake_sw", label: "Brake ECU 회생 요청 계산 SW", truth: false, stage1: "도미노 역추적: 회생 요청이 −40 Nm로 기준과 같았어요.", rules: [
+      { id: "brake_sw", label: "Brake ECU 회생 요청 계산 SW", truth: false, stage1: "도미노: 회생 요청이 −40 Nm로 기준과 같았어요.", rules: [
         { levels: SW, need: { req: ["same"] }, verdict: "refuted", why: "회생 요청이 기준과 같아요." },
       ] },
-      { id: "pedal", label: "가속 페달 입력", truth: false, stage1: "도미노 역추적: 가속 페달 값이 0%로 기준과 같았어요.", rules: [
+      { id: "pedal", label: "가속 페달 입력", truth: false, stage1: "도미노: 가속 페달 값이 0%로 기준과 같았어요.", rules: [
         { levels: ["vehicle"], need: { ped: ["same"] }, verdict: "refuted", why: "페달 값이 기준과 같아요." },
       ] },
       { id: "vcu_sign", label: "VCU 토크 지령 변환 SW(회생 부호 반영)", truth: true, rules: [
@@ -319,10 +319,10 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
     regression: "같은 임베디드 SW·I/O 시험(시동 요청, 프리차지 곡선 τ=250 ms) PASS + 영향 범위 신호",
     status: "optional", review: "수치 일치 확인(400×(1−e^(−t/250ms)): 500 ms 345.9 V, 750 ms 380.1 V, 1500 ms 399.0 V). 진단은 정탐이나 원인 미지정",
     hypotheses: [
-      { id: "bms_link", label: "BMS 시동 허용 신호", truth: false, stage1: "도미노 역추적: BMS 시동 허용이 1로 기준과 같았어요.", rules: [
+      { id: "bms_link", label: "BMS 시동 허용 신호", truth: false, stage1: "도미노: BMS 시동 허용이 1로 기준과 같았어요.", rules: [
         { levels: ["swint"], need: { req: ["same"] }, verdict: "refuted", why: "시동 요청 입력이 기준과 같아요." },
       ] },
-      { id: "start_cond", label: "VCU 시동 조건 판정(브레이크·기어·시동 버튼)", truth: false, stage1: "도미노 역추적: 시동 요청과 브레이크 입력이 기준대로 인식됐어요.", rules: [
+      { id: "start_cond", label: "VCU 시동 조건 판정(브레이크·기어·시동 버튼)", truth: false, stage1: "도미노: 시동 요청과 브레이크 입력이 기준대로 인식됐어요.", rules: [
         { levels: ["vehicle"], need: { req: ["same"] }, verdict: "refuted", why: "시동 요청 입력이 기준과 같아요." },
       ] },
       { id: "seq_timeout", label: "VCU 프리차지 시퀀스의 대기 시간 설정", truth: true, rules: [
@@ -353,7 +353,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
     regression: "같은 시스템 통합 시험(변속 후 0.2초 출발, 버스 부하 85 %) PASS: 기어 값 N, 구동 지령 0 Nm + 정상 부하 D 출발 정상",
     status: "optional", review: "수치 일치 확인(5×20 ms=100 ms, 120 ms>100 ms, 페달 40 %×1.5×(-1)=-60 Nm). 진단은 부분(디바운스 3회)",
     hypotheses: [
-      { id: "lever_hw", label: "변속 레버 접점 (HW)", truth: false, stage1: "도미노 역추적: 변속 레버 위치가 D로 기준과 같았어요.", rules: [
+      { id: "lever_hw", label: "변속 레버 접점 (HW)", truth: false, stage1: "도미노: 변속 레버 위치가 D로 기준과 같았어요.", rules: [
         { levels: ["vehicle"], need: { lever: ["same"] }, verdict: "refuted", why: "변속 레버 위치가 D로 기준과 같아요. 레버 접점은 정상이에요." },
       ], decideAt: ["vehicle"], decide: "시스템 통합 시험: 변속 레버 위치가 기준과 같으면 반박",
       hold: {
@@ -361,7 +361,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
         swint: { seen: "변속 입력 SWC 출력", unseen: "실제 레버 신호", why: "PC 통합 시험에는 실제 레버가 없어요.", next: ["vehicle"] },
         embedded: { seen: "시프터 핀 입력", unseen: "버스 지연", why: "제어기 한 대만으로는 버스 상태와 레버 연결을 함께 볼 수 없어요.", next: ["vehicle"] },
       } },
-      { id: "gw_map", label: "게이트웨이 신호 매핑", truth: false, stage1: "도미노 역추적: 게이트웨이 출력 기어가 D로 기준과 같았어요.", rules: [
+      { id: "gw_map", label: "게이트웨이 신호 매핑", truth: false, stage1: "도미노: 게이트웨이 출력 기어가 D로 기준과 같았어요.", rules: [
         { levels: ["vehicle"], need: { gw: ["same"] }, verdict: "refuted", why: "게이트웨이 출력이 D로 기준과 같아요. 중계는 정상이에요." },
       ], decideAt: ["vehicle"], decide: "시스템 통합 시험: 게이트웨이 출력이 기준과 같으면 반박",
       hold: {
@@ -377,7 +377,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
         swint: { seen: "변속 수신 SWC 기어 값", unseen: "메시지 간격", why: "PC 통합 시험에서는 버스 부하를 재현할 수 없어요.", next: ["vehicle"] },
         embedded: { seen: "VCU 기어 값 · 구동 지령", unseen: "메시지 간격", why: "제어기 한 대 시험에는 버스 부하가 없어 타임아웃이 일어나지 않아요.", next: ["vehicle"] },
       } },
-      { id: "interlock", label: "VCU 변속 인터록 판정", truth: false, stage1: "도미노 역추적: 브레이크 입력 조건이 정상으로 충족됐어요.", rules: [], decideAt: [], decide: "도미노 단계에서 브레이크 입력 조건이 정상으로 확인돼 반박돼요",
+      { id: "interlock", label: "VCU 변속 인터록 판정", truth: false, stage1: "도미노: 브레이크 입력 조건이 정상으로 충족됐어요.", rules: [], decideAt: [], decide: "도미노 단계에서 브레이크 입력 조건이 정상으로 확인돼 반박돼요",
       hold: {
         unit: { seen: "VCU 기어 값", unseen: "버스 상태", why: "단위 시험에서는 인터록과 폴백을 나눌 수 없어요.", next: ["vehicle"] },
         swint: { seen: "변속 수신 SWC 기어 값", unseen: "버스 상태", why: "PC 통합 시험에서는 인터록과 폴백을 나눌 수 없어요.", next: ["vehicle"] },
@@ -396,7 +396,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
     regression: "같은 시스템 통합 시험(0 °C, 회생 요청 -80 Nm) PASS: 사용 한계 20 Nm, 회생 토크 -20 Nm + 25 °C 정상 회생 유지",
     status: "optional", review: "수치 일치 확인(20+1.6×0=20 Nm, 25 °C에서 60 Nm, -60 Nm/80=-0.75 m/s²). 진단은 못 잡음",
     hypotheses: [
-      { id: "bms_calc", label: "BMS 회생 한계 산출", truth: false, stage1: "도미노 역추적: BMS 회생 한계가 20 Nm으로 온도에 맞는 값이었어요.", rules: [
+      { id: "bms_calc", label: "BMS 회생 한계 산출", truth: false, stage1: "도미노: BMS 회생 한계가 20 Nm으로 온도에 맞는 값이었어요.", rules: [
         { levels: ["vehicle"], need: { bms: ["same"] }, verdict: "refuted", why: "BMS 한계가 기준과 같아요. 산출은 정상이에요." },
       ], decideAt: ["vehicle"], decide: "시스템 통합 시험: BMS 한계가 기준과 같으면 반박",
       hold: {
@@ -404,7 +404,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
         swint: { seen: "회생 요청 SWC 출력", unseen: "BMS 한계", why: "PC 통합 시험에는 배터리 온도를 재현할 수 없어요.", next: ["vehicle"] },
         embedded: { seen: "제동 제어기 사용 한계", unseen: "BMS 한계", why: "제어기 한 대 시험에는 BMS가 연결되지 않아요.", next: ["vehicle"] },
       } },
-      { id: "gw_lag", label: "게이트웨이 한계 신호 중계", truth: false, stage1: "도미노 역추적: 게이트웨이가 전달한 한계가 20 Nm으로 기준과 같았어요.", rules: [
+      { id: "gw_lag", label: "게이트웨이 한계 신호 중계", truth: false, stage1: "도미노: 게이트웨이가 전달한 한계가 20 Nm으로 기준과 같았어요.", rules: [
         { levels: ["vehicle"], need: { gw: ["same"] }, verdict: "refuted", why: "게이트웨이 전달 한계가 기준과 같아요. 중계는 정상이에요." },
       ], decideAt: ["vehicle"], decide: "시스템 통합 시험: 전달 한계가 기준과 같으면 반박",
       hold: {
@@ -420,7 +420,7 @@ export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
         swint: { seen: "사용 한계 (모델 입력)", unseen: "BMS·게이트웨이 한계", why: "PC 통합 시험에서는 배터리 온도에 따른 한계 변화를 만들 수 없어요.", next: ["vehicle"] },
         embedded: { seen: "제동 제어기 사용 한계", unseen: "BMS·게이트웨이 한계", why: "제어기 한 대 시험에는 BMS 신호가 연결되지 않아요.", next: ["vehicle"] },
       } },
-      { id: "inv_cfg", label: "인버터 토크 제한 설정", truth: false, stage1: "도미노 역추적: 인버터는 받은 요청대로 토크를 냈어요. 요청이 이미 과했어요.", rules: [], decideAt: [], decide: "도미노 단계에서 인버터가 요청대로 동작해 반박돼요" },
+      { id: "inv_cfg", label: "인버터 토크 제한 설정", truth: false, stage1: "도미노: 인버터는 받은 요청대로 토크를 냈어요. 요청이 이미 과했어요.", rules: [], decideAt: [], decide: "도미노 단계에서 인버터가 요청대로 동작해 반박돼요" },
     ],
   },
 };
