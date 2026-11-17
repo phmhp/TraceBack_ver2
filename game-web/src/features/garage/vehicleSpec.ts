@@ -183,6 +183,18 @@ const rearSuspension = (corner: "rl" | "rr"): PhysicalInstance[] => [
 ];
 
 const wheelInstances = cornerInstances("wheel", "wheel", "PLACE.wheel", "unverified");
+const steeringKnuckleInstances = ["fl", "fr"].map(corner => ({
+  instanceId: `steering_knuckle.${corner}`,
+  componentId: "steering_knuckle",
+  modelId: "steering_knuckle",
+  corner: corner as CornerId,
+  geometryMode: "standalone" as const,
+  assetStatus: "present" as const,
+  placementKey: "PLACE.steering_knuckle",
+  placementStatus: "unverified" as const,
+  ownerAssemblyId: `wheel_brake_assembly.${corner}`,
+  note: "Dedicated knuckle model is connected; steering and strut mount axes still require browser QA.",
+}));
 const brakeInstances = cornerInstances("brake_caliper", "brake_caliper", "PLACE.brake_caliper", "unverified");
 const wheelSpeedInstances = cornerInstances("wheel_speed_sensor", "wheel_speed_sensor", "PLACE.wheel_speed_sensor", "unverified");
 
@@ -192,6 +204,7 @@ export const PHASE0_VEHICLE_SPEC: VehicleSpec = {
   profiles: ["coil_cdc_base", "air_cdc_option", "cdc_full_corner_option"],
   physicalInstances: [
     ...wheelInstances,
+    ...steeringKnuckleInstances,
     ...brakeInstances,
     ...wheelSpeedInstances,
     ...frontSuspension("fl"),
@@ -233,7 +246,7 @@ export const PHASE0_VEHICLE_SPEC: VehicleSpec = {
     known("park_ecu", "park_ecu", "park_ecu", "PLACE.park_ecu", { assemblyId: "front_eaxle_assembly", note: "ECU is body-mounted; assembly relationship is logical, not co-located geometry." }),
     known("park_lock_actuator", "park_lock_actuator", "park_lock_actuator", "PLACE.park_lock_actuator", { assemblyId: "front_eaxle_assembly", placementStatus: "unverified" }),
     known("park_position_sensor", "park_position_sensor", "park_position_sensor", "PLACE.park_position_sensor", { assemblyId: "front_eaxle_assembly", placementStatus: "unverified" }),
-    { instanceId: "park_pawl", componentId: "park_pawl", modelId: "park_pawl", geometryMode: "integrated", assetStatus: "missing-required", assemblyId: "front_eaxle_assembly", placementKey: "VehicleSpec pending anchor audit", placementStatus: "unverified", note: "A provisional visual/reference is connected, but the internal pawl engagement position is not confirmed and must not be presented as an engineering-complete assembly." },
+    { instanceId: "park_pawl", componentId: "park_pawl", modelId: "park_pawl", geometryMode: "integrated", assetStatus: "present", assemblyId: "front_eaxle_assembly", placementKey: "PLACE.park_pawl", placementStatus: "unverified", note: "Reference artwork and authored pawl model are connected; the placement remains an explicit vehicle-layout QA item until the e-axle cutaway is visually checked." },
     known("instrument_cluster", "instrument_cluster", "instrument_cluster", "PLACE.instrument_cluster"),
     { instanceId: "external_evse", componentId: "external_evse", geometryMode: "external", assetStatus: "signal-only", placementStatus: "missing", note: "External equipment is represented as a signal/external view in Phase 0." },
     { instanceId: "wheel_acceleration_sensor.fl", componentId: "wheel_acceleration_sensor", corner: "fl", geometryMode: "standalone", assetStatus: "missing-optional", placementStatus: "missing", requiredProfiles: ["cdc_full_corner_option"], note: "Optional full-corner CDC measurement." },
@@ -246,7 +259,7 @@ export const PHASE0_VEHICLE_SPEC: VehicleSpec = {
     { assemblyId: "front_strut_assembly.fl", componentId: "front_strut", childInstanceIds: ["coil_spring.fl", "cdc_damper.fl"], geometryOwner: "children", defaultMode: "collapsed", fixedInstanceIds: ["coil_spring.fl", "cdc_damper.fl"] },
     { assemblyId: "front_strut_assembly.fr", componentId: "front_strut", childInstanceIds: ["coil_spring.fr", "cdc_damper.fr"], geometryOwner: "children", defaultMode: "collapsed", fixedInstanceIds: ["coil_spring.fr", "cdc_damper.fr"] },
     { assemblyId: "rear_torsion_beam_assembly", componentId: "rear_torsion_beam", childInstanceIds: ["coil_spring.rl", "coil_spring.rr", "cdc_damper.rl", "cdc_damper.rr"], geometryOwner: "children", defaultMode: "collapsed", fixedInstanceIds: ["coil_spring.rl", "coil_spring.rr", "cdc_damper.rl", "cdc_damper.rr"] },
-    ...CORNERS.map(corner => ({ assemblyId: `wheel_brake_assembly.${corner}`, componentId: "wheel_brake", childInstanceIds: [`wheel.${corner}`, `brake_caliper.${corner}`, `wheel_speed_sensor.${corner}`], geometryOwner: "children" as const, defaultMode: "collapsed" as const, rotatingInstanceIds: [`wheel.${corner}`], fixedInstanceIds: [`brake_caliper.${corner}`, `wheel_speed_sensor.${corner}`] })),
+    ...CORNERS.map(corner => ({ assemblyId: `wheel_brake_assembly.${corner}`, componentId: "wheel_brake", childInstanceIds: [`wheel.${corner}`, ...(corner === "fl" || corner === "fr" ? [`steering_knuckle.${corner}`] : []), `brake_caliper.${corner}`, `wheel_speed_sensor.${corner}`], geometryOwner: "children" as const, defaultMode: "collapsed" as const, rotatingInstanceIds: [`wheel.${corner}`], fixedInstanceIds: [`steering_knuckle.${corner}`, `brake_caliper.${corner}`, `wheel_speed_sensor.${corner}`] })),
   ],
   signalObjects: [
     { signalId: "CAN.ParkRequest", kind: "can", sourceIds: ["vcu", "park_ecu"], targetIds: ["park_ecu", "park_lock_actuator"] },

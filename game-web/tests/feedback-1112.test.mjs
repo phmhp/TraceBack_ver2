@@ -133,6 +133,15 @@ test("Scenario data: hold reasons and deciding levels match the judging rules un
   }
 });
 
+test("STEP02 and STEP04 expose the same bounded candidate hypothesis set", async () => {
+  const { CANDIDATE_HYPOTHESIS_IDS, SCENARIO_META } = await import("../src/game/scenarios.ts");
+  for (const [caseId, ids] of Object.entries(CANDIDATE_HYPOTHESIS_IDS)) {
+    assert.equal(ids.length, 2, `${caseId}: candidate limit`);
+    assert.equal(new Set(ids).size, 2, `${caseId}: candidate ids are unique`);
+    for (const id of ids) assert.ok(SCENARIO_META[caseId].hypotheses.some(h => h.id === id), `${caseId}/${id}: hypothesis exists`);
+  }
+});
+
 test("STEP04 hold feedback uses the scenario hold data; the dialogue bar shows the full reason after an answer", () => {
   assert.match(live04, /const hold = hypDef\?\.hold\?\.\[lastRun\.level\];/);
   assert.match(live04, /hypDef\?\.decideAt \? hypDef\.decideAt\.includes\(lv\)/);
@@ -215,7 +224,7 @@ test("STEP04 input conditions matter: an input outside the fault condition passe
   assert.match(live04, /const exercised = exercisesFaultPath\(caseId, sim\.levels\);/);
   assert.match(live04, /judgeRun\(caseId, \{ level: lastRun\.level, fixed: false, obs: lastRun\.obs, exercised: lastRun\.exercised \}\)/);
   assert.match(lab, /equiv: \{ tag: "다른 입력 구간 시험"/);
-  assert.match(lab, /tag: "경계값 시험 · 입력 상한", purpose: "페달 100%\(입력 범위 끝\)에서 토크 요청이 가용 한계 260 Nm를 넘지 않게 제한되는지 확인"/);
+  assert.match(lab, /tag: "경계값 시험 · 입력 상한", purpose: "입력 범위 끝에서 출력 제한이 지켜지는지 확인"/);
   assert.match(live04, /PASS가 고장이 없다는 뜻은 아니에요/);
   assert.match(live04, /b4ModelBar/); assert.match(live04, /고장 시나리오 모델/);
 });

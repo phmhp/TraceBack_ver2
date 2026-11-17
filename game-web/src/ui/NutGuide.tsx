@@ -9,13 +9,22 @@ import "./nutguide.css";
  *  - `lines`: the 3 spoken sentences (what you did / what happens now / how to do it)
  *  - `ask`: the one short question or instruction kept in the dock
  */
-export function NutGuide({ id, who, avatar, lines, ask, note, bad }: { id: string; who: string; avatar: string; lines: string[]; ask: string; note?: string; bad?: boolean }) {
+export function NutGuide({ id, who, avatar, lines, ask, note, bad, showAgain = true }: { id: string; who: string; avatar: string; lines: string[]; ask: string; note?: string; bad?: boolean; showAgain?: boolean }) {
   const seenKey = `tb-nut-${id}`;
   const readSeen = () => { try { return sessionStorage.getItem(seenKey) === "1"; } catch { return false; } };
   const [open, setOpen] = useState(() => !readSeen());
   const last = useRef(id);
   useEffect(() => { if (last.current !== id) { last.current = id; setOpen(!readSeen()); } }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   const close = () => { setOpen(false); try { sessionStorage.setItem(seenKey, "1"); } catch { /* ignore */ } };
+  useEffect(() => {
+    const reopen = (event: Event) => {
+      const requested = (event as CustomEvent<string | { id?: string }>).detail;
+      const requestedId = typeof requested === "string" ? requested : requested?.id;
+      if (requestedId === id) setOpen(true);
+    };
+    window.addEventListener("tb-nutguide-reopen", reopen);
+    return () => window.removeEventListener("tb-nutguide-reopen", reopen);
+  }, [id]);
   useEffect(() => {
     if (!open) return;
     // while the popup is open it owns the keyboard: Enter / Space / Esc close it, nothing reaches the step
@@ -35,7 +44,7 @@ export function NutGuide({ id, who, avatar, lines, ask, note, bad }: { id: strin
       </div>
     </div>
     {note && <p className={`nutNote ${bad ? "bad" : ""}`} role="status">{numify(note)}</p>}
-    <button className="nutAgain" onClick={() => setOpen(true)}>푸는 방법 다시 보기</button>
+    {showAgain && <button className="nutAgain" onClick={() => setOpen(true)}>푸는 방법 다시 보기</button>}
     {open && <>
       <div className="nutFocusBackdrop" aria-hidden="true" />
       <div className="nutPopup" role="dialog" aria-label={`${who}의 설명`}>

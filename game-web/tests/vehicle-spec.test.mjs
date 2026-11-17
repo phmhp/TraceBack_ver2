@@ -49,10 +49,18 @@ test("reverse audit covers all 11 domains and four functions without hiding unre
 test("Phase 0 audit preserves unresolved findings while removing index fallback", () => {
   const result = validateVehicleSpec(PHASE0_VEHICLE_SPEC);
   assert.equal(result.ok, false, "unresolved Phase 0 findings must not be reported as clean");
-  assert.ok(result.errors.some(issue => issue.code === "MISSING_MODEL"));
+  assert.ok([...result.errors, ...result.warnings].some(issue => issue.code === "MISSING_MODEL"));
   assert.ok(result.warnings.some(issue => issue.code === "UNVERIFIED_PLACEMENT"));
   assert.equal(result.errors.some(issue => issue.code === "FALLBACK_PLACEMENT"), false);
   assert.ok(CURRENT_LAYOUT_PLACEMENT_AUDIT.some(item => item.componentId === "evcc" && item.status === "unverified"));
+});
+
+test("front e-axle park pawl uses the supplied authored asset and placement key", () => {
+  const pawl = PHASE0_VEHICLE_SPEC.physicalInstances.find(item => item.instanceId === "park_pawl");
+  assert.equal(pawl?.assetStatus, "present");
+  assert.equal(pawl?.modelId, "park_pawl");
+  assert.equal(pawl?.placementKey, "PLACE.park_pawl");
+  assert.notEqual(pawl?.assetStatus, "missing-required");
 });
 
 test("validator detects duplicate IDs and missing mount anchors", () => {

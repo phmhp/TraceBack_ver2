@@ -31,9 +31,15 @@ export function StageIntro({ id, title, goal, steps, stage, onClose }: { id: str
   const [open, setOpen] = useState(true);
   const close = () => { setOpen(false); onClose?.(); };
   useEffect(() => {
-    if (!open) return;
+    const reopen = (event: Event) => {
+      const requested = (event as CustomEvent<string | { id?: string }>).detail;
+      const requestedId = typeof requested === "string" ? requested : requested?.id;
+      if (!requestedId || requestedId === id) setOpen(true);
+    };
+    addEventListener("tb-stage-intro-reopen", reopen);
+    if (!open) return () => removeEventListener("tb-stage-intro-reopen", reopen);
     const key = (event: KeyboardEvent) => { if (event.key === "Enter" || event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(); } };
-    addEventListener("keydown", key, true); return () => removeEventListener("keydown", key, true);
+    addEventListener("keydown", key, true); return () => { removeEventListener("keydown", key, true); removeEventListener("tb-stage-intro-reopen", reopen); };
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!open) return null;
   return <div className="stageIntro stageGate" role="dialog" aria-modal="true" aria-labelledby={`stage-gate-${id}`} data-stage-intro={id}>

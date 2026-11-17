@@ -20,6 +20,7 @@ const printMetrics = process.env.TRACEBACK_CAPTURE_METRICS === "1";
 const activateGarageInput = process.env.TRACEBACK_CAPTURE_GARAGE_ACTIVE === "1";
 const solveBoard = process.env.TRACEBACK_CAPTURE_BOARD_SOLVED === "1";
 const zoomBoardEvidence = process.env.TRACEBACK_CAPTURE_BOARD_ZOOM === "1";
+const interactBoard = process.env.TRACEBACK_CAPTURE_BOARD_INTERACTIONS === "1";
 const forceIntros = process.env.TRACEBACK_CAPTURE_FORCE_INTROS === "1";
 const solvePuzzle = process.env.TRACEBACK_CAPTURE_PUZZLE_SOLVED === "1";
 const openPuzzleContract = process.env.TRACEBACK_CAPTURE_PUZZLE_CONTRACT === "1";
@@ -266,13 +267,13 @@ async function main() {
       }
       if (auditGarageInteractions && screen.url.includes("domain=drive") && screen.name.includes("02_garage_drive_system")) {
         const result = await page.send("Runtime.evaluate", {
-          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); const root = document.querySelector('.scaleFrame')?.contentDocument ?? document; const button = [...root.querySelectorAll('button')].find(item => item.textContent?.includes('배선 보기')); button?.click(); await wait(120); return JSON.stringify({ clicked: Boolean(button), on: Boolean(button?.classList.contains('on')) }); })()`,
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); const root = document.querySelector('.scaleFrame')?.contentDocument ?? document; const buttons = [...root.querySelectorAll('button')]; const button = buttons.find(item => (item.textContent ?? '').includes('배선')); const before = button?.textContent ?? ''; button?.click(); await wait(120); return JSON.stringify({ clicked: Boolean(button), before, after: button?.textContent ?? '', toggled: Boolean(button && before !== button.textContent), rootClass: root.querySelector('#root>div')?.className ?? '', buttons: buttons.map(item => ({ text: item.textContent?.trim() ?? '', cls: String(item.className ?? '') })).slice(-20), body: root.body?.innerText?.slice(0, 500) ?? '' }); })()`,
           awaitPromise: true,
           returnByValue: true,
         });
         const state = JSON.parse(result.result?.value ?? "{}");
         process.stdout.write(`[garage-interaction] ${screen.name} ${JSON.stringify(state)}\n`);
-        if (!state.clicked || !state.on) throw new Error(`Garage wiring control did not activate: ${JSON.stringify(state)}`);
+        if (!state.clicked || !state.toggled) throw new Error(`Garage wiring control did not toggle: ${JSON.stringify(state)}`);
       }
       if (clickGarageArchitecture && screen.name.includes("01c_garage_architecture")) {
         const result = await page.send("Runtime.evaluate", {
@@ -287,14 +288,59 @@ async function main() {
       if (screen.url.includes("qa=BOARD") && solveBoard) {
         await page.send("Runtime.evaluate", { expression: "document.querySelector('.secretSolve')?.click()" });
       }
+      if (screen.url.includes("qa=BOARD") && interactBoard) {
+        const wrongResult = await page.send("Runtime.evaluate", {
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); const root = document.querySelector('.scaleFrame')?.contentDocument ?? document; await wait(500); const wrong = root.querySelector('.etFlags .no'); wrong?.click(); await wait(120); return JSON.stringify({ wrongFeedback: Boolean(root.querySelector('.nutNote.bad')) && Boolean(root.querySelector('.verdictLayer')), candidate: root.querySelector('.etCand')?.textContent ?? '', flags: root.querySelectorAll('.etFlags button').length }); })()`,
+          awaitPromise: true,
+          returnByValue: true,
+        });
+        const wrongState = JSON.parse(wrongResult.result?.value ?? "{}");
+        // Open the real section-choice boundary through a development-only QA
+        // query. This keeps the production flow untouched while testing the
+        // hint in the same React state that follows trace judging.
+        const reloaded = page.waitFor("Page.loadEventFired");
+        await page.send("Page.navigate", { url: new URL("/?qa=BOARD&hint=1", baseUrl).href });
+        await reloaded;
+        await page.send("Runtime.evaluate", { expression: "(document.querySelector('.scaleFrame')?.contentDocument ?? document).querySelector('.stageIntro button, .nutOk')?.click()" });
+        await page.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+        await page.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+        await delay(220);
+        const result = await page.send("Runtime.evaluate", {
+          expression: `(async () => { const root = document.querySelector('.scaleFrame')?.contentDocument ?? document; const hint = root.querySelector('.etHintButton'); hint?.click(); await new Promise(resolve => setTimeout(resolve, 180)); return JSON.stringify({ hint: Boolean(hint), hintText: hint?.textContent?.trim() ?? '', zoneTab: Boolean(root.querySelector('.etZoneTab')), phase: root.querySelector('.eeTrace')?.className ?? '' }); })()`,
+          awaitPromise: true,
+          returnByValue: true,
+        });
+        const state = { ...wrongState, ...JSON.parse(result.result?.value ?? "{}") };
+        process.stdout.write(`[board-interaction] ${screen.name} ${JSON.stringify(state)}\n`);
+        if (!state.wrongFeedback || !state.hint || !state.zoneTab) throw new Error(`Board interaction QA failed: ${JSON.stringify(state)}`);
+      }
       if (screen.url.includes("qa=BOARD") && zoomBoardEvidence) {
         await page.send("Runtime.evaluate", { expression: "document.querySelector('.pol.record')?.click()" });
       }
       if (screen.url.includes("qa=WIRING") && solvePuzzle) {
-        await page.send("Runtime.evaluate", {
-          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); document.querySelector('.secretSolve')?.click(); await wait(100); document.querySelector('.rpRun')?.click(); await wait(4000); document.querySelector('.rpRun')?.click(); await wait(250); ${openPuzzleContract ? "document.querySelector('.rpExpect')?.click();" : ""} })()`,
-          awaitPromise: true,
-        });
+        const dragWait = 180;
+        const correctPropulsion = [{ pieceIndex: 4, gap: 3 }, { pieceIndex: 2, gap: 5 }, { pieceIndex: 0, gap: 6 }];
+        for (const target of correctPropulsion) {
+          const source = await page.send("Runtime.evaluate", {
+            expression: `(() => { const frame = document.querySelector('.scaleFrame'); const root = frame?.contentDocument ?? document; const piece = [...root.querySelectorAll('.rpChoicePiece')][${target.pieceIndex}]; const gap = root.querySelector('.rpGap[aria-label^="${target.gap + 1}번"]'); if (!piece || !gap) return null; const a = piece.getBoundingClientRect(), b = gap.getBoundingClientRect(), f = frame?.getBoundingClientRect() ?? {left:0,top:0}; return { sx:f.left+a.left+a.width/2, sy:f.top+a.top+a.height/2, gx:f.left+b.left+b.width/2, gy:f.top+b.top+b.height/2 }; })()`,
+            returnByValue: true,
+          });
+          const point = source.result?.value;
+          if (!point) break;
+          await page.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.sx, y: point.sy });
+          await page.send("Input.dispatchMouseEvent", { type: "mousePressed", x: point.sx, y: point.sy, button: "left", clickCount: 1 });
+          await page.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: (point.sx + point.gx) / 2, y: (point.sy + point.gy) / 2, button: "left" });
+          await page.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.gx, y: point.gy, button: "left" });
+          await page.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: point.gx, y: point.gy, button: "left", clickCount: 1 });
+          await delay(dragWait);
+        }
+        await page.send("Runtime.evaluate", { expression: "(document.querySelector('.scaleFrame')?.contentDocument ?? document).querySelector('.rpRun:not([disabled])')?.click()" });
+        await delay(3000);
+        await page.send("Runtime.evaluate", { expression: "(document.querySelector('.scaleFrame')?.contentDocument ?? document).querySelector('.rpRun:not([disabled])')?.click()" });
+        await delay(350);
+        await page.send("Runtime.evaluate", { expression: "(document.querySelector('.scaleFrame')?.contentDocument ?? document).querySelector('.rpRun:not([disabled])')?.click()" });
+        await delay(400);
+        if (openPuzzleContract) await page.send("Runtime.evaluate", { expression: "(document.querySelector('.scaleFrame')?.contentDocument ?? document).querySelector('.rpExpect')?.click()" });
       }
       if (screen.url.includes("qa=WIRING") && dragPuzzle) {
         await delay(900);
@@ -327,10 +373,19 @@ async function main() {
         await delay(2300);
       }
       if (driveBench && screen.url.includes("qa=TWIN_BENCH")) {
-        await page.send("Runtime.evaluate", {
-          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); const root = document.querySelector('.scaleFrame')?.contentDocument ?? document; root.querySelector('.qaTests button')?.click(); await wait(120); const input = root.querySelector('.qaInputs button'); input?.click(); await wait(120); ${screen.url.includes("tab=ecu") ? "[...root.querySelectorAll('.v7Tabs button')].find(b => b.textContent?.includes('제어기'))?.click();" : screen.url.includes("tab=plant") ? "[...root.querySelectorAll('.v7Tabs button')].find(b => b.textContent?.includes('부품'))?.click();" : screen.url.includes("tab=graph") ? "[...root.querySelectorAll('.v7Tabs button')].find(b => b.textContent?.includes('모니터링'))?.click();" : ""} })()`,
+        const result = await page.send("Runtime.evaluate", {
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); const root = document.querySelector('.scaleFrame')?.contentDocument ?? document; const click = (selector, index = 0) => { const item = [...root.querySelectorAll(selector)][index]; item?.click(); return Boolean(item); }; const state = {}; state.hypothesis = click('.b4HypChoices .b4Card', ${screen.url.includes("tab=ecu") ? 1 : 0}); await wait(180); state.level = click('.b4Cards .levelChoice', ${screen.url.includes("tab=plant") ? 2 : screen.url.includes("tab=ecu") ? 1 : 0}); await wait(180); const docs = [...root.querySelectorAll('.b4DocBtns button')]; state.tcOpen = Boolean(docs[0]); docs[0]?.click(); await wait(120); state.tcDialog = Boolean(root.querySelector('.rpFolderBack[role="dialog"]')); root.querySelector('.rpFolderTabs button[aria-label="닫기"]')?.click(); await wait(100); docs[1]?.click(); await wait(120); state.logDialog = Boolean(root.querySelector('.rpFolderBack[role="dialog"]')); root.querySelector('.rpFolderTabs button[aria-label="닫기"]')?.click(); await wait(100); state.input = click('.b4Cards .b4Card.input', ${screen.url.includes("tab=plant") ? 2 : screen.url.includes("tab=ecu") ? 1 : 0}); await wait(160); state.run = click('.b4Cards .b4Card.run'); await wait(4800); state.tabs = [...root.querySelectorAll('.b4Panel > header nav button')].map(b => b.textContent?.trim() ?? ''); state.result = Boolean(root.querySelector('.qaResultState')); return JSON.stringify(state); })()`,
           awaitPromise: true,
+          returnByValue: true,
         });
+        process.stdout.write(`[bench-interaction] ${screen.name} ${result.result?.value ?? "{}"}\n`);
+      }
+      if (screen.name.includes("lab_sw_logic")) {
+        const benchDiag = await page.send("Runtime.evaluate", {
+          expression: `JSON.stringify((() => { const root=document.querySelector('.scaleFrame')?.contentDocument ?? document; const dock=root.querySelector('.b4Dock'); return { choices: root.querySelectorAll('.b4Choices').length, cards: root.querySelectorAll('.b4Choices .b4Card').length, dock: dock ? [...dock.children].map(el => { const r=el.getBoundingClientRect(); return {cls:String(el.className||''),text:(el.textContent||'').trim().slice(0,80),x:r.x,y:r.y,w:r.width,h:r.height,display:getComputedStyle(el).display}; }) : [], b4Cards: [...root.querySelectorAll('.b4Cards')].map(el => { const r=el.getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height,display:getComputedStyle(el).display}; }) }; })())`,
+          returnByValue: true,
+        });
+        process.stdout.write(`[bench-diagnostic] ${screen.name} ${benchDiag.result?.value ?? "{}"}\n`);
       }
       if (autoDriveFinale && screen.name.includes("final_dock_race")) {
         await page.send("Page.bringToFront");

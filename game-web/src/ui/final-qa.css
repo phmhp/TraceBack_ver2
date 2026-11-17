@@ -126,7 +126,7 @@ body :is(.eeTrace, .refPuzzle.v2, .vbBench.bench4.qa2) :is(
 
 /* Polaroid image windows are always square. */
 body :is(.eeTrace, .vbBench.bench4.qa2, .refPuzzle.v2) :is(
-  .polPhoto, .polPhoto.big, .etCardPol .polPhoto,
+  .polPhoto, .polPhoto.big, .etCardPol .polPhoto, .dtPolPic,
   .b4ChoicePhoto, .b4LevelPhoto, .hypPhotoWin, .causePhotoWin) {
   aspect-ratio: 1 / 1 !important;
   height: auto !important;
@@ -140,6 +140,52 @@ body :is(.eeTrace, .vbBench.bench4.qa2, .refPuzzle.v2) :is(
   height: 100% !important;
   object-fit: contain !important;
   display: block !important;
+}
+
+/* The old intro card rendered a role icon even when a real authored part
+   model existed. Keep the card's hit area fixed, but make its preview use the
+   same square-ish 3D surface as the inspector. */
+.garageV2 .ecuCardModel {
+  width: 104px !important;
+  height: 96px !important;
+  flex: 0 0 104px !important;
+  overflow: hidden !important;
+  border: 1px solid #dfcdbf !important;
+  border-radius: 10px !important;
+  background: #f6efe9 !important;
+}
+.garageV2 .ecuCardModel canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+.garageV2 .ecuAssetPending {
+  width: 104px !important;
+  height: 96px !important;
+  flex: 0 0 104px !important;
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  gap: 4px !important;
+  padding: 8px !important;
+  border: 1px dashed #ba6b5c !important;
+  border-radius: 10px !important;
+  background: #fff7ef !important;
+  color: #9a5147 !important;
+  font: 800 10px/1.2 Pretendard, system-ui, sans-serif !important;
+  text-align: center !important;
+}
+.garageV2 .ecuAssetPending svg { width: 20px !important; height: 20px !important; }
+.garageV2 .garageMissingModel--inspection {
+  display: inline-block !important;
+  padding: 7px 9px !important;
+  border: 1px dashed #ba6b5c !important;
+  border-radius: 7px !important;
+  background: rgba(255,247,239,.96) !important;
+  color: #9a5147 !important;
+  font: 800 11px/1.2 Pretendard, system-ui, sans-serif !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
 }
 
 /* Puzzle: the tray and board are one visual workspace.  Keep the fixed piece
@@ -170,6 +216,16 @@ body :is(.rpFolderBack, .nutFocusBackdrop) { position: fixed !important; inset: 
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
+.vbBench.bench4.qa2 .b4WhyLevel b.cannot,
+.vbBench.bench4.qa2 .qaResultState.inconclusive b,
+.vbBench.bench4.qa2 .qaResultState span mark {
+  background: #fff09a !important;
+  color: #3f302b !important;
+  padding: 0 3px !important;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.vbBench.bench4.qa2 .b4WhyLevel b.cannot { display: inline-block; }
 .vbBench.bench4.qa2 .b4PanelBody { overflow: hidden !important; }
 .vbBench.bench4.qa2 .b4PanelBody > :is(.qaSetupPanel, .qaPanel, .b4PickGuide) { overflow: hidden !important; }
 

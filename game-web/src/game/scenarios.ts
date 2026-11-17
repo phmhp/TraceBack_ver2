@@ -175,6 +175,22 @@ export const HYP_TAG: Record<string, HypTag> = {
   bms_calc: "SW 로직", gw_lag: "통신", brake_fixed: "SW 설정", inv_cfg: "SW 설정",
 };
 
+/**
+ * The two hypotheses carried from STEP02 into the verification bench.
+ * Keep this list explicit instead of relying on array order: stage-1
+ * refutations and scenario additions must not silently change the player
+ * journey or make STEP02 and STEP04 show different candidates.
+ */
+export const CANDIDATE_HYPOTHESIS_IDS: Record<CaseId, [string, string]> = {
+  propulsion: ["vcu_sw", "vcu_hw"],
+  thermal: ["fan_sw", "fan_path"],
+  brake: ["blend_sw", "hyd_path"],
+  regen: ["vcu_sign", "brake_sw"],
+  ready: ["seq_timeout", "bms_link"],
+  cold: ["brake_fixed", "bms_calc"],
+  gear: ["gear_fallback", "lever_hw"],
+};
+
 export const SCENARIO_META: Record<CaseId, ScenarioMeta> = {
   propulsion: {
     domain: "구동",

@@ -137,20 +137,15 @@ function GarageFlowPart({ label, position, kind, active, running, role, partId, 
  * Keep a small, neutral inspection marker in the player-facing garage so the
  * omission is visible and traceable without pretending that the part exists. */
 function MissingGaragePart({ kind }: { kind: HardwareKind }) {
-  const color = kind === "sensor" ? "#d6a427" : "#ba6b5c";
-  return <group>
-    <mesh rotation={[Math.PI / 2, 0, 0]}>
-      <torusGeometry args={[.26, .035, 10, 24]} />
-      <meshBasicMaterial color={color} transparent opacity={.9} />
-    </mesh>
-    <mesh position={[0, 0, 0]}>
-      <sphereGeometry args={[.075, 12, 8]} />
-      <meshBasicMaterial color={color} transparent opacity={.75} />
-    </mesh>
-    <Html center position={[0, .36, 0]} distanceFactor={3.4} zIndexRange={[20, 0]}>
-      <span className="garageMissingModel">3D 에셋 미연결</span>
-    </Html>
-  </group>;
+  // A missing model is a data problem, not a reason to draw a fake part.
+  // The former torus/sphere marker was visually indistinguishable from a real
+  // component at the overview scale and was the source of the legacy-shape
+  // reports. Keep only an explicit status label until an authored model is
+  // connected.
+  void kind;
+  return <Html center position={[0, .12, 0]} distanceFactor={3.4} zIndexRange={[20, 0]}>
+    <span className="garageMissingModel">3D 에셋 미연결</span>
+  </Html>;
 }
 
 function GarageWheel({ position, active }: { position: [number, number, number]; active: boolean }) {
@@ -191,8 +186,7 @@ export const partModelFor = (domain: DomainId, label: string): string | undefine
     : /요·횡가속/.test(label) ? "imu_sensor"
     : /차속 CAN/.test(label) ? "can_harness"
     : /피니언|^랙$/.test(label) ? "steering_rack"
-    // A knuckle is not a wheel.  There is no authored knuckle asset yet, so
-    // leave it as a visible missing-asset state instead of a false mapping.
+    : /전륜 너클|steering knuckle/i.test(label) ? "steering_knuckle"
     : /^릴레이$/.test(label) ? "main_contactor"
     : /HV 버스/.test(label) ? "hv_cable"
     : /HV Junction/.test(label) ? "hv_junction_box"
@@ -239,9 +233,9 @@ export const partModelFor = (domain: DomainId, label: string): string | undefine
     : /^ESC$/.test(label) ? "brake_ecu"
     : /^PRND/.test(label) ? "gear_selector"
     : /APS|페달/.test(label) ? (domain === "brake" ? "brake_pedal" : "accel_pedal")
-    // Steering-angle sensing is a separate function from the steering wheel;
-    // no independent authored sensor exists yet, so do not mis-map it.
-    : /휠속|Wheel Sensor|속도센서/.test(label) ? "wheel_speed_sensor"
+    // Steering-angle sensing is a separate component from the steering wheel.
+    // Keep it on its own authored sensor model in every view.
+    : /휠속|휠.?가속도센서|Wheel Sensor|속도센서/.test(label) ? "wheel_speed_sensor"
     : /리졸버/.test(label) ? "rotor_position_sensor"
     : /냉각수 온도/.test(label) ? "coolant_temperature_sensor"
     : /NTC/.test(label) ? "motor_temp_sensor"
@@ -368,7 +362,7 @@ function DomainSignature({ domain, activeStep }: { domain: DomainId; activeStep:
     <SignalCable from={[-1.4, .18, .25]} to={[1.25, .18, .25]} color={activeStep > 1 ? "#ff7b49" : "#8c9892"} />
   </group>;
   if (domain === "brake") return <group position={[0, .12, 0]}>
-    {[-2.25, 2.25].flatMap(x => [-.92, .92].map(z => <group key={`${x}-${z}`} position={[x, 0, z]} scale={.47}><HardwarePart kind="caliper" active={activeStep >= 2} running={false} /></group>))}
+    {[-2.25, 2.25].flatMap(x => [-.92, .92].map(z => <group key={`${x}-${z}`} position={[x, 0, z]} scale={.47}><HardwarePart kind="caliper" active={activeStep >= 2} running={false} partId="brake_caliper" /></group>))}
     {[-.92, .92].map(z => <React.Fragment key={z}><SignalCable from={[-1.5, .24, z]} to={[2.05, .24, z]} color={activeStep >= 2 ? "#4b9dc1" : "#81918d"} /></React.Fragment>)}
   </group>;
   if (domain === "steer") return <group position={[.45, .15, .5]}>
@@ -379,7 +373,7 @@ function DomainSignature({ domain, activeStep }: { domain: DomainId; activeStep:
     <group position={[-2.1,.45,.25]} scale={.72}><HardwarePart kind="gear" active={activeStep < 2} partId={partModelFor("gear", "PRND")} /></group>
     <RoundedBox args={[1.55,.7,1.05]} radius={.16} position={[0,.38,0]}><meshPhysicalMaterial color="#667672" metalness={.62} roughness={.24} clearcoat={.55} /></RoundedBox>
     {[-.5,0,.5].map(x => <mesh key={x} position={[x,.4,.58]}><cylinderGeometry args={[.13,.13,.18,24]} /><meshStandardMaterial color={activeStep>1?"#f0a154":"#b7c1bc"} metalness={.75} /></mesh>)}
-    <group position={[2.05,.32,-.15]} scale={.78}><HardwarePart kind="contactor" active={activeStep>1} /></group>
+    <group position={[2.05,.32,-.15]} scale={.78}><HardwarePart kind="contactor" active={activeStep>1} partId="park_lock_actuator" /></group>
     <SignalCable from={[-1.55,.65,.05]} to={[-.72,.65,.05]} color="#b17752" /><SignalCable from={[.72,.65,.05]} to={[1.55,.65,.05]} color="#ef8a4f" />
   </group>;
   if (domain === "thermal") return <group position={[0,.16,0]}>
@@ -501,20 +495,20 @@ function VehiclePlatformShell({ active }: { active: boolean }) {
     {harnessBranches.map((wire,index)=><SignalCable key={index} {...wire} />)}
     {[[-1.85,-.9],[-.55,.88],[.6,-.84],[1.72,.82]].map(([x,z],index)=><React.Fragment key={`${x}-${z}`}>
       <SignalCable from={[x,.14,z]} to={[x,.72,z]} via={[[x,.08,z],[x+.12,.28,z]]} color={index%2?"#4f91a9":"#d7bf58"} />
-      <group position={[x,.7,z]} scale={.34}><HardwarePart kind="ecu" active={index===1} running /></group>
+      <group position={[x,.7,z]} scale={.34}><HardwarePart kind="ecu" active={index===1} running partId="generic_ecu" /></group>
     </React.Fragment>)}
     {[[-.72,-.58],[.72,-.58]].map(([x,z])=><group key={x} position={[x,.78,z]}><RoundedBox args={[.54,.72,.5]} radius={.14}><meshStandardMaterial color="#c6b89d" roughness={.72} /></RoundedBox><RoundedBox args={[.54,.18,.5]} radius={.1} position={[-.14,.4,0]}><meshStandardMaterial color="#9e917b" /></RoundedBox></group>)}
     <PartLabel className="garageStaticLabel" position={[0,2.82,0]}>세단 패키지 4.70m × 1.85m × 1.45m · 하부 배터리/HV·LV 분기 하니스</PartLabel>
   </group>;
 }
 
-function FullVehicleSystem({ domain, feature, activeStep, shell = false, inputOn = false, selectedIndex = null, onSelect }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean; selectedIndex?: number | null; onSelect?: (index: number) => void }) {
+function FullVehicleSystem({ domain, feature, activeStep, shell = false, inputOn = false, selectedIndex = null, onSelect, showCables = true }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean; selectedIndex?: number | null; onSelect?: (index: number) => void; showCables?: boolean }) {
   // real positions, real sizes, port-to-port cables (src/features/garage/VehicleLayout.tsx)
-  return <VehicleLayoutRig domain={domain} feature={feature} activeStep={activeStep} inputOn={inputOn} shell={shell} selectedIndex={selectedIndex} onSelect={onSelect} />;
+  return <VehicleLayoutRig domain={domain} feature={feature} activeStep={activeStep} inputOn={inputOn} shell={shell} showCables={showCables} selectedIndex={selectedIndex} onSelect={onSelect} />;
 }
 
 // Whole vehicle: every domain's chain side by side (selected domain runs, others idle)
-function AllDomainsSystem({ domain, overlay = false, showWiring = true }: { domain: DomainId | null; overlay?: boolean; showWiring?: boolean }) {
+function AllDomainsSystem({ domain, overlay = false, showWiring = true, showBody = true }: { domain: DomainId | null; overlay?: boolean; showWiring?: boolean; showBody?: boolean }) {
   const ids = Object.keys(domainContent) as DomainId[];
   const slot = (index: number): [number, number, number] => { const col = index % 3, row = Math.floor(index / 3); return [(col - 1) * 3.7, 0, (row - 1) * 3.3]; };
   // labels live outside the rigs so a slow part model never hides a name
@@ -528,7 +522,7 @@ function AllDomainsSystem({ domain, overlay = false, showWiring = true }: { doma
   // the very first label after the canvas remounts is dropped by the label library, so a hidden one goes first
   const spacer = <PartLabel className="labelSpacer" position={[0, -20, 0]}>{" "}</PartLabel>;
   if (overlay) return <group rotation={[0, -.18, 0]}>
-    {spacer}<VehiclePlatformOverview showWiring={showWiring} />
+    {spacer}<VehiclePlatformOverview showWiring={showWiring} showBody={showBody} />
   </group>;
   return <group>
     {spacer}{labels}
@@ -558,8 +552,8 @@ function EcuSoftwareRig({ domain, feature, detailed }: { domain: DomainId; featu
   </group>;
 }
 
-function MechanismModel({ domain, level, feature, activeStep, removed = null, shell = false, inputOn = false, selectedIndex = null, onSelect }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean; selectedIndex?: number | null; onSelect?: (index: number) => void }) {
-  if (level === 0) return <FullVehicleSystem domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} selectedIndex={selectedIndex} onSelect={onSelect} />;
+function MechanismModel({ domain, level, feature, activeStep, removed = null, shell = false, inputOn = false, selectedIndex = null, onSelect, showCables = true }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean; selectedIndex?: number | null; onSelect?: (index: number) => void; showCables?: boolean }) {
+  if (level === 0) return <FullVehicleSystem domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} showCables={showCables} selectedIndex={selectedIndex} onSelect={onSelect} />;
   return <EeArchitectureRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />;
 }
 
@@ -619,6 +613,8 @@ function SwcView({ domain, feature, activeStep, onPick }: { domain: DomainId; fe
 
 function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, onDomain, onArea, noDomain = false, overviewGroup = null, overview3dMode, onOverview3dChange, onJump, inputOn = false, eeLayer = "logic", onEeLayerChange, selectedVehiclePart = null, onVehiclePartSelect }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; onDomain?: (id: DomainId) => void; onArea?: (area: DomainGroup | "coord") => void; noDomain?: boolean; overviewGroup?: DomainGroup | null; overview3dMode?: boolean; onOverview3dChange?: (show: boolean) => void; onJump?: (level: number, step: number) => void; inputOn?: boolean; eeLayer?: EeLayer; onEeLayerChange?: (layer: EeLayer) => void; selectedVehiclePart?: number | null; onVehiclePartSelect?: (index: number) => void }) {
   const [shell, setShell] = useState(false);
+  const [bodyVisible, setBodyVisible] = useState(true);
+  const [wiringVisible, setWiringVisible] = useState(true);
   const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "overlay" : "one");
   const [coordOpen, setCoordOpen] = useState(false);
   // The first garage screen is a visual vehicle map. Logic cards remain one click away.
@@ -667,7 +663,7 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
       <color attach="background" args={["#eef5ef"]} />
       <hemisphereLight intensity={2.25} color="#fff8e5" groundColor="#6d8c7b" />
       <directionalLight castShadow={!allDomains} position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
-      {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} showWiring={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} selectedIndex={selectedVehiclePart} onSelect={onVehiclePartSelect} />}
+      {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} showWiring={wiringVisible} showBody={bodyVisible} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} showCables={wiringVisible} inputOn={inputOn} selectedIndex={selectedVehiclePart} onSelect={onVehiclePartSelect} />}
       <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={allDomains ? 2.5 : .8} maxDistance={allDomains ? 22 : 10} maxPolarAngle={Math.PI * .49} target={allDomains ? [0, .65, 0] : [0, .55, 0]} />
     </Canvas>
     <span className="liveBadge"><i /> 드래그 회전 · 휠 확대{level === 0 && !allDomains ? " · 부품 클릭 선택" : ""}</span>
@@ -680,8 +676,11 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
     </div>}
     <div className="viewToggles">
       {noDomain && <button className="shellToggle" onClick={() => setOverview3d(false)}><Icon name="layers" /> 아키텍처</button>}
-      {level === 0 && <span className="view3dSeg">{(noDomain ? [["overlay", "협조 신호"]] as const : [["one", "이 도메인"], ["overlay", "배선 보기"]] as const).map(([id, label]: readonly [string, string]) => <button key={id} className={`shellToggle ${coordOpen || view3d === id ? "on" : ""}`} onClick={() => { setView3d(id as "one" | "grid" | "overlay"); if (noDomain) setCoordOpen(true); }}><Icon name={id === "one" ? "search" : "layers"} /> {noDomain ? "협조 신호 보기" : label}</button>)}</span>}
-      {!allDomains && <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}><Icon name="car" /> 차체 {shell ? "숨기기" : "보기"}</button>}
+      {level === 0 && <span className="view3dSeg">
+        {noDomain && <button className={`shellToggle ${coordOpen ? "on" : ""}`} onClick={() => setCoordOpen(true)}><Icon name="signal" /> 협조 신호 보기</button>}
+        <button className={`shellToggle ${wiringVisible ? "on" : ""}`} onClick={() => setWiringVisible(value => !value)}><Icon name="layers" /> 배선 {wiringVisible ? "숨기기" : "보기"}</button>
+      </span>}
+      {level === 0 && <button className={`shellToggle ${(allDomains ? bodyVisible : shell) ? "on" : ""}`} onClick={() => allDomains ? setBodyVisible(value => !value) : setShell(value => !value)}><Icon name="car" /> 차체·카울 {(allDomains ? bodyVisible : shell) ? "숨기기" : "보기"}</button>}
     </div>
     {noDomain && level === 0 && coordOpen && <section className="garageCoordOverlay" aria-label="도메인 협조 신호">
       <header><b>도메인 협조 신호</b><button type="button" onClick={() => setCoordOpen(false)} aria-label="협조 신호 닫기">×</button></header>
@@ -786,12 +785,34 @@ function FlowStepCard({ chain, signals, step, onStep }: { chain: string[]; signa
   </div>;
 }
 
+function GaragePartPreview({ id, label }: { id: string; label: string }) {
+  // Keep the intro card and the double-click inspector on the same renderer.
+  // The old card used a generic icon for most parts, which made a valid 3D
+  // selection look like a legacy placeholder even though its authored model
+  // was already available to FittedPart.
+  return <div className="ecuCardModel" aria-label={`${label} 3D 모델`}>
+    <Canvas camera={{ position: [1.6, 1.1, 2.2], fov: 34 }} dpr={[1, 1.5]}>
+      <color attach="background" args={["#f6efe9"]} />
+      <hemisphereLight intensity={2} color="#fff8e5" groundColor="#8a6f66" />
+      <directionalLight position={[3, 5, 4]} intensity={2.6} />
+      <directionalLight position={[-3, 2, -3]} intensity={.9} />
+      <FittedPart id={id} size={1.18} demo castShadow={false} />
+      <OrbitControls makeDefault enablePan={false} minDistance={1.4} maxDistance={5} target={[0, 0, 0]} />
+    </Canvas>
+  </div>;
+}
+
 function PartIntroCard({ label, role, domain, onClose, onPull }: { label: string; role: PartRole; domain: DomainId; onClose: () => void; onPull: () => void }) {
   if (role === "control") return <ControllerCard label={label} onClose={onClose} onPull={onPull} />;
   const partId = partModelFor(domain, label);
   return <div className="ecuCard" role="dialog">
     <button className="ecuClose" onClick={onClose} aria-label="닫기">×</button>
-    {partId && ["accel_pedal", "brake_pedal", "traction_motor", "brake_caliper", "motor_temp_sensor", "cooling_fan"].includes(partId) ? <img src={`/assets/ending-thumbs/${partId}.png`} alt="" /> : <span className="ecuGeneric"><Icon name={role === "input" ? "eye" : role === "network" ? "mail" : role === "actuator" ? "arm" : "car"} /></span>}
+    {partId
+      ? <GaragePartPreview id={partId} label={label} />
+      : <div className="ecuAssetPending" role="status">
+        <Icon name="warning" />
+        <span>전용 3D 에셋 준비 중</span>
+      </div>}
     <div><small>{ROLE_TEXT[role].tag}</small><b>{label}</b><div className="ecuRow"><i><Icon name="bulb" /></i><span><em className="do">{ROLE_INTRO[role]}</em></span></div>
     {role !== "result" && <button className="ecuPull" onClick={onPull}>이 부품 빼 보기</button>}</div>
   </div>;
@@ -830,7 +851,11 @@ function PartInspector() {
           <hemisphereLight intensity={2} color="#fff8e5" groundColor="#8a6f66" />
           <directionalLight position={[3, 5, 4]} intensity={2.6} />
           <directionalLight position={[-3, 2, -3]} intensity={.9} />
-          {partId ? <FittedPart id={partId} size={1.5} demo={moving} castShadow={false} /> : <MissingGaragePart kind={kind} />}
+          {partId
+            ? <FittedPart id={partId} size={1.5} demo={moving} castShadow={false} />
+            : <Html center>
+              <span className="garageMissingModel garageMissingModel--inspection">전용 3D 에셋 미연결</span>
+            </Html>}
           <OrbitControls makeDefault autoRotate={spin} autoRotateSpeed={2.2} enablePan={false} minDistance={1.4} maxDistance={6} target={[0, 0, 0]} />
         </Canvas>
         <div className="piTools">
@@ -866,7 +891,12 @@ function ControllerCard({ label, onPull, onClose }: { label: string; onPull: () 
   const ko = (id: string) => getComponent(id)?.nameKo ?? id;
   return <div className="ecuCard" role="dialog">
     <button className="ecuClose" onClick={onClose} aria-label="닫기">×</button>
-    {ecu ? <img src={`/assets/ending-thumbs/${ecu.id}.png`} alt="" /> : <span className="ecuGeneric"><Icon name="chip" /></span>}
+    {ecu && hasPartModel(ecu.id)
+      ? <GaragePartPreview id={ecu.id} label={label} />
+      : <div className="ecuAssetPending" role="status">
+        <Icon name="warning" />
+        <span>{ecu ? "전용 3D 에셋 준비 중" : "제어기 모델 미연결"}</span>
+      </div>}
     <div>
       <small>제어기 소개</small>
       <b>{label}</b>

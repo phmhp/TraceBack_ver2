@@ -1054,3 +1054,12 @@ body .gameStage :is(.eeTrace .etEvidence, .eeTrace .etEvidenceContent, .eeTrace 
 .vbBench.bench4.qa2 .b4PickGuide p span { overflow-wrap: anywhere; }
 .vbBench.bench4.qa2 .b4PickGuide mark { padding: 1px 3px; border-radius: 3px; background: #ffe56d; color: #493830; }
 .vbBench.bench4.qa2 .b4Panel > header nav button { min-width: 0 !important; padding: 8px !important; white-space: normal !important; line-height: 1.1 !important; }
+
+/* STEP02 section choice: the structural explainer is a hint, not a fourth
+   answer choice. Keep it in the evidence-panel header so the player can
+   distinguish navigation/help from the choices in the question dock. */
+.eeTrace .etEvidence > header { display: grid !important; grid-template-columns: minmax(0, 1fr) auto !important; grid-template-rows: auto auto !important; align-items: center !important; gap: 5px 6px !important; }
+.eeTrace .etEvidence .etEvidenceTabs { grid-column: 1 / -1 !important; grid-row: 1 !important; min-width: 0 !important; }
+.eeTrace .etEvidence .etHintButton { grid-column: 2 !important; grid-row: 2 !important; justify-self: end; min-width: 0; max-width: 100%; padding: 6px 9px !important; border: 1.5px solid #d7b34a; border-radius: 999px; background: #fff4bf; color: #765a19; font: 800 10px/1.15 Pretendard, system-ui; white-space: nowrap; cursor: pointer; }
+.eeTrace .etEvidence .etHintButton span { display: inline-block; margin-right: 4px; padding: 2px 5px; border-radius: 999px; background: #d7a927; color: #fffdf6; font-size: 9px; }
+.eeTrace .etEvidence .etHintButton[aria-pressed="true"] { border-color: #9b6b64; background: #fff0df; color: #7a4a44; }

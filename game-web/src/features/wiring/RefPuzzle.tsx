@@ -4,7 +4,8 @@
 // - Placing a piece draws nothing and shows no value. The player checks the build by pressing ▶ 실행:
 //   values flow left → right and stop at the first slot that breaks the requirement (first mismatch).
 // - Parallel logic: a side input (limit / other sensors) climbs into the merge block.
-// - 정비소 노트 = open book: re-open the garage Control SW drawing (costs a hint).
+// - block help stays on the puzzle piece; no separate open-book surface is
+//   exposed during the playable flow.
 import { numify } from "../../ui/numify";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Campaign, CaseId } from "../../game/runtime";
@@ -23,7 +24,6 @@ import { SCENARIOS, SCENARIO_META } from "../../game/scenarios";
 import { buildVerificationContract, contractSignalLabel, contractStorageKey, type VerificationContract } from "../../game/verificationContract";
 import { ReplayConfirm } from "../../ui/ReplayConfirm";
 import { MissionBar } from "../../ui/MissionBar";
-import { OpenBookModal } from "../../ui/OpenBook";
 import { NutGuide } from "../../ui/NutGuide";
 import "./puzzle-v3.css";
 
@@ -319,12 +319,9 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
   const [zoom, setZoomState] = useState<{ b: Blk; x: number; y: number; up: boolean } | null>(null);
   const setZoom = (b: Blk | null, el?: HTMLElement) => { if (!b || !el || !stage.current) { setZoomState(null); return; } const r = el.getBoundingClientRect(), base = stage.current.getBoundingClientRect(); const up = r.bottom - base.top > base.height - 190; setZoomState({ b, x: Math.min(Math.max(r.left - base.left + r.width / 2, 135), base.width - 135), y: up ? r.top - base.top - 8 : r.bottom - base.top + 8, up }); };
   useEffect(() => { const key = (e: KeyboardEvent) => { if (["Delete", "Backspace", "Escape"].includes(e.key)) setZoomState(null); }; addEventListener("keydown", key); return () => removeEventListener("keydown", key); }, []);
-  const [noteOpen, setNoteOpen] = useState(false);
   const [scale, setScale] = useState(.8);
   const stage = useRef<HTMLDivElement>(null);
-  const noteKey = `${state.caseId}:garageNote`;
   const section = (() => { try { return sessionStorage.getItem(`tb-section-${state.caseId}`) ?? ref.ecu; } catch { return ref.ecu; } })();
-  const noteUsed = Boolean(state.hintClaims[noteKey]);
 
   useLayoutEffect(() => {
     const fit = () => { const r = stage.current?.getBoundingClientRect(); if (r && r.width) setScale(Math.min(r.width / W, r.height / H, 1.1)); };
@@ -409,8 +406,6 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
 
   const solve = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, ref.board[g]]))); setRun(null); setMsg("정답 배치 완료. ▶ 실행으로 확인하세요."); };
   const reset = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, null]))); setRun(null); setPicked(null); setMsg("초기화했어요. 요구사항을 하나씩 읽어 보세요."); play("squish"); };
-  const noteReady = fails > 0 || noteUsed;
-  const openNote = () => { if (!noteReady) return; if (!noteUsed) send({ type: "HINT", key: noteKey }); setNoteOpen(true); play("pop"); };
   const stars = fails === 0 ? 3 : fails === 1 ? 2 : 1;
   const reached = (slot: number) => run && (run.step > slot || (run.step === slot && run.status === "pass"));
   const valueAt = (slot: number) => {
@@ -445,7 +440,6 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
     <header className="rpHead">
       <div><small>의심 구간 · {section}</small><h1>{ref.domain} · {ref.feature}</h1><p>요구사항대로 동작하려면 어떤 블록이 어떤 순서로 있어야 하는지 맞춥니다. <b>값의 단위가 바뀌는 곳</b>(예: % → Nm)이 단서예요.</p></div>
       <div className="rpTools">
-        <button onClick={openNote} disabled={!noteReady} title={noteReady ? "" : "한 번 실행해 본 뒤 열 수 있어요"}><Icon name="book" /> 정비소 노트{noteUsed ? "" : noteReady ? " · -5m" : " · 실행 후"}</button>
         <button onClick={reset}>↺ 초기화</button>
       </div>
     </header>
@@ -508,14 +502,6 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
     </footer>
     <button className="secretSolve" title="개발용 정답 적용" onClick={solve}>정답 보기</button>
 
-    {noteOpen && <div className="pieceZoom" onClick={() => setNoteOpen(false)}><article className="rpNote" onClick={event => event.stopPropagation()}>
-      <button className="pieceZoomClose" onClick={() => setNoteOpen(false)}>×</button>
-      <small><Icon name="book" /> 정비소 노트 · Control Software</small><h2>정비소에서 본 블록 카드</h2>
-      <p className="pzTip">순서는 섞여 있어요. 각 블록이 하는 일만 다시 확인하고, 순서는 요구사항으로 판단하세요.</p>
-      {ref.notes.map(note => <section key={note.name}><b>{note.name}</b><div className="rpNoteCards">
-        {[...getFeatureLayer(note.domain, note.feature, 3)].sort((a, b) => a.localeCompare(b, "ko")).map(label => { const kind = blockKind(label); return <div key={label} className={`rpNoteCard kind-${kind}`}><div className="flowBlock"><Picto kind={kind} /><small>{KIND_TAG[kind]}</small></div><b>{label}</b><span>{plainText(label, kind)}</span></div>; })}
-      </div></section>)}
-    </article></div>}
   </div>;
 }
 
@@ -648,7 +634,6 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   useEffect(() => { const key = (e: KeyboardEvent) => { if (["Delete", "Backspace", "Escape"].includes(e.key)) setZoomState(null); }; addEventListener("keydown", key); return () => removeEventListener("keydown", key); }, []);
   const [reaction, setReaction] = useState<"ok" | "weak" | null>(null);
   const [contract, setContract] = useState<VerificationContract | null>(saved.contract ?? null);
-  const [bookFocus, setBookFocus] = useState<string | null>(null);   // block label shown in the 정비소 노트 popup
   const [sheetStep, setSheetStep] = useState(Boolean(saved.sheetStep));   // step 3: the test-design draft is open
   const [panelTab, setPanelTab] = useState<"req" | "sheet">(saved.sheetStep ? "sheet" : "req");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -657,7 +642,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const [scale, setScale] = useState(.8);
   const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ref.ecu; } catch { return ref.ecu; } })();
   useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ place, picked, check: check?.status === "running" ? null : check, x, confirmed, msg, contract, sheetStep })); } catch { /* ignore */ } }, [place, picked, check, x, confirmed, msg, contract, sheetStep, progressKey]);
-  // the board keeps a 44px toolbar strip (title + 정비소 노트) on top, so the puzzle fits into the space below it
+  // the board keeps a compact toolbar strip on top, so the puzzle fits into the space below it
   const fitStage = () => { const r = stage.current?.getBoundingClientRect(); if (r && r.width) setScale(Math.min(r.width / W, (r.height - 44) / H, 1.1)); };
   useLayoutEffect(() => {
     fitStage(); const ob = new ResizeObserver(fitStage); if (stage.current) ob.observe(stage.current); return () => ob.disconnect();
@@ -891,13 +876,13 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
           <b>{zoom.b.label}{zoom.b.tag ? ` · ${zoom.b.tag}` : ""}</b>
           <p>{doesOf(zoom.b)}</p>
           {zoom.b.spec && <p className="rpSpec">{zoom.b.spec}</p>}
-          <p className="rpFromLine">정비소에서 본 곳: {zoom.b.from} <button className="rpGarageLink" onClick={() => { setBookFocus(zoom.b.label); setZoomState(null); play("pop"); }}>정비소 노트에서 보기</button></p>
+          <p className="rpFromLine">정비소에서 본 곳: {zoom.b.from}</p>
         </div>}
       </section>
       <aside className="rpPanel">
         <header><nav role="tablist" aria-label="요구사항"><button role="tab" aria-selected="true" className="on">요구사항</button></nav></header>
         <div className="rpReq" role="tabpanel" aria-label="요구사항">
-          <div className="rpReqHead"><small>요구사항 · 정상이면 이렇게</small>{contract && <button className="rpFolderOpen" onClick={() => setSheetOpen(true)}><Icon name="clipboard" /> 시험 설계서 보기</button>}</div>
+          <div className="rpReqHead"><small>요구사항 · 정상이면 이렇게</small>{contract && !confirmed && <button className="rpFolderOpen" onClick={() => setSheetOpen(true)}><Icon name="clipboard" /> 시험 설계서 보기</button>}</div>
         {ref.req.map((r, k) => <div key={r.text} className={`${ref.gaps.includes(r.slot) ? "gap" : ""} ${confirmed ? "done" : ""}`}><i>{confirmed ? "✓" : k + 1}</i><span>{numify(r.text)}</span></div>)}
           <p className="rpWhy"><b>왜 필요한가</b> {WHY[caseId]}</p>
         </div>
@@ -942,7 +927,6 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
         </div>
       </div>
     </div>}
-    {bookFocus !== null && <OpenBookModal caseId={caseId} layer={3} focus={bookFocus} onClose={() => setBookFocus(null)} />}
     {replayOpen && <ReplayConfirm impact="기존 시험 계약과 STEP04의 실행 기록·판정도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); reset(); }} />}
   </div>;
 }

@@ -12,3 +12,16 @@
 .missionProgress i { width: 18px; height: 6px; border-radius: 3px; background: rgba(155, 107, 100, .22); }
 .missionProgress i.on { background: #9b6b64; }
 .missionProgress small { margin-left: 6px; font: 700 12px/1 Pretendard, system-ui; color: #7a5a53; }
+.missionHelpButton {
+  flex: none;
+  margin-left: auto;
+  min-height: 32px;
+  padding: 7px 12px;
+  border: 1px solid #b88478;
+  border-radius: 8px;
+  background: #fff8ef;
+  color: #8f554c;
+  font: 800 12px/1.1 Pretendard, system-ui;
+  cursor: pointer;
+}
+.missionHelpButton:hover { background: #f8e7d6; }

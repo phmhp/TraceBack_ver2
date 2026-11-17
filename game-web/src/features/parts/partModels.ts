@@ -712,6 +712,25 @@ const DEFS: Record<string, Def> = {
     },
   },
 
+  // Front steering knuckle/upright: the bearing carrier between the tie rod,
+  // strut and wheel hub. This is distinct from the wheel; mapping a knuckle
+  // to a tyre made the steering architecture physically impossible to read.
+  steering_knuckle: {
+    ref: "steering-suspension/knuckle__REF.png",
+    build: () => ({
+      statics: [
+        S("castAl", rbox(.075, .24, .07, .012), [0, .01, 0]),
+        S("castAl", cylX(.055, .09, 28), [0, .02, 0]),
+        S("steel", cylX(.032, .14, 24), [0, .02, 0]),
+        S("castAl", rbox(.045, .12, .045, .008), [.035, .08, 0], [0, 0, -.28]),
+        S("castAl", rbox(.045, .1, .045, .008), [-.035, -.08, 0], [0, 0, .28]),
+        S("steel", cylZ(.012, .16, 16), [0, .11, 0]),
+        S("steel", cylZ(.01, .14, 16), [0, -.1, 0]),
+      ],
+      anchors: { tie_rod_in: [.04, .08, .02], strut_in: [0, .13, 0], hub_out: [0, .02, .09] },
+    }),
+  },
+
   // Wheel hub & bearing: flanged bearing housing with ears (static), hub flange with five studs and splined bore spinning on X.
   wheel: {
     ref: "drivetrain/wheel__REF.png",
@@ -982,7 +1001,7 @@ const DEFS: Record<string, Def> = {
         S("plastic", rbox(.032, .025, .018, .004), [0, .058, 0]),
         ...within(connector(.022, .016, .016, 4, 1), [0, .07, 0], [-Math.PI / 2, 0, 0]),
       ],
-      anchors: { in: [-.09, 0, 0], out: [.0, .085, 0] },
+      anchors: { angle_in: [-.09, 0, 0], angle_out: [.0, .085, 0] },
     }),
   },
   // Steering column: tilted tube with a universal joint at the bottom.
@@ -1585,7 +1604,7 @@ const DEFS: Record<string, Def> = {
         S("plastic", rbox(.042, .028, .032, .006), [.11, 0, 0]),
         ...within(connector(.022, .016, .016, 2, 1), [.14, 0, 0], [0, Math.PI / 2, 0]),
       ],
-      anchors: { in: [-.085, 0, 0], out: [.165, 0, 0] },
+      anchors: { coolant_in: [-.085, 0, 0], temp_out: [.165, 0, 0] },
     }),
   },
 
@@ -1625,7 +1644,7 @@ const DEFS: Record<string, Def> = {
 /** Parts modelled so far, in build order. */
 export const PART_MODEL_IDS = Object.keys(DEFS);
 /** Garage-only parts (not simulation components). Their anchors are "in" / "out". */
-export const VISUAL_ONLY_IDS = ["can_harness", "hv_cable", "steering_torque_sensor", "steering_angle_sensor", "steering_column", "imu_sensor", "cell_monitor_board", "hv_junction_box", "charging_port", "obc", "dcdc_converter", "lv_battery", "instrument_cluster", "generic_ecu", "park_lock_actuator", "park_pawl", "position_sensor", "height_sensor", "coolant_valve", "radiator", "coil_spring", "damper", "air_spring", "air_compressor", "body_shell", "isolation_monitor", "park_ecu", "chassis_ecu", "park_position_sensor", "ride_height_sensor", "cdc_damper", "eps_power_pack", "brake_line", "evcc", "charge_lock_actuator", "ac_compressor", "ptc_heater", "eev", "adas_camera", "adas_radar", "adas_ecu", "tcu", "coolant_temperature_sensor"];
+export const VISUAL_ONLY_IDS = ["can_harness", "hv_cable", "steering_torque_sensor", "steering_angle_sensor", "steering_column", "steering_knuckle", "imu_sensor", "cell_monitor_board", "hv_junction_box", "charging_port", "obc", "dcdc_converter", "lv_battery", "instrument_cluster", "generic_ecu", "park_lock_actuator", "park_pawl", "position_sensor", "height_sensor", "coolant_valve", "radiator", "coil_spring", "damper", "air_spring", "air_compressor", "body_shell", "isolation_monitor", "park_ecu", "chassis_ecu", "park_position_sensor", "ride_height_sensor", "cdc_damper", "eps_power_pack", "brake_line", "evcc", "charge_lock_actuator", "ac_compressor", "ptc_heater", "eev", "adas_camera", "adas_radar", "adas_ecu", "tcu", "coolant_temperature_sensor"];
 
 const cache = new Map<string, PartModel>();
 

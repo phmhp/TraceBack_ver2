@@ -50,6 +50,7 @@ const PLACE: Record<string, Place> = {
   reduction_gear: { p: [.18, .4, -1.18], r: [0, 0, 0], target: .38 },
   differential: { p: [0, .36, -1.18], r: [0, 0, 0], target: .3 },
   drive_shaft: { p: [.38, .34, -1.18], r: [0, 0, 0], target: .55 },
+  steering_knuckle: { p: [.745, .34, -1.18], r: [0, -H, 0], target: .3 },
   wheel: { p: [.745, .34, -1.18], r: [0, 0, 0], target: .22 },
   inverter: { p: [-.58, .62, -.72], target: .42 },
   mcu: { p: [-.58, .78, -.62], target: .24 },
@@ -157,13 +158,19 @@ const FOUR_CORNER_MODELS = new Set(["brake_caliper", "wheel_speed_sensor", "coil
 
 function cornerPlace(id: string, base: Place, corner: (typeof CORNERS)[number]): Place {
   const sensorOffset = id === "ride_height_sensor" || id === "height_sensor" || id === "position_sensor" ? (corner.x > 0 ? .055 : -.055) : 0;
-  const x = id === "wheel_speed_sensor" ? corner.x + (corner.x > 0 ? .035 : -.035) : corner.x + sensorOffset;
-  const r = id === "brake_caliper" ? [0, corner.x > 0 ? -H : H, 0] as V3 : base.r;
+  const x = id === "steering_knuckle"
+    ? corner.x + (corner.x > 0 ? -.06 : .06)
+    : id === "wheel_speed_sensor" ? corner.x + (corner.x > 0 ? .035 : -.035) : corner.x + sensorOffset;
+  const r = id === "brake_caliper" || id === "steering_knuckle" ? [0, corner.x > 0 ? -H : H, 0] as V3 : base.r;
   return { ...base, p: [x, base.p[1], corner.z], r };
 }
 
 function expandCornerNodes(nodes: readonly Node[]): Node[] {
   return nodes.flatMap(node => {
+    // Knuckles are front-corner components. Do not copy them to the rear axle.
+    if (node.id === "steering_knuckle" && node.copy === 0) {
+      return CORNERS.slice(0, 2).map((corner, index) => ({ ...node, copy: index, place: cornerPlace(node.id, node.place, corner) }));
+    }
     if (!FOUR_CORNER_MODELS.has(node.id) || node.copy > 0) return [node];
     return CORNERS.map((corner, index) => ({ ...node, copy: index, place: cornerPlace(node.id, node.place, corner) }));
   });
@@ -244,10 +251,24 @@ function FlowCable({ a, b, flow, on, tag, staticColor = false }: { a: THREE.Vect
   const curve = useMemo(() => {
     const d = a.distanceTo(b);
     if (flow === "mechanical_torque" && d < .9) return new THREE.CatmullRomCurve3([a, b]);
+    // Overview wiring is a physical harness, not a floating signal animation.
+    // Route it below the mounted parts with explicit drops and longitudinal /
+    // lateral runs so the cowl can close over it and the components remain
+    // readable from the three-quarter camera.
+    if (staticColor) {
+      const routeY = Math.max(.11 * U, Math.min(a.y, b.y) - .24 * U);
+      return new THREE.CatmullRomCurve3([
+        a,
+        new THREE.Vector3(a.x, routeY, a.z),
+        new THREE.Vector3(a.x, routeY, b.z),
+        new THREE.Vector3(b.x, routeY, b.z),
+        b,
+      ], false, "centripetal", .18);
+    }
     const lift = Math.min(.35, .06 + d * .06);
     const top = Math.max(a.y, b.y) + lift;
     return new THREE.CatmullRomCurve3([a, new THREE.Vector3(a.x, a.y + lift * .6, a.z), new THREE.Vector3((a.x + b.x) / 2, top, (a.z + b.z) / 2), new THREE.Vector3(b.x, b.y + lift * .6, b.z), b]);
-  }, [a.x, a.y, a.z, b.x, b.y, b.z, flow]);
+  }, [a.x, a.y, a.z, b.x, b.y, b.z, flow, staticColor]);
   const pulses = useRef<THREE.Mesh[]>([]);
   useFrame(({ clock }) => {
     pulses.current.forEach((pulse, k) => {
@@ -334,14 +355,18 @@ function SteeringTopology({ active }: { active: boolean }) {
   const pinion = vehiclePoint([0, .505, -1.18]);
   const rackLeft = vehiclePoint([-.46, .38, -1.18]);
   const rackRight = vehiclePoint([.46, .38, -1.18]);
+  const frontLeftKnuckle = vehiclePoint([-.685, .34, -1.18]);
+  const frontRightKnuckle = vehiclePoint([.685, .34, -1.18]);
   const frontLeftHub = vehiclePoint([-.745, .34, -1.18]);
   const frontRightHub = vehiclePoint([.745, .34, -1.18]);
   return <group>
     <MechanicalLink from={wheel} to={column} active={active} color="#8d75b6" radius={.018} />
     <MechanicalLink from={column} to={eps} active={active} color="#8d75b6" radius={.014} />
     <MechanicalLink from={eps} to={pinion} active={active} color="#8d75b6" radius={.014} />
-    <MechanicalLink from={rackLeft} to={frontLeftHub} active={active} color="#8d75b6" radius={.012} />
-    <MechanicalLink from={rackRight} to={frontRightHub} active={active} color="#8d75b6" radius={.012} />
+    <MechanicalLink from={rackLeft} to={frontLeftKnuckle} active={active} color="#8d75b6" radius={.012} />
+    <MechanicalLink from={rackRight} to={frontRightKnuckle} active={active} color="#8d75b6" radius={.012} />
+    <MechanicalLink from={frontLeftKnuckle} to={frontLeftHub} active={active} color="#818b88" radius={.011} />
+    <MechanicalLink from={frontRightKnuckle} to={frontRightHub} active={active} color="#818b88" radius={.011} />
   </group>;
 }
 
@@ -370,8 +395,21 @@ function DrivelineTopology({ active }: { active: boolean }) {
 /** Faint car around the parts: body outline, floor and four tyres at the real wheel positions. */
 function CarContext({ strong, wheelActive = false, wheelSteer = 0, showBody = true, showWheels = true }: { strong: boolean; wheelActive?: boolean; wheelSteer?: number; showBody?: boolean; showWheels?: boolean }) {
   const body = useMemo(() => getBodyGeometry().clone(), []);
+  // The authored body mesh is an open-cockpit shell so the architecture stays
+  // inspectable. Add the missing curved hood/cowl as a separate body panel;
+  // it is deliberately a rounded surface, not the old rectangular placeholder.
   return <group>
-    {showBody && <mesh geometry={body} scale={U}><meshStandardMaterial color="#d94e45" transparent opacity={strong ? .16 : .05} depthWrite={false} side={THREE.DoubleSide} /></mesh>}
+    {showBody && <>
+      <mesh geometry={body} scale={U}><meshStandardMaterial color="#d94e45" transparent opacity={strong ? .18 : .06} depthWrite={false} side={THREE.DoubleSide} /></mesh>
+      <group position={[0, .93 * U, -1.27 * U]} scale={[.86 * U, .22 * U, .78 * U]}>
+        <mesh><sphereGeometry args={[1, 40, 24]} /><meshStandardMaterial color="#d94e45" transparent opacity={strong ? .22 : .08} depthWrite={false} side={THREE.DoubleSide} /></mesh>
+        <mesh position={[0, -.72, .04]} scale={[.92, .16, .88]}><sphereGeometry args={[1, 32, 18]} /><meshStandardMaterial color="#a93632" transparent opacity={strong ? .24 : .08} depthWrite={false} side={THREE.DoubleSide} /></mesh>
+      </group>
+      <mesh position={[0, 1.03 * U, -.55 * U]} rotation={[0, 0, 0]} scale={[.66 * U, .24 * U, .42 * U]}>
+        <sphereGeometry args={[1, 36, 20]} />
+        <meshPhysicalMaterial color="#d94e45" transparent opacity={strong ? .15 : .05} roughness={.28} clearcoat={.7} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+    </>}
     <mesh position={[0, .05 * U, 0]}><boxGeometry args={[CAR_DIMENSIONS.width * U, .02 * U, CAR_DIMENSIONS.length * U]} /><meshStandardMaterial color="#8d9a95" transparent opacity={.25} depthWrite={false} /></mesh>
     {showWheels && [-1, 1].flatMap(side => [CAR_DIMENSIONS.frontAxleZ, CAR_DIMENSIONS.rearAxleZ].map(z => <ContextWheel key={`${side}${z}`} position={[side * CAR_DIMENSIONS.wheelX * U, CAR_DIMENSIONS.wheelRadius * U, z * U]} front={z === CAR_DIMENSIONS.frontAxleZ} steer={wheelSteer} active={wheelActive} />))}
   </group>;
@@ -432,7 +470,7 @@ export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell, 
  * domain chains refer to it; overlaying eleven complete chains made the old
  * overview look like a pile of duplicate parts.
  */
-export function VehiclePlatformOverview({ showWiring = false }: { showWiring?: boolean }) {
+export function VehiclePlatformOverview({ showWiring = false, showBody = true }: { showWiring?: boolean; showBody?: boolean }) {
   const domainOrder: DomainId[] = ["drive", "power", "charge", "thermal", "brake", "steer", "suspension", "gear", "vcu", "comm", "adas"];
   const nodes = useMemo(() => {
     const unique = new Map<string, Node>();
@@ -472,7 +510,7 @@ export function VehiclePlatformOverview({ showWiring = false }: { showWiring?: b
     return [...unique.values()];
   }, []);
   return <group rotation={[0, -.18, 0]}>
-    <CarContext strong showBody showWheels />
+    <CarContext strong showBody={showBody} showWheels />
     <SteeringTopology active={false} />
     <DrivelineTopology active={false} />
     {expandCornerNodes(nodes).map(node => <PlacedPart key={`${node.id}-${node.index}-${node.copy}`} node={node} arrived={false} isInput={false} domain="drive" feature={0} selected={false} inspectId={node.id} />)}

@@ -927,40 +927,40 @@ function contractForInput(caseId: CaseId, contract: VerificationContract, deriv:
 /** What each input condition is for. The input sequence itself is printed from the executed contract, never hand-written. */
 const INPUT_INFO: Record<CaseId, Partial<Record<Deriv, { tag: string; purpose: string }>>> = {
   propulsion: {
-    reqa: { tag: "대표 요구사항 시험", purpose: "정상 요구사항의 대표 입력(페달 60% → 토크 204 Nm)에서 기대 출력이 나오는지 확인" },
-    bound: { tag: "경계값 시험 · 입력 상한", purpose: "페달 100%(입력 범위 끝)에서 토크 요청이 가용 한계 260 Nm를 넘지 않게 제한되는지 확인" },
+    reqa: { tag: "대표 요구사항 시험", purpose: "정상 요구사항의 대표 입력에서 기대 출력이 나오는지 확인" },
+    bound: { tag: "경계값 시험 · 입력 상한", purpose: "입력 범위 끝에서 출력 제한이 지켜지는지 확인" },
     usecase: { tag: "고장 상황 재현 시험", purpose: "고장 당시 기록을 바탕으로 재구성한 조작으로 같은 출력 저하가 다시 나타나는지 확인" },
-    equiv: { tag: "다른 입력 구간 시험", purpose: "페달을 떼면 토크 요청은 0이어야 해요. 입력이 없는 구간에서 출력이 기준과 같은지 확인" },
+    equiv: { tag: "다른 입력 구간 시험", purpose: "입력이 없는 구간에서 출력이 정상 기준과 같은지 확인" },
   },
   thermal: {
-    reqa: { tag: "대표 요구사항 시험", purpose: "65°C 켜짐 기준을 지날 때 팬이 켜지고 목표 회전수로 제어되는지 확인" },
+    reqa: { tag: "대표 요구사항 시험", purpose: "켜짐 기준을 지날 때 팬이 켜지고 목표 회전으로 제어되는지 확인" },
     usecase: { tag: "고장 상황 재현 시험", purpose: "고장 당시 장거리 고속 열부하를 재구성해 팬이 돌지 않는 현상이 다시 나타나는지 확인" },
-    equiv: { tag: "다른 입력 구간 시험", purpose: "켜짐 기준(65°C)보다 낮으면 팬은 꺼져 있어야 해요. 기준 아래 구간에서 팬 출력이 기준과 같은지 확인" },
+    equiv: { tag: "다른 입력 구간 시험", purpose: "켜짐 기준 아래 구간에서 팬 출력이 정상 기준과 같은지 확인" },
   },
   brake: {
-    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "고장 당시와 같은 제동 조작(페달 55%, 회생 가능)에서 감속 3.2 m/s²가 나오는지 확인" },
-    bound: { tag: "경계 조건 시험 · 회생 0", purpose: "회생이 0인 경계(배터리 가득)에서 마찰 제동만으로 감속 3.2 m/s²를 채우는지 확인" },
-    equiv: { tag: "다른 입력 구간 시험", purpose: "약한 제동은 회생만으로 감속을 채워 마찰 압력이 0이어야 해요. 이 구간의 감속이 기준과 같은지 확인" },
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "기록된 제동 조작에서 요구 감속이 나오는지 확인" },
+    bound: { tag: "경계 조건 시험 · 회생 0", purpose: "회생이 없는 경계에서 마찰 제동만으로 요구 감속을 채우는지 확인" },
+    equiv: { tag: "다른 입력 구간 시험", purpose: "약한 제동 구간의 감속과 제동 배분이 정상 기준과 같은지 확인" },
   },
   regen: {
-    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "고장 당시와 같은 코스팅 회생 요청(−40 Nm)에서 토크 지령이 −40 Nm로 나오는지 확인" },
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "기록된 회생 요청에서 토크 지령이 정상 방향으로 나오는지 확인" },
     bound: { tag: "경계 조건 시험 · 최대 회생", purpose: "회생 요청 −80 Nm에서도 토크 지령이 같은 방향으로 나오는지 확인" },
-    equiv: { tag: "다른 입력 구간 시험 · 회생 없음", purpose: "회생 요청이 0이면 지령도 0이어야 해요. 이 구간이 기준과 같은지 확인" },
+    equiv: { tag: "다른 입력 구간 시험 · 회생 없음", purpose: "회생 요청이 없는 구간에서 지령이 정상 기준과 같은지 확인" },
   },
   ready: {
-    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "고장 당시와 같은 시동 요청에서 버스가 95 %에 닿고 주 접촉기가 닫혀 READY가 되는지 확인" },
-    bound: { tag: "경계 조건 시험 · 저온 시동", purpose: "충전이 더 느린 조건(시정수 350 ms, 95 %는 약 1050 ms)에서도 대기 시간이 충분한지 확인" },
-    equiv: { tag: "다른 입력 구간 시험 · 시동 요청 없음", purpose: "시동 요청이 없으면 시퀀스가 돌지 않고 접촉기도 열려 있어야 해요. 이 구간이 기준과 같은지 확인" },
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "기록된 시동 요청에서 주 접촉기가 안전하게 닫히고 READY가 되는지 확인" },
+    bound: { tag: "경계 조건 시험 · 저온 시동", purpose: "충전이 느린 경계에서도 대기 시간이 충분한지 확인" },
+    equiv: { tag: "다른 입력 구간 시험 · 시동 요청 없음", purpose: "시동 요청이 없을 때 접촉기가 열려 있는지 확인" },
   },
   cold: {
-    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "배터리 0 °C(한계 20 Nm)에서 회생 요청 -80 Nm일 때 제동 도메인이 한계 20 Nm를 쓰고 회생 토크가 -20 Nm인지 확인" },
-    bound: { tag: "경계 조건 시험 · 배터리 -10 °C", purpose: "더 낮은 온도(한계 10 Nm)에서도 제동 도메인이 받은 한계를 따르는지 확인" },
-    equiv: { tag: "다른 입력 구간 시험 · 배터리 25 °C", purpose: "상온(한계 60 Nm)에서 회생이 정상 크기(-60 Nm)로 동작하는지 확인" },
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "기록된 저온 조건에서 한계 전달과 회생 출력이 일치하는지 확인" },
+    bound: { tag: "경계 조건 시험 · 배터리 저온", purpose: "더 낮은 온도에서도 제동 도메인이 받은 한계를 따르는지 확인" },
+    equiv: { tag: "다른 입력 구간 시험 · 배터리 상온", purpose: "상온 구간에서 회생 출력이 정상 기준과 같은지 확인" },
   },
   gear: {
-    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "변속 직후 버스 부하 85 %(메시지 간격 120 ms)에서 VCU가 안전 값 N을 쓰고 구동 지령이 0 Nm인지 확인" },
-    bound: { tag: "경계 조건 시험 · 버스 부하 70 %", purpose: "메시지 간격 90 ms로 타임아웃(100 ms) 직전인 조건에서 기어 값이 D로 유지되는지 확인" },
-    equiv: { tag: "다른 입력 구간 시험 · 정상 버스 부하 40 %", purpose: "버스가 한가할 때(간격 20 ms) 기어 값이 D로 정상 동작하는지 확인" },
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "기록된 변속·통신 조건에서 안전 값과 구동 지령을 확인" },
+    bound: { tag: "경계 조건 시험 · 통신 부하", purpose: "통신 부하 경계에서 타임아웃 뒤 안전 값이 선택되는지 확인" },
+    equiv: { tag: "다른 입력 구간 시험 · 정상 통신", purpose: "정상 통신 구간에서 변속 수신과 구동 지령이 기준과 같은지 확인" },
   },
 };
 const fmtNum = (v: number) => Number.isInteger(v) ? String(v) : v.toFixed(1);
@@ -1548,36 +1548,26 @@ const QUESTIONS: Record<CaseId, { hyp: string; ask: string }[]> = {
   thermal: [
     { hyp: "fan_sw", ask: "PWM 출력 어댑터 SW의 실행 순서가 빠진 건가요?" },
     { hyp: "fan_path", ask: "팬 켜기 상태 전이 SW가 잘못된 건가요?" },
-    { hyp: "fan_motor", ask: "팬 회전 피드백 처리 SW가 잘못된 건가요?" },
   ],
   brake: [
     { hyp: "blend_sw", ask: "회생·마찰을 나누는 SW가 잘못된 건가요?" },
     { hyp: "hyd_path", ask: "I/O 어댑터가 압력 명령을 다시 줄인 건가요?" },
-    { hyp: "caliper", ask: "압력 피드백 처리 SW가 잘못된 건가요?" },
   ],
   regen: [
-    { hyp: "brake_sw", ask: "Brake ECU가 틀린 회생 요청을 보낸 건가요?" },
-    { hyp: "pedal", ask: "가속 페달 값이 틀린 건가요?" },
     { hyp: "vcu_sign", ask: "VCU가 회생 요청의 부호를 놓친 건가요?" },
-    { hyp: "inv_wire", ask: "인버터 배선이 반대로 연결된 건가요?" },
+    { hyp: "brake_sw", ask: "Brake ECU가 틀린 회생 요청을 보낸 건가요?" },
   ],
   ready: [
-    { hyp: "bms_link", ask: "BMS가 시동 허용을 보내지 않은 건가요?" },
-    { hyp: "start_cond", ask: "VCU 시동 조건 판정이 틀린 건가요?" },
     { hyp: "seq_timeout", ask: "프리차지 대기 시간 설정이 틀린 건가요?" },
-    { hyp: "precharge_hw", ask: "프리차지 저항·접촉기가 불량인 건가요?" },
+    { hyp: "bms_link", ask: "BMS가 시동 허용을 보내지 않은 건가요?" },
   ],
   cold: [
-    { hyp: "bms_calc", ask: "BMS가 회생 한계를 잘못 계산한 건가요?" },
-    { hyp: "gw_lag", ask: "게이트웨이가 한계 신호를 지연·누락한 건가요?" },
     { hyp: "brake_fixed", ask: "제동 도메인이 한계를 읽지 않고 고정값을 쓰는 건가요?" },
-    { hyp: "inv_cfg", ask: "인버터 토크 제한 설정이 틀린 건가요?" },
+    { hyp: "bms_calc", ask: "BMS가 회생 한계를 잘못 계산한 건가요?" },
   ],
   gear: [
-    { hyp: "lever_hw", ask: "변속 레버 접점이 불량인 건가요?" },
-    { hyp: "gw_map", ask: "게이트웨이 신호 매핑이 틀린 건가요?" },
     { hyp: "gear_fallback", ask: "VCU 변속 수신의 타임아웃 폴백값 설정이 틀린 건가요?" },
-    { hyp: "interlock", ask: "VCU 변속 인터록 판정이 틀린 건가요?" },
+    { hyp: "lever_hw", ask: "변속 레버 접점이 불량인 건가요?" },
   ],
 };
 const TEST_CARD: Record<Lv, { name: string; pic: "chip" | "grid" | "monitor" | "car" }> = {
@@ -2000,14 +1990,14 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const resetStage = () => { setQi(0); setPhase("pick"); setPickStage("hyp"); setLevel(requestedLevel); setU(0); setRunning(false); setRuns({}); setSeen({ tc: false, log: false }); setAnswers({}); setCost(0); setMistakes(0); setFix(null); setViewTab(requestedView); setPickedDeriv(null); setShow3d("run"); setHeld({}); setFeedback(null); setCause(null); setAbDone(false); setBubble(`${DRIVER_NAME}에게 먼저 유력한 가설을 고르고, 그 가설을 검토하기에 적절한 시험 수준을 선택하세요.`); try { sessionStorage.removeItem(progressKey); } catch { /* ignore */ } };
 
   // choosing a test level = choosing its simulation view; every level keeps its own result
-  const selectLevel = (lv: Lv) => { setShow3d("run"); setLevel(lv); setViewTab(viewOf(lv)); setFeedback(null); setU(runs[runKey(fixed, lv, q?.hyp)] ? 1 : 0); };
+  const selectLevel = (lv: Lv) => { setShow3d("run"); setLevel(lv); setPickedDeriv(null); setViewTab(viewOf(lv)); setFeedback(null); setU(runs[runKey(fixed, lv, q?.hyp)] ? 1 : 0); };
   // hypothesis number = which hypothesis is being verified; its own runs, input pick and judgement stay separate
   const selectHypothesis = (k: number) => {
     if (running || (phase !== "lab" && phase !== "pick") || (k === qi && !(phase === "pick" && pickStage === "hyp"))) return;
-    setQi(k); setPickedDeriv(qaDeriv(caseId, level)); setFeedback(null); setU(runs[runKey(false, level, questions[k].hyp)] ? 1 : 0); if (phase === "pick") setPickStage("level"); play("pop");
+    setQi(k); setPickedDeriv(null); setFeedback(null); setU(runs[runKey(false, level, questions[k].hyp)] ? 1 : 0); if (phase === "pick") setPickStage("level"); play("pop");
     setBubble(`가설 ${k + 1}을 검증해요. 이 가설에 맞는 시험 수준과 입력 조건을 골라 직접 실행해야 판정할 수 있어요.`);
   };
-  const pickTest = (lv: Lv) => { if (pickStage !== "level") return; setPickedDeriv(qaDeriv(caseId, lv)); selectLevel(lv); setPhase("lab"); play("pop");
+  const pickTest = (lv: Lv) => { if (pickStage !== "level") return; setPickedDeriv(null); selectLevel(lv); setPhase("lab"); play("pop");
     setBubble(`${TEST_CARD[lv].name}(${VIEW_SUB[lv]})을 골랐어요. 시험 자료를 확인한 뒤 시험을 실행하세요.`); };
   const openMaterial = (kind: "tc" | "log") => { setMatTab(kind); setPanelTab("mat"); setSeen(prev => ({ ...prev, [kind]: true })); play("pop"); };
   const run = () => {
@@ -2254,7 +2244,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
             <ol><li>각 가설의 시험 결과를 확인해요.</li><li><mark>정상 기준과 달라진 신호</mark>를 근거로 봐요.</li><li>마지막에 원인 제거 시험으로 다시 확인해요.</li></ol>
             <p><b>다음</b><span>최종 고장 원인 선택</span></p>
           </section> : <>
-          {judgeNote && <aside className="b4WhyLevel" aria-label="이 시험 수준의 판단 가능 여부"><small>이 시험 수준으로 이 가설을 판단할 수 있나요?</small><b className={judgeNote.can ? "can" : "cannot"}>{judgeNote.can ? "판단할 수 있어요" : "판단할 수 없어요"}</b><p>{judgeNote.text}</p></aside>}
+          {judgeNote && <aside className="b4WhyLevel" aria-label="이 시험 수준의 판단 가능 여부"><small>이 시험 수준으로 이 가설을 판단할 수 있나요?</small><b className={judgeNote.can ? "can" : "cannot"}><mark>{judgeNote.can ? "판단할 수 있어요" : "판단할 수 없어요"}</mark></b><p>{judgeNote.text}</p></aside>}
           {panelTab === "cond" && (phase === "ab" ? <aside className="qaSetupPanel" aria-label="시험 설계 조건">
               <header><small>01 · 동일 조건</small><b>{activeContract.stimulus.label}</b><span>두 모델에 같은 초기 상태·입력·시간축을 적용</span></header>
               <section className="qaConditionBlock"><h3>초기 상태</h3><table><thead><tr><th>신호</th><th>설정값</th><th>단위</th></tr></thead><tbody>{initialConditionRows.map(item => <tr key={item.label}><td>{item.label}</td><td><code>{item.value}</code></td><td>{item.unit}</td></tr>)}</tbody></table></section>

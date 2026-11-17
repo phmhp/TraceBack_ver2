@@ -7,7 +7,7 @@ export const CANVAS_H = 900;
 
 const fit = () => Math.min(window.innerWidth / CANVAS_W, window.innerHeight / CANVAS_H);
 
-/** Fixed-ratio host: the game lives in a 1600x900 iframe that is scaled as a whole and letterboxed. */
+/** Fixed-ratio host kept for the legacy embed entry point. */
 function ScaledFrame() {
   const [scale, setScale] = useState(fit);
   const frame = useRef<HTMLIFrameElement>(null);
