@@ -24,7 +24,7 @@ import { VehicleLayoutRig, VehiclePlatformOverview, flowLegend } from "./feature
 import { DRIVER, DUO, ENGINEER } from "./game/cast";
 import { Icon, type IconName } from "./ui/Icon";
 import { ArchitectureOverview } from "./features/garage/ArchitectureOverview";
-import { DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainId } from "./features/garage/evData";
+import { COORD_SIGNALS, DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainId } from "./features/garage/evData";
 import { CAR_CONTACT, TRACK_LENGTH, TRAFFIC_COUNT, resetTrafficStall, stallTraffic, trafficHitVisual, trafficStateFor } from "./game/traffic";
 import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
 import { CYCLE_JUNCTIONS, ROAD_ZONES, zoneBrakeFactor, zonesAt, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
@@ -125,11 +125,31 @@ function GarageFlowPart({ label, position, kind, active, running, role, partId, 
     scale={active ? 1.08 : .82}
     onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = operable ? "pointer" : inspect ? "zoom-in" : "help"; }}
     onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; if (operable) press("end"); }}
-    onDoubleClick={event => { if (!inspect) return; event.stopPropagation(); play("pop"); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: inspect })); }}
+    onDoubleClick={event => { if (!inspect) return; event.stopPropagation(); play("pop"); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: { ...inspect, partId, label } })); }}
     onClick={!operable && inspect ? event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-garage-step", { detail: { index: inspect.index } })); } : undefined}
   >
-    <HardwarePart kind={kind} active={active} running={running} partId={partId} />
+    {partId ? <HardwarePart kind={kind} active={active} running={running} partId={partId} /> : <MissingGaragePart kind={kind} />}
     {hovered && <PartLabel className="hoverPartLabel" position={[0, 1.16, 0]}>{operable ? `${label} · 길게 눌러 입력 선택` : `${label}${inspect ? " · 더블클릭: 자세히" : ""}`}</PartLabel>}
+  </group>;
+}
+
+/** A missing authored asset must not be disguised as a colourful primitive.
+ * Keep a small, neutral inspection marker in the player-facing garage so the
+ * omission is visible and traceable without pretending that the part exists. */
+function MissingGaragePart({ kind }: { kind: HardwareKind }) {
+  const color = kind === "sensor" ? "#d6a427" : "#ba6b5c";
+  return <group>
+    <mesh rotation={[Math.PI / 2, 0, 0]}>
+      <torusGeometry args={[.26, .035, 10, 24]} />
+      <meshBasicMaterial color={color} transparent opacity={.9} />
+    </mesh>
+    <mesh position={[0, 0, 0]}>
+      <sphereGeometry args={[.075, 12, 8]} />
+      <meshBasicMaterial color={color} transparent opacity={.75} />
+    </mesh>
+    <Html center position={[0, .36, 0]} distanceFactor={3.4} zIndexRange={[20, 0]}>
+      <span className="garageMissingModel">3D 에셋 미연결</span>
+    </Html>
   </group>;
 }
 
@@ -160,7 +180,8 @@ const domainHardware: Record<DomainId, { kinds: HardwareKind[]; labels: string[]
 };
 
 // Garage/bench label → code-built part model (src/features/parts). Labels without a
-// model yet keep the primitive HardwarePart below, so new models appear automatically.
+// model yet render an explicit missing-asset marker in the garage; they must
+// never be disguised as a legacy primitive.
 export const partModelFor = (domain: DomainId, label: string): string | undefined => {
   const id =
     /START 버튼|시동 버튼|START 시동/.test(label) ? "start_button"
@@ -168,10 +189,10 @@ export const partModelFor = (domain: DomainId, label: string): string | undefine
     : /압력 제어기|^유압 모듈$|솔레노이드 밸브/.test(label) ? "hydraulic_modulator"
     : /유압 라인/.test(label) ? "brake_line"
     : /요·횡가속/.test(label) ? "imu_sensor"
-    : /핸들각/.test(label) ? "steering_wheel"
     : /차속 CAN/.test(label) ? "can_harness"
     : /피니언|^랙$/.test(label) ? "steering_rack"
-    : /너클/.test(label) ? "wheel"
+    // A knuckle is not a wheel.  There is no authored knuckle asset yet, so
+    // leave it as a visible missing-asset state instead of a false mapping.
     : /^릴레이$/.test(label) ? "main_contactor"
     : /HV 버스/.test(label) ? "hv_cable"
     : /HV Junction/.test(label) ? "hv_junction_box"
@@ -216,7 +237,8 @@ export const partModelFor = (domain: DomainId, label: string): string | undefine
     : /^ESC$/.test(label) ? "brake_ecu"
     : /^PRND/.test(label) ? "gear_selector"
     : /APS|페달/.test(label) ? (domain === "brake" ? "brake_pedal" : "accel_pedal")
-    : /조향각|^각도 센서/.test(label) ? "steering_wheel"
+    // Steering-angle sensing is a separate function from the steering wheel;
+    // no independent authored sensor exists yet, so do not mis-map it.
     : /휠속|Wheel Sensor|속도센서/.test(label) ? "wheel_speed_sensor"
     : /리졸버/.test(label) ? "rotor_position_sensor"
     : /NTC/.test(label) ? "motor_temp_sensor"
@@ -500,7 +522,7 @@ function AllDomainsSystem({ domain, overlay = false, showWiring = true }: { doma
   // the very first label after the canvas remounts is dropped by the label library, so a hidden one goes first
   const spacer = <PartLabel className="labelSpacer" position={[0, -20, 0]}>{" "}</PartLabel>;
   if (overlay) return <group rotation={[0, -.18, 0]}>
-    {spacer}<VehiclePlatformOverview />
+    {spacer}<VehiclePlatformOverview showWiring={showWiring} />
   </group>;
   return <group>
     {spacer}{labels}
@@ -592,6 +614,7 @@ function SwcView({ domain, feature, activeStep, onPick }: { domain: DomainId; fe
 function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, onDomain, onArea, noDomain = false, overviewGroup = null, overview3dMode, onOverview3dChange, onJump, inputOn = false, eeLayer = "logic", onEeLayerChange, selectedVehiclePart = null, onVehiclePartSelect }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; onDomain?: (id: DomainId) => void; onArea?: (area: DomainGroup | "coord") => void; noDomain?: boolean; overviewGroup?: DomainGroup | null; overview3dMode?: boolean; onOverview3dChange?: (show: boolean) => void; onJump?: (level: number, step: number) => void; inputOn?: boolean; eeLayer?: EeLayer; onEeLayerChange?: (layer: EeLayer) => void; selectedVehiclePart?: number | null; onVehiclePartSelect?: (index: number) => void }) {
   const [shell, setShell] = useState(false);
   const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "overlay" : "one");
+  const [coordOpen, setCoordOpen] = useState(false);
   // The first garage screen is a visual vehicle map. Logic cards remain one click away.
   const [localOverview3d, setLocalOverview3d] = useState(noDomain && level === 0);
   const overview3d = overview3dMode ?? localOverview3d;
@@ -644,9 +667,14 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
     </div>}
     <div className="viewToggles">
       {noDomain && <button className="shellToggle" onClick={() => setOverview3d(false)}><Icon name="layers" /> 아키텍처</button>}
-      {level === 0 && <span className="view3dSeg">{(noDomain ? [["overlay", "협조 신호"]] as const : [["one", "이 도메인"], ["overlay", "겹쳐 보기"]] as const).map(([id, label]: readonly [string, string]) => <button key={id} className={`shellToggle ${view3d === id ? "on" : ""}`} onClick={() => setView3d(id as "one" | "grid" | "overlay")}><Icon name={id === "one" ? "search" : "layers"} /> {label}</button>)}</span>}
+      {level === 0 && <span className="view3dSeg">{(noDomain ? [["overlay", "협조 신호"]] as const : [["one", "이 도메인"], ["overlay", "배선 보기"]] as const).map(([id, label]: readonly [string, string]) => <button key={id} className={`shellToggle ${coordOpen || view3d === id ? "on" : ""}`} onClick={() => { setView3d(id as "one" | "grid" | "overlay"); if (noDomain) setCoordOpen(true); }}><Icon name={id === "one" ? "search" : "layers"} /> {noDomain ? "협조 신호 보기" : label}</button>)}</span>}
       {!allDomains && <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}><Icon name="car" /> 차체 {shell ? "숨기기" : "보기"}</button>}
     </div>
+    {noDomain && level === 0 && coordOpen && <section className="garageCoordOverlay" aria-label="도메인 협조 신호">
+      <header><b>도메인 협조 신호</b><button type="button" onClick={() => setCoordOpen(false)} aria-label="협조 신호 닫기">×</button></header>
+      <p>한 도메인의 한계·상태가 다른 도메인의 제어 입력으로 전달됩니다.</p>
+      <div>{COORD_SIGNALS.slice(0, 6).map(item => <article key={item.name}><strong>{EV_DOMAINS[item.from].label}</strong><i>→</i><strong>{item.to.map(id => EV_DOMAINS[id].label).join(" · ")}</strong><small>{item.name}</small></article>)}</div>
+    </section>}
   </div>;
 }
 
@@ -757,7 +785,7 @@ function PartIntroCard({ label, role, domain, onClose, onPull }: { label: string
 }
 
 // ── Vehicle/System: double-click a part → that part alone, 360° turntable + what it does ──
-type PartInspectTarget = { domain: DomainId; feature: number; index: number };
+type PartInspectTarget = { domain: DomainId; feature: number; index: number; partId?: string; label?: string };
 const MOVE_TEXT: Record<string, string> = { press: "눌리는 부분", rotate: "회전하는 부분", spin: "계속 회전하는 부분", slide: "앞뒤로 움직이는 부분", explode: "분해해 볼 수 있는 부분" };
 function PartInspector() {
   const [target, setTarget] = useState<PartInspectTarget | null>(null);
@@ -772,10 +800,10 @@ function PartInspector() {
   if (!target) return null;
   const { domain, feature, index } = target;
   const chain = getFeatureLayer(domain, feature, 1);
-  const label = chain[index];
+  const label = target.label ?? chain[index] ?? target.partId ?? "선택한 부품";
   const signals = flowSignals(domain, feature, chain.length);
-  const role = partRole(label, index, chain.length);
-  const partId = partModelFor(domain, label);
+  const role = partRole(label, Math.min(index, Math.max(0, chain.length - 1)), chain.length);
+  const partId = target.partId ?? partModelFor(domain, label);
   const comp = partId ? getComponent(partId) : undefined;
   const ecu = ECUS.find(item => item.id === (ecuIdFor(label) ?? comp?.relatedEcu));
   const model = partId ? getPartModel(partId) : undefined;
@@ -789,7 +817,7 @@ function PartInspector() {
           <hemisphereLight intensity={2} color="#fff8e5" groundColor="#8a6f66" />
           <directionalLight position={[3, 5, 4]} intensity={2.6} />
           <directionalLight position={[-3, 2, -3]} intensity={.9} />
-          {partId ? <FittedPart id={partId} size={1.5} demo={moving} castShadow={false} /> : <group scale={.62} position={[0, -.25, 0]}><PrimitiveHardwarePart kind={kind} running={moving} /></group>}
+          {partId ? <FittedPart id={partId} size={1.5} demo={moving} castShadow={false} /> : <div />}
           <OrbitControls makeDefault autoRotate={spin} autoRotateSpeed={2.2} enablePan={false} minDistance={1.4} maxDistance={6} target={[0, 0, 0]} />
         </Canvas>
         <div className="piTools">
@@ -814,7 +842,7 @@ function PartInspector() {
           {ecu && ecuIdFor(label) && ecu.actuators.length > 0 && <div><dt>구동 대상</dt><dd>{ecu.actuators.map(ko).join(" · ")}</dd></div>}
           {model?.moving[0] && <div><dt>움직임</dt><dd>{MOVE_TEXT[model.moving[0].mode] ?? "움직이는 부분"} 표시</dd></div>}
         </dl>
-        {!partId && <p className="piNote">아직 전용 3D 모델이 없어 기본 도형으로 보여요.</p>}
+        {!partId && <p className="piNote">이 부품의 전용 3D 에셋이 아직 연결되지 않았습니다. 검수 대상에서 누락으로 기록됩니다.</p>}
       </section>
     </article>
   </div>, document.body);

@@ -886,3 +886,81 @@ body .gameStage :is(
 .vbBench.bench4.qa2 .b4SelectedHypFacts span { color: #8a6a63; font: 700 11px/1.3 ui-monospace, Menlo, monospace; }
 .vbBench.bench4.qa2 .b4SelectedHypPrediction { min-width: 0; padding: 10px; border-left: 4px solid #6fa08c; border-radius: 8px; background: #eef5e9; }
 .vbBench.bench4.qa2 .b4SelectedHypPrediction p { margin: 5px 0 0; color: #345f48; font: 700 13px/1.35 Pretendard, system-ui; overflow-wrap: anywhere; }
+
+/* The overview's cooperation control used to be a no-op because the vehicle
+   was already mounted in the overlay view.  Make the click reveal an actual
+   signal panel without replacing the 3D vehicle or creating a second route. */
+.garageV2 .garageCoordOverlay {
+  position: absolute;
+  z-index: 12;
+  top: 72px;
+  right: 18px;
+  width: min(430px, 42%);
+  max-height: calc(100% - 170px);
+  display: grid;
+  gap: 8px;
+  padding: 10px !important;
+  box-sizing: border-box;
+  border: 2px solid rgba(196,85,58,.45);
+  border-radius: 14px;
+  background: rgba(255,253,246,.94);
+  box-shadow: 0 10px 24px rgba(50,35,28,.2);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+.garageV2 .garageCoordOverlay header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.garageV2 .garageCoordOverlay header b { color: #4b3833; font: 900 15px/1.2 Pretendard, system-ui; }
+.garageV2 .garageCoordOverlay header button { width: 30px; height: 30px; padding: 0 !important; display: grid; place-items: center; border: 1px solid #d9bcae; border-radius: 50%; background: #fffaf0; color: #8f5f55; font: 900 18px/1 Pretendard, system-ui; }
+.garageV2 .garageCoordOverlay > p { margin: 0; color: #7a5a53; font: 700 11px/1.35 Pretendard, system-ui; }
+.garageV2 .garageCoordOverlay > div { min-height: 0; display: grid; gap: 6px; overflow: hidden; }
+.garageV2 .garageCoordOverlay article { min-width: 0; display: grid; grid-template-columns: auto 18px auto; grid-template-rows: auto auto; align-items: center; column-gap: 6px; row-gap: 2px; padding: 8px !important; border: 1px solid #ead7c7; border-radius: 9px; background: #fffaf3; }
+.garageV2 .garageCoordOverlay article strong { min-width: 0; overflow-wrap: anywhere; color: #4b3833; font: 800 11px/1.2 Pretendard, system-ui; }
+.garageV2 .garageCoordOverlay article i { color: #c4553a; font: 900 14px/1 Pretendard, system-ui; text-align: center; }
+.garageV2 .garageCoordOverlay article small { grid-column: 1 / -1; color: #8a6a63; font: 700 10px/1.2 Pretendard, system-ui; }
+
+/* Architecture cards are a fixed play surface.  Their content must fit in
+   the card; an inner scrollbar is not an acceptable fallback for the game. */
+.garageV2 .archView .archGroupCards { overflow: visible !important; height: auto !important; min-height: 0 !important; }
+.garageV2 .archView .archGroupCard { overflow: hidden !important; }
+
+/* A missing mapping is a data-audit state, never a colourful legacy primitive. */
+.garageV2 .piNote { margin-top: 12px; padding: 10px !important; border: 1px solid #e0b6a8; border-radius: 8px; background: #fff1e9; color: #8f4d42; font: 800 12px/1.35 Pretendard, system-ui; }
+
+/* Player-facing 3D model audit marker.  It is intentionally diagnostic, not
+   a replacement part, so an absent asset cannot be mistaken for a real ECU or
+   mechanical component. */
+.garageV2 .garageMissingModel { display: inline-block; padding: 4px 6px !important; border: 1px dashed #ba6b5c; border-radius: 5px; background: rgba(255,247,239,.94); color: #9a5147; font: 800 10px/1.1 Pretendard, system-ui; white-space: nowrap; pointer-events: none; }
+
+/* Every in-game polaroid uses a square photo window.  The paper caption stays
+   outside the window, and the image is contained rather than cropped. */
+.eeTrace :is(.polPhoto, .polPhoto .dtPhoto, .polPhoto.big, .polPhoto.big .dtPhoto,
+  .etCardPol .polPhoto, .etCand .etCardPol .polPhoto, .etEvidence .polPhoto) {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1 !important;
+  min-height: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+.eeTrace :is(.polPhoto img, .polPhoto .dtPhoto img, .polPhoto.big img, .polPhoto.big .dtPhoto img) { width: 100% !important; height: 100% !important; object-fit: contain !important; }
+.eeTrace .etEvidenceContent { min-height: 0 !important; height: 100% !important; display: grid !important; grid-template-rows: minmax(0, 1fr) !important; overflow: hidden !important; }
+.eeTrace .etEvidence .polBoard { height: 100% !important; min-height: 0 !important; grid-auto-rows: minmax(0, 1fr) !important; align-content: stretch !important; overflow: hidden !important; }
+.eeTrace .etEvidence .pol { min-height: 0 !important; display: grid !important; grid-template-rows: auto minmax(0, 1fr) auto !important; overflow: hidden !important; }
+
+/* The garage overview remains a 3D vehicle view, while the red shell is
+   visible enough to explain why the ADAS sensors are mounted on the roof and
+   front envelope instead of appearing to float in empty space. */
+.garageV2 .garageMechanismCard .mechanismViewer { min-height: 0 !important; }
+.garageV2 .garageMechanismCard .garageMissingModel { -webkit-text-stroke: .12px #fff; }
+
+/* The lower flow panel is a real information region, not an accidental blank
+   strip.  Keep its contents inside the same measured grid as the stage. */
+.garageV2 .gv3Work[data-mode="domain"] .garageFooterRow { min-height: 132px !important; align-items: stretch !important; }
+.garageV2 .gv3Work[data-mode="domain"] .garageFooterRow .garageFlowPanel { min-height: 0 !important; display: grid !important; align-content: start !important; gap: 8px !important; }
+.garageV2 .gv3Work[data-mode="domain"] .garageFooterRow .garageProceed { align-self: stretch !important; }
+
+/* No decorative scrollbars in the player surface.  The paper document is
+   fitted to the viewport; its content is shortened by the owning layout. */
+body .gameStage :is(.eeTrace .etEvidence, .eeTrace .etEvidenceContent, .eeTrace .etEvidence .polBoard) { overflow: hidden !important; }

@@ -231,7 +231,7 @@ function anchorWorld(node: Node, side: "in" | "out", port?: string): THREE.Vecto
 }
 const offsetOf = (node: Node): V3 => [node.place.p[0] * U, node.place.p[1] * U, node.place.p[2] * U];
 
-function FlowCable({ a, b, flow, on, tag }: { a: THREE.Vector3; b: THREE.Vector3; flow: string; on: boolean; tag?: string }) {
+function FlowCable({ a, b, flow, on, tag, staticColor = false }: { a: THREE.Vector3; b: THREE.Vector3; flow: string; on: boolean; tag?: string; staticColor?: boolean }) {
   const info = FLOW_INFO[flow] ?? FLOW_INFO.digital;
   const curve = useMemo(() => {
     const d = a.distanceTo(b);
@@ -251,13 +251,13 @@ function FlowCable({ a, b, flow, on, tag }: { a: THREE.Vector3; b: THREE.Vector3
   const radius = info.r * U * 1.5;
   const mid = curve.getPointAt(.5);
   return <group>
-    <mesh><tubeGeometry args={[curve, 48, radius, 8, false]} /><meshStandardMaterial color={on ? info.color : "#7f8a86"} emissive={on ? info.color : "#000"} emissiveIntensity={on ? .45 : 0} transparent opacity={on ? .95 : .55} /></mesh>
+    <mesh><tubeGeometry args={[curve, 48, radius, 8, false]} /><meshStandardMaterial color={on || staticColor ? info.color : "#7f8a86"} emissive={on ? info.color : "#000"} emissiveIntensity={on ? .45 : 0} transparent opacity={on || staticColor ? .78 : .55} /></mesh>
     {[0, 1, 2].map(k => <mesh key={k} visible={false} ref={el => { if (el) pulses.current[k] = el; }}><sphereGeometry args={[radius * 2.1, 12, 8]} /><meshStandardMaterial color="#fffbe0" emissive={info.color} emissiveIntensity={2.2} /></mesh>)}
     {tag && <Html center position={[mid.x, mid.y + .12, mid.z]} distanceFactor={3.6} zIndexRange={[20, 0]}><span className="cableTag" style={{ borderColor: info.color }}><i style={{ background: info.color }} />{tag}</span></Html>}
   </group>;
 }
 
-function PlacedPart({ node, arrived, isInput, domain, feature, selected, onSelect }: { node: Node; arrived: boolean; isInput: boolean; domain: DomainId; feature: number; selected: boolean; onSelect?: (index: number) => void }) {
+function PlacedPart({ node, arrived, isInput, domain, feature, selected, onSelect, inspectId }: { node: Node; arrived: boolean; isInput: boolean; domain: DomainId; feature: number; selected: boolean; onSelect?: (index: number) => void; inspectId?: string }) {
   const model = useMemo(() => getPartModel(node.id), [node.id]);
   const mode = model.moving[0]?.mode;
   const input = arrived ? (mode === "spin" ? 9 : mode === "rotate" ? .45 : 1) : 0;
@@ -270,7 +270,7 @@ function PlacedPart({ node, arrived, isInput, domain, feature, selected, onSelec
     onPointerOut={() => { setHovered(false); if (isInput) press("end"); document.body.style.cursor = ""; }}
     onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = isInput ? "pointer" : "help"; }}
     onClick={!isInput ? event => { if ((event as any).delta > 6) return; event.stopPropagation(); onSelect?.(node.index); dispatchEvent(new CustomEvent("tb-garage-step", { detail: { index: node.index } })); } : undefined}
-    onDoubleClick={event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: { domain, feature, index: node.index } })); }}>
+    onDoubleClick={event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: { domain, feature, index: node.index, partId: inspectId ?? node.id, label: inspectId ?? node.id } })); }}>
     <PartModel id={node.id} scale={modelScale(node)} input={input} castShadow={false} />
     {selected && <mesh scale={.34 * U}><sphereGeometry args={[1, 18, 14]} /><meshBasicMaterial color="#e09b35" transparent opacity={.18} depthWrite={false} /></mesh>}
     {(hovered || selected) && <Html center position={[0, .32 * U, 0]} distanceFactor={3.35} zIndexRange={[21, 0]}><span className={`garageVehiclePartLabel ${selected ? "selected" : ""}`}>{label}</span></Html>}
@@ -427,7 +427,7 @@ export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell, 
  * domain chains refer to it; overlaying eleven complete chains made the old
  * overview look like a pile of duplicate parts.
  */
-export function VehiclePlatformOverview() {
+export function VehiclePlatformOverview({ showWiring = false }: { showWiring?: boolean }) {
   const domainOrder: DomainId[] = ["drive", "power", "charge", "thermal", "brake", "steer", "suspension", "gear", "vcu", "comm", "adas"];
   const nodes = useMemo(() => {
     const unique = new Map<string, Node>();
@@ -451,11 +451,27 @@ export function VehiclePlatformOverview() {
     }
     return [...unique.values()];
   }, []);
+  // Reuse the authored domain layouts and their model anchors.  The overview
+  // wiring is therefore a real port-to-port representation, not a decorative
+  // line drawn from screen coordinates.
+  const wiringSegments = useMemo(() => {
+    const unique = new Map<string, Segment>();
+    for (const domain of domainOrder) {
+      for (const segment of layoutOf(domain, 0).segments) {
+        const key = [segment.from.id, segment.to.id, segment.flow,
+          segment.from.place.p.map(value => value.toFixed(2)).join(","),
+          segment.to.place.p.map(value => value.toFixed(2)).join(",")].join("|");
+        if (!unique.has(key)) unique.set(key, segment);
+      }
+    }
+    return [...unique.values()];
+  }, []);
   return <group rotation={[0, -.18, 0]}>
-    <CarContext strong={false} showBody showWheels />
+    <CarContext strong showBody showWheels />
     <SteeringTopology active={false} />
     <DrivelineTopology active={false} />
-    {expandCornerNodes(nodes).map(node => <PlacedPart key={`${node.id}-${node.index}-${node.copy}`} node={node} arrived={false} isInput={false} domain="drive" feature={0} selected={false} />)}
+    {expandCornerNodes(nodes).map(node => <PlacedPart key={`${node.id}-${node.index}-${node.copy}`} node={node} arrived={false} isInput={false} domain="drive" feature={0} selected={false} inspectId={node.id} />)}
+    {showWiring && wiringSegments.map((segment, index) => <FlowCable key={`overview-wire-${index}`} a={anchorWorld(segment.from, "out", segment.fromPort)} b={anchorWorld(segment.to, "in", segment.toPort)} flow={segment.flow} on={false} staticColor />)}
   </group>;
 }
 
