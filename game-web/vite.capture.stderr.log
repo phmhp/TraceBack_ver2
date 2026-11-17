@@ -1,0 +1,399 @@
+PM 2:46:44 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:46:44 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:46:44 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:46:44 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:46:44 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:46:44 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:46:44 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:46:44 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:46:44 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:46:44 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 2:48:41 [vite] (client) [Unhandled error] NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+ > removeChildFromContainer node_modules/react-dom/cjs/react-dom-client.development.js:23987:8
+ > runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:1045:29
+ > commitDeletionEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15499:16
+ > recursivelyTraverseMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:15773:10
+ > commitMutationEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:16111:10
+ > flushMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:19680:12
+ > commitRoot node_modules/react-dom/cjs/react-dom-client.development.js:19605:11
+ > completeRoot node_modules/react-dom/cjs/react-dom-client.development.js:19509:8
+ > completeRootWhenReady node_modules/react-dom/cjs/react-dom-client.development.js:18363:6
+ > performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:18238:14
+
+PM 2:48:41 [vite] (client) [console.warn] An error occurred in the <div> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+PM 2:48:41 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:48:41 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:48:41 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:48:41 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:48:41 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:48:41 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:48:41 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:48:41 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 2:48:42 [vite] (client) [Unhandled error] NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+ > removeChildFromContainer node_modules/react-dom/cjs/react-dom-client.development.js:23987:8
+ > runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:1045:29
+ > commitDeletionEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15499:16
+ > recursivelyTraverseMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:15773:10
+ > commitMutationEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:16111:10
+ > flushMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:19680:12
+ > commitRoot node_modules/react-dom/cjs/react-dom-client.development.js:19605:11
+ > completeRoot node_modules/react-dom/cjs/react-dom-client.development.js:19509:8
+ > completeRootWhenReady node_modules/react-dom/cjs/react-dom-client.development.js:18363:6
+ > performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:18238:14
+
+PM 2:48:42 [vite] (client) [console.warn] An error occurred in the <div> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+PM 2:49:23 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:49:23 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:49:23 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 2:50:28 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:50:29 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 2:51:21 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:21 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:21 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:21 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:22 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:23 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:24 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:25 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:26 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:27 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:28 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:29 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:30 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:31 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:32 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:33 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:34 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:35 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:36 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:37 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:38 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:39 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:40 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:41 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:42 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:43 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:44 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:45 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:46 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:47 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:48 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:49 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:50 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:51 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:52 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:53 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:54 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:51:55 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:52:08 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:52:37 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:52:37 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:52:37 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:52:37 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:52:37 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:52:37 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 2:52:38 [vite] (client) [Unhandled error] NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+ > removeChildFromContainer node_modules/react-dom/cjs/react-dom-client.development.js:23987:8
+ > runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:1045:29
+ > commitDeletionEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15499:16
+ > recursivelyTraverseMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:15773:10
+ > commitMutationEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:16111:10
+ > flushMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:19680:12
+ > commitRoot node_modules/react-dom/cjs/react-dom-client.development.js:19605:11
+ > completeRoot node_modules/react-dom/cjs/react-dom-client.development.js:19509:8
+ > completeRootWhenReady node_modules/react-dom/cjs/react-dom-client.development.js:18363:6
+ > performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:18238:14
+
+PM 2:52:38 [vite] (client) [console.warn] An error occurred in the <div> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+PM 2:52:38 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:52:55 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:52:55 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 2:55:11 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:55:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:11 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 2:55:26 [vite] (client) [Unhandled error] NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+ > removeChildFromContainer node_modules/react-dom/cjs/react-dom-client.development.js:23987:8
+ > runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:1045:29
+ > commitDeletionEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15499:16
+ > recursivelyTraverseMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:15773:10
+ > commitMutationEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:16111:10
+ > flushMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:19680:12
+ > commitRoot node_modules/react-dom/cjs/react-dom-client.development.js:19605:11
+ > completeRoot node_modules/react-dom/cjs/react-dom-client.development.js:19509:8
+ > completeRootWhenReady node_modules/react-dom/cjs/react-dom-client.development.js:18363:6
+ > performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:18238:14
+
+PM 2:55:26 [vite] (client) [console.warn] An error occurred in the <div> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+PM 2:55:27 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:55:27 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:27 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:27 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:27 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:27 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:55:27 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 2:55:32 [vite] (client) [Unhandled error] NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+ > removeChildFromContainer node_modules/react-dom/cjs/react-dom-client.development.js:23987:8
+ > runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:1045:29
+ > commitDeletionEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15499:16
+ > recursivelyTraverseMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:15773:10
+ > commitMutationEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:16111:10
+ > flushMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:19680:12
+ > commitRoot node_modules/react-dom/cjs/react-dom-client.development.js:19605:11
+ > completeRoot node_modules/react-dom/cjs/react-dom-client.development.js:19509:8
+ > completeRootWhenReady node_modules/react-dom/cjs/react-dom-client.development.js:18363:6
+ > performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:18238:14
+
+PM 2:55:32 [vite] (client) [console.warn] An error occurred in the <div> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+PM 2:56:13 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:56:13 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:56:13 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:56:14 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:56:15 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:56:16 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:56:17 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:56:18 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 2:56:41 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:56:41 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:56:41 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:56:41 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:56:41 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:56:41 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 2:56:45 [vite] (client) [Unhandled error] NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+ > removeChildFromContainer node_modules/react-dom/cjs/react-dom-client.development.js:23987:8
+ > runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:1045:29
+ > commitDeletionEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15499:16
+ > recursivelyTraverseMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:15773:10
+ > commitMutationEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:16111:10
+ > flushMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:19680:12
+ > commitRoot node_modules/react-dom/cjs/react-dom-client.development.js:19605:11
+ > completeRoot node_modules/react-dom/cjs/react-dom-client.development.js:19509:8
+ > completeRootWhenReady node_modules/react-dom/cjs/react-dom-client.development.js:18363:6
+ > performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:18238:14
+
+PM 2:56:45 [vite] (client) [console.warn] An error occurred in the <div> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+PM 2:56:45 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:56:46 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 2:58:51 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:58:51 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:51 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:51 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:51 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:51 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:51 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:51 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:51 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:51 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 2:58:56 [vite] (client) [Unhandled error] NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+ > removeChildFromContainer node_modules/react-dom/cjs/react-dom-client.development.js:23987:8
+ > runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:1045:29
+ > commitDeletionEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15499:16
+ > recursivelyTraverseMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:15773:10
+ > commitMutationEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:16111:10
+ > flushMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:19680:12
+ > commitRoot node_modules/react-dom/cjs/react-dom-client.development.js:19605:11
+ > completeRoot node_modules/react-dom/cjs/react-dom-client.development.js:19509:8
+ > completeRootWhenReady node_modules/react-dom/cjs/react-dom-client.development.js:18363:6
+ > performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:18238:14
+
+PM 2:58:56 [vite] (client) [console.warn] An error occurred in the <div> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+PM 2:58:56 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 2:58:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 2:58:56 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 2:58:59 [vite] (client) [Unhandled error] NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+ > removeChildFromContainer node_modules/react-dom/cjs/react-dom-client.development.js:23987:8
+ > runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:1045:29
+ > commitDeletionEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15499:16
+ > recursivelyTraverseMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:15773:10
+ > commitMutationEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:16111:10
+ > flushMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:19680:12
+ > commitRoot node_modules/react-dom/cjs/react-dom-client.development.js:19605:11
+ > completeRoot node_modules/react-dom/cjs/react-dom-client.development.js:19509:8
+ > completeRootWhenReady node_modules/react-dom/cjs/react-dom-client.development.js:18363:6
+ > performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:18238:14
+
+PM 2:58:59 [vite] (client) [console.warn] An error occurred in the <div> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+PM 4:10:48 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:10:48 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:10:48 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:10:48 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:10:48 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:10:48 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:10:48 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:10:48 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:10:48 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:10:48 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:10:49 [vite] (client) [Unhandled error] NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+ > removeChildFromContainer node_modules/react-dom/cjs/react-dom-client.development.js:23987:8
+ > runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:1045:29
+ > commitDeletionEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:15499:16
+ > recursivelyTraverseMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:15773:10
+ > commitMutationEffectsOnFiber node_modules/react-dom/cjs/react-dom-client.development.js:16111:10
+ > flushMutationEffects node_modules/react-dom/cjs/react-dom-client.development.js:19680:12
+ > commitRoot node_modules/react-dom/cjs/react-dom-client.development.js:19605:11
+ > completeRoot node_modules/react-dom/cjs/react-dom-client.development.js:19509:8
+ > completeRootWhenReady node_modules/react-dom/cjs/react-dom-client.development.js:18363:6
+ > performWorkOnRoot node_modules/react-dom/cjs/react-dom-client.development.js:18238:14
+
+PM 4:10:49 [vite] (client) [console.warn] An error occurred in the <div> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+PM 4:10:55 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:10:55 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:10:55 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:11:08 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:11:08 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:11:30 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 4:11:30 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 4:11:30 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 4:11:30 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 4:11:31 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 4:11:32 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 4:11:42 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:11:47 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:11:48 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:11:59 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:11:59 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:11:59 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:12:41 [vite] (client) [console.error] Cannot update a component (`App`) while rendering a different component (`RaceExperience`). To locate the bad setState() call inside `RaceExperience`, follow the stack trace as described in https://react.dev/link/setstate-in-render
+PM 4:35:11 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:35:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:35:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:35:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:35:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:35:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:35:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:35:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:35:11 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:35:11 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:42:09 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:42:09 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:42:09 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:42:09 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:42:09 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:42:09 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:42:09 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:44:55 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:44:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:44:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:44:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:44:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:44:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:44:56 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:47:25 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:47:25 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:47:25 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:47:25 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:47:25 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:47:25 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:47:25 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:48:37 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:48:38 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:48:38 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:48:38 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:48:38 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:48:38 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:48:38 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:52:48 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:52:49 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:52:49 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:52:49 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:52:49 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:52:49 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:52:49 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:52:55 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:52:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:52:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:52:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:52:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:52:56 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:52:56 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:56:38 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:56:39 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:39 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:39 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:39 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:39 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:39 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:39 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:39 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:39 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:39 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:39 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 4:56:52 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 4:56:53 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:53 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:53 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:53 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:53 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:53 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:53 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:53 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:53 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:53 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 4:56:53 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 5:02:27 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 5:02:27 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 5:02:27 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 5:02:27 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 5:02:28 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 5:03:12 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 5:03:12 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 5:03:12 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 5:03:12 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 5:03:13 [vite] (client) [console.error] Encountered two children with the same key, `brake_sw`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+PM 5:07:37 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 5:07:47 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 5:08:37 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 5:11:42 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 5:11:42 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 5:11:42 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 5:11:42 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 5:11:42 [vite] (client) [console.error] Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+PM 5:11:42 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.
+PM 5:11:44 [vite] (client) [console.warn] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+PM 5:11:45 [vite] (client) [console.warn] THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.

@@ -1,0 +1,11 @@
+import { launch, recorder, sleep, key } from "./cdp.mjs";
+const S = process.argv[2];
+const page = await launch({ profile: S + "/chrome-profile", headless: process.argv[3] !== "headed" });
+await page.goto("http://127.0.0.1:5180/?qa=CHASE_NORMAL&distance=150");
+await sleep(2500);
+const rec = recorder(page, S + "/cap-test");
+await rec.start();
+await key(page, "Enter"); await sleep(4000);
+await key(page, "ArrowUp", "down"); await sleep(5000); await key(page, "ArrowUp", "up");
+console.log(await rec.stop(), await page.eval("document.title + ' ' + innerWidth + 'x' + innerHeight + ' gl:' + (()=>{const c=document.createElement('canvas').getContext('webgl2'); const d=c&&c.getExtension('WEBGL_debug_renderer_info'); return d?c.getParameter(d.UNMASKED_RENDERER_WEBGL):'?'})()"));
+await page.close();

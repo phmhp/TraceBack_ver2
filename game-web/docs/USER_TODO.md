@@ -1,0 +1,69 @@
+# 사용자(혜민) 할 일 모음
+
+작성: 2026-11-14. 끝낸 항목은 `[x]`로 표시해 주세요. 급한 순서가 아니라 종류별 정리입니다.
+
+## A. 에셋 만들기 (ChatGPT, 한 번에 한 이미지)
+- [ ] 폴더 만들기: `mkdir -p public/assets/intake/images/adas`
+- [ ] EV 확장 부품 이미지 15장 — 순서·파일명·저장 폴더·첨부 이미지는 `ASSET_REQUEST_EV_2026-11-14.md` 표 그대로. 프롬프트 원문은 `image-prompts/14-ev-additions.md`
+  - 규칙: 한 장씩, 프롬프트 코드블록 통째로 붙여넣기, 2장 이상·글자·테두리가 나오면 버리고 재요청, CUT은 같은 부품의 REF 먼저 첨부
+- [ ] 저장 후 확인: `npm run assets:check` (아직 없는 파일 목록이 나옴, 목표 0/15)
+- [ ] 15장을 다 만들면 저에게 알려 주기 → 새 부품 3D·카드 연결
+- [ ] C04 변속 폴백 사건 이미지 (지금은 임시 이미지로 대체해 둔 상태 — 만들면 교체)
+  - 증거 사진 3장: `motor_reverse_log`(후진 토크 로그), `dtc_gear_timeout`(통신 타임아웃 진단 코드), `bus_load_scope`(버스 부하 85 % 화면). 프롬프트는 `image-prompts/12-case-evidence.md`
+  - 부품 사진 3장(`public/assets/ending-thumbs/`): `gear_selector.png` 변속 레버·시프터(지금 `accel_pedal.png` 임시), `gateway.png` 게이트웨이(지금 `can_harness.png` 임시), `cluster.png` 계기판 변속 표시(지금 `diagnostic_port.png` 임시). 교체 위치: `src/features/wiring/RefPuzzle.tsx`(REF.gear), `src/features/verification/VerificationLab.tsx`(CAUSES.gear), `src/features/board/DominoTrace.tsx`(gear 도미노 이미지)
+- [ ] C06 저온 회생 한계 사건 이미지 (임시: 기존 썸네일) — 증거 3장 `cold_decel_log`, `regen_limit_compare`, `battery_temp_view`(프롬프트 `image-prompts/12-case-evidence.md`). 부품은 `bms`, `brake_ecu`, `can_harness`, `traction_motor`, `motor_temp_sensor`, `brake_caliper` 기존 썸네일로 대체 중
+- [ ] (나중) 고양이 표정 세트 — 볼트·너트 각 4~6종(평온, 집중, 놀람, 안도, 기쁨, 실망). 레이싱 개편 승인 뒤 프롬프트를 드립니다
+
+## B. 사건 시트 교차 확인 (GPT)
+- [ ] 도메인 데이터 교차 검토: `docs/CROSSCHECK_STEP01.md` — 공통 지침을 먼저 붙이고 도메인 블록 11개를 **한 번에 하나씩**. 답(오류/개선/참고 표)을 문서 맨 아래 "검토 결과 기록" 표에 요약해 저에게 전달
+- [ ] 사건 시트 N01 교차 검토: `docs/fault-cases/n01_regen_sign.md` — 사용법과 지침은 `docs/fault-cases/CROSSCHECK_PROMPT.md`
+- [ ] 기존 3사건(구동·열관리·제동)은 시트 작성 후 같은 방식으로 검토 (제가 시트를 먼저 쓸 예정)
+- [ ] GPT 지적은 "후보"입니다. 그대로 믿지 말고 저에게 넘겨 주시면 제가 대조해 반영합니다
+
+## C. 결정·승인이 필요한 것
+- [ ] N01(회생 부호 오류, 발을 떼면 가속)을 입문 사건으로 확정할지, 시트 수정 요청이 있는지
+- [ ] 속도계 사건 제외 확정(저는 제외로 기록해 두었습니다)
+- [ ] 레이싱 개편 1차 범위 승인 — 이번 답변의 제안을 읽고 수정·승인
+- [ ] 안전 운전 점수, 에코(회생) 점수 도입 여부
+- [ ] 코스를 레벨별로 나눌지, 새 맵을 만들지
+- [ ] 충돌 대응(에어백·HV 차단·시동 꺼짐)을 "정상 동작 연출"로 먼저 만들지
+- [ ] 레벨 순서와 사건 수(필수/선택), 새 사건을 몇 개까지 공모전 분량으로 넣을지
+- [ ] git push 여부(지금은 로컬 브랜치 `contest/v3`에만 커밋되어 있음, 요청하시기 전에는 push하지 않습니다)
+
+## D. 직접 플레이해서 피드백 (제가 못 보는 체감)
+- [ ] 새 게임 → 프롤로그 → 정비소 → **레벨 선택** → 레벨 시작 → 주행 → STEP02~04 → 수리 → 레벨 선택 복귀까지 한 번 끝까지
+- [ ] 상단바(추격차 HUD)와 버튼 스타일이 단계마다 같아 보이는지, 어긋나 보이는 곳이 있는지
+- [ ] 정비소 학습 연결 3가지(오픈북 4층 탭, STEP03 "정비소 노트에서 보기", 레벨 카드 "배운 원리")가 쓸 만한지
+- [ ] 난이도 체감(STEP02~04가 쉬워졌는지) — 어렵다고 느끼는 지점이 있으면 알려 주기
+
+## 엔딩 고양이 표정 이미지 (구조는 구현 완료, 이미지만 넣으면 바로 적용)
+- 위치: `public/assets/cat-expr/` · 파일명 `lou-<표정>.png`, `ming-<표정>.png` (볼트=lou, 너트=ming), 정사각에 가까운 얼굴 한 장씩.
+- 표정 이름: `joy`(기쁨), `relief`(안도), `calm`(평온), `focus`(집중), `shock`(놀람), `letdown`(실망). 엔딩이 실제로 쓰는 조합: 성공 상(joy/joy), 중(relief/focus), 하(calm/relief), 체포(letdown/shock). 파일이 없으면 기존 초상 사진이 그대로 나옵니다.
+- 레이싱 충돌 때의 고양이 반응도 같은 세트를 쓸 예정(지금은 신원 기준 이미지 + 문구).
+
+## C01 사건 시트 (2026-11-14 초안, 승인 대기)
+- [x] `docs/fault-cases/c01_ready_fail.md` 승인(구현 완료 2026-11-14)
+- [ ] GPT 교차 검토: `docs/fault-cases/CROSSCHECK_PROMPT.md` 방법으로 시트 절 단위 검토 → 결과를 시트 12절에 기록 (특히 3·4절 프리차지 수치와 5절 DTC 표현)
+- [ ] 결정: 레벨 배치(N01 다음 5레벨 선택 / 필수로 승격), STEP03 전용 상태 전이도 UI를 지금 만들지 이번엔 블록 조립으로 갈지
+- [ ] (나중) 증거 이미지 2장 `ready_off`, `hv_bus_scope`
+- [ ] (C01 이미지) `ready_off`, `dtc_precharge`, `hv_bus_scope` 증거 이미지 3장(프롬프트는 docs/image-prompts에 있음)
+
+## C05 사건 시트 (2026-11-14 초안, 승인 대기)
+- [ ] `docs/fault-cases/c05_lowspeed_blend.md` 읽고 승인 또는 수정 지시 (구현은 승인 뒤)
+- [ ] GPT 교차 검토: `CROSSCHECK_PROMPT.md` 방법으로 절 단위 검토 → 시트 12절에 기록 (특히 3·4절 회생·마찰 전환 수치, 5절 감시 활성 속도 범위)
+- [ ] 결정: 레벨 배치(6레벨 선택 제안, 탈출 7레벨), 레이스에서 약한 제동(Space)과 강한 제동(S)을 구분하는 입력 변경 승인(시트 2.1·11절)
+- [ ] (나중) 증거 이미지 `decel_dip`, `regen_share_log`
+
+## 2026-11-15 검토 피드백 후속 (승인 필요)
+- [ ] `docs/PLAYER_FLOW_AUDIT_2026-11-15.md` 읽고 방향 승인: ① 도미노 "청기백기" 재설계(키 조작·폴라로이드 하단 복귀·규칙 카드·태그·용어 통일) ② 정비소 3그룹 점진 공개 ③ 퍼즐 디렉션·서류철 팝업·정비소 연결 버튼 ④ 실험대 "유력 가설 먼저" 5화면 흐름 ⑤ 레벨마다 해적선 엔딩 구조 ⑥ 규칙 R18~R23 추가
+- [ ] 승인 시 구현 순서(문서 7절) 확정: 도미노를 가장 먼저 하는 안이 기본
+- [ ] `docs/fault-cases/c04_gear_fallback.md` 읽고 승인(시스템·E/E 수준 신호 경로 선택 퍼즐 UI 확인용 사건)
+- [ ] `docs/RACE_VARIATION_MAP.md` 확인(주행 다양화 요소가 언제 켜지는지, 고장 연결 구조)
+- [ ] 6번 항목은 비어 있었음. 추가 피드백이 있으면 알려주세요
+
+## 2026-11-15 진행 현황 (플레이 흐름 감사 반영)
+- 완료·커밋: 도미노 개편, 실험대 3단계, 정비소 3영역 공개, 퍼즐 안내(Directive)·폴더 설계서, 규칙 R18~R23, 새 사건 C04 변속 폴백(6레벨, 신호 경로 선택 퍼즐 1차), 레벨별 해적선 엔딩 흐름.
+- 사용자 확인 필요: (1) 수리 후 1700 m 주행 → 엔딩 → 다음 레벨을 직접 플레이해 보기(특히 2레벨 열관리 고장까지 주행 시간), (2) C04 레이스에서 정차 후 D로 바꾸고 0.8초 안에 가속했을 때 후진 느낌, (3) 신호 경로 화면 모양.
+- 사용자 제작 이미지: 변속 레버·게이트웨이 부품 사진(임시: accel_pedal/can_harness/diagnostic_port), 증거 3장 `motor_reverse_log`, `dtc_gear_timeout`, `bus_load_scope`(프롬프트는 `docs/image-prompts/12-case-evidence.md`).
+- 완료: 상태 전이도 채우기 유형(C01에 적용). 도메인 수준 사건 C06(`cold`, 7레벨) 구현 완료. 사용자 확인: 7레벨 저온 구간(처음 700 m)에서 40 km/h 이상으로 달리다 페달을 떼 감속이 센 느낌.
+- 진행 로그: `docs/IN_PROGRESS_LOG.md`.

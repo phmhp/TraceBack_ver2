@@ -734,6 +734,16 @@ body .gameStage .rpFolder { max-height: calc(100dvh - 48px) !important; overflow
   grid-template-rows: 56px minmax(0, 1fr) 150px !important;
   grid-template-areas: "mission mission" "rail stage" "flow flow" !important;
 }
+.garageV2 .gv3Work[data-overview="true"] .garageFooterRow {
+  /* The overview grid has three rows.  The legacy v3 rule forced this row to
+     4, which created an empty 150px track between the architecture card and
+     the bottom flow/next controls. */
+  grid-row: 3 !important;
+  grid-column: 1 / -1 !important;
+  align-self: stretch !important;
+  min-height: 0 !important;
+  height: auto !important;
+}
 .garageV2 .gv3Work[data-overview="true"] .domainTabs,
 .garageV2 .gv3Work[data-overview="true"] .domainFunctionShelf { display: none !important; }
 .garageV2 .gv3Work[data-overview="true"] .garageMechanismCard {
@@ -747,13 +757,16 @@ body .gameStage .rpFolder { max-height: calc(100dvh - 48px) !important; overflow
 .garageV2 .gv3Work[data-overview="true"] .archCoordPreview button { padding: 10px !important; }
 .garageV2 .gv3Work[data-overview="true"] .archGroupCards { gap: 10px !important; }
 .garageV2 .gv3Work[data-overview="true"] .archGroupCards {
-  flex: 0 0 168px !important;
-  height: 168px !important;
-  min-height: 168px !important;
+  /* Let the architecture cards consume the available stage height.  A fixed
+     168px row left the lower half of the overview card visually empty on
+     taller fixed-ratio windows. */
+  flex: 1 1 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
 }
 .garageV2 .gv3Work[data-overview="true"] .archGroupCard {
   gap: 4px !important;
-  min-height: 168px !important;
+  min-height: 0 !important;
 }
 .garageV2 .gv3Work[data-overview="true"] .archGroupCard .agIo { display: none !important; }
 .garageV2 .gv3Work[data-overview="true"] .archGroupCard .agPurpose { margin: 0 !important; line-height: 1.2 !important; }

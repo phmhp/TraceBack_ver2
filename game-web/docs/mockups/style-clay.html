@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>스타일 2 · 파스텔 클레이</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+<style>
+  /* Pastel claymorphism: mint · pink · lavender · butter, puffy surfaces lit from top-left, soft floor shadow */
+  :root { --ink: #3a3550; --soft: #7d7894; --mint: #bfeedd; --mint-2: #7fd8b6; --pink: #ffd0dc; --pink-2: #ff9fb6; --lav: #dcd4ff; --lav-2: #a99af0; --butter: #ffefb0; --sky: #c9e7ff; }
+  * { box-sizing: border-box; font-family: Pretendard, system-ui, sans-serif; word-break: keep-all; }
+  body { margin: 0; height: 100vh; overflow: hidden; color: var(--ink); font-size: 13px; background: linear-gradient(160deg, #d9f3ea 0%, #e7e3ff 50%, #ffe3ea 100%); }
+  .stage { max-width: 1160px; height: 100vh; margin: 0 auto; padding: 16px; display: grid; grid-template-rows: 50px 42px minmax(0, 1fr) 66px; gap: 14px; }
+  .clay { position: relative; background: #fbfaff; border-radius: 26px;
+    box-shadow: inset 6px 6px 12px rgba(255,255,255,.95), inset -6px -8px 14px rgba(140,130,190,.18), 0 14px 24px rgba(120,110,170,.2); }
+  .row { display: flex; align-items: center; gap: 10px; padding: 0 18px; }
+  .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; } .logo img { width: 34px; height: 34px; border-radius: 50%; background: #fff; object-fit: cover; box-shadow: 0 3px 6px rgba(120,110,170,.25); }
+  .puff { padding: 5px 13px; border-radius: 999px; font-weight: 500; font-size: 12px; color: var(--ink);
+    box-shadow: inset 3px 3px 5px rgba(255,255,255,.85), inset -3px -4px 6px rgba(90,80,140,.16), 0 4px 8px rgba(120,110,170,.18); }
+  .puff.butter { background: var(--butter); } .puff.mint { background: var(--mint); } .puff.lav { background: var(--lav); } .puff.white { background: #fff; }
+  .dots { margin-left: auto; display: flex; gap: 7px; } .dots i { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; font: 600 10px Pretendard; font-style: normal; color: var(--soft); background: #f1effa;
+    box-shadow: inset 2px 2px 3px #fff, inset -2px -3px 4px rgba(90,80,140,.15); }
+  .dots i.done { background: var(--mint-2); color: #fff; } .dots i.now { background: var(--pink-2); color: #fff; }
+  .pursuit { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; }
+  .pursuit b { font-weight: 600; } .pursuit b em { font-style: normal; color: #e56b8c; }
+  .track { position: relative; height: 12px; border-radius: 999px; background: #eceaf6; box-shadow: inset 2px 3px 4px rgba(90,80,140,.2); }
+  .track span { position: absolute; left: 30%; width: 22%; top: 2px; bottom: 2px; border-radius: 999px; background: linear-gradient(90deg, var(--pink-2), var(--lav-2)); }
+  .track img { position: absolute; top: 50%; translate: -50% -60%; width: 38px; filter: drop-shadow(0 3px 3px rgba(90,80,140,.3)); }
+  .work { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 16px; min-height: 0; }
+  .card { padding: 18px; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 12px; }
+  .card h2 { margin: 0; font-size: 15px; font-weight: 600; } .card h2 em { font-style: normal; color: #6c5bd6; }
+  .chips { display: flex; gap: 8px; }
+  .area { border-radius: 20px; background: #f3f1fb; box-shadow: inset 4px 5px 10px rgba(90,80,140,.14), inset -3px -3px 8px #fff; display: grid; place-items: center; color: var(--soft); }
+  .side { padding: 18px; display: grid; align-content: start; gap: 10px; }
+  .side h3 { margin: 0; font-size: 13px; font-weight: 600; color: var(--soft); }
+  .note { padding: 11px 13px; border-radius: 18px; font-weight: 500; background: #fff; box-shadow: inset 3px 3px 5px #fff, inset -3px -4px 6px rgba(90,80,140,.12), 0 4px 8px rgba(120,110,170,.15); }
+  .note.pink { background: var(--pink); }
+  .foot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 0 12px 0 18px; }
+  .say { display: flex; gap: 10px; align-items: center; font-weight: 500; } .say img { width: 42px; height: 42px; border-radius: 50%; background: #fff; object-fit: cover; box-shadow: 0 3px 6px rgba(120,110,170,.25); } .say b { margin-right: 6px; font-weight: 600; color: #6c5bd6; }
+  .btn { border: 0; padding: 12px 24px; border-radius: 20px; font-weight: 600; font-size: 14px; color: #2f6b56; background: var(--mint); cursor: pointer;
+    box-shadow: inset 4px 4px 7px rgba(255,255,255,.9), inset -4px -6px 9px rgba(40,120,90,.22), 0 8px 14px rgba(60,150,115,.28); transition: transform .14s cubic-bezier(.3,1.8,.5,1); }
+  .btn:active { transform: scale(.94, .9); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <header class="clay row"><span class="logo"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />TraceBack</span><span class="puff butter">4/8 원인 역추적</span>
+    <span class="dots"><i class="done">1</i><i class="done">2</i><i class="done">3</i><i class="now">4</i><i>5</i><i>6</i><i>7</i><i>8</i></span></header>
+  <section class="clay row pursuit"><b>추격차와 <em>72 m</em></b><div class="track"><span></span><img src="/assets/ui/icons/police-car.svg" style="left:30%" alt="" /><img src="/assets/ui/icons/getaway-car.svg" style="left:52%" alt="" /></div></section>
+  <main class="work">
+    <section class="clay card"><h2>증상에서 거슬러 올라가 <em>처음 어긋난 구간</em>을 좁힙니다</h2>
+      <div class="chips"><span class="puff lav">1 거꾸로 따라가기</span><span class="puff white">2 의심 구간</span><span class="puff white">3 영향 범위</span></div>
+      <div class="area">도미노 줄 + 측정 카드 3장</div></section>
+    <aside class="clay side"><h3>측정 기록</h3><div class="note pink">차량 가속 · 기준 2.8 → 1.2 m/s²</div><div class="note">후보를 선택해 측정</div></aside>
+  </main>
+  <footer class="clay foot"><div class="say"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><span><b>너트</b>먼저 어긋난 값이 원인 쪽입니다. 측정 시각을 비교하세요.</span></div><button class="btn">시작점 확정</button></footer>
+</div>
+</body>
+</html>

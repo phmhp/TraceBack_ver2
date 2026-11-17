@@ -1,7 +1,0 @@
-# Independent requirement oracle, measured trace and verdicts
-
-`educationalBench.ts` evaluates explicit educational requirements, NOT whether the player trace equals reference trace. `reference` is visualization only. `REQ-PROP-GW-01`: processed validated pedal% equals raw within ±1e-9 point for nominal gateway (chosen software-spec fiction). `REQ-THERM-FAN-01`: fan observed ON after continuous fan ON request for >=35 ticks (700ms observation window, educational test rule, not OEM criterion). `REQ-BRAKE-ACT-01`: friction response after settle differs from requested by no more than max(50N,10%) (illustrative teaching tolerance).
-
-These thresholds are **provisional educational demonstration acceptance criteria**, not sourced OEM safety/performance spec. Reference, faulty and repaired are identically initialized via `bootToDrive`; thermal hot start seeds exact same 60C initial motor temperature. All recorded traces are produced through actual v14 step. Persistent fault recovery requires a parked repair/reset and a new run before claiming restored operation. If command never turns on or test window too short, oracle returns INCONCLUSIVE. Invalid input is MODEL_ERROR and cannot count as player FAIL. PASS of one requirement is not a safety certification or scenario success.
-
-Runnable: from `08_V14_1_DELIVERY/control-core/TraceBack-develop`, execute `node --experimental-strip-types --test tests/educational-{game-bridge,bench}.test.mjs` (shell brace expansion may vary). Node v22.16.0 with type stripping. No package installation needed for these tests.

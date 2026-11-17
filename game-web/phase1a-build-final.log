@@ -1,0 +1,18 @@
+
+> traceback-game-web@0.1.0 build
+> tsc -b && vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 660 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                           0.09 kB │ gzip:   0.10 kB
+dist/assets/ScaledFrame-Dg8uD389.css      0.31 kB │ gzip:   0.22 kB
+dist/assets/main-CZTVa3K0.css           746.41 kB │ gzip: 142.01 kB
+dist/assets/ScaledFrame-DUmQlb25.js       0.96 kB │ gzip:   0.56 kB
+dist/assets/index-B11QplgA.js             2.68 kB │ gzip:   1.30 kB
+dist/assets/client-BTgZ5Pcz.js          219.41 kB │ gzip:  68.51 kB
+dist/assets/main-KJGFm7I-.js          1,571.44 kB │ gzip: 444.60 kB
+
+✓ built in 2.00s

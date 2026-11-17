@@ -1,0 +1,300 @@
+# 메모판 사건 증거 사진 — 이미지 생성 프롬프트
+
+> 자동 생성 파일입니다. 증거 ID는 `src/game/scenarios.ts`와 같습니다. 증거 1개당 중립 사진 1장이며, 값과 라벨은 게임이 카드에 표시합니다.
+
+| 사건 | 증거 ID | 파일명 |
+|---|---|---|
+| 구동 | `pedal_raw` | `pedal_raw__EVID.png` |
+| 구동 | `pedal_processed` | `pedal_processed__EVID.png` |
+| 구동 | `torque_cmd` | `torque_cmd__EVID.png` |
+| 구동 | `motor_actual` | `motor_actual__EVID.png` |
+| 열관리 | `motor_temp` | `motor_temp__EVID.png` |
+| 열관리 | `thermal_protection` | `thermal_protection__EVID.png` |
+| 열관리 | `fan_command` | `fan_command__EVID.png` |
+| 열관리 | `fan_actual` | `fan_actual__EVID.png` |
+| 제동 | `brake_request` | `brake_request__EVID.png` |
+| 제동 | `regen_request` | `regen_request__EVID.png` |
+| 제동 | `brake_actual` | `brake_actual__EVID.png` |
+| 회생 | `accel_trend` | `accel_trend__EVID.png` |
+| 시동 | `ready_off` | `ready_off__EVID.png` |
+| 시동 | `dtc_precharge` | `dtc_precharge__EVID.png` |
+| 시동 | `hv_bus_scope` | `hv_bus_scope__EVID.png` |
+| 변속 | `motor_reverse_log` | `motor_reverse_log__EVID.png` |
+| 변속 | `dtc_gear_timeout` | `dtc_gear_timeout__EVID.png` |
+| 변속 | `bus_load_scope` | `bus_load_scope__EVID.png` |
+| 저온회생 | `cold_decel_log` | `cold_decel_log__EVID.png` |
+| 저온회생 | `regen_limit_compare` | `regen_limit_compare__EVID.png` |
+| 저온회생 | `battery_temp_view` | `battery_temp_view__EVID.png` |
+
+## 구동 · pedal_raw
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A driver's shoe pressing the accelerator pedal about halfway down in a car footwell, pedal sensor housing visible at the pivot.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): pedal_raw__EVID.png
+```
+
+## 구동 · pedal_processed
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: Close-up of the accelerator pedal sensor connector and its harness leading toward a control unit.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): pedal_processed__EVID.png
+```
+
+## 구동 · torque_cmd
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A vehicle control unit on a test bench connected by a network cable to a traction inverter.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): torque_cmd__EVID.png
+```
+
+## 구동 · motor_actual
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A traction motor coupled to a dynamometer shaft on a test bench, an abstract waveform on a monitor behind it.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): motor_actual__EVID.png
+```
+
+## 열관리 · motor_temp
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A traction motor housing with a temperature sensor probe attached, faint heat shimmer around the housing.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): motor_temp__EVID.png
+```
+
+## 열관리 · thermal_protection
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A traction inverter and motor on a test bench with thick orange power cables, an engineer's gloved hand resting near a power limiter switch.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): thermal_protection__EVID.png
+```
+
+## 열관리 · fan_command
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A thermal controller with its harness running to a radiator cooling fan connector.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): fan_command__EVID.png
+```
+
+## 열관리 · fan_actual
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: Radiator cooling fan blades standing completely still behind the shroud, dust on the hub.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): fan_actual__EVID.png
+```
+
+## 제동 · brake_request
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A driver's shoe pressing the brake pedal firmly in a car footwell, pedal stroke sensor visible.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): brake_request__EVID.png
+```
+
+## 제동 · regen_request
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A traction motor and inverter connected by orange cables to a battery pack on a test bench.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): regen_request__EVID.png
+```
+
+## 제동 · brake_actual
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A brake caliper and disc on a wheel hub with its brake line attached.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): brake_actual__EVID.png
+```
+
+## 회생 · accel_trend
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A car instrument cluster with the speed needle still rising while the accelerator pedal icon shows zero, no warning lamps lit.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): accel_trend__EVID.png
+```
+
+## 시동 · ready_off
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A car instrument cluster after a start attempt with no READY indicator lit, only a high-voltage system warning lamp glowing amber.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): ready_off__EVID.png
+```
+
+## 시동 · dtc_precharge
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A diagnostic tablet screen showing a stored fault entry with a freeze-frame table of timestamps and voltages, an engineer's hand holding it beside an open service port.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): dtc_precharge__EVID.png
+```
+
+## 시동 · hv_bus_scope
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: An oscilloscope on a test bench showing a rising exponential voltage curve from a high-voltage bus, probes clipped to an inverter capacitor terminal.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): hv_bus_scope__EVID.png
+```
+
+## 변속 · motor_reverse_log
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A data logger screen on a laptop showing a motor torque command trace dipping below zero right after a gear shift marker, an engineer pointing at the dip.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): motor_reverse_log__EVID.png
+```
+
+## 변속 · dtc_gear_timeout
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A diagnostic tablet screen showing a pending (unconfirmed) communication timeout fault entry with a counter of occurrences, no warning lamp lit in the background cluster.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): dtc_gear_timeout__EVID.png
+```
+
+## 변속 · bus_load_scope
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A vehicle network analyzer screen showing a CAN bus load bar at 85 percent and a message timing diagram with one gap much longer than the others.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): bus_load_scope__EVID.png
+```
+
+## 저온회생 · cold_decel_log
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A data logger screen on a laptop showing a vehicle deceleration trace with a sharp downward step right after a pedal release marker, a small thermometer icon reading near zero degrees on the side.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): cold_decel_log__EVID.png
+```
+
+## 저온회생 · regen_limit_compare
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A diagnostic tablet showing two bar graphs side by side labeled by position only, a short bar for a battery limit value and a much taller bar for a requested value, no warning lamp visible.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): regen_limit_compare__EVID.png
+```
+
+## 저온회생 · battery_temp_view
+
+```text
+Generate exactly 1 image. Only one image in this reply: no extra images, no alternatives, no variations, no second attempt.
+The image shows ONE view of ONE object. No collage, no grid, no panels, no contact sheet, no side-by-side comparison.
+Subject: A battery management display showing a cold battery pack temperature near zero degrees with a low regeneration acceptance gauge, engineer hand holding a tablet in a cold garage.
+Style: square 1:1 close-up photograph that fills the whole canvas edge to edge. No border, no frame, no tape, no tilt; the camera is level and straight.
+Composition: the key subject centered and occupying about 70% of the frame; keep the top-left corner free of important detail.
+Setting: dim warm-lit EV repair workshop, shallow depth of field, cinematic amber and teal lighting, photographic realism, no people's faces.
+Do not put any text, letters, numbers, logos, brand names, frame, border, tape, caption, label, arrow, circle highlight or user-interface element in the image.
+After the image, reply with only this file name (never draw it in the image): battery_temp_view__EVID.png
+```
