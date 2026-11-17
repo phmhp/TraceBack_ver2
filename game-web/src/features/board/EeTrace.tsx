@@ -1,0 +1,574 @@
+// Stage 1 · 원인 역추적 (docs/PLAY_FLOW_V2_2026-11-08.md)
+// Layout: top-left evidence polaroids | top-right whole-vehicle E/E board, bottom: mugshot suspects row.
+// 1) find the odd one in the evidence (this drive vs reference) → 2) pick that output on the E/E board
+// 3) every part that feeds that output lights up as a mugshot → 4) measure one, then stamp it yourself:
+//    normal → 반박, changed LATER than the output → 반박 (it is an effect), changed EARLIER → 유력 (new output)
+// 5) when every suspect of the current output is cleared, that output is where things first went wrong
+// 6) pick the section inside it; hypotheses that this stage cannot split are carried as 판단 보류.
+// Measured values come from the same case data as before (DominoTrace CASES). The old DominoTrace stays unused.
+import { numify } from "../../ui/numify";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { Campaign } from "../../game/runtime";
+import { HYP_TAG, SCENARIOS, SCENARIO_META } from "../../game/scenarios";
+import { NutGuide } from "../../ui/NutGuide";
+import { GameHeader, SceneBackdrop, StageFolderSubtitle } from "../../ui/game-shell";
+import { useReportSubStep } from "../../ui/stepRoadmap";
+import { MissionBar } from "../../ui/MissionBar";
+import "./step02-v3.css";
+import { useDevActions } from "../../ui/dev/devActions";
+import { play } from "../../ui/sfx";
+import { PursuitRouteBar } from "../../experiences";
+import { DRIVER, ENGINEER } from "../../game/cast";
+import { Icon } from "../../ui/Icon";
+import { StageIntro, showVerdict } from "../../ui/Verdict";
+import { CASES, Gauge, Photo, ZONES, ZONE_ICON, fmt, josa, refText, type Dom } from "./DominoTrace";
+import { EeBlueprint } from "../garage/EeBlueprint";
+import { ReplayConfirm } from "../../ui/ReplayConfirm";
+
+type Send = React.Dispatch<any>;
+type Stamp = "refuted" | "likely";
+const STAMP_KO: Record<Stamp | "untested" | "measured" | "hold", string> = { untested: "아직 안 봄", measured: "확인함", likely: "영향 있음", refuted: "영향 없음", hold: "후보 등록" };
+// other controllers on the vehicle network, shown dimmed so the board reads as the whole vehicle
+const OTHER_ECUS = ["VCU", "MCU·인버터", "BMS", "Thermal ECU", "Brake ECU", "EPS ECU", "Gateway"];
+const LAMP: Record<string, { label: string; note: string }> = {
+  propulsion: { label: "가속 출력 저하", note: "경고등 없음 · 페달 대비 가속이 둔함" },
+  thermal: { label: "파워다운 표시등", note: "출력 제한 동작 중" },
+  brake: { label: "제동 경고 없음", note: "페달 대비 감속이 부족함" },
+  regen: { label: "경고등 없음", note: "발을 뗀 뒤에도 속도가 오름" },
+  ready: { label: "HV 시스템 점검", note: "READY 없음 · 점검 표시등" },
+  gear: { label: "경고등 없음", note: "계기판 D 표시 · 켜진 경고등 없음" },
+  cold: { label: "경고등 없음", note: "회생 표시가 평소보다 큼 · 켜진 경고등 없음" },
+};
+const QUOTE: Record<string, string> = {
+  propulsion: "페달을 반 넘게 밟았는데 차가 힘없이 천천히 나가.",
+  thermal: "오래 밟고 달렸더니 경고등이 켜지고 힘이 빠졌어.",
+  brake: "브레이크를 밟았는데 생각보다 덜 서.",
+  regen: "발을 뗐는데 차가 오히려 더 빨라져요.",
+  ready: "시동 버튼을 눌러도 READY가 안 켜져요.",
+  gear: "D에 놓았는데 가끔 뒤로 가요.",
+  cold: "추울 때 발만 떼도 차가 확 서요.",
+};
+
+/** v2 (evidence | board / mugshot row). Kept unused; v3 below is live. */
+export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
+  const caseId = state.caseId;
+  const scenario = SCENARIOS[caseId];
+  const data = CASES[caseId];
+  const meta = SCENARIO_META[caseId];
+  const dom = (id: string) => data.doms.find(item => item.id === id)!;
+  const causesOf = (id: string) => dom(id).causes ?? [];
+  const unit = data.timeUnit;
+  const start = dom(data.start);
+  const progressKey = `tb-step02-progress-${caseId}`;
+  const saved = (() => { try { return JSON.parse(sessionStorage.getItem(progressKey) ?? "null") ?? {}; } catch { return {}; } })();
+
+  // 3 sub-steps: symptom (which output left its reference) → trace (measure + judge) → hyp (section, then hypotheses)
+  const PHASES = ["symptom", "trace", "hyp"] as const;
+  const hasSavedOutput = Array.isArray(saved.chain) && saved.chain.length > 0;
+  // The final vehicle output is the fixed starting observation, not a player choice.
+  // Keep the legacy symptom phase only for old progress that already contains it.
+  const [phase, setPhase] = useState<(typeof PHASES)[number]>(["section", "done", "hyp"].includes(saved.phase) ? "hyp" : "trace");
+  const phaseIdx = PHASES.indexOf(phase);
+  const [reached, setReached] = useState<number>(Math.min(2, saved.reached ?? (saved.phase === "symptom" && !hasSavedOutput ? 1 : 0)));
+  useEffect(() => { if (phaseIdx > reached) setReached(phaseIdx); }, [phaseIdx, reached]);
+  // going back must not bounce forward again: the trace→section auto-advance is paused until the player judges something
+  const holdTrace = useRef(false);
+  useReportSubStep("board", phaseIdx, { max: Math.max(reached, phaseIdx), goTo: index => { holdTrace.current = index === 2; setPhase(PHASES[index]); } });
+  const [chain, setChain] = useState<string[]>(hasSavedOutput ? saved.chain : [data.start]);          // output is fixed; follow it backward
+  const [measured, setMeasured] = useState<string[]>(saved.measured ?? []);
+  const [stamps, setStamps] = useState<Record<string, Stamp>>(saved.stamps ?? {});
+  const [mistakes, setMistakes] = useState<number>(saved.mistakes ?? 0);
+  const [sectionPick, setSectionPick] = useState<string | null>(saved.sectionPick ?? null);
+  const [shake, setShake] = useState("");
+  const replayed = true; // the fault-time log is always available: measuring is one tap, no separate replay step
+  const [selected, setSelected] = useState<string | null>(null);
+  const [zoomPol, setZoomPol] = useState<string | null>(null);
+  const [evidencePage, setEvidencePage] = useState<number>(saved.evidencePage ?? 0);
+  const [attached, setAttached] = useState<string[]>(saved.attached ?? []);
+  const [sorted, setSorted] = useState<Record<string, "out" | "hold">>(saved.sorted ?? {});
+  // T-25: the hypothesis carried to STEP03 is the player's own choice among the hypotheses they kept (보류), never the answer key.
+  const [carry, setCarry] = useState<string>(saved.carry ?? "");
+  type MemoTab = "evidence" | "measure" | "zone" | "hyp";
+  const [memoTab, setMemoTab] = useState<MemoTab>(["evidence", "measure", "zone", "hyp"].includes(saved.memoTab) ? saved.memoTab : "evidence");
+  const [bubble, setBubble] = useState<string>(saved.bubble ?? "");
+  const [noteBad, setNoteBad] = useState(false);
+  const say = (text: string, bad = false) => { setBubble(text); setNoteBad(bad); };
+  const [replayOpen, setReplayOpen] = useState(false);
+  // guards the short delay between "every suspect judged" and moving to the next output (no double-advance on fast clicks)
+  const advancing = useRef(false);
+  const focus = chain[chain.length - 1];
+  const suspects = focus ? causesOf(focus) : [];
+  const cleared = suspects.length > 0 && suspects.every(id => stamps[id] === "refuted");
+  const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
+  useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ reached, phase, chain, measured, stamps, mistakes, sectionPick, replayed: true, evidencePage, attached, sorted, memoTab, bubble, carry })); } catch { /* ignore */ } }, [phase, chain, measured, stamps, mistakes, sectionPick, evidencePage, attached, sorted, memoTab, bubble, carry, progressKey]);
+  const resetStage = () => { setReached(1); holdTrace.current = false; setPhase("trace"); setSelected(null); setChain([data.start]); setMeasured([]); setStamps({}); setMistakes(0); setSectionPick(null); setZoomPol(null); setEvidencePage(0); setAttached([]); setSorted({}); setCarry(""); setMemoTab("evidence"); say(""); try { sessionStorage.removeItem(progressKey); sessionStorage.removeItem(`tb-impact-${caseId}`); sessionStorage.removeItem(`tb-section-${caseId}`); sessionStorage.removeItem(`tb-step03-progress-${caseId}`); sessionStorage.removeItem(`tb-step04-progress-${caseId}`); sessionStorage.removeItem(`tb-expect-${caseId}`); sessionStorage.removeItem(`tb-verification-contract-${caseId}`); } catch { /* ignore */ } };
+  const nope = (id: string, text: string) => { say(text, true); setShake(id); setMistakes(n => n + 1); showVerdict(false); window.setTimeout(() => setShake(""), 420); };
+
+  // 1) symptom: the output that left its reference (driver statement + log values), picked from cards or the board
+  const pickOutput = (id: string) => {
+    if (phase !== "symptom") return;
+    if (id !== data.start) { nope(id, `${dom(id).label}${josa(dom(id).label, "은", "는")} 기준과 값이 같아요. 값이 달라진 출력을 골라 주세요.`); return; }
+    play("zip"); showVerdict(true, "증상 확인"); if (!chain.length) setChain([id]); setPhase("trace"); setZoomPol(null);
+    say("");
+  };
+  const pickNode = (id: string) => {
+    if (phase === "symptom") { if (dom(id).zone === "차량") pickOutput(id); return; }
+  };
+  // 4) measure one suspect, then the player stamps it
+  const measure = (id: string) => {
+    holdTrace.current = false;
+    setSelected(id);
+    if (measured.includes(id)) return;
+    setMeasured(previous => [...previous, id]);
+    const d = dom(id);
+    play("zip"); window.setTimeout(() => play(d.status === "bad" ? "stamp" : "pop"), 160);
+    say("");
+  };
+  const stamp = (id: string, pick: Stamp) => {
+    holdTrace.current = false;
+    if (advancing.current || stamps[id]) return;
+    const d = dom(id), f = dom(focus);
+    const earlier = d.status === "bad" && (d.t ?? 0) < (f.t ?? 0);
+    const answer: Stamp = earlier ? "likely" : "refuted";
+    if (pick !== answer) {
+      nope(id, answer === "refuted"
+        ? d.status === "bad" ? `${d.label}: ${fmt(d.t!)}${unit}에 변함 · ${f.label}보다 늦음 → 영향 없음` : `${d.label}: 기준과 같음 → 영향 없음`
+        : `${d.label}: ${f.label}보다 먼저 변함 → 영향 가능`);
+      return;
+    }
+    const next = { ...stamps, [id]: pick };
+    setStamps(next); setSelected(null);
+    showVerdict(true, STAMP_KO[pick]);
+    const pending = suspects.filter(item => !next[item]);
+    if (pending.length) {
+      say(pick === "likely" ? `${d.label}: 영향을 줬어요. 남은 후보 ${pending.length}개를 이어서 확인해요.` : `${d.label}: 영향을 주지 않았어요. 남은 후보 ${pending.length}개를 이어서 확인해요.`);
+      return;
+    }
+    // every suspect of this output is judged: follow the earliest likely one, or stop here (handled by the effect below)
+    const likely = suspects.filter(item => next[item] === "likely").sort((a, b) => (dom(a).t ?? 0) - (dom(b).t ?? 0));
+    if (likely.length) {
+      const nextOut = dom(likely[0]);
+      advancing.current = true;
+      say(`후보를 모두 확인했어요. ${nextOut.label}${josa(nextOut.label, "이", "가")} ${f.label}보다 먼저 달라졌으니 이제 ${nextOut.label}를 기준으로 더 앞쪽을 확인해요.`);
+      // a judgement is relative to the output it was compared with: the new output's suspects are judged again (measurements stay)
+      window.setTimeout(() => {
+        setStamps(previous => { const kept = { ...previous }; causesOf(likely[0]).forEach(item => { delete kept[item]; }); return kept; });
+        setChain(previous => previous.includes(likely[0]) ? previous : [...previous, likely[0]]);
+        advancing.current = false;
+      }, 700);
+    }
+  };
+  // a judged suspect can be reopened until every suspect of the current output is judged
+  const unstamp = (id: string) => {
+    holdTrace.current = false;
+    if (advancing.current || !suspects.includes(id)) return;
+    setStamps(previous => { const next = { ...previous }; delete next[id]; return next; });
+    play("pop");
+  };
+  // 5) every suspect cleared → the current output is where it first went wrong
+  useEffect(() => {
+    if (phase !== "trace" || !cleared || holdTrace.current) return;
+    if (focus !== data.first) return;
+    play("success");
+    say("");
+    const timer = window.setTimeout(() => { setPhase("hyp"); }, 900);
+    return () => clearTimeout(timer);
+  }, [cleared, focus, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 6) section inside the first deviation
+  const pickSection = (label: string) => {
+    const choice = data.section.choices.find(c => c.label === label)!;
+    setSectionPick(label); say(choice.ok ? `${choice.label}: 입력은 정상, 이 구간에서 첫 편차 → 검증 대상` : `${choice.label}: 첫 편차 위치와 맞지 않음 → 다시 선택`, !choice.ok);
+    if (choice.ok) { showVerdict(true, "의심 구간"); window.setTimeout(() => setMemoTab("hyp"), 900); }
+    else { setMistakes(n => n + 1); showVerdict(false); }
+  };
+  const sectionDone = Boolean(sectionPick && data.section.choices.find(c => c.label === sectionPick)?.ok);
+  // The first deviation has been located once the board enters the hypothesis phase.
+  // Keep this explicit: the phase bridge and the highlighted structure must not
+  // depend on a legacy v1 variable that is not part of EeTraceV2 state.
+  const found = phase === "hyp";
+  const sortHyp = (id: string, pick: "out" | "hold") => {
+    const h = meta.hypotheses.find(item => item.id === id)!;
+    const right = h.stage1 ? "out" : "hold";
+    if (pick !== right) { setMistakes(n => n + 1); showVerdict(false); say(pick === "out" ? `${h.label}: 측정만으로 배제할 수 없음 → 후보 등록` : `${h.label}: 앞선 측정과 맞지 않음 → 후보 제외`, true); return; }
+    setSorted(previous => ({ ...previous, [id]: pick })); play(pick === "out" ? "stamp" : "pop");
+    say(pick === "out" ? `${h.label}: 후보에서 제외` : `${h.label}: 후보 등록 · 실험대에서 확인`);
+  };
+  const allSorted = meta.hypotheses.every(h => sorted[h.id]);
+  const heldIds = meta.hypotheses.filter(h => sorted[h.id] === "hold").map(h => h.id);
+  // SW-only policy: a hardware hypothesis can stay 보류 as an educational counter-example but is never carried into STEP03/04.
+  const isHw = (id: string) => /\(HW\)/.test(meta.hypotheses.find(h => h.id === id)?.label ?? "");
+  const carryPool = heldIds.filter(id => !isHw(id)).length ? heldIds.filter(id => !isHw(id)) : heldIds;
+  const carryId = carryPool.length === 1 ? carryPool[0] : carryPool.includes(carry) ? carry : "";
+  const traps = measured.filter(id => stamps[id] === "refuted" && dom(id).status === "bad");
+  const effects = [...chain.filter(id => id !== data.first), ...traps].map(dom);
+  const finish = () => {
+    try { sessionStorage.setItem(`tb-impact-${caseId}`, JSON.stringify(effects.map(d => `${d.label} 정상 복귀 (기준 ${refText(d)})`))); } catch { /* ignore */ }
+    const evidence = data.doms.filter(d => d.ev && (chain.includes(d.id) || measured.includes(d.id))).map(d => d.ev!);
+    evidence.filter(id => !state.evidence[caseId].includes(id)).forEach(id => send({ type: "RECORD_EVIDENCE", id }));
+    if (carryId && state.hypothesis[caseId] !== carryId) send({ type: "SELECT_HYPOTHESIS", id: carryId });
+    try { sessionStorage.setItem(`tb-section-${caseId}`, data.section.name); } catch { /* ignore */ }
+    send({ type: "OPEN_WIRING" });
+  };
+  const reveal = () => { // dev
+    const route: string[] = []; for (let id: string | undefined = data.start; id; id = causesOf(id).find(c => dom(c).status === "bad" && (dom(c).t ?? 0) < (dom(id!).t ?? 0))) route.push(id);
+    setChain(route); setMeasured(route.flatMap(causesOf)); setStamps(Object.fromEntries(route.flatMap(causesOf).map(id => [id, route.includes(id) ? "likely" : "refuted"]))); setSectionPick(data.section.choices.find(c => c.ok)!.label); setCarry(meta.hypotheses.find(h => h.truth)?.id ?? ""); setSorted(Object.fromEntries(meta.hypotheses.map(h => [h.id, h.stage1 ? "out" : "hold"])) as Record<string, "out" | "hold">); setPhase("hyp"); setMemoTab("hyp");
+  };
+
+  // board: every node of the case, placed by zone; lines from the current suspects to the current output
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [lines, setLines] = useState<{ d: string; hot: boolean }[]>([]);
+  useLayoutEffect(() => {
+    const root = boardRef.current; if (!root) return;
+    const draw = () => {
+      const base = root.getBoundingClientRect();
+      const center = (id: string) => { const r = root.querySelector<HTMLElement>(`[data-node="${id}"]`)?.getBoundingClientRect(); return r ? { x: r.left + r.width / 2 - base.left, y: r.top + r.height / 2 - base.top } : null; };
+      const pairs: [string, string, boolean][] = [];
+      chain.forEach((id, i) => { if (i > 0) pairs.push([id, chain[i - 1], false]); });
+      if (phase === "trace" && focus) suspects.forEach(id => pairs.push([id, focus, true]));
+      setLines(pairs.map(([a, b, hot]) => { const p = center(a), q = center(b); if (!p || !q) return null; const mx = (p.x + q.x) / 2; return { d: `M${p.x} ${p.y} C${mx} ${p.y} ${mx} ${q.y} ${q.x} ${q.y}`, hot }; }).filter(Boolean) as { d: string; hot: boolean }[]);
+    };
+    draw();
+    const observer = new ResizeObserver(draw); observer.observe(root);
+    return () => observer.disconnect();
+  }, [chain.join("|"), focus, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  const nodeState = (id: string) => chain.includes(id) ? (id === focus && phase === "trace" ? "focus" : "likely") : stamps[id] === "refuted" ? "refuted" : phase === "trace" && stamps[id] === "likely" && suspects.includes(id) ? "mark" : phase === "trace" && suspects.includes(id) ? "suspect" : phase === "symptom" && dom(id).zone === "차량" ? "pickable" : "idle";
+
+  // Initial evidence is intentionally limited to the driver statement and cluster.
+  // E/E output and measurement polaroids are added to the right rail as they are earned.
+  const obs = OBSERVED[caseId];
+  type Pol = { id: string; kind: string; title: string; sub: string; photo: React.ReactNode; dom?: Dom };
+  const evidenceCards = [...(chain.length ? [start] : []), ...measured.map(dom)].filter((d, i, all) => all.findIndex(x => x.id === d.id) === i);
+  const pols: Pol[] = [
+    { id: "quote", kind: "quote", title: `${DRIVER} 진술`, sub: "운전자 체감", photo: <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /> },
+    ...evidenceCards.filter(d => d.status === "bad").map(d => ({ id: d.id, kind: `m s-${d.status}`, title: d.label, sub: `이상 판정 · ${d.zone} · 기준 ${refText(d)} / 이번 ${fmt(d.run)}${d.unit ? ` ${d.unit}` : ""}`, photo: <Photo src={d.img} />, dom: d })),
+  ];
+  // Hypothesis cards use a domain signal photo, never the fixed red-car
+  // observation.  The hypothesis ids belong to SCENARIO_META while the
+  // evidence ids belong to CASES, so an id-only lookup is not sufficient.
+  const HYP_IMAGE_IDS: Record<string, Record<string, string>> = {
+    propulsion: { aps: "aps", vcu_sw: "vcu_in", vcu_hw: "vcu_in", drive: "motor_tq" },
+    thermal: { fan_sw: "fan_rpm", fan_path: "fan_cmd", fan_motor: "fan_rpm" },
+    brake: { blend_sw: "caliper", hyd_path: "caliper", caliper: "caliper" },
+    regen: { brake_sw: "regen_req", pedal: "pedal", vcu_sign: "vcu_out", inv_wire: "motor_tq" },
+    ready: { bms_link: "bms_ok", start_cond: "start_req", seq_timeout: "seq_state", precharge_hw: "main_cmd" },
+    gear: { lever_hw: "lever", gw_map: "gw_out", gear_fallback: "vcu_gear", interlock: "brake_in" },
+    cold: { bms_calc: "bms_lim", gw_lag: "gw_lim", brake_fixed: "brk_lim", inv_cfg: "inv_cfg" },
+  };
+  const hypImageId = HYP_IMAGE_IDS[caseId] ?? {};
+  const hypImage = (h: (typeof meta.hypotheses)[number]) => {
+    const mapped = hypImageId[h.id];
+    const related = (mapped ? data.doms.find(item => item.id === mapped) : undefined)
+      ?? data.doms.find(item => item.id === h.id || item.ev === h.id)
+      ?? data.doms.find(item => item.id !== data.start && item.zone !== "차량" && item.img !== start.img);
+    return related?.img ?? data.doms.find(item => item.id !== data.start)?.img ?? start.img;
+  };
+  const choiceLabel = (label: string) => {
+    const match = label.match(/^(.+?)\s*\(([^()]+)\)$/);
+    return match ? <><b>{match[1]}</b><small>({match[2]})</small></> : <b>{label}</b>;
+  };
+  const zoomed = pols.find(item => item.id === zoomPol);
+  // the enlarged polaroid closes with Enter or Esc (captured so the stage keys underneath do not react)
+  useEffect(() => {
+    if (!zoomPol) return;
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape" || event.key === "Enter") { event.preventDefault(); event.stopPropagation(); setZoomPol(null); } };
+    window.addEventListener("keydown", close, true);
+    return () => window.removeEventListener("keydown", close, true);
+  }, [zoomPol]);
+  const evidencePages = Math.max(1, Math.ceil(pols.length / 6));
+  const visiblePols = pols.slice(evidencePage * 6, evidencePage * 6 + 6);
+  const pathMeasured = chain.filter(id => measured.includes(id));
+  const coach = state.completedCases.length ? "" : phase === "symptom" ? "output" : phase === "trace" ? "measure" : !sectionDone ? "section" : !allSorted ? "sort" : "next";
+  const mugStatus = (id: string): keyof typeof STAMP_KO => stamps[id] ?? (measured.includes(id) ? "measured" : "untested");
+  // symptom cards: the felt symptom plus unaffected outputs only (a wrong card must be clearly wrong: reference = this drive).
+  // Which card is right moves from case to case so the position carries no hint.
+  const symptomChoices = (() => {
+    const pool = [start, ...data.doms.filter(d => d.zone === "차량" && d.id !== data.start && d.status !== "bad").slice(0, 2)];
+    const turn = ({ propulsion: 1, thermal: 2, brake: 0 } as Record<string, number>)[caseId] ?? 0;
+    return pool.map((_, i) => pool[(i + turn) % pool.length]);
+  })();
+
+  // the candidate the player is judging right now (one card at a time) and the hypothesis to sort
+  const cand = phase === "trace" ? suspects.find(id => !stamps[id]) : undefined;
+  const candNo = cand ? suspects.indexOf(cand) + 1 : 0;
+  const nextHyp = phase === "hyp" && sectionDone ? meta.hypotheses.find(h => !sorted[h.id]) : undefined;
+  const hypNo = nextHyp ? meta.hypotheses.indexOf(nextHyp) + 1 : 0;
+  useEffect(() => { if (phase === "trace" && cand && !measured.includes(cand)) measure(cand); }); // eslint-disable-line react-hooks/exhaustive-deps
+  const et3Mission = (phase === "symptom" ? { action: "증상이 나타난 출력 고르기", question: "기준과 값이 다른 출력은 어느 것일까?" }
+    : phase === "trace" ? { action: "영향을 준 신호 찾기", question: `${dom(focus ?? data.start).label}에 영향을 준 후보는 어느 것일까?` }
+    : !sectionDone ? { action: "의심 구간 고르기", question: "첫 편차가 일어난 위치로 의심되는 곳은 어디일까?" }
+    : { action: allSorted ? "먼저 시험할 가설 고르기" : "가설 후보 정리하기", question: "이 구간에서 생각할 수 있는 원인 가설은 무엇일까?" });
+  // spoken direction: what was just done / what happens now / how to do it
+  const sectionName = data.section.name;
+  const sectionPick1 = (sectionPick ?? "").replace(/\s*\(.*$/, "") || sectionName;
+  const directiveLines: string[] = phase === "symptom"
+    ? [`${DRIVER}의 말과 주행 기록을 보면 기준과 값이 다른 출력이 하나 있어요.`, "그 출력이 거꾸로 따라갈 출발점이에요.", "아래 카드 중 기준과 이번 값이 다른 카드를 골라요."]
+    : phase === "trace"
+          ? [`지금 기준 신호는 ${dom(focus).label}이에요.`, `이 신호에 영향을 줬을 후보를 하나씩 볼게요. (후보 ${candNo || suspects.length}/${suspects.length})`, "먼저 달라졌으면 ↑ 영향을 줬어요, 정상이거나 나중에 달라졌으면 ↓ 영향을 주지 않았어요를 눌러요."]
+      : !sectionDone
+        ? [`첫 편차는 ${dom(data.first).label}${josa(dom(data.first).label, "이군요", "군요")}! 들어오는 값은 모두 정상인데 여기서부터 달라졌어요.`, "그렇다면 이 편차가 일어난 위치로 의심되는 곳은 어디일까요?", "가장 의심되는 구간을 골라요. 필요하면 구조 보기를 눌러요."]
+        : !allSorted
+          ? [`의심 구간은 ${sectionPick1}${josa(sectionPick1, "으로", "로")} 좁혀졌어요!`, "이 구간에서 편차가 생긴 원인 후보(가설)를 하나씩 볼게요.", "이미 아니라고 할 수 있으면 ↓ 후보에서 빼고, 아직 모르면 ↑ 후보에 올려요."]
+          : carryPool.length > 1 && !carryId
+            ? [`가설 후보가 ${carryPool.length}개 남았어요.`, "실험대에서는 가장 유력한 후보부터 시험해요.", "가장 유력해 보이는 후보 하나를 골라요."]
+            : ["가설 정리가 끝났어요!", "다음에는 이 구간이 정상일 때의 동작을 요구사항을 보고 퍼즐로 맞춰 볼 거예요.", "준비되면 다음을 눌러요."];
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (zoomPol || replayOpen || event.metaKey || event.ctrlKey || event.altKey || document.querySelector(".stageGate")) return;
+      const target = event.target as HTMLElement | null; if (target && /INPUT|TEXTAREA|SELECT/.test(target.tagName)) return;
+      const key = event.key, digit = /^[1-3]$/.test(key) ? Number(key) - 1 : -1;
+      if (phase === "symptom" && digit >= 0 && symptomChoices[digit]) { event.preventDefault(); pickOutput(symptomChoices[digit].id); }
+      else if (phase === "trace" && cand && (key === "ArrowUp" || key === "ArrowDown")) { event.preventDefault(); stamp(cand, key === "ArrowUp" ? "likely" : "refuted"); }
+      else if (phase === "hyp" && !sectionDone && digit >= 0 && data.section.choices[digit]) { event.preventDefault(); pickSection(data.section.choices[digit].label); }
+      else if (phase === "hyp" && nextHyp && (key === "ArrowUp" || key === "ArrowDown")) { event.preventDefault(); sortHyp(nextHyp.id, key === "ArrowUp" ? "hold" : "out"); }
+      else if (phase === "hyp" && sectionDone && allSorted && carryPool.length > 1 && !carryId && digit >= 0 && carryPool[digit]) { event.preventDefault(); setCarry(carryPool[digit]); play("pop"); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+  useDevActions({ solve: reveal, label: "STEP02" });
+  return <div className="dtBoard eeTrace" data-coach={coach}>
+    <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
+    <GameHeader chapter="원인 추적" title="도미노" distanceMeters={undefined} raceDistanceMeters={state.raceDistance} progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
+    <StageFolderSubtitle step="board" className="etStageFolder" action="관찰한 이상 증상에서 출발해 고장 원인 후보를 좁히세요." detail={<>출발 증거: {scenario.symptom} <i>|</i> 추적 대상: 신호·제어 경로</>} />
+    <StageIntro id="trace-v2" stage="STEP 02" title="도미노" goal="운전자가 느낀 출력에서 거꾸로 올라가며 첫 편차를 찾아요" steps={[
+      { icon: "camera", text: "운전자가 느낀 이상(출력)이 출발점이에요. 기준과 값이 다른 출력을 골라요." },
+      { icon: "search", text: "그 출력에 영향을 줬을 신호가 카드로 하나씩 나와요. 이상이 있고 먼저 달라졌으면 ↑ 영향을 줬어요, 아니면 ↓ 영향을 주지 않았어요를 눌러요." },
+      { icon: "clipboard", text: "영향을 준 신호가 다음 기준이 돼요. 더 이상 영향을 준 신호가 없으면 거기가 첫 편차예요. 그 위치로 의심 구간을 고르고 원인 가설 후보를 정리해요." },
+    ]} />
+    <main className="dtLayout etLayout">
+      <MissionBar action={et3Mission.action} question={et3Mission.question} progress={{ now: phaseIdx + 1, total: 3 }} />
+
+      {/* center: whole-vehicle reverse trace */}
+      <section className={`etBoard phase-${phase}`} ref={boardRef}>
+        <header><b><Icon name="layers" /> 도미노 판</b><small>{phase === "symptom" ? "기준과 다른 출력을 고르세요" : phase === "trace" ? `지금 출력: ${dom(focus).label}` : "센서 → 제어기 → CAN → 부품 → 차량"}</small>{phase === "hyp" && sectionDone && <button className="stageReplayBtn etStageReplay" onClick={() => setReplayOpen(true)}>다시 풀기</button>}</header>
+        <div className="etPhaseBridge" aria-label="추리 진행 단계"><span className={phase === "symptom" ? "on" : "done"}>첫 편차 출력</span><i>→</i><span className={phase === "trace" ? "on" : phase === "hyp" ? "done" : ""}>첫 편차 신호</span><i>→</i><span className={found && !sectionDone ? "on" : sectionDone ? "done" : ""}>의심 구간</span><i>→</i><span className={sectionDone ? "on" : ""}>가설 후보</span></div>
+        <svg className="etLines">{lines.map((l, i) => <path key={i} d={l.d} className={l.hot ? "hot" : "path"} />)}</svg>
+        <div className="etZones">{ZONES.map(zone => <div key={zone} className="etZone">
+          <small><Icon name={ZONE_ICON[zone]} /> {zone}</small>
+          {zone === "제어기" && <div className="etEcus">{OTHER_ECUS.map(name => <i key={name}>{name}</i>)}</div>}
+          {data.doms.filter(d => d.zone === zone).map(d => { const st = nodeState(d.id); return <button key={d.id} data-node={d.id} className={`etNode n-${st} ${selected === d.id ? "picked" : ""} ${shake === d.id ? "shake" : ""}`} onClick={() => pickNode(d.id)} disabled={st !== "pickable"}>{d.label}{st === "likely" && <em>영향 있음</em>}{st === "refuted" && <em>영향 없음</em>}</button>; })}
+        </div>)}</div>
+      </section>
+
+      {/* right 360px: evidence / measurement card / section zoom / hypotheses */}
+      <section className="etEvidence">
+        <header><nav className="etEvidenceTabs" role="tablist" aria-label="증거 패널">
+          <button role="tab" aria-selected={memoTab === "evidence"} className={memoTab === "evidence" ? "on" : ""} onClick={() => setMemoTab("evidence")}>증거</button>
+          <button role="tab" aria-selected={memoTab === "measure"} className={memoTab === "measure" ? "on" : ""} onClick={() => setMemoTab("measure")}>역추적 경로</button>
+          {phase === "hyp" && <button role="tab" aria-selected={memoTab === "zone"} className={memoTab === "zone" ? "on" : ""} onClick={() => setMemoTab("zone")}>구조 보기</button>}
+          {phase === "hyp" && sectionDone && <button role="tab" aria-selected={memoTab === "hyp"} className={memoTab === "hyp" ? "on" : ""} onClick={() => setMemoTab("hyp")}>가설 후보</button>}
+        </nav></header>
+        <div className="etEvidenceContent">
+          {memoTab === "evidence" && <><div className="polBoard" role="tabpanel" aria-label="관찰·계측 증거">{visiblePols.length === 0 ? <p className="etEmpty"><Icon name="camera" /> 아직 이상으로 등록한 신호가 없어요. 신호를 확인한 뒤 이상 여부를 판정하면 여기에 사진이 남아요.</p> : visiblePols.map(item => <button key={item.id} className={`pol ${item.kind}`} onClick={() => { setZoomPol(item.id); play("pop"); }}>
+            <i className="pin" /><span className="polPhoto">{item.photo}</span><b>{item.title}</b><small>{item.sub}</small>
+          </button>)}</div>{evidencePages > 1 && <div className="polPager"><button disabled={evidencePage === 0} onClick={() => setEvidencePage(page => Math.max(0, page - 1))}>이전</button><span>{evidencePage + 1}/{evidencePages}</span><button disabled={evidencePage >= evidencePages - 1} onClick={() => setEvidencePage(page => Math.min(evidencePages - 1, page + 1))}>다음</button></div>}</>}
+          {memoTab === "measure" && <div className="etMeasureTab" role="tabpanel" aria-label="확인한 신호">
+            {pathMeasured.length ? <ul className="etChecked">{[...pathMeasured].reverse().map(id => { const d = dom(id); const st = stamps[id]; return <li key={id} className={`s-${d.status}`}><b>{d.label}</b><span>{numify(`기준 ${refText(d)} · 이번 ${fmt(d.run)}${d.unit ? ` ${d.unit}` : ""}`)}</span><em className={st ?? "now"}>{st ? STAMP_KO[st] : "확인 중"}</em></li>; })}</ul>
+              : <p className="etEmpty"><Icon name="search" /> 역추적 경로가 아직 없어요. 후보를 판단하면 경로가 쌓여요.</p>}
+            {chain.length > 0 && <div className="etReasonPath"><small>거슬러 올라간 경로</small><div className="etStack flow">{[...chain].reverse().map((id, row) => <React.Fragment key={id}><span className={row === 0 ? "top" : ""}>{dom(id).label}</span>{row < chain.length - 1 && <i aria-hidden="true">→</i>}</React.Fragment>)}</div></div>}
+          </div>}
+          {memoTab === "zone" && <div className="etZoneTab" role="tabpanel" aria-label="의심 구간 구조">{SUBSYS[caseId] ? <div className="etZoom inline"><b><Icon name="search" /> {SUBSYS[caseId].where} 구조</b><div className="etZoomCol"><span className="io ok">들어오는 값<em>{SUBSYS[caseId].inLabel}</em></span>{SUBSYS[caseId].stages.map(st => <React.Fragment key={st}><i aria-hidden="true">↓</i><span className="stage">{st}<em>?</em></span></React.Fragment>)}<i aria-hidden="true">↓</i><span className="io bad">나가는 값<em>{SUBSYS[caseId].outLabel}</em></span></div></div> : null}</div>}
+          {memoTab === "hyp" && <div className="etHypTab" role="tabpanel" aria-label="가설 후보">{meta.hypotheses.map(h => <article key={h.id} className={`etHyp ${sorted[h.id] ?? "todo"}`}><span className="etHypGraphic"><Photo src={hypImage(h)} /></span><div className="etHypCopy"><b><span className="etTag" data-tag={HYP_TAG[h.id]}>{HYP_TAG[h.id]}</span>{h.label}</b><small>첫 편차 구간에서 확인할 원인 후보</small></div><em>{sorted[h.id] === "out" ? "가설 등록X" : sorted[h.id] === "hold" ? "가설 등록O" : "가설 미분류"}</em></article>)}</div>}
+        </div>
+      </section>
+
+      {/* bottom 150px: spoken direction on the left, the one thing to do on the right (all choices are made here) */}
+      <section className="etMugs">
+        <NutGuide id={`ee-${caseId}-${phase}-${phase === "trace" ? "t" : phase === "hyp" ? (sectionDone ? (carryPool.length > 1 && !carryId ? "carry" : "hyp") : "section") : "s"}`} who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={directiveLines} ask={directiveLines[directiveLines.length - 1]} note={bubble} bad={noteBad} />
+        {phase === "symptom" ? <div className="etDock etDockSymptom"><div className="etCards">{symptomChoices.map((d, index) => <button key={d.id} className={`etCard ${shake === d.id ? "shake" : ""}`} onClick={() => pickOutput(d.id)}>
+            <kbd>{index + 1}</kbd><span className="etCardPol"><i className="pin" /><span className="polPhoto"><Photo src={d.img} /></span></span>
+            <span className="etCardText"><b>{d.label}</b><span>{numify(`기준 ${refText(d)}`)}</span><span>{numify(`이번 ${fmt(d.run)}${d.unit ? ` ${d.unit}` : ""}`)}</span></span></button>)}</div></div>
+          : phase === "trace" ? <div className="etDock etDockTrace">{cand ? <article className={`etCand s-${dom(cand).status}`}>
+              <span className="etCardPol"><i className="pin" /><span className="polPhoto"><Photo src={dom(cand).img} /></span></span>
+              <div className="etCandText"><small>후보 {candNo}/{suspects.length} · {dom(cand).zone}</small><b>{dom(cand).label}</b>
+                <span>{numify(`기준 ${refText(dom(cand))} · 이번 ${fmt(dom(cand).run)}${dom(cand).unit ? ` ${dom(cand).unit}` : ""}`)}</span>
+                <span>{dom(cand).status === "bad" ? numify(`달라진 시점 ${fmt(dom(cand).t!)} ${unit} (${dom(focus).label}${josa(dom(focus).label, "은", "는")} ${fmt(dom(focus).t!)} ${unit})`) : dom(cand).status === "tol" ? "허용 범위 안이에요" : "기준과 같아요 (달라지지 않음)"}</span></div>
+              <div className="etFlags"><button className="yes" onClick={() => stamp(cand, "likely")}><kbd>↑</kbd><span>영향을 줬어요</span></button><button className="no" onClick={() => stamp(cand, "refuted")}><kbd>↓</kbd><span>영향을 주지 않았어요</span></button></div>
+            </article> : <span className="etAsk">다음 기준 신호로 넘어가는 중이에요…</span>}</div>
+              : !sectionDone ? <div className="etDock etDockSection"><div className="etChoices">{data.section.choices.map((c, index) => <button key={c.label} className={sectionPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}><kbd>{index + 1}</kbd>{choiceLabel(c.label)}</button>)}</div><button className="etInside" onClick={() => { setMemoTab(memoTab === "zone" ? "evidence" : "zone"); play("pop"); }}>{memoTab === "zone" ? "구조 닫기" : "첫 편차 발생 의심 구간 보기"}</button></div>
+              : nextHyp ? <div className="etDock"><article className="etCand hyp"><span className="etCardPol etHypCardPol"><i className="pin" /><span className="polPhoto"><Photo src={hypImage(nextHyp)} /></span></span><div className="etCandText"><small>가설 후보 {hypNo}/{meta.hypotheses.length}</small><b><span className="etTag" data-tag={HYP_TAG[nextHyp.id]}>{HYP_TAG[nextHyp.id]}</span>{nextHyp.label}</b><span>가설 후보를 시험대에 올릴지 판단해요.</span></div>
+                  <div className="etFlags"><button className="yes" onClick={() => sortHyp(nextHyp.id, "hold")}><kbd>↑</kbd><span>후보에 올려요</span></button><button className="no" onClick={() => sortHyp(nextHyp.id, "out")}><kbd>↓</kbd><span>후보에서 빼요</span></button></div></article></div>
+                : carryPool.length > 1 && !carryId ? <div className="etDock"><div className="etChoices">{carryPool.map((id, index) => <button key={id} onClick={() => { setCarry(id); play("pop"); }}><kbd>{index + 1}</kbd><span className="etTag" data-tag={HYP_TAG[id]}>{HYP_TAG[id]}</span>{choiceLabel(meta.hypotheses.find(h => h.id === id)?.label ?? id)}</button>)}</div></div>
+                  : <div className="etDock"><span className="etAsk">먼저 시험할 가설: <b>{meta.hypotheses.find(h => h.id === carryId)?.label ?? "없음"}</b>{carryPool.length > 1 && <button className="etDockLink" onClick={() => { setCarry(""); play("pop"); }}>다시 고르기</button>} · 후보에서 뺌 {meta.hypotheses.filter(h => sorted[h.id] === "out").length} · 후보에 올림 {heldIds.length} · {"★".repeat(stars)}{"☆".repeat(3 - stars)}</span></div>}
+      </section>
+      <div className="etNextCell"><button className="dtNext stageProgressAction" disabled={!(phase === "hyp" && sectionDone && allSorted && carryId)} onClick={finish}>다음 →</button></div>
+    </main>
+    {zoomed && <div className="polZoom" onClick={() => setZoomPol(null)}><div className="polZoomWrap" onClick={event => event.stopPropagation()}>
+      <article className="polBig">
+        <button className="polClose" aria-label="닫기 (Enter · Esc)" onClick={() => setZoomPol(null)}>×</button>
+        <i className="pin" />
+        <span className="polPhoto big">{zoomed.photo}</span>
+        <b>{zoomed.title}</b>
+        <div className="polCaption" aria-label="증거 설명">
+          {zoomed.id === "quote" && <><span>"{QUOTE[caseId]}"</span><small>운전자 진술을 출발 증거로 등록했어요.</small></>}
+          {zoomed.id === "lamp" && <><span>{LAMP[caseId].label} · {LAMP[caseId].note}</span><small>경고등은 결과로 켜진 것일 수 있어요.</small></>}
+          {zoomed.dom && <><span>기준 {refText(zoomed.dom)} · 이번 {fmt(zoomed.dom.run)}{zoomed.dom.unit ? ` ${zoomed.dom.unit}` : ""}</span><small>{zoomed.dom.zone} · {zoomed.dom.t !== undefined ? `달라진 시각 ${fmt(zoomed.dom.t)} ${unit}` : "측정 경로에 등록된 신호"}</small></>}
+        </div>
+      </article>
+      <small className="polKeys">Enter · Esc 로 닫기</small>
+    </div></div>}
+    {replayOpen && <ReplayConfirm impact="STEP03 퍼즐과 STEP04 시험 계약·실행 기록도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); resetStage(); }} />}
+  </div>;
+}
+
+
+
+// ===== v3: the garage E/E viewer on the left, evidence polaroids on the right (output side) =====
+// Memo-board simple: click parts on the E/E viewer to measure them (each adds a polaroid on the right),
+// then point at the part where things first went wrong (input normal, output abnormal), then pick the section.
+type Role = "input" | "control" | "network" | "actuator" | "result";
+type TNode = { label: string; role: Role; dom: string };
+const TRACE: Record<string, { chain: TNode[]; signals: string[]; first: number }> = {
+  propulsion: { first: 1, signals: ["페달 %", "토크 요청", "CAN 토크 명령", "모터 토크"], chain: [
+    { label: "APS 이중 센서", role: "input", dom: "aps" }, { label: "VCU", role: "control", dom: "vcu_in" }, { label: "CAN 토크 명령", role: "network", dom: "can_cmd" },
+    { label: "인버터·모터", role: "actuator", dom: "motor_tq" }, { label: "차량 가속", role: "result", dom: "accel" }] },
+  thermal: { first: 1, signals: ["팬 PWM 명령", "냉각 바람", "냉각수 °C", "출력 허용"], chain: [
+    { label: "팬 요청 계산", role: "control", dom: "fan_cmd" }, { label: "PWM 출력 어댑터 SW", role: "control", dom: "fan_rpm" }, { label: "냉각수 온도 센서", role: "input", dom: "coolant" },
+    { label: "VCU", role: "control", dom: "derate" }, { label: "차량 가속", role: "result", dom: "accel" }] },
+  brake: { first: 2, signals: ["페달 %", "압력 명령", "제동력"], chain: [
+    { label: "페달 입력 처리", role: "input", dom: "bpp" }, { label: "압력 계산 SW", role: "control", dom: "p_cmd" }, { label: "I/O 어댑터 SW", role: "control", dom: "caliper" },
+    { label: "차량 감속", role: "result", dom: "decel" }] },
+  regen: { first: 1, signals: ["회생 요청", "토크 지령", "CAN 토크 지령", "모터 토크"], chain: [
+    { label: "Brake ECU", role: "input", dom: "regen_req" }, { label: "VCU", role: "control", dom: "vcu_out" }, { label: "CAN 토크 지령", role: "network", dom: "can_cmd" },
+    { label: "인버터·모터", role: "actuator", dom: "motor_tq" }, { label: "차량 가감속", role: "result", dom: "accel" }] },
+  ready: { first: 1, signals: ["시동 요청", "시퀀스 상태", "주 접촉기 명령"], chain: [
+    { label: "시동 요청·브레이크", role: "input", dom: "start_req" }, { label: "VCU", role: "control", dom: "seq_state" }, { label: "주 접촉기", role: "actuator", dom: "main_cmd" },
+    { label: "READY 상태", role: "result", dom: "ready" }] },
+  gear: { first: 1, signals: ["변속 레버", "VCU 기어 값", "구동 지령"], chain: [
+    { label: "변속 레버 위치", role: "input", dom: "lever" }, { label: "VCU", role: "control", dom: "vcu_gear" }, { label: "모터 토크 지령", role: "actuator", dom: "motor_cmd" },
+    { label: "출발 방향", role: "result", dom: "launch_dir" }] },
+  cold: { first: 1, signals: ["BMS 한계", "제동 사용 한계", "회생 토크"], chain: [
+    { label: "BMS 회생 한계", role: "input", dom: "bms_lim" }, { label: "제동 도메인", role: "control", dom: "brk_lim" }, { label: "인버터 회생 토크", role: "actuator", dom: "regen_tq" },
+    { label: "차량 감속", role: "result", dom: "decel" }] },
+};
+
+// Zoom into the first deviation like a subsystem: only the boundary values are known; the inside stays "?"
+// until verification (the trace narrows the suspect section, it does not convict a block).
+// What the team can observe without measuring (driver, cluster, input log, road): different angles, no cause.
+const OBSERVED: Record<string, { icon: "detective" | "warning" | "clipboard" | "road"; label: string; value: string }[]> = {
+  propulsion: [{ icon: "detective", label: "운전자 체감", value: "끝까지 밟아도 가속 약함" }, { icon: "warning", label: "계기판", value: "경고등 없음" }, { icon: "clipboard", label: "페달 입력 기록", value: "60% 유지" }, { icon: "road", label: "도로", value: "마른 평지 직선" }],
+  thermal: [{ icon: "detective", label: "운전자 체감", value: "고속 유지 중 힘 빠짐" }, { icon: "warning", label: "계기판", value: "파워다운 표시등" }, { icon: "clipboard", label: "주행 기록", value: "고속 연속 주행" }, { icon: "road", label: "바깥 기온", value: "25°C" }],
+  brake: [{ icon: "detective", label: "운전자 체감", value: "밟아도 덜 섬" }, { icon: "warning", label: "계기판", value: "브레이크 경고등" }, { icon: "clipboard", label: "페달 입력 기록", value: "55% 유지" }, { icon: "road", label: "노면", value: "마른 노면" }],
+  regen: [{ icon: "detective", label: "운전자 체감", value: "발을 떼도 계속 빨라짐" }, { icon: "warning", label: "계기판", value: "경고등 없음 · 회생 표시 없음" }, { icon: "clipboard", label: "주행 기록", value: "페달 0% · 속도 상승" }, { icon: "road", label: "도로", value: "마른 평지 직선" }],
+  ready: [{ icon: "detective", label: "운전자 체감", value: "시동 후 READY 없음" }, { icon: "warning", label: "계기판", value: "HV 시스템 점검 표시등" }, { icon: "clipboard", label: "시동 기록", value: "3회 시도 · 모두 실패" }, { icon: "road", label: "주행 상태", value: "정차 · 출발 전" }],
+  gear: [{ icon: "detective", label: "운전자 체감", value: "출발 때 가끔 뒤로 움찔" }, { icon: "warning", label: "계기판", value: "기어 D 표시 · 경고등 없음" }, { icon: "clipboard", label: "조작 기록", value: "변속 후 0.2초에 페달" }, { icon: "road", label: "도로", value: "마른 평지 · 정차 출발" }],
+  cold: [{ icon: "detective", label: "운전자 체감", value: "발만 떼도 확 섬 · 추울 때만" }, { icon: "warning", label: "계기판", value: "회생 표시 큼 · 경고등 없음" }, { icon: "clipboard", label: "주행 기록", value: "60 km/h에서 페달 해제" }, { icon: "road", label: "바깥 기온", value: "0 °C 근처" }],
+};
+const REPLAY: Record<string, string> = { propulsion: "페달 60% 기록", thermal: "고속 연속 주행 기록", brake: "페달 55% 기록", regen: "페달 0% 코스팅 기록", ready: "시동 3회 시도 기록", gear: "변속 직후 출발 기록", cold: "저온 코스팅 기록" };
+
+const SUBSYS: Record<string, { where: string; inLabel: string; outLabel: string; stages: string[] }> = {
+  propulsion: { where: "VCU", inLabel: "페달 신호 60%", outLabel: "토크 명령 92 Nm (기준 204)", stages: ["입력 회로", "페달 처리", "토크 계산"] },
+  thermal: { where: "팬 출력 SW 경계", inLabel: "팬 요청 100%", outLabel: "PWM 출력 0% (기준 100)", stages: ["팬 요청 계산", "실행 순서", "PWM 쓰기"] },
+  brake: { where: "압력 출력 SW 경계", inLabel: "압력 계산 42 bar", outLabel: "전송 명령 8 bar (기준 42)", stages: ["배분 계산", "단위 변환", "I/O 전송"] },
+  regen: { where: "VCU 지령 변환", inLabel: "요청 −40 Nm", outLabel: "지령 +40 Nm (기준 −40)", stages: ["수신", "부호", "한계·램프"] },
+  ready: { where: "VCU 시퀀스", inLabel: "시동 요청 1", outLabel: "접촉기 명령 없음 (기준 닫기)", stages: ["조건", "대기", "전이"] },
+  gear: { where: "VCU 변속 수신", inLabel: "게이트웨이 D (간격 120 ms)", outLabel: "기어 값 R (기준 N)", stages: ["E2E 검사", "타임아웃 판정", "폴백 값"] },
+  cold: { where: "제동 도메인 한계 수신", inLabel: "게이트웨이 한계 20 Nm", outLabel: "사용 한계 60 Nm (기준 20)", stages: ["한계 수신", "상한 적용", "회생 요청"] },
+};
+
+export function EeTrace({ state, send }: { state: Campaign; send: Send }) {
+  const caseId = state.caseId;
+  const scenario = SCENARIOS[caseId];
+  const data = CASES[caseId];
+  const meta = SCENARIO_META[caseId];
+  const trace = TRACE[caseId];
+  const chain = trace.chain;
+  const last = chain.length - 1;
+  const dom = (id: string) => data.doms.find(item => item.id === id)!;
+  const [measured, setMeasured] = useState<number[]>([last]);
+  const [replayed, setReplayed] = useState(false);
+  const [sorted, setSorted] = useState<Record<string, "out" | "hold">>({});
+  const [picking, setPicking] = useState(false);
+  const [found, setFound] = useState(false);
+  const [sectionPick, setSectionPick] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [mistakes, setMistakes] = useState(0);
+  const [bubble, setBubble] = useState(`오른쪽 증거는 '${dom(chain[last].dom).label}'이에요. 먼저 '고장 당시 입력 재생'을 누른 뒤, 출력 쪽부터 부품을 눌러 재 보세요.`);
+  const isBad = (i: number) => dom(chain[i].dom).status === "bad";
+  const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
+  const pick = (i: number) => {
+    if (done || found) return;
+    if (picking) {
+      if (i === trace.first) {
+        if (!measured.includes(i) || (i > 0 && !measured.includes(i - 1))) { setBubble("그 부품과 바로 앞 부품을 모두 재 봐야 확신할 수 있어요."); play("error"); return; }
+        setFound(true); setPicking(false); showVerdict(true, "처음 어긋남"); play("success");
+        setBubble(`들어오는 값은 정상인데 ${chain[i].label}에서 나가는 값부터 이상해요. 의심 구간을 고르세요.`);
+        return;
+      }
+      setMistakes(n => n + 1); showVerdict(false);
+      setBubble(!isBad(i) ? `${chain[i].label}${josa(chain[i].label, "은", "는")} 정상이에요. 이상이 시작된 곳이 아니에요.` : `${chain[i].label}보다 앞쪽에서도 이미 이상해요. 더 앞을 보세요.`);
+      return;
+    }
+    if (!replayed) { setBubble("먼저 위의 '고장 당시 입력 재생'을 눌러 같은 입력을 다시 넣어야 잴 수 있어요."); play("error"); return; }
+    if (measured.includes(i)) return;
+    setMeasured(previous => [...previous, i]);
+    const d = dom(chain[i].dom);
+    play("zip"); window.setTimeout(() => play(d.status === "bad" ? "stamp" : "pop"), 160);
+    setBubble(d.status === "bad" ? `${chain[i].label}: 기준과 달라요. 더 앞쪽도 재 보세요.` : `${chain[i].label}: 기준과 같아요(정상). 이 다음부터 이상하다면 그곳이 처음 어긋난 곳이에요.`);
+  };
+  const pickSection = (label: string) => {
+    const choice = data.section.choices.find(c => c.label === label)!;
+    setSectionPick(label); setBubble(choice.why);
+    if (choice.ok) { showVerdict(true, "의심 구간"); window.setTimeout(() => setDone(true), 800); }
+    else { setMistakes(n => n + 1); showVerdict(false); }
+  };
+  const replay = () => { if (replayed) return; setReplayed(true); play("zip"); window.setTimeout(() => play("pop", 1.2), 300); setBubble(`${REPLAY[caseId]}을 다시 넣었어요. 이제 출력 쪽부터 부품을 눌러 재 보세요.`); };
+  const sortHyp = (id: string, pick: "out" | "hold") => {
+    const h = meta.hypotheses.find(item => item.id === id)!;
+    const right = h.stage1 ? "out" : "hold";
+    if (pick !== right) { setMistakes(n => n + 1); showVerdict(false); setBubble(pick === "out" ? `'${h.label}'을(를) 배제할 측정값은 아직 없어요. 검증에서 시험해요.` : `${h.stage1} 그래서 이 가설은 반박돼요.`); return; }
+    setSorted(previous => ({ ...previous, [id]: pick })); play(pick === "out" ? "stamp" : "pop");
+    setBubble(pick === "out" ? `${h.stage1 ?? ""} 반박했어요.` : `'${h.label}'은(는) 측정만으로 가를 수 없어요. 검증으로 넘겨요.`);
+  };
+  const allSorted = meta.hypotheses.every(h => sorted[h.id]);
+  const effects = chain.filter((_, i) => i > trace.first && isBad(i)).map(node => dom(node.dom));
+  const finish = () => {
+    try { sessionStorage.setItem(`tb-impact-${caseId}`, JSON.stringify(effects.map(d => `${d.label} 정상 복귀 (기준 ${refText(d)})`))); } catch { /* ignore */ }
+    const evidence = measured.map(i => dom(chain[i].dom)).filter(d => d.ev).map(d => d.ev!);
+    evidence.filter(id => !state.evidence[caseId].includes(id)).forEach(id => send({ type: "RECORD_EVIDENCE", id }));
+    if (state.hypothesis[caseId] !== scenario.root) send({ type: "SELECT_HYPOTHESIS", id: scenario.root });
+    try { sessionStorage.setItem(`tb-section-${caseId}`, data.section.name); } catch { /* ignore */ }
+    send({ type: "OPEN_WIRING" });
+  };
+  const reveal = () => { setReplayed(true); setMeasured(chain.map((_, i) => i)); setFound(true); setSectionPick(data.section.choices.find(c => c.ok)!.label); setDone(true); setSorted(Object.fromEntries(meta.hypotheses.map(h => [h.id, h.stage1 ? "out" : "hold"])) as Record<string, "out" | "hold">); };
+  const marks: Record<number, "ok" | "bad" | "first" | "next"> = {};
+  chain.forEach((_, i) => { marks[i] = found && i === trace.first ? "first" : measured.includes(i) ? (isBad(i) ? "bad" : "ok") : "next"; });
+  const order = [...measured].sort((a, b) => b - a); // output first
+
+  const coach = state.completedCases.length ? "" : !replayed ? "replay" : measured.length < 3 ? "measure" : !found ? "pick" : !done ? "section" : !allSorted ? "sort" : "next";
+  return <div className="dtBoard tbTrace" data-coach={coach}>
+    <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
+    <GameHeader chapter="원인 추적" title="도미노" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
+    <StageIntro id="trace-v3" title="도미노" goal="증상에서 거꾸로 따라가 처음 쓰러진 도미노, 즉 처음 어긋난 곳을 찾아요. 원인은 검증 단계에서 시험으로 확인해요." steps={[
+      { icon: "layers", text: "왼쪽 E/E 그림에서 부품을 눌러 재요. 오른쪽에 증거 사진이 쌓여요." },
+      { icon: "search", text: "출력 쪽부터 거꾸로. 정상인 부품 바로 다음에서 이상이 시작되면 그곳이 처음 어긋난 곳이에요." },
+      { icon: "target", text: "'처음 어긋난 곳 지목'을 누르고 그 부품을 고른 뒤, 의심 구간을 골라요." },
+    ]} />
+    <main className="dtLayout tbLayout">
+      <section className={`tbBoard ${picking ? "picking" : ""}`}>
+        <header><b><Icon name="layers" /> 차량 E/E 아키텍처</b><small>{picking ? "처음 어긋난 부품을 누르세요" : replayed ? "부품을 눌러 재기 · 두 부품을 모두 재면 그 사이 신호가 보여요" : "먼저 고장 당시 입력을 재생하세요"}</small><button className={`etReplay ${replayed ? "on" : ""}`} onClick={replay}>{replayed ? "✓ 입력 재생 중" : `▶ 고장 당시 입력 재생 · ${REPLAY[caseId]}`}</button></header>
+        <EeBlueprint chain={chain.map(node => node.label)} roles={chain.map(node => node.role)} active={chain.length} removed={null} onPick={pick} signals={trace.signals} marks={marks} showPath={i => measured.includes(i) && measured.includes(i + 1)} />
+        {found && SUBSYS[caseId] && <div className="etZoom" aria-label="처음 어긋난 곳 들여다보기"><b><Icon name="search" /> {SUBSYS[caseId].where} 안 들여다보기</b>
+          <div className="etZoomRow"><span className="io ok">들어오는 값<em>{SUBSYS[caseId].inLabel}</em></span>{SUBSYS[caseId].stages.map(st => <React.Fragment key={st}><i>→</i><span className="stage">{st}<em>?</em></span></React.Fragment>)}<i>→</i><span className="io bad">나가는 값<em>{SUBSYS[caseId].outLabel}</em></span></div>
+          <small>이 구조에서 어느 처리 단계가 원인인지는 아직 몰라요. 검증 단계에서 시험으로 가려요.</small></div>}
+      </section>
+      <aside className="tbEvidence">
+        <header><b><Icon name="camera" /> 증거</b><small>{scenario.title}</small></header>
+        <div className="etObserved">{OBSERVED[caseId].map(o => <span key={o.label}><Icon name={o.icon} /><small>{o.label}</small><b>{o.value}</b></span>)}</div>
+        <ul>{order.map(i => { const d = dom(chain[i].dom); return <li key={i} className={`s-${d.status} ${found && i === trace.first ? "first" : ""}`}>
+          <Photo src={d.img} /><span><b>{i === last ? "증상 · " : ""}{d.label}</b><Gauge dom={d} /></span><em className={`tbStamp ${d.status === "bad" ? "bad" : "ok"}`}>{d.status === "bad" ? "이상" : "정상"}</em>
+        </li>; })}</ul>
+        <div className="tbAct">
+          {!found ? <button className={`tbPick ${picking ? "on" : ""}`} onClick={() => { setPicking(v => !v); play("pop"); setBubble(picking ? "측정을 계속하세요." : "처음 어긋난 부품을 왼쪽 그림에서 누르세요."); }}><Icon name="target" /> {picking ? "지목 취소" : "처음 어긋난 곳 지목"}</button>
+            : !done ? <div className="tbSecs"><small>처음 어긋난 곳: {chain[trace.first].label} · 의심 구간을 고르세요</small>{data.section.choices.map(c => <button key={c.label} className={sectionPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}>{c.label}</button>)}</div>
+              : <div className="tbCarry"><small>가설 정리 · 측정으로 반박되면 '반박', 아직 모르면 '보류'</small><div className="tbSort">{meta.hypotheses.map(h => <span key={h.id} className={sorted[h.id] ?? "todo"}><b>{h.label}</b>{sorted[h.id] ? <em>{sorted[h.id] === "out" ? "반박됨" : "판단 보류"}</em> : <><button onClick={() => sortHyp(h.id, "out")}>반박</button><button onClick={() => sortHyp(h.id, "hold")}>보류</button></>}</span>)}</div>
+                <button className="dtNext" disabled={!allSorted} onClick={finish}>다음: 요구사항 기반 퍼즐 → <span>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</span></button></div>}
+        </div>
+      </aside>
+      <div className="etBubble"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><p><b>{ENGINEER}</b>{numify(bubble)}</p></div>
+    </main>
+    <button className="secretSolve" title="개발용 정답 적용" onClick={reveal}>정답 보기</button>
+  </div>;
+}

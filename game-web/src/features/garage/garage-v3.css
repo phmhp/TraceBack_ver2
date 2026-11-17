@@ -1,0 +1,202 @@
+/* STEP01 v3 workspace: one grid replaces the stacked absolute-position overrides (v5..p4).
+   Everything inside .gv3Work is laid out by this file only; legacy positions are neutralised below. */
+.garageV2 .gv3Work {
+  position: absolute !important; left: 16px !important; right: 16px !important; top: 140px !important; bottom: 14px !important;
+  display: grid !important; gap: 10px;
+  grid-template-columns: 84px minmax(0, 1fr) 360px;
+  grid-template-rows: 56px 64px minmax(0, 1fr) 150px;
+  grid-template-areas: "mission mission mission" "domains domains domains" "rail stage side" "flow flow flow";
+  word-break: keep-all; overflow-wrap: normal;
+}
+.garageV2 .gv3Work > .garageStudio { display: contents !important; }
+.garageV2 .gv3Work :is(.missionBar, .garageLayerNav, .domainTabs, .garageMechanismCard, .domainFunctionShelf, .garageFooterRow) {
+  position: static !important; inset: auto !important; transform: none !important; margin: 0 !important;
+  width: auto !important; height: auto !important; max-width: none !important; max-height: none !important; min-width: 0 !important;
+}
+.garageV2 .gv3Work > .missionBar { grid-area: mission; }
+.garageV2 .gv3Work .domainTabs { grid-area: domains; display: flex !important; gap: 10px; align-items: stretch; }
+.garageV2 .gv3Work .garageBreadcrumb { grid-area: domains; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(155, 107, 100, .28); background: rgba(255, 253, 246, .88); color: #7a4a44; }
+.garageV2 .gv3Work .garageBreadcrumb button { min-height: 34px; padding: 0 10px; border: 1.5px solid #c9a39c; border-radius: 999px; background: #fffaf5; color: #6f4b46; font: 800 13px/1 Pretendard, system-ui; white-space: nowrap; }
+.garageV2 .gv3Work .garageBreadcrumb button:first-child { display: inline-flex; align-items: center; gap: 5px; }
+.garageV2 .gv3Work .garageBreadcrumb b, .garageV2 .gv3Work .garageBreadcrumb strong { font: 800 14px/1 Pretendard, system-ui; white-space: nowrap; }
+.garageV2 .gv3Work .garageBreadcrumb strong { color: #9b6b64; }
+.garageV2 .gv3Work .garageBreadcrumb .changeDomain { margin-left: auto; }
+.garageV2 .gv3Work .garageLayerNav { grid-area: rail; display: flex !important; flex-direction: column; gap: 0; padding: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; }
+.garageV2 .gv3Work .garageMechanismCard { grid-area: stage; position: relative !important; min-height: 0; overflow: hidden; }
+.garageV2 .gv3Work .domainFunctionShelf { grid-area: side; overflow: auto; min-height: 0; }
+.garageV2 .gv3Work .garageFooterRow { grid-area: flow; display: grid !important; grid-template-columns: minmax(0, 1fr) 140px; gap: 10px; min-height: 0; }
+.garageV2 .gv3Work .garageFooterRow > .garageProceed { position: static !important; width: 100% !important; height: 100% !important; margin: 0 !important; font: 800 18px/1 Pretendard, system-ui !important; white-space: nowrap; }
+.garageV2 .gv3Work .garageFlowPanel { min-width: 0; min-height: 0; }
+
+/* tab buttons: one line each, 14px+ labels */
+.garageV2 .gv3Work :is(.domainTabs, .garageLayerNav) button { min-width: 0 !important; white-space: nowrap; overflow: hidden; }
+.garageV2 .gv3Work .garageLayerNav button { display: flex !important; flex-direction: column !important; align-items: center; justify-content: center; gap: 6px; padding: 0 4px !important; width: 100% !important; flex: 1 1 0; position: relative; }
+.garageV2 .gv3Work .garageLayerNav button span { font: 800 12px/1 Pretendard, system-ui !important; }
+.garageV2 .gv3Work .garageLayerNav button b { font: 700 13px/1 Pretendard, system-ui !important; white-space: nowrap !important; word-break: keep-all !important; }
+.garageV2 .gv3Work .garageLayerNav button { white-space: nowrap !important; }
+
+/* side column: compact function list so the pedal lab (or note) always fits without scrolling */
+.garageV2 .gv3Work .domainFunctionShelf { display: flex !important; flex-direction: column; gap: 6px; padding: 10px !important; overflow: hidden; }
+.garageV2 .gv3Work .domainFunctionShelf > small { font: 800 12px/1 Pretendard, system-ui !important; }
+.garageV2 .gv3Work .domainFunctionShelf h2 { margin: 0 !important; font: 800 16px/1.2 Pretendard, system-ui !important; white-space: nowrap; }
+.garageV2 .gv3Work .domainFunctionShelf > button { flex: none; min-height: 0 !important; height: 34px !important; padding: 0 10px !important; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.garageV2 .gv3Work .domainFunctionShelf > button b { font: 700 14px/1 Pretendard, system-ui !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.garageV2 .gv3Work .domainFunctionShelf .functionNote { flex: none; padding: 8px 10px !important; }
+.garageV2 .gv3Work .domainFunctionShelf.withPedalLab .functionNote { display: none !important; }
+.garageV2 .gv3Work .domainFunctionShelf .functionNote p { font: 500 13px/1.35 Pretendard, system-ui !important; margin: 2px 0 0 !important; }
+.garageV2 .gv3Work .domainFunctionShelf .functionNote > small { display: none !important; }
+
+.garageV2 .gv3Work .domainFunctionShelf > button > span { position: static !important; flex: none; width: 22px; height: 22px; display: grid; place-items: center; margin: 0 !important; font: 800 12px/1 Pretendard, system-ui !important; }
+.garageV2 .gv3Work .domainFunctionShelf > button > b { position: static !important; flex: 1 1 0; min-width: 0; margin: 0 !important; padding: 0 !important; text-align: left; }
+.garageV2 .gv3Work .domainFunctionShelf > button > i { position: static !important; flex: none; width: auto !important; margin: 0 !important; font-size: 16px; }
+
+/* input bar: every label on one line, buttons keep their natural width */
+.garageV2 .gv3Work .inputBar { flex-wrap: nowrap !important; justify-content: center; }
+.garageV2 .gv3Work .inputBar .ctlBtn { flex: none !important; width: auto !important; min-width: 0 !important; white-space: nowrap !important; }
+.garageV2 .gv3Work .inputBar .ctlBtn * { white-space: nowrap !important; }
+.garageV2 .gv3Work .inputBar .inputStatus { white-space: nowrap !important; }
+
+/* readable type: nothing below 12px inside the workspace (except icons) */
+.garageV2 .gv3Work .domainTabs button small { font-size: 12px !important; white-space: nowrap; }
+.garageV2 .gv3Work .domainTabs button b { font-size: 14px !important; white-space: nowrap; }
+.garageV2 .gv3Work .liveBadge { font-size: 12px !important; white-space: nowrap !important; max-width: none !important; }
+.garageV2 .gv3Work .flowLegend, .garageV2 .gv3Work .flowLegend * { font-size: 12px !important; }
+.garageV2 .gv3Work .flowRelationship { font-size: 12px !important; }
+.garageV2 .gv3Work .mechanismLegend, .garageV2 .gv3Work .mechanismLegend span { font-size: 12px !important; }
+
+/* E/E and SW diagrams end above the bottom control overlay (input bar + step controls) so nodes are never covered */
+.garageV2 .gv3Work .garageMechanismCard > .mechanismViewer:is(.eeView, .eeBlueprintView, .softwareView) { bottom: 64px !important; }
+
+
+
+/* the flow panel fills its grid row exactly (legacy min-height:122px used to push it, and the next button, below the workspace) */
+.garageV2 .gv3Work .garageFlowPanel { height: 100% !important; min-height: 0 !important; max-height: none !important; box-sizing: border-box; }
+.garageV2 .gv3Work .garageFlowPanel > div { height: 100% !important; min-height: 0 !important; align-items: stretch; }
+.garageV2 .gv3Work .garageFlowPanel > div > button { height: 100% !important; min-height: 0 !important; }
+.garageV2 .gv3Work .garageFooterRow > .garageProceed { min-height: 0 !important; }
+
+
+/* domain nav: three groups on one row */
+.garageV2 .gv3Work .domainTabs > .allDomains { flex: 0 0 112px; height: 100% !important; }
+.garageV2 .gv3Work .domainGroup { flex: var(--n) 1 0; min-width: 0; display: flex; flex-direction: column; gap: 3px; position: relative; padding-left: 10px; border-left: 2px solid rgba(155, 107, 100, .28); }
+.garageV2 .gv3Work .domainGroup .groupName { font: 800 12px/1 Pretendard, system-ui; font-style: normal; color: #7a4a44; height: 14px; white-space: nowrap; }
+.garageV2 .gv3Work .domainGroup .groupBtns { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; }
+.garageV2 .gv3Work .domainGroup .groupBtns button { width: 100% !important; height: 100% !important; display: flex !important; flex-direction: row !important; align-items: center; justify-content: center; gap: 6px; padding: 0 6px !important; }
+.garageV2 .gv3Work .domainTabs button > span { flex: none; display: grid; place-items: center; }
+.garageV2 .gv3Work .domainTabs button > b { white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.garageV2 .gv3Work .domainTabs button > small { flex: none; font: 800 12px/1 Pretendard, system-ui !important; }
+.garageV2 .gv3Work .domainTabs > .allDomains { display: flex !important; flex-direction: row !important; align-items: center; justify-content: center; gap: 6px; }
+
+/* layer rail: four stacked levels, deeper going down */
+.garageV2 .gv3Work .garageLayerNav button:not(:last-child)::after { content: "▾"; position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%); z-index: 2; font: 800 12px/1 Pretendard, system-ui; color: #9b6b64; }
+.garageV2 .gv3Work .garageLayerNav button { margin-bottom: 10px !important; overflow: visible; }
+.garageV2 .gv3Work .garageLayerNav button:last-child { margin-bottom: 0 !important; }
+
+/* side column: category tag per function */
+.garageV2 .gv3Work .domainFunctionShelf > button .featureCat { flex: none; font: 700 11px/1 Pretendard, system-ui; font-style: normal; padding: 3px 7px; border-radius: 999px; background: rgba(155, 107, 100, .14); color: #7a4a44; white-space: nowrap; }
+.garageV2 .gv3Work .domainFunctionShelf .functionNote > small { display: block !important; margin-top: 4px; font: 700 12px/1.2 Pretendard, system-ui; color: #7a4a44; white-space: nowrap; }
+
+/* SW architecture view (SWC inside the executing controller) */
+.garageV2 .gv3Work .swcView { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 56px 18px 70px; }
+.swcView .swcIo { flex: none; width: 176px; padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, .7); border: 1px solid rgba(155, 107, 100, .3); text-align: center; }
+.swcView .swcIo small { display: block; font: 700 12px/1 Pretendard, system-ui; color: #8a6a63; margin-bottom: 6px; }
+.swcView .swcIo b { font: 800 14px/1.25 Pretendard, system-ui; color: #4a3a36; white-space: nowrap; }
+.swcView .swcEcu { flex: 1 1 0; min-width: 0; padding: 12px 14px 10px; border-radius: 16px; border: 2px solid #9b6b64; background: rgba(255, 248, 242, .85); }
+.swcView .swcEcu > header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.swcView .swcEcu > header b { font: 800 16px/1 Pretendard, system-ui; color: #4a3a36; white-space: nowrap; }
+.swcView .swcEcu > header small { font: 700 12px/1 Pretendard, system-ui; color: #8a6a63; white-space: nowrap; }
+.swcView .swcRow { display: flex; align-items: stretch; gap: 6px; }
+.swcView .swcBox { all: unset; box-sizing: border-box; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 10px; border: 2px dashed #9b6b64; background: #fffaf5; cursor: pointer; }
+.swcView .swcBox i { font: 800 12px/1 Pretendard, system-ui; font-style: normal; color: #9b6b64; }
+.swcView .swcBox b { font: 800 13px/1.2 ui-monospace, Menlo, monospace; color: #3f302c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.swcView .swcBox span { font: 600 12px/1 Pretendard, system-ui; color: #8a6a63; white-space: nowrap; }
+.swcView .swcBox.done { background: #eef3e8; border-color: #8a9a78; }
+.swcView .swcBox.on { background: #9b6b64; border-style: solid; }
+.swcView .swcBox.on :is(i, b, span) { color: #fff8f2; }
+.swcView .swcRow > em { flex: none; align-self: center; display: flex; flex-direction: column; align-items: center; gap: 3px; font: 800 14px/1 Pretendard, system-ui; font-style: normal; color: #9b6b64; }
+.swcView .swcRow > em small { font: 600 11px/1 Pretendard, system-ui; color: #8a6a63; white-space: nowrap; max-width: 72px; overflow: hidden; text-overflow: ellipsis; }
+.swcView .swcEcu > footer { margin-top: 10px; font: 600 12px/1 Pretendard, system-ui; color: #8a6a63; }
+
+/* the 3-column grid: the footer (flow cards + next button) must span every column */
+.garageV2 .gv3Work .garageFooterRow { grid-row: 4 !important; grid-column: 1 / -1 !important; }
+.garageV2 .gv3Work > .missionBar { grid-row: 1 !important; grid-column: 1 / -1 !important; }
+.garageV2 .gv3Work .domainTabs { grid-row: 2 !important; grid-column: 1 / -1 !important; }
+/* the next button sits exactly under the side column (same 360px, same right edge) */
+.garageV2 .gv3Work .garageFooterRow { grid-template-columns: minmax(0, 1fr) 360px !important; }
+
+/* overview architecture: inputs | domain groups on one network | outputs */
+.garageV2 .gv3Work .archView { position: absolute !important; inset: 0 !important; display: flex; flex-direction: column; gap: 8px; padding: 44px 18px 10px; box-sizing: border-box; }
+.archView .archCols { flex: 1 1 0; min-height: 0; display: grid; grid-template-rows: 1fr 1fr 1fr auto; gap: 8px; }
+.archView .archRow { display: grid; grid-template-columns: 170px 28px minmax(0, 1fr) 28px 170px; align-items: stretch; min-height: 0; }
+.archView .archIo { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0; }
+.archView .archIo li { padding: 5px 8px; border-radius: 8px; background: rgba(255, 255, 255, .78); border: 1px solid rgba(155, 107, 100, .3); font: 700 13px/1.1 Pretendard, system-ui; color: #4a3a36; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.archView .archArrow { align-self: center; height: 2px; background: #9b6b64; position: relative; }
+.archView .archArrow::after { content: ""; position: absolute; right: -1px; top: -4px; border-left: 8px solid #9b6b64; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+.archView .archGroup { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px 10px; border-radius: 14px; border: 2px solid rgba(155, 107, 100, .5); background: rgba(255, 248, 242, .8); }
+.archView .archGroup.g-0 { background: rgba(231, 244, 236, .85); border-color: #6fa08c; }
+.archView .archGroup.g-1 { background: rgba(240, 236, 248, .85); border-color: #8f80b6; }
+.archView .archGroup.g-2 { background: rgba(252, 238, 230, .85); border-color: #d08f78; }
+.archView .archGroup h3 { margin: 0; font: 800 13px/1 Pretendard, system-ui; color: #5a4440; white-space: nowrap; }
+.archView .archDomains { flex: 1 1 0; min-height: 0; display: flex; gap: 8px; }
+.archView .archDomains button { all: unset; box-sizing: border-box; flex: 1 1 0; max-width: 190px; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 10px; background: #fffaf5; border: 2px solid var(--domain, #9b6b64); cursor: pointer; transition: transform .12s; }
+.archView .archDomains button:hover { transform: translateY(-2px); }
+.archView .archDomains button:focus-visible { outline: 3px solid #9b6b64; outline-offset: 2px; }
+.archView .archDomains button > span { display: grid; place-items: center; color: var(--domain, #9b6b64); }
+.archView .archDomains button b { font: 800 15px/1 Pretendard, system-ui; color: #3f302c; white-space: nowrap; }
+.archView .archDomains button small { font: 600 12px/1 Pretendard, system-ui; color: #8a6a63; white-space: nowrap; }
+.archView .archDomains button.from { background: #c4553a; border-color: #c4553a; }
+.archView .archDomains button.from :is(b, small, span) { color: #fff8f2; }
+.archView .archDomains button.to { box-shadow: 0 0 0 3px rgba(196, 85, 58, .55); }
+.archView .archNet { display: flex; align-items: center; gap: 8px; padding: 6px 12px; margin: 0 198px; border-radius: 10px; background: #6b5a55; color: #fff8f2; white-space: nowrap; }
+.archView .archNet b { font: 800 13px/1 Pretendard, system-ui; }
+.archView .archNet span { font: 600 12px/1 Pretendard, system-ui; opacity: .9; overflow: hidden; text-overflow: ellipsis; }
+.archView .archLines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.archView .archLines path { fill: none; stroke: #c4553a; stroke-width: 2.4; stroke-dasharray: 7 5; }
+.archView .archSignals { flex: none; display: flex; align-items: center; gap: 6px; }
+.archView .archSignals > b { font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; margin-right: 4px; white-space: nowrap; }
+.archView .archSignals button { all: unset; box-sizing: border-box; padding: 6px 10px; border-radius: 999px; background: rgba(155, 107, 100, .12); color: #5a4440; font: 700 12px/1 Pretendard, system-ui; white-space: nowrap; cursor: pointer; }
+.archView .archSignals button.on { background: #c4553a; color: #fff8f2; }
+.archView .archSignals .arch3d { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; background: #9b6b64; color: #fff8f2; }
+.archView .archNote { flex: none; margin: 0; font: 600 13px/1.2 Pretendard, system-ui; color: #5a4440; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 16px; }
+
+/* 2026-11-15: 영역(그룹) 먼저 고르기 -> 도메인 -> 기능 */
+.archView .archGroupPick { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.archView .archAsk { margin: 0; display: flex; align-items: center; justify-content: space-between; font: 700 15px/1.3 Pretendard, system-ui; color: #5a4440; }
+.archView .archAsk .arch3d, .archView .archCrumb .arch3d { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 999px; background: #9b6b64; color: #fff8f2; font: 700 12px/1 Pretendard, system-ui; cursor: pointer; }
+.archView .archGroupCards { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; overflow: hidden; }
+.archView .archGroupCard { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 7px; padding: 12px 14px 10px; border-radius: 16px; border: 2px solid rgba(155, 107, 100, .5); cursor: pointer; min-width: 0; min-height: 0; overflow: hidden; transition: transform .12s, box-shadow .12s; word-break: keep-all; }
+.archView .archGroupCard:hover { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(90, 60, 50, .2); }
+.archView .archGroupCard:focus-visible { outline: 3px solid #9b6b64; outline-offset: 2px; }
+.archView .archGroupCard.g-0 { background: rgba(231, 244, 236, .9); border-color: #6fa08c; }
+.archView .archGroupCard.g-1 { background: rgba(240, 236, 248, .9); border-color: #8f80b6; }
+.archView .archGroupCard.g-2 { background: rgba(252, 238, 230, .9); border-color: #d08f78; }
+.archView .archGroupCard h3 { margin: 0; font: 800 21px/1.1 Pretendard, system-ui; color: #3f302c; }
+.archView .archGroupCard .agIo { font: 600 12px/1.3 Pretendard, system-ui; color: #4a3a36; }
+.archView .archGroupCard .agPurpose { margin: -2px 0 2px; color: #6f5049; font: 700 12px/1.3 Pretendard, system-ui; }
+.archView .archGroupVisual { display: grid; grid-template-columns: 28px auto minmax(0, 1fr) auto 28px; gap: 5px; align-items: center; margin: 2px 0 1px; padding: 7px 8px; border-radius: 11px; background: rgba(255, 255, 255, .58); border: 1px solid rgba(155, 107, 100, .2); }
+.archView .archGroupVisual > span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: rgba(155, 107, 100, .14); color: #8a5a52; }
+.archView .archGroupVisual > span:last-child { background: rgba(111, 160, 140, .18); color: #477c69; }
+.archView .archGroupVisual > i { color: #c4553a; font-style: normal; font-weight: 900; text-align: center; }
+.archView .archGroupVisual > div { display: flex; justify-content: center; gap: 5px; min-width: 0; }
+.archView .archGroupVisual em { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; background: color-mix(in srgb, var(--domain) 18%, white); color: var(--domain); font-style: normal; }
+.archView .archGroupCard .agIo i { font-style: normal; font-weight: 800; color: #8a5a52; margin-right: 8px; }
+.archView .archGroupCard .agDomains { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.archView .archGroupCard .agDomains em { font-style: normal; display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; background: rgba(255, 255, 255, .85); border: 1px solid rgba(155, 107, 100, .35); font: 700 12px/1 Pretendard, system-ui; color: #3f302c; white-space: nowrap; }
+.archView .archGroupCard small { font: 700 13px/1 Pretendard, system-ui; color: #8a5a52; }
+.archView .archGroupRole { margin: 4px 0 12px; color: #6f5049; font: 700 14px/1.35 Pretendard, system-ui; }
+.archView .archCoordPreview { flex: none; margin-top: 12px; padding: 12px 14px; border-radius: 14px; border: 2px solid rgba(155, 107, 100, .34); background: rgba(255, 253, 246, .82); }
+.archView .archCoordPreview header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.archView .archCoordPreview header b { display: inline-flex; align-items: center; gap: 6px; color: #7a4a44; font: 800 15px/1 Pretendard, system-ui; }
+.archView .archCoordPreview header small { color: #6f5049; font: 600 12px/1.3 Pretendard, system-ui; }
+.archView .archCoordPreview > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.archView .archCoordPreview button { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 4px; align-items: center; padding: 8px 9px; border-radius: 10px; border: 1px solid rgba(155, 107, 100, .3); background: #fffaf5; color: #3f302c; cursor: pointer; text-align: left; }
+.archView .archCoordPreview button:hover { background: #fff1e6; border-color: #9b6b64; }
+.archView .archCoordPreview button strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 11px/1.1 Pretendard, system-ui; }
+.archView .archCoordPreview button i { color: #c4553a; font-style: normal; font-weight: 900; }
+.archView .archCoordPreview button span { grid-column: 1 / -1; color: #8a5a52; font: 700 11px/1.2 Pretendard, system-ui; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.archView .archCrumb { flex: none; display: flex; align-items: center; gap: 8px; }
+.archView .archCrumb button { all: unset; box-sizing: border-box; padding: 6px 12px; border-radius: 999px; background: rgba(155, 107, 100, .12); color: #5a4440; font: 700 13px/1 Pretendard, system-ui; cursor: pointer; white-space: nowrap; }
+.archView .archCrumb button.on { background: #9b6b64; color: #fff8f2; }
+.archView .archCrumb span { color: #9b6b64; font-weight: 800; }
+.archView .archCrumb small { margin-left: auto; font: 600 13px/1 Pretendard, system-ui; color: #7a5a53; }
+.archView .archCols.one { grid-template-rows: minmax(0, 1fr) auto; }

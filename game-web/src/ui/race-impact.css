@@ -1,0 +1,42 @@
+/* Crash feedback in the race: screen shake, flash, debris, toast colours, cat reaction. Level 1 light, 3 strong. */
+@keyframes raceShakeL1 { 0%,100% { transform: translate(0,0) } 25% { transform: translate(-4px,2px) } 50% { transform: translate(3px,-2px) } 75% { transform: translate(-2px,1px) } }
+@keyframes raceShakeL2 { 0%,100% { transform: translate(0,0) rotate(0) } 15% { transform: translate(-10px,5px) rotate(-.4deg) } 35% { transform: translate(9px,-6px) rotate(.4deg) } 55% { transform: translate(-6px,4px) rotate(-.25deg) } 80% { transform: translate(3px,-2px) rotate(.1deg) } }
+@keyframes raceShakeL3 { 0%,100% { transform: translate(0,0) rotate(0) } 10% { transform: translate(-18px,9px) rotate(-.9deg) } 25% { transform: translate(16px,-10px) rotate(.8deg) } 40% { transform: translate(-12px,8px) rotate(-.6deg) } 60% { transform: translate(8px,-5px) rotate(.4deg) } 80% { transform: translate(-3px,2px) rotate(-.1deg) } }
+.raceV2.impactL1 > .raceWorldCanvas { animation: raceShakeL1 .35s ease-out; }
+.raceV2.impactL2 > .raceWorldCanvas { animation: raceShakeL2 .55s ease-out; }
+.raceV2.impactL3 > .raceWorldCanvas { animation: raceShakeL3 .9s ease-out; }
+.impactFlash { position: absolute; inset: 0; z-index: 60; pointer-events: none; opacity: 0; }
+.impactFlash.flashL1 { background: radial-gradient(ellipse at center, rgba(255,255,255,.0) 55%, rgba(255,200,120,.22)); animation: impactFlash .35s ease-out; }
+.impactFlash.flashL2 { background: radial-gradient(ellipse at center, rgba(255,255,255,.18) 30%, rgba(255,160,90,.4)); animation: impactFlash .5s ease-out; }
+.impactFlash.flashL3 { background: radial-gradient(ellipse at center, rgba(255,255,255,.85) 0%, rgba(255,120,80,.55) 60%, rgba(120,20,10,.5)); animation: impactFlash 1.1s ease-out; }
+@keyframes impactFlash { 0% { opacity: 1 } 100% { opacity: 0 } }
+.impactDebris { position: absolute; left: 50%; bottom: 26%; width: 0; height: 0; z-index: 61; pointer-events: none; }
+.impactDebris i { position: absolute; left: 0; top: 0; width: 9px; height: 5px; border-radius: 2px; background: #c9bfae; opacity: 0; animation: debrisFly .9s cubic-bezier(.2,.7,.4,1) var(--d) forwards; }
+.impactDebris.debrisL3 i:nth-child(3n) { background: #d9482f; }
+.impactDebris.debrisL2 i:nth-child(2n) { background: #8b857b; }
+@keyframes debrisFly { 0% { opacity: 1; transform: translate(0,0) rotate(0) } 70% { opacity: 1 } 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 140px)) rotate(var(--r)) } }
+.impactToast.impactToastL2 { background: #f1d9a8 !important; }
+.impactToast.impactToastL3 { background: #e8a79a !important; font-weight: 800; }
+.catReact { position: absolute; left: 16px; top: 76px; z-index: 62; display: flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border-radius: 999px; background: rgba(255, 250, 240, .95); border: 2px solid #9b6b64; box-shadow: 0 3px 0 rgba(111,75,70,.4); animation: catPop 1.6s ease-out forwards; }
+.catReact img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
+.catReact b { font: 800 18px/1 Pretendard, system-ui; color: #7a4a44; }
+@keyframes catPop { 0% { transform: scale(.5); opacity: 0 } 12% { transform: scale(1.12); opacity: 1 } 25% { transform: scale(1) } 80% { opacity: 1 } 100% { opacity: 0; transform: translateY(-8px) } }
+@media (prefers-reduced-motion: reduce) { .raceV2.impactL1 > .raceWorldCanvas, .raceV2.impactL2 > .raceWorldCanvas, .raceV2.impactL3 > .raceWorldCanvas { animation: none; } }
+
+/* situation set 1: hint card for a braking lead car / red signal with pedestrians (same card family as the other feed cards) */
+.raceFeed .situationHint { display: grid; gap: 2px; padding: 8px 12px; border-radius: 12px; background: linear-gradient(180deg, rgba(255, 252, 246, .95), rgba(246, 228, 224, .92)); border: 1.5px solid #dcc3bb; box-shadow: 0 2px 0 rgba(141, 100, 92, .28); color: #5a3d38; }
+.raceFeed .situationHint small { font-size: 11px; font-weight: 500; color: #9b6b64; }
+.raceFeed .situationHint b { font-size: 15px; font-weight: 600; }
+.raceFeed .situationHint em { font-size: 12px; font-style: normal; font-weight: 500; }
+.raceFeed .situationHint.lead, .raceFeed .situationHint.signal { border-color: #c9847a; }
+
+/* wet zone: rain streaks and a cool grey wash over the 3D view (below the HUD cards) */
+.rainOverlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(180deg, rgba(86, 104, 122, .22), rgba(86, 104, 122, .1)); }
+.rainOverlay::before, .rainOverlay::after { content: ""; position: absolute; inset: -100px 0 0 0; background-image: repeating-linear-gradient(100deg, rgba(255, 255, 255, .0) 0 14px, rgba(235, 244, 255, .5) 14px 15px, rgba(255, 255, 255, 0) 15px 34px); background-size: 120px 120px; animation: rainFall .5s linear infinite; opacity: .55; }
+.rainOverlay::after { background-size: 77px 93px; animation-duration: .38s; opacity: .35; }
+@keyframes rainFall { to { background-position: -40px 120px; } }
+@media (prefers-reduced-motion: reduce) { .rainOverlay::before, .rainOverlay::after { animation: none; } }
+
+/* tunnel: dark shell tint; night: deep blue wash with a soft lit pool ahead of the car (both below the HUD cards) */
+.tunnelOverlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: radial-gradient(ellipse at 50% 62%, rgba(40, 36, 30, 0) 0%, rgba(26, 24, 22, .42) 62%, rgba(14, 12, 10, .66) 100%); }
+.nightOverlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: radial-gradient(ellipse at 50% 70%, rgba(255, 238, 190, .1) 0%, rgba(14, 22, 52, .5) 42%, rgba(6, 10, 30, .74) 100%); }

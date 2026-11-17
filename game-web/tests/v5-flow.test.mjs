@@ -13,17 +13,47 @@ const latestPolish = readFileSync(new URL("../src/v11.css", import.meta.url), "u
 const learningPolish = readFileSync(new URL("../src/v12.css", import.meta.url), "utf8");
 const finalPolish = readFileSync(new URL("../src/v14.css", import.meta.url), "utf8");
 const labAndFinalePolish = readFileSync(new URL("../src/v15.css", import.meta.url), "utf8");
+const ending = readFileSync(new URL("../src/ui/CaseFileEnding.tsx", import.meta.url), "utf8");
 
-test("pursuit state persists across investigation and guarantees two required faults", () => {
+test("pursuit state freezes the player during investigation and guarantees two required faults", () => {
   assert.match(runtime, /raceDistance: number/);
   assert.match(runtime, /policeGapMeters: number/);
   assert.match(runtime, /s\.completedCases\.length < 2 \? 10 : 0/);
-  assert.match(experience, /mode === "normal" && sim\.distance >= 260/);
-  assert.match(experience, /state\.caseId === "propulsion" && sim\.distance >= 830/);
-  assert.match(runtime, /const routeGate = s\.caseId === "propulsion" \? 540/);
+  // Faults appear under driving conditions, with a distance fallback so both always happen.
+  assert.match(experience, /zoneThrottle\.current >= 1\.8 \|\| sim\.distance >= OVERTAKE_ZONE\[1\]/);
+  assert.match(experience, /sim\.heat >= 84 \|\| sim\.distance >= CLIMB_ZONE\[1\]/);
+  assert.match(runtime, /Fault, diagnosis and verification are a stopped-car state/);
+  assert.doesNotMatch(runtime.slice(runtime.indexOf('case "TICK_PURSUIT"'), runtime.indexOf('case "FAULT_CUE"')), /raceDistance\s*=/);
+  assert.match(experience, /lastRepairDistance/);
   assert.match(runtime, /policeGapMeters <= 0 \? enter\(s, "CAUGHT"\)/);
   assert.match(runtime, /nextScore = correct \? 20 : -20/);
   assert.match(runtime, /policeGapMeters: Math\.max\(s\.completedCases\.length < 2 \? 35 : 18/);
+});
+
+test("P1-B keeps WANTED analysis grounded in scenario and saved-step records", () => {
+  assert.match(ending, /AnalysisReport/);
+  assert.match(ending, /SCENARIO_META/);
+  assert.match(ending, /tb-step02-progress-/);
+  assert.match(ending, /tb-step04-progress-/);
+  assert.match(ending, /contractStorageKey/);
+  assert.match(ending, /SW 계산·보정\/스케일링/);
+  assert.match(ending, /PWM 출력 SW 0%/);
+  assert.match(ending, /I\/O 명령 42→8 bar/);
+  assert.match(ending, /실행 기록이 남아 있지 않음/);
+});
+
+test("FB-P1-06 keeps WANTED on two required case pages with skippable report typing", () => {
+  assert.match(ending, /const REQUIRED_CASES = \["propulsion", "thermal"\]/);
+  assert.match(ending, /function WantedReport/);
+  assert.match(ending, /setTyped\(lead\.length\)/);
+  assert.match(ending, /CASE \$\{page \+ 1\}/);
+  assert.match(ending, /다음 →/);
+  assert.match(ending, /tb-step02-progress-/);
+  assert.match(ending, /contractStorageKey\(id\)/);
+  assert.match(ending, /tb-step04-progress-/);
+  assert.match(ending, /이 세션에 테스트 설계서 기록이 남아 있지 않음/);
+  assert.match(ending, /if \(escaped\) return <WantedReport/);
+  assert.doesNotMatch(ending.slice(ending.indexOf("function WantedReport"), ending.indexOf("function CaseBrief")), /brake/);
 });
 
 test("interaction rebuild keeps the requested core surfaces", () => {
@@ -32,7 +62,7 @@ test("interaction rebuild keeps the requested core surfaces", () => {
   assert.match(experience, /chooseWireNode/);
   assert.match(experience, /정상 시나리오 설계/);
   assert.match(experience, /내가 만든 설계/);
-  assert.match(experience, /OTA 업데이트로 페달 신호 변환을 정상화했어/);
+  assert.match(experience, /검증을 통과한 SW를 OTA로 배포했어요/);
 });
 
 test("freeform detective board, race-quality replay, and polaroid wiring stay explicit", () => {
@@ -63,7 +93,7 @@ test("v7 architecture, hints, guided recovery, and wide wiring are present", () 
 test("v8 curved driving, tangible wiring, hidden QA solves, and 3D validation are present", () => {
   assert.match(experience, /const trackFrame/);
   assert.match(experience, /가드레일 접촉/);
-  assert.match(experience, /GEAR · Q\/E/);
+  assert.match(experience, /cluster1109/); // gear · READY · regen live in the cluster (2026-11-09)
   assert.match(experience, /EmbeddedBench3D/);
   assert.match(experience, /right-drag|우클릭 드래그/i);
   assert.match(experience, /className="secretSolve"/);
@@ -74,7 +104,7 @@ test("v8 curved driving, tangible wiring, hidden QA solves, and 3D validation ar
 });
 
 test("v9 keeps the three-layer garage, automatic recovery, and pirate-ship finale", () => {
-  assert.match(experience, /const garageLayerSource = \[0, 1, 3\]/);
+  assert.match(experience, /const garageLayerSource = \[0, 1, 2, 3\]/);
   assert.match(experience, /VehiclePlatformShell active/);
   assert.doesNotMatch(experience, /이 탭은 왜 통과했나요/);
   assert.match(experience, /초 후 달리던 지점에서 자동 주행 복귀/);
@@ -84,7 +114,7 @@ test("v9 keeps the three-layer garage, automatic recovery, and pirate-ship final
 });
 
 test("v10 uses variable-depth domain flows, route-triggered faults, and explicit board threading", () => {
-  assert.match(experience, /featureLayerOverrides/);
+  assert.match(experience, /EV_DOMAINS/);
   assert.match(experience, /function DomainSignature/);
   assert.match(experience, /function HeistCutsceneScene/);
   assert.match(experience, /previous\.distance >= 45/);
@@ -97,7 +127,7 @@ test("v10 uses variable-depth domain flows, route-triggered faults, and explicit
   assert.match(experience, /<PoliceInterceptor spin=\{gap\*\.08\}/);
   assert.match(experience, /function CivilianCar/);
   assert.match(experience, /START 시동 버튼/);
-  assert.match(experience, /전륜 PMSM·감속기/);
+  assert.match(readFileSync(new URL("../src/features/garage/evData.ts", import.meta.url), "utf8"), /전륜 PMSM·감속기/);
   assert.match(earlyFlowPolish, /@keyframes threadCrawl/);
   assert.match(latestPolish, /\.boardV3 \.investigationBoard\.detectiveLayout/);
   assert.match(latestPolish, /\.faultBeacon\{left:22px/);

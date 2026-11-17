@@ -1,8 +1,12 @@
-export type CaseId = "propulsion" | "thermal" | "brake";
+export type CaseId = "propulsion" | "thermal" | "brake" | "regen" | "ready" | "gear" | "cold";
+
+export type InvestigationStep = "locked" | "board" | "wiring" | "bench" | "repair" | "done";
+export type JourneyStageId = "garage" | "heist" | "race" | "board" | "wiring" | "bench" | "repair" | "escape";
 
 export type Scene =
   | "TITLE"
   | "PROLOGUE"
+  | "LEVEL_SELECT"
   | "GARAGE_L1"
   | "GARAGE_L2"
   | "GARAGE_L3"
@@ -29,7 +33,12 @@ export type Campaign = {
   previousScene?: Scene;
   forwardScene?: Scene;
   caseId: CaseId;
+  /** after a repair: a clean race to the pirate ship, then this level's ending ("다음 레벨"). Cleared when the next level is chosen. */
+  levelFinish?: boolean;
   completedCases: CaseId[];
+  /** stars earned per cleared level (1~3): cleared / correct root cause / no hints */
+  levelStars: Partial<Record<CaseId, number>>;
+  investigationProgress: Record<CaseId, InvestigationStep>;
   optionalBrake: "undecided" | "accepted" | "skipped";
   evidence: Record<CaseId, string[]>;
   hypothesis: Record<CaseId, string>;
@@ -54,14 +63,20 @@ export const initialCampaign = (): Campaign => ({
   scene: "TITLE",
   caseId: "propulsion",
   completedCases: [],
+  levelStars: {},
+  investigationProgress: { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked", ready: "locked", gear: "locked", cold: "locked" },
   optionalBrake: "undecided",
   checkpoint: "start",
-  evidence: { propulsion: [], thermal: [], brake: [] },
-  hypothesis: { propulsion: "", thermal: "", brake: "" },
+  evidence: { propulsion: [], thermal: [], brake: [], regen: [], ready: [], gear: [], cold: [] },
+  hypothesis: { propulsion: "", thermal: "", brake: "", regen: "", ready: "", gear: "", cold: "" },
   program: {
     propulsion: "underreport_45pct",
     thermal: "open_loop_fan",
     brake: "friction_only",
+    regen: "regen_sign_dropped",
+    ready: "precharge_timeout_500",
+    gear: "gear_fallback_r",
+    cold: "regen_limit_fixed",
   },
   collisions: 0,
   hints: 0,
@@ -70,6 +85,7 @@ export const initialCampaign = (): Campaign => ({
   raceElapsedSeconds: 0,
   lastRepairElapsedSeconds: 0,
   lastRepairDistance: 0,
+  levelFinish: false,
   policeGapMeters: 185,
   gapJudgements: {},
   hintClaims: {},
@@ -77,15 +93,111 @@ export const initialCampaign = (): Campaign => ({
 
 export function hydrateCampaign(saved: Partial<Campaign>): Campaign {
   const base = initialCampaign();
-  return {
+  const hydrated: Campaign = {
     ...base,
     ...saved,
     evidence: { ...base.evidence, ...(saved.evidence ?? {}) },
     hypothesis: { ...base.hypothesis, ...(saved.hypothesis ?? {}) },
     program: { ...base.program, ...(saved.program ?? {}) },
+    investigationProgress: { ...base.investigationProgress, ...(saved.investigationProgress ?? {}) },
     gapJudgements: { ...(saved.gapJudgements ?? {}) },
+    levelStars: { ...(saved.levelStars ?? {}) },
     hintClaims: { ...(saved.hintClaims ?? {}) },
   };
+  hydrated.completedCases.forEach(caseId => { hydrated.investigationProgress[caseId] = "done"; });
+  const inferred = investigationStepForScene(hydrated.scene);
+  if (stepRank(inferred) > stepRank(hydrated.investigationProgress[hydrated.caseId])) {
+    hydrated.investigationProgress[hydrated.caseId] = inferred;
+  }
+  return hydrated;
+}
+
+const investigationSteps: InvestigationStep[] = ["locked", "board", "wiring", "bench", "repair", "done"];
+const stepRank = (step: InvestigationStep) => investigationSteps.indexOf(step);
+const investigationStepForScene = (scene: Scene): InvestigationStep => {
+  if (scene === "BOARD" || scene === "OPTIONAL_FAULT") return "board";
+  if (scene === "WIRING") return "wiring";
+  if (scene === "TWIN_BENCH" || scene === "VERIFY_FAIL") return "bench";
+  if (scene === "REPAIR") return "repair";
+  return "locked";
+};
+const unlockInvestigation = (s: Campaign, step: InvestigationStep) => {
+  s.investigationProgress ??= { propulsion: "locked", thermal: "locked", brake: "locked", regen: "locked", ready: "locked", gear: "locked", cold: "locked" };
+  s.investigationProgress.regen ??= "locked"; s.evidence.regen ??= []; s.hypothesis.regen ??= ""; s.program.regen ??= "regen_sign_dropped";
+  s.investigationProgress.ready ??= "locked"; s.evidence.ready ??= []; s.hypothesis.ready ??= ""; s.program.ready ??= "precharge_timeout_500"; s.investigationProgress.gear ??= "locked"; s.evidence.gear ??= []; s.hypothesis.gear ??= ""; s.program.gear ??= "gear_fallback_r"; s.investigationProgress.cold ??= "locked"; s.evidence.cold ??= []; s.hypothesis.cold ??= ""; s.program.cold ??= "regen_limit_fixed";
+  if (stepRank(step) > stepRank(s.investigationProgress[s.caseId])) {
+    s.investigationProgress[s.caseId] = step;
+  }
+  return s;
+};
+
+const journeyStageForScene = (scene: Scene): JourneyStageId => {
+  if (scene.startsWith("GARAGE")) return "garage";
+  if (scene === "DRIVE_BRIEFING" || scene === "LEVEL_SELECT") return "heist";
+  if (["CHASE_NORMAL", "CHASE_RESUME", "FAULT_CUE", "ASSIST_CHASE"].includes(scene)) return "race";
+  if (scene === "BOARD" || scene === "OPTIONAL_FAULT") return "board";
+  if (scene === "WIRING") return "wiring";
+  if (scene === "TWIN_BENCH" || scene === "VERIFY_FAIL") return "bench";
+  if (scene === "REPAIR") return "repair";
+  return "escape";
+};
+
+export type JourneyStageAccess = {
+  status: "active" | "done" | "available" | "locked";
+  reason?: string;
+  target?: Scene;
+};
+
+export function journeyStageAccess(state: Campaign, stage: JourneyStageId): JourneyStageAccess {
+  const current = journeyStageForScene(state.scene);
+  if (stage === current) return { status: "active", target: state.scene };
+
+  const progress = state.investigationProgress?.[state.caseId] ?? investigationStepForScene(state.scene);
+  const deductionStarted = stepRank(progress) >= stepRank("board");
+  if (stage === "garage") {
+    return deductionStarted
+      ? { status: "locked", reason: "추리 진입 이후에는 차량 도메인 학습으로 돌아갈 수 없습니다." }
+      : { status: "available", target: "GARAGE_L1" };
+  }
+  if (stage === "heist" || stage === "race") {
+    return { status: "locked", reason: "이 구간은 주행 서사에 따라 자동으로 진행됩니다." };
+  }
+
+  const requirements: Partial<Record<JourneyStageId, InvestigationStep>> = {
+    board: "board",
+    wiring: "wiring",
+    bench: "bench",
+    repair: "repair",
+  };
+  const targets: Partial<Record<JourneyStageId, Scene>> = {
+    board: "BOARD",
+    wiring: "WIRING",
+    bench: "TWIN_BENCH",
+    repair: "REPAIR",
+  };
+  const required = requirements[stage];
+  if (required) {
+    if (stepRank(progress) < stepRank(required)) {
+      const reasons: Record<InvestigationStep, string> = {
+        locked: "주행 이상을 관찰하고 도미노 추리를 시작해야 열립니다.",
+        board: "도미노에서 근거와 우선 가설을 확정해야 열립니다.",
+        wiring: "가설을 검증할 퍼즐을 구성해야 열립니다.",
+        bench: "시뮬레이션 결과로 가설을 검증해야 열립니다.",
+        repair: "검증된 수리 적용을 완료해야 열립니다.",
+        done: "",
+      };
+      return { status: "locked", reason: reasons[progress] };
+    }
+    return {
+      status: stepRank(progress) > stepRank(required) ? "done" : "available",
+      target: targets[stage],
+    };
+  }
+
+  const escapeUnlocked = ["propulsion", "thermal"].every(caseId => state.completedCases.includes(caseId as CaseId)) || state.scene.startsWith("SHIP") || state.scene === "ENDING";
+  return escapeUnlocked
+    ? { status: "available", target: "SHIP_ESCAPE" }
+    : { status: "locked", reason: "필수 추리와 수리를 마친 뒤 최종 탈출이 열립니다." };
 }
 
 const enter = (s: Campaign, scene: Scene): Campaign => ({
@@ -108,6 +220,8 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
   switch (event.type) {
     case "NEW_GAME":
       return enter(initialCampaign(), "PROLOGUE");
+    case "LOAD_SAVE":
+      return hydrateCampaign(event.save as Partial<Campaign>);
     case "CONTINUE_PROLOGUE":
       return s.scene === "PROLOGUE"
         ? enter(s, "GARAGE_L1")
@@ -123,6 +237,38 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
         ? reject(s, "GARAGE_REQUIRED")
         : enter(s, queue[Math.min(2, index + 1)]);
     }
+    case "OPEN_LEVELS":
+      return s.scene.startsWith("GARAGE") || s.scene === "LEVEL_SELECT"
+        ? enter(s, "LEVEL_SELECT")
+        : reject(s, "GARAGE_TUTORIAL_REQUIRED");
+    case "START_LEVEL": {
+      // Levels follow a fixed order (no random faults): 1 propulsion → 2 thermal → 3 brake (bonus) → 4 regen (bonus) → 5 ready (bonus) → 6 final escape.
+      if (s.scene !== "LEVEL_SELECT") return reject(s, "LEVEL_SELECT_REQUIRED");
+      const level = Number(event.level);
+      const done = (id: CaseId) => s.completedCases.includes(id);
+      if (level === 1 && !done("propulsion"))
+        return enter({ ...s, caseId: "propulsion", checkpoint: "city_start", raceDistance: 0, raceElapsedSeconds: 0, lastRepairElapsedSeconds: 0, lastRepairDistance: 0, policeGapMeters: 185 }, "DRIVE_BRIEFING");
+      // every level starts its own race from 0 m (2026-11-15: each level ends with the pirate ship)
+      const fresh = { levelFinish: false, raceDistance: 0, raceElapsedSeconds: 0, lastRepairElapsedSeconds: 0, lastRepairDistance: 0, policeGapMeters: 185 };
+      if (level === 2 && done("propulsion") && !done("thermal")) return enter({ ...s, ...fresh, caseId: "propulsion" }, "CHASE_RESUME"); // THERMAL_FAULT runs while the repaired case is propulsion
+      if (level === 3 && done("thermal") && !done("brake"))
+        return enter(unlockInvestigation({ ...s, ...fresh, caseId: "brake", optionalBrake: "accepted" }, "board"), "BOARD");
+      // level 4 (N01): a race first; the fault shows up when the player lifts the pedal at speed (REGEN_FAULT), then FAULT_CUE → BOARD
+      if (level === 4 && done("thermal") && !done("regen"))
+        return enter({ ...s, ...fresh, caseId: "regen", checkpoint: "regen_start" }, "CHASE_RESUME");
+      // level 5 (C01): the race starts with failed start attempts (READY_FAULT, prestart), then FAULT_CUE → BOARD
+      if (level === 5 && done("thermal") && !done("ready"))
+        return enter({ ...s, ...fresh, caseId: "ready", checkpoint: "ready_start" }, "CHASE_RESUME");
+      // level 6 (C04): a race first; launching right after a shift under bus load triggers the fallback fault (GEAR_FAULT), then FAULT_CUE → BOARD
+      if (level === 6 && done("thermal") && !done("gear"))
+        return enter({ ...s, ...fresh, caseId: "gear", checkpoint: "gear_start" }, "CHASE_RESUME");
+      // level 7 (C06): a race first; lifting the pedal at speed in the cold first 600 m triggers COLD_FAULT, then FAULT_CUE → BOARD
+      if (level === 7 && done("thermal") && !done("cold"))
+        return enter({ ...s, ...fresh, caseId: "cold", checkpoint: "cold_start" }, "CHASE_RESUME");
+      if (level === 8 && done("propulsion") && done("thermal"))
+        return enter({ ...s, optionalBrake: s.optionalBrake === "accepted" ? "accepted" : "skipped" }, "SHIP_ESCAPE");
+      return reject(s, "LEVEL_LOCKED");
+    }
     case "START_RACE":
       return s.scene.startsWith("GARAGE")
         ? enter({ ...s, checkpoint: "city_start", raceDistance: 0, raceElapsedSeconds: 0, lastRepairElapsedSeconds: 0, lastRepairDistance: 0, policeGapMeters: 185 }, "DRIVE_BRIEFING")
@@ -137,13 +283,9 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       s.policeGapMeters = clampGap(s, Number(event.gap));
       return s;
     case "TICK_PURSUIT":
-      // During investigation the damaged car keeps coasting under limp-home
-      // control.  Both vehicles move; the police only closes the gap slowly.
-      // Investigation keeps both cars moving, but a narrative route gate keeps
-      // background simulation from crossing the next fault or pirate-ship
-      // finish while the player is solving a learning task.
-      const routeGate = s.caseId === "propulsion" ? 540 : s.caseId === "thermal" ? 1020 : 1160;
-      s.raceDistance = Math.min(routeGate, s.raceDistance + Math.max(0, Number(event.travel) || 0));
+      // Fault, diagnosis and verification are a stopped-car state: only the
+      // interceptor advances.  The stored race position is reused unchanged
+      // by CHASE_RESUME after the repair/retest path succeeds.
       s.raceElapsedSeconds += Math.max(0, Number(event.seconds) || 0);
       s.policeGapMeters = clampGap(
         s,
@@ -163,9 +305,11 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
         "FAULT_CUE",
       );
     case "CONTINUE_FAULT":
-      return enter(s, "BOARD");
+      // flow (docs/VERIFICATION_FLOW_STANDARD.md): fault → root-cause trace narrows to a suspect section (board)
+      // → requirement-based normal behaviour of that section (puzzle) → simulation verification (bench)
+      return enter(unlockInvestigation(s, "board"), "BOARD");
     case "OPEN_BOARD":
-      return enter(s, "BOARD");
+      return enter(unlockInvestigation(s, "board"), "BOARD");
     case "RECORD_EVIDENCE": {
       const id = String(event.id);
       s.evidence[s.caseId] = s.evidence[s.caseId].includes(id)
@@ -179,22 +323,26 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       return s;
     }
     case "OPEN_WIRING":
-      return s.evidence[s.caseId].length >= 2 && s.hypothesis[s.caseId]
-        ? enter(s, "WIRING")
+      return s.hypothesis[s.caseId] && (s.scene === "BOARD" || s.evidence[s.caseId].length >= 2)
+        ? enter(unlockInvestigation(s, "wiring"), "WIRING")
         : reject(s, "증거 2개와 가설을 먼저 선택하세요.");
     case "SOLVE_BOARD": {
       const answers: Record<CaseId, { evidence: string[]; root: string }> = {
         propulsion: { evidence: ["pedal_raw", "pedal_processed", "torque_cmd"], root: "gateway" },
         thermal: { evidence: ["motor_temp", "fan_command", "fan_actual"], root: "fan_actuator" },
         brake: { evidence: ["brake_request", "regen_request", "brake_actual"], root: "brake_actuator" },
+        regen: { evidence: ["accel_trend", "regen_request", "torque_cmd"], root: "vcu_sign" },
+        ready: { evidence: ["ready_off", "dtc_precharge", "hv_bus_scope"], root: "seq_timeout" },
+        gear: { evidence: ["motor_reverse_log", "dtc_gear_timeout", "bus_load_scope"], root: "gear_fallback" },
+        cold: { evidence: ["cold_decel_log", "regen_limit_compare", "battery_temp_view"], root: "brake_fixed" },
       };
       s.evidence[s.caseId] = answers[s.caseId].evidence;
       s.hypothesis[s.caseId] = answers[s.caseId].root;
       return s;
     }
     case "DEV_SOLVE": {
-      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator" };
-      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake" };
+      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign", ready: "seq_timeout", gear: "gear_fallback", cold: "brake_fixed" };
+      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500", gear: "gear_fallback_n", cold: "regen_limit_rx" };
       s.hypothesis[s.caseId] = roots[s.caseId];
       s.program[s.caseId] = programs[s.caseId];
       return s;
@@ -203,7 +351,7 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       s.program[s.caseId] = String(event.program);
       return s;
     case "OPEN_BENCH":
-      return enter(s, "TWIN_BENCH");
+      return enter(unlockInvestigation(s, "bench"), "TWIN_BENCH");
     case "BENCH_RESULT": {
       s.benchRuns++;
       const correct = Boolean(event.causeCorrect);
@@ -213,31 +361,32 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       s.policeGapMeters = clampGap(s, s.policeGapMeters + nextScore - previousScore);
       s.gapJudgements[s.caseId] = correct ? "correct" : "wrong";
       if (s.policeGapMeters <= 0) return enter(s, "CAUGHT");
-      return enter(s, event.pass ? "REPAIR" : "VERIFY_FAIL");
+      return enter(event.pass ? unlockInvestigation(s, "repair") : s, event.pass ? "REPAIR" : "VERIFY_FAIL");
     }
     case "RETRY_WIRING":
       return enter(s, "WIRING");
-    case "APPLY_REPAIR":
+    case "APPLY_REPAIR": {
       s.completedCases = Array.from(new Set([...s.completedCases, s.caseId]));
+      unlockInvestigation(s, "done");
       s.lastRepairElapsedSeconds = s.raceElapsedSeconds;
       s.lastRepairDistance = s.raceDistance;
-      if (s.caseId === "propulsion") {
-        s.policeGapMeters = Math.max(105, s.policeGapMeters);
-        return enter({ ...s, checkpoint: "harbor_entry" }, "CHASE_RESUME");
-      }
-      if (s.caseId === "thermal") {
-        s.policeGapMeters = Math.max(115, s.policeGapMeters);
-        return enter({ ...s, checkpoint: "dock_approach" }, "CHASE_RESUME");
-      }
-      s.policeGapMeters = Math.max(65, s.policeGapMeters);
-      return enter(s, "SHIP_ESCAPE");
+      s.levelStars = { ...s.levelStars, [s.caseId]: Math.max(s.levelStars?.[s.caseId] ?? 0, 1 + (s.gapJudgements[s.caseId] === "correct" ? 1 : 0) + (s.hints === 0 ? 1 : 0)) };
+      // the chase state the next level continues from is prepared here; the player picks the next level on the level screen
+      if (s.caseId === "propulsion") { s.policeGapMeters = Math.max(105, s.policeGapMeters); s.checkpoint = "harbor_entry"; }
+      else if (s.caseId === "thermal") { s.policeGapMeters = Math.max(115, s.policeGapMeters); s.checkpoint = "dock_approach"; }
+      else s.policeGapMeters = Math.max(65, s.policeGapMeters);
+      // the repaired car runs on to the pirate ship; its ending closes the level (NEXT_LEVEL returns to the level screen)
+      return enter({ ...s, levelFinish: true }, "CHASE_RESUME");
+    }
+    case "NEXT_LEVEL":
+      return enter({ ...s, levelFinish: false }, "LEVEL_SELECT");
     case "OPTIONAL_PROMPT":
       return enter({ ...s, optionalBrake: "skipped" }, "SHIP_ESCAPE");
     case "START_FINAL_ESCAPE":
       return enter({ ...s, optionalBrake: "skipped" }, "SHIP_ESCAPE");
     case "OPTIONAL_BRAKE":
       return event.accept
-        ? enter({ ...s, optionalBrake: "accepted", caseId: "brake" }, "BOARD")
+        ? enter(unlockInvestigation({ ...s, optionalBrake: "accepted", caseId: "brake" }, "wiring"), "WIRING")
         : enter({ ...s, optionalBrake: "skipped" }, "SHIP_ESCAPE");
     case "FINISH_ESCAPE": {
       // Make the hand-off atomic.  The old implementation dispatched SYNC_RACE
@@ -262,9 +411,9 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
           policeGapMeters: Math.max(s.completedCases.length < 2 ? 35 : 18, s.policeGapMeters),
         },
         s.checkpoint === "propulsion_fault"
-          ? "BOARD"
+          ? "WIRING"
           : s.checkpoint === "thermal_fault"
-            ? "BOARD"
+            ? "WIRING"
             : s.checkpoint === "dock_approach"
               ? "CHASE_RESUME"
               : "CHASE_NORMAL",
@@ -294,11 +443,24 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       return s.forwardScene
         ? enter(s, s.forwardScene)
         : reject(s, "되돌아온 단계가 있을 때만 다음 단계 이동을 사용할 수 있습니다.");
+    case "NAV_STAGE": {
+      const access = journeyStageAccess(s, String(event.stage) as JourneyStageId);
+      if (!access.target || access.status === "locked") {
+        return reject(s, access.reason ?? "아직 이동할 수 없는 단계입니다.");
+      }
+      if (access.target === s.scene) return s;
+      const returnScene = s.forwardScene ?? s.scene;
+      return { ...enter(s, access.target), forwardScene: returnScene };
+    }
     case "TITLE":
       return enter(s, "TITLE");
-    case "COLLISION":
+    case "COLLISION": {
       s.collisions++;
-      return s;
+      // a harder hit also costs pursuit distance at once (level 1 none, 2 small, 3 large)
+      const penalty = Math.max(0, Number(event.gapPenalty) || 0);
+      if (penalty) s.policeGapMeters = clampGap(s, s.policeGapMeters - penalty);
+      return s.policeGapMeters <= 0 ? enter(s, "CAUGHT") : s;
+    }
     case "HINT":
       if (!s.hintClaims[String(event.key)]) {
         s.hints++;
@@ -307,11 +469,11 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       }
       return s.policeGapMeters <= 0 ? enter(s, "CAUGHT") : s;
     case "GUIDED_REPAIR": {
-      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator" };
-      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake" };
+      const roots: Record<CaseId, string> = { propulsion: "gateway", thermal: "fan_actuator", brake: "brake_actuator", regen: "vcu_sign", ready: "seq_timeout", gear: "gear_fallback", cold: "brake_fixed" };
+      const programs: Record<CaseId, string> = { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_applied", ready: "precharge_timeout_1500", gear: "gear_fallback_n", cold: "regen_limit_rx" };
       s.hypothesis[s.caseId] = roots[s.caseId];
       s.program[s.caseId] = programs[s.caseId];
-      return enter(s, "REPAIR");
+      return enter(unlockInvestigation(s, "repair"), "REPAIR");
     }
     default:
       return reject(s, "UNKNOWN_EVENT");

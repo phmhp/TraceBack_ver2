@@ -1,0 +1,20 @@
+.pedalLab { display: grid; gap: 7px; padding: 9px 10px; margin-top: 8px; border-radius: 10px; background: rgba(255, 250, 244, .92); box-shadow: 0 1px 0 rgba(255, 255, 255, .7) inset, 0 1px 3px rgba(90, 55, 48, .18); }
+.pedalLab header { display: grid; gap: 1px; }
+.pedalLab header b { font: 800 12.5px/1.2 Pretendard, system-ui; color: #5a3b36; }
+.pedalLab header small { font: 600 10.5px/1.2 Pretendard, system-ui; color: #8a6a63; }
+.pedalSlider { display: flex; align-items: center; gap: 8px; }
+.pedalSlider input { flex: 1; accent-color: #9b6b64; min-width: 0; }
+.pedalSlider output { min-width: 40px; text-align: right; font: 800 13px/1 Pretendard, system-ui; color: #9b6b64; }
+.pedalLab ol { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.pedalLab li { display: grid; grid-template-columns: minmax(0, 1fr) 30px 74px; align-items: center; gap: 6px; }
+.pedalLab li span { display: flex; align-items: baseline; gap: 5px; min-width: 0; white-space: nowrap; }
+.pedalLab li span b { font: 750 11.5px/1.15 Pretendard, system-ui; color: #5a3b36; }
+.pedalLab li span small { font: 600 9.5px/1.15 Pretendard, system-ui; color: #8a6a63; }
+.pedalLab li i { height: 6px; border-radius: 3px; background: rgba(155, 107, 100, .18); overflow: hidden; }
+.pedalLab li em { display: block; height: 100%; border-radius: 3px; background: #9b6b64; transition: width .15s ease; }
+.pedalLab li code { white-space: nowrap; text-align: right; font: 800 12px/1 Pretendard, system-ui; color: #4a3430; }
+.pedalLab li code small { margin-left: 2px; font: 600 9px/1 Pretendard, system-ui; color: #8a6a63; }
+
+/* The lab replaces the function note body so the right column never scrolls or clips. */
+.domainFunctionShelf.withPedalLab .functionNote p, .domainFunctionShelf.withPedalLab .functionNote > small { display: none; }
+.domainFunctionShelf.withPedalLab .functionNote { padding-block: 6px; }

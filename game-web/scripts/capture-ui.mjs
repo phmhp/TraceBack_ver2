@@ -15,10 +15,24 @@ const viewportWidth = Math.max(800, Number(process.env.TRACEBACK_CAPTURE_WIDTH |
 const viewportHeight = Math.max(600, Number(process.env.TRACEBACK_CAPTURE_HEIGHT || 900));
 const autoDriveFinale = process.env.TRACEBACK_CAPTURE_AUTODRIVE === "1";
 const shipCaptureDistance = process.env.TRACEBACK_CAPTURE_SHIP_DISTANCE;
+const skipIntros = process.env.TRACEBACK_CAPTURE_SKIP_INTROS === "1";
+const printMetrics = process.env.TRACEBACK_CAPTURE_METRICS === "1";
+const activateGarageInput = process.env.TRACEBACK_CAPTURE_GARAGE_ACTIVE === "1";
+const solveBoard = process.env.TRACEBACK_CAPTURE_BOARD_SOLVED === "1";
+const zoomBoardEvidence = process.env.TRACEBACK_CAPTURE_BOARD_ZOOM === "1";
+const forceIntros = process.env.TRACEBACK_CAPTURE_FORCE_INTROS === "1";
+const solvePuzzle = process.env.TRACEBACK_CAPTURE_PUZZLE_SOLVED === "1";
+const openPuzzleContract = process.env.TRACEBACK_CAPTURE_PUZZLE_CONTRACT === "1";
+const seedBenchContract = process.env.TRACEBACK_CAPTURE_BENCH_CONTRACT === "1";
+const driveBench = process.env.TRACEBACK_CAPTURE_BENCH_DRIVE === "1";
+const dragPuzzle = process.env.TRACEBACK_CAPTURE_DRAG_TEST === "1";
+const auditLayout = process.env.TRACEBACK_CAPTURE_LAYOUT_AUDIT === "1";
 
 const screens = [
   { name: "00_title.png", url: "/?new=1", wait: 1200 },
   { name: "01_prologue.png", url: "/?qa=PROLOGUE", wait: 1300 },
+  { name: "01b_level_select.png", url: "/?qa=LEVEL_SELECT", wait: 1300 },
+  { name: "01c_garage_architecture.png", url: "/?qa=GARAGE_L1", wait: 1800 },
 ];
 
 const domains = [
@@ -44,10 +58,10 @@ screens.push(
   { name: `${number++}_fault_dialogue.png`, url: "/?qa=FAULT_CUE", wait: 1500 },
   { name: `${number++}_evidence_board.png`, url: "/?qa=BOARD", wait: 1600 },
   { name: `${number++}_wiring_puzzle.png`, url: "/?qa=WIRING", wait: 1600 },
-  { name: `${number++}_lab_sw.png`, url: "/?qa=TWIN_BENCH&tab=sw", wait: 1800 },
-  { name: `${number++}_lab_ecu_integration.png`, url: "/?qa=TWIN_BENCH&tab=embedded", wait: 1800 },
-  { name: `${number++}_lab_system.png`, url: "/?qa=TWIN_BENCH&tab=system", wait: 1800 },
-  { name: `${number++}_lab_vehicle.png`, url: "/?qa=TWIN_BENCH&tab=vehicle", wait: 1800 },
+  { name: `${number++}_lab_sw_logic.png`, url: "/?qa=TWIN_BENCH&tab=sw", wait: 1800 },
+  { name: `${number++}_lab_ecu_io.png`, url: "/?qa=TWIN_BENCH&tab=ecu", wait: 1800 },
+  { name: `${number++}_lab_parts_vehicle.png`, url: "/?qa=TWIN_BENCH&tab=plant", wait: 1800 },
+  { name: `${number++}_lab_signal_graph.png`, url: "/?qa=TWIN_BENCH&tab=graph", wait: 1800 },
   { name: `${number++}_failure_analysis.png`, url: "/?qa=VERIFY_FAIL", wait: 3900 },
   { name: `${number++}_repair.png`, url: "/?qa=REPAIR", wait: 1500 },
   { name: `${number++}_race_resume.png`, url: "/?qa=CHASE_RESUME", wait: 1600 },
@@ -202,6 +216,16 @@ async function main() {
     await page.send("Runtime.enable");
     await page.send("Emulation.setDeviceMetricsOverride", { width: viewportWidth, height: viewportHeight, deviceScaleFactor: 1, mobile: false });
     await page.send("Emulation.setVisibleSize", { width: viewportWidth, height: viewportHeight });
+    if (skipIntros || forceIntros) {
+      await page.send("Page.addScriptToEvaluateOnNewDocument", {
+        source: `["garage","puzzle","puzzle-v2","trace-v2","trace-v3","bench","bench-qa","bench-qa2"].forEach(id => localStorage.${forceIntros ? "removeItem" : "setItem"}("tb-intro-" + id${forceIntros ? "" : ", \"1\""}));`,
+      });
+    }
+    if (seedBenchContract) {
+      await page.send("Page.addScriptToEvaluateOnNewDocument", {
+        source: `sessionStorage.setItem("tb-expect-propulsion", "페달 60% → 토크 요청 204 Nm → 모터 204 Nm"); sessionStorage.setItem("tb-verification-contract-propulsion", JSON.stringify({version:1,caseId:"propulsion",hypothesisId:"gateway",hypothesisLabel:"페달 신호를 잘못 줄여서 전달했다",suspectSection:"VCU",objective:"가속 출력 저하가 VCU 계산 SW인지 입력 회로인지 같은 조건에서 구분한다.",preconditions:["READY","D단","차속 60 km/h","브레이크 해제"],stimulus:{label:"사건 재현 가속",sequence:"APS 0→60% / 0.3 s · 3 s 유지"},expected:{signal:"요청 토크와 모터 토크",value:"페달 60% → 토크 요청 204 Nm → 모터 204 Nm"},observations:[{id:"input",label:"APS 원신호"},{id:"control",label:"VCU 토크 맵 출력"},{id:"output",label:"모터 실제 토크"}],comparison:{baseline:"STEP03 정상 기준 장치",sameInput:true,timeAxis:"0~3.3 s 동일 시간축",units:"%, Nm"},limitation:"결과 하나로 근본 원인을 자동 확정하지 않는다.",createdBy:"STEP03"}));`,
+      });
+    }
 
     for (const [index, screen] of selectedScreens.entries()) {
       const loaded = page.waitFor("Page.loadEventFired");
@@ -212,6 +236,69 @@ async function main() {
         awaitPromise: true,
         returnByValue: true,
       });
+      if (skipIntros) {
+        await delay(800);
+        await page.send("Runtime.evaluate", {
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); for (let i = 0; i < 12; i += 1) { const d = document.querySelector('.scaleFrame')?.contentDocument ?? document; const button = d.querySelector('.stageIntro button, .nutOk'); if (!button) break; button.click(); await wait(120); } })()`,
+          awaitPromise: true,
+          returnByValue: true,
+        });
+        await delay(180);
+      }
+      if (activateGarageInput && screen.url.includes("qa=GARAGE_L1")) {
+        await page.send("Runtime.evaluate", {
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); for (;;) { const next = [...document.querySelectorAll(".conditionCtl")].find(button => !button.disabled && !button.classList.contains("on")); if (!next) break; next.click(); await wait(120); } const input = document.querySelector(".mainCtl"); input?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "mouse", isPrimary: true })); })()`,
+          awaitPromise: true,
+        });
+      }
+      if (screen.url.includes("qa=BOARD") && solveBoard) {
+        await page.send("Runtime.evaluate", { expression: "document.querySelector('.secretSolve')?.click()" });
+      }
+      if (screen.url.includes("qa=BOARD") && zoomBoardEvidence) {
+        await page.send("Runtime.evaluate", { expression: "document.querySelector('.pol.record')?.click()" });
+      }
+      if (screen.url.includes("qa=WIRING") && solvePuzzle) {
+        await page.send("Runtime.evaluate", {
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); document.querySelector('.secretSolve')?.click(); await wait(100); document.querySelector('.rpRun')?.click(); await wait(4000); document.querySelector('.rpRun')?.click(); await wait(250); ${openPuzzleContract ? "document.querySelector('.rpExpect')?.click();" : ""} })()`,
+          awaitPromise: true,
+        });
+      }
+      if (screen.url.includes("qa=WIRING") && dragPuzzle) {
+        await delay(900);
+        const source = await page.send("Runtime.evaluate", {
+          expression: `(() => { const frame = document.querySelector('.scaleFrame'); const root = frame?.contentDocument ?? document; const piece = root.querySelector('.rpChoicePiece'); const gap = root.querySelector('.rpGap:not(.taken)'); if (!piece || !gap) return null; const a = piece.getBoundingClientRect(), b = gap.getBoundingClientRect(), f = frame?.getBoundingClientRect() ?? {left:0,top:0}; return { sx:f.left+a.left+a.width/2, sy:f.top+a.top+a.height/2, gx:f.left+b.left+b.width/2, gy:f.top+b.top+b.height/2 }; })()`,
+          returnByValue: true,
+        });
+        const point = source.result?.value;
+        if (!point) {
+          const diagnostic = await page.send("Runtime.evaluate", { expression: "JSON.stringify((() => { const root=document.querySelector('.scaleFrame')?.contentDocument ?? document; return {pieces:root.querySelectorAll('.rpChoicePiece').length,gaps:root.querySelectorAll('.rpGap').length,root:root.querySelector('#root>div')?.className,text:root.body?.innerText.slice(0,180) }; })())", returnByValue: true });
+          throw new Error(`Puzzle drag QA could not find a spare piece and an empty gap: ${diagnostic.result?.value ?? "{}"}`);
+        }
+        process.stdout.write(`[drag-point] ${screen.name} ${JSON.stringify(point)}\n`);
+        await page.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.sx, y: point.sy });
+        await page.send("Input.dispatchMouseEvent", { type: "mousePressed", x: point.sx, y: point.sy, button: "left", clickCount: 1 });
+        await page.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: (point.sx + point.gx) / 2, y: (point.sy + point.gy) / 2, button: "left" });
+        await page.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: point.gx, y: point.gy, button: "left" });
+        await page.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: point.gx, y: point.gy, button: "left", clickCount: 1 });
+        await delay(240);
+        const result = await page.send("Runtime.evaluate", {
+          expression: "JSON.stringify((() => { const root=document.querySelector('.scaleFrame')?.contentDocument ?? document; return {taken:root.querySelectorAll('.rpGap.taken').length, spare:root.querySelectorAll('.rpChoicePiece').length, dragging:root.querySelectorAll('.rpPiece.dragging').length}; })())",
+          returnByValue: true,
+        });
+        const state = JSON.parse(result.result?.value ?? "{}");
+        process.stdout.write(`[drag-audit] ${screen.name} ${JSON.stringify(state)}\n`);
+        if (!state.taken || state.dragging) throw new Error(`Puzzle drag QA failed: ${JSON.stringify(state)}`);
+      }
+      if (screen.name.includes("lab_signal_graph")) {
+        await page.send("Runtime.evaluate", { expression: "(document.querySelector('.scaleFrame')?.contentDocument ?? document).querySelector('.vbGo')?.click()" });
+        await delay(2300);
+      }
+      if (driveBench && screen.url.includes("qa=TWIN_BENCH")) {
+        await page.send("Runtime.evaluate", {
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); const root = document.querySelector('.scaleFrame')?.contentDocument ?? document; root.querySelector('.qaTests button')?.click(); await wait(120); const input = root.querySelector('.qaInputs button'); input?.click(); await wait(120); ${screen.url.includes("tab=ecu") ? "[...root.querySelectorAll('.v7Tabs button')].find(b => b.textContent?.includes('제어기'))?.click();" : screen.url.includes("tab=plant") ? "[...root.querySelectorAll('.v7Tabs button')].find(b => b.textContent?.includes('부품'))?.click();" : screen.url.includes("tab=graph") ? "[...root.querySelectorAll('.v7Tabs button')].find(b => b.textContent?.includes('모니터링'))?.click();" : ""} })()`,
+          awaitPromise: true,
+        });
+      }
       if (autoDriveFinale && screen.name.includes("final_dock_race")) {
         await page.send("Page.bringToFront");
         await page.send("Runtime.evaluate", { expression: "window.focus(); document.body?.focus(); true", returnByValue: true });
@@ -237,6 +324,27 @@ async function main() {
         expression: "new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))",
         awaitPromise: true,
       });
+      if (printMetrics) {
+        const metrics = await page.send("Runtime.evaluate", {
+          expression: `JSON.stringify(Object.fromEntries([".garageLayerNav",".garageStudio",".garageMechanismCard",".domainFunctionShelf",".garageFlowPanel",".inputBar"].map(selector => { const element = document.querySelector(selector); if (!element) return [selector, null]; const box = element.getBoundingClientRect(); return [selector, { x: box.x, y: box.y, width: box.width, height: box.height }]; })))`,
+          returnByValue: true,
+        });
+        process.stdout.write(`[metrics] ${screen.name} ${metrics.result?.value ?? "{}"}\n`);
+      }
+      if (auditLayout) {
+        const audit = await page.send("Runtime.evaluate", {
+          expression: `JSON.stringify((() => {
+            const root = document.querySelector('.scaleFrame')?.contentDocument ?? document;
+            const doc = root.documentElement, body = root.body;
+            const key = [...root.querySelectorAll('button,[role="tab"],.missionBar,.garageMechanismCard,.domainFunctionShelf,.garageFlowPanel,.rpStage,.rpPanel,.rpFoot,.vbMonitor,.rpFolder')]
+              .filter(el => { const s = getComputedStyle(el); const r = el.getBoundingClientRect(); return s.display !== 'none' && r.width > 0 && r.height > 0; })
+              .map(el => { const r = el.getBoundingClientRect(); return { tag:el.tagName, cls:String(el.className||''), x:r.x, y:r.y, right:r.right, bottom:r.bottom, clientW:el.clientWidth, scrollW:el.scrollWidth, clientH:el.clientHeight, scrollH:el.scrollHeight }; });
+            return { viewport:[innerWidth,innerHeight], page:[doc?.scrollWidth ?? 0,doc?.scrollHeight ?? 0,body?.scrollWidth ?? 0,body?.scrollHeight ?? 0], overflow:key.filter(x=>x.right>innerWidth+1 || x.bottom>innerHeight+1 || x.scrollW>x.clientW+2 || x.scrollH>x.clientH+2).slice(0,20) };
+          })())`,
+          returnByValue: true,
+        });
+        process.stdout.write(`[layout-audit] ${screen.name} ${audit.result?.value ?? "{}"}\n`);
+      }
       const { data } = await page.send("Page.captureScreenshot", {
         format: "png", fromSurface: true, captureBeyondViewport: false,
       });

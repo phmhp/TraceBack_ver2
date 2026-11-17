@@ -1,4 +1,8 @@
-import React, { useEffect, useReducer, useRef, useState } from "react";
+import { LevelSelect } from "./features/levels/LevelSelect";
+import { RefPuzzle } from "./features/wiring/RefPuzzle";
+import { DRIVER, ENGINEER, CAST } from "./game/cast";
+const VILLAIN = CAST.villain.name;
+import React, { Suspense, lazy, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
@@ -25,6 +29,7 @@ import {
   DialoguePanel,
   GameHeader,
   GameStage,
+  JourneyNavigationProvider,
   Keycap,
   SceneBackdrop,
   StatusPill,
@@ -47,6 +52,27 @@ import "./v15.css";
 import "./v16.css";
 import "./v17.css";
 import "./v18.css";
+import "./ending-v19.css";
+import "./p0-v20.css";
+import "./p1-type.css";
+import "./p2-notepaper.css";
+import "./p3-notepaper-world.css";
+import "./p4-fix-1109.css";
+import "./ui/stepRoadmap.css";
+import "./features/garage/pedal-lab.css";
+import "./features/garage/garage-v3.css";
+import "./ui/common-layout.css";
+import "./p5-ui-fixes.css";
+const DevMenu = import.meta.env.DEV ? lazy(() => import("./ui/dev/DevMenu").then(m => ({ default: m.DevMenu }))) : null;
+import { BustedEnding, WantedEnding } from "./ui/CaseFileEnding";
+import { SoundToggle } from "./ui/ComicBurst";
+import { installGlobalSfx, setMusic, setMusicScene, setSfx, soundPrefs } from "./ui/sfx";
+import { SuspectBoard } from "./features/board/SuspectBoard";
+import { DominoBoard } from "./features/board/DominoBoard";
+import { DominoTrace } from "./features/board/DominoTrace";
+import { EeTraceV2 as EeTrace } from "./features/board/EeTrace";
+import { Icon } from "./ui/Icon";
+import { VerdictLayer } from "./ui/Verdict";
 const A = "/assets/";
 type Sim = {
   speed: number;
@@ -65,24 +91,24 @@ const fresh = (): Sim => ({
   damage: 0,
 });
 function useCampaign() {
-  const [state, send] = useReducer(dispatch, undefined, () => {
+  const [state, dispatchEvent] = useReducer(dispatch, undefined, () => {
     const params = new URLSearchParams(location.search);
     if (params.has("new"))
       return initialCampaign();
     const qaScene = params.get("qa") as Campaign["scene"] | null;
-    if (import.meta.env.DEV && qaScene && ["PROLOGUE", "GARAGE_L1", "DRIVE_BRIEFING", "CHASE_NORMAL", "FAULT_CUE", "BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR", "CHASE_RESUME", "SHIP_ESCAPE", "SHIP_BOARDING", "CAUGHT", "ENDING", "PAUSE"].includes(qaScene)) {
+    if (import.meta.env.DEV && qaScene && ["PROLOGUE", "GARAGE_L1", "LEVEL_SELECT", "DRIVE_BRIEFING", "CHASE_NORMAL", "FAULT_CUE", "BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR", "CHASE_RESUME", "SHIP_ESCAPE", "SHIP_BOARDING", "CAUGHT", "ENDING", "PAUSE"].includes(qaScene)) {
       const isFinale = qaScene.startsWith("SHIP") || qaScene === "ENDING";
       const isResume = qaScene === "CHASE_RESUME";
       const requestedDistance = Number(params.get("distance"));
       const qaDistance = Number.isFinite(requestedDistance) && requestedDistance >= 0 ? requestedDistance : undefined;
       return hydrateCampaign({
         scene: qaScene,
-        caseId: "propulsion",
+        caseId: (["propulsion", "thermal", "brake", "regen", "ready", "gear", "cold"].includes(params.get("case") ?? "") ? params.get("case") : "propulsion") as Campaign["caseId"], // dev: ?qa=WIRING&case=thermal
         previousScene: qaScene === "PAUSE" ? "CHASE_NORMAL" : undefined,
         completedCases: isFinale ? ["propulsion", "thermal"] : isResume ? ["propulsion"] : [],
-        evidence: { propulsion: ["pedal_raw", "pedal_processed", "torque_cmd"], thermal: [], brake: [] },
-        hypothesis: { propulsion: "gateway", thermal: "", brake: "" },
-        program: { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake" },
+        evidence: { propulsion: ["pedal_raw", "pedal_processed", "torque_cmd"], thermal: [], brake: [], regen: [], ready: [], gear: [], cold: [] },
+        hypothesis: { propulsion: "gateway", thermal: "", brake: "", regen: "", ready: "", gear: "", cold: "" },
+        program: { propulsion: "nominal", thermal: "thermal_closed_loop", brake: "blended_brake", regen: "regen_sign_dropped", ready: "precharge_timeout_500", gear: "gear_fallback_r", cold: "regen_limit_fixed" },
         raceDistance: qaDistance ?? (qaScene === "CHASE_NORMAL" ? 0 : qaScene === "SHIP_ESCAPE" ? 1165 : isResume ? 545 : 260),
         raceElapsedSeconds: 52,
         policeGapMeters: 72,
@@ -90,12 +116,25 @@ function useCampaign() {
       });
     }
     try {
-      const r = localStorage.getItem("traceback-v16-save");
-      return r ? hydrateCampaign(JSON.parse(r)) : initialCampaign();
+      // always open on the title; a saved run is offered there as "이어하기"
+      return initialCampaign();
     } catch {
       return initialCampaign();
     }
   });
+  const send = useCallback((event: { type: string; [key: string]: unknown }) => {
+    if (event.type === "NEW_GAME") {
+      // New game is a fresh investigation session; returning to title intentionally does not do this.
+      try {
+        for (let index = sessionStorage.length - 1; index >= 0; index--) {
+          const key = sessionStorage.key(index) ?? "";
+          if (key.startsWith("tb-step") || key.startsWith("tb-impact-") || key.startsWith("tb-section-") || key.startsWith("tb-expect-") || key.startsWith("tb-verification-contract-") || key.startsWith("tb-intro-")) sessionStorage.removeItem(key);
+        }
+        localStorage.removeItem("traceback-v16-save");
+      } catch { /* storage is optional */ }
+    }
+    dispatchEvent(event);
+  }, []);
   useEffect(() => {
     if (state.scene !== "TITLE")
       localStorage.setItem("traceback-v16-save", JSON.stringify(state));
@@ -103,10 +142,17 @@ function useCampaign() {
   useEffect(() => {
     // Freeze pursuit during the warning/dialogue so the player can read it.
     // Investigation and engineering work still consume chase distance.
-    const pursuitScenes = ["BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR"];
+    const pursuitScenes = ["FAULT_CUE", "BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR"];
     if (!pursuitScenes.includes(state.scene)) return;
-    const timer = window.setInterval(() => send({ type: "TICK_PURSUIT", meters: .16, travel: 5.4, seconds: 1 }), 1000);
+    // The disabled vehicle remains exactly at the fault position while the interceptor closes in.
+    const timer = window.setInterval(() => send({ type: "TICK_PURSUIT", meters: .2, seconds: 1 }), 1000);
     return () => clearInterval(timer);
+  }, [state.scene]);
+  // one driving track from the start of the chase until the pirate ship (fault, investigation and bench included)
+  useEffect(() => {
+    if (state.scene === "PAUSE") return;
+    const chase = ["DRIVE_BRIEFING", "CHASE_NORMAL", "FAULT_CUE", "ASSIST_CHASE", "BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR", "CHASE_RESUME", "OPTIONAL_FAULT", "SHIP_ESCAPE", "SHIP_BOARDING"];
+    setMusicScene(chase.includes(state.scene) ? "race" : "calm");
   }, [state.scene]);
   return [state, send] as const;
 }
@@ -426,12 +472,13 @@ function RaceWorld({ sim, ship }: { sim: Sim; ship: boolean }) {
 }
 function Header({ state, send }: { state: Campaign; send: React.Dispatch<any> }) {
   const s = SCENARIOS[state.caseId];
-  const beforeRace = state.scene.startsWith("GARAGE");
+  const beforeRace = state.scene.startsWith("GARAGE") || ["LEVEL_SELECT", "DRIVE_BRIEFING"].includes(state.scene);
   return (
     <GameHeader
       chapter={beforeRace ? "GARAGE · VEHICLE LOGIC LAB" : "INCIDENT INVESTIGATION"}
       title={s.title}
       distanceMeters={beforeRace ? undefined : state.policeGapMeters}
+      progressScene={state.scene}
       onPause={() => send({ type: "PAUSE" })}
     />
   );
@@ -442,74 +489,91 @@ function Title({
   state: Campaign;
   send: React.Dispatch<any>;
 }) {
+  const saved = (() => { try { const raw = localStorage.getItem("traceback-v16-save"); return raw ? JSON.parse(raw) as Partial<Campaign> : null; } catch { return null; } })();
+  const [panel, setPanel] = useState<"none" | "settings" | "keys">("none");
+  const [prefs, setPrefsState] = useState(soundPrefs());
+  const STAGE_NAME: Record<string, string> = { GARAGE_L1: "정비소", LEVEL_SELECT: "레벨 선택", DRIVE_BRIEFING: "범행·도주", CHASE_NORMAL: "주행", FAULT_CUE: "주행", BOARD: "원인 역추적", WIRING: "퍼즐", TWIN_BENCH: "실험대", VERIFY_FAIL: "실험대", REPAIR: "수리", CHASE_RESUME: "주행", SHIP_ESCAPE: "해적선", SHIP_BOARDING: "해적선" };
+  const savedLabel = saved?.scene && STAGE_NAME[saved.scene] ? `${STAGE_NAME[saved.scene]} 단계${saved.scene.startsWith("GARAGE") || saved.scene === "LEVEL_SELECT" ? "" : ` · 추격차와 ${Math.round(saved.policeGapMeters ?? 0)}m`}` : null;
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => { if (event.key === "Enter" && panel === "none") { event.preventDefault(); if (savedLabel && saved) send({ type: "LOAD_SAVE", save: saved }); else send({ type: "NEW_GAME" }); } if (event.key === "Escape") setPanel("none"); };
+    addEventListener("keydown", key); return () => removeEventListener("keydown", key);
+  }, [panel, savedLabel]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="titleScene">
       <SceneBackdrop image={`${A}stitch23/menu-garage.png`} position="center" shade="soft" />
-      <div className="cloud">☁ 로컬 저장 · 교육 기록 준비</div>
       <div className="titleMenu">
-        <div className="eyebrow">레이싱 × 자동차 고장 추리</div>
+        <div className="eyebrow">자동차 고장 추적 · 레이싱 추리</div>
         <h1>
           <img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" />
           <span>TraceBack</span>
-          <small>CONTROL THE ESCAPE</small>
+          <small>증상에서 원인까지, 검증으로 증명하기</small>
         </h1>
-        <button className="heroBtn" onClick={() => send({ type: "NEW_GAME" })}>
-          <i>▶</i>
-          <span>
-            <b>새 게임 시작</b>
-          </span>
-          <em>›</em>
-        </button>
-      </div>
-      <div className="keyHelp">
-        SPACE 또는 클릭으로 시작
+        <nav className="titleActions">
+          {savedLabel && saved && <button className="heroBtn" onClick={() => send({ type: "LOAD_SAVE", save: saved })}><span><b>이어하기</b><small>{savedLabel}</small></span></button>}
+          <button className={savedLabel ? "titleBtn" : "heroBtn"} onClick={() => send({ type: "NEW_GAME" })}><span><b>새 게임 시작</b></span></button>
+          <div className="titleRow">
+            <button className="titleBtn" onClick={() => setPanel(panel === "settings" ? "none" : "settings")}>설정</button>
+            <button className="titleBtn" onClick={() => setPanel(panel === "keys" ? "none" : "keys")}>조작법</button>
+          </div>
+        </nav>
+        {panel === "settings" && <div className="titlePanel">
+          <label><input type="checkbox" checked={prefs.sfx} onChange={() => { setSfx(!prefs.sfx); setPrefsState(soundPrefs()); }} /> 효과음 (버튼·모터·제동·충돌)</label>
+          <label><input type="checkbox" checked={prefs.music} onChange={() => { setMusic(!prefs.music); setPrefsState(soundPrefs()); }} /> 배경음 (타이틀·정비소)</label>
+          <small>레이싱 배경음은 주행 화면 오른쪽 아래 음표 버튼으로 켜고 끕니다.</small>
+        </div>}
+        {panel === "keys" && <div className="titlePanel keys">
+          <span><kbd>↑</kbd> 가속 · <kbd>↓</kbd> 브레이크</span><span><kbd>←</kbd><kbd>→</kbd> 조향</span><span><kbd>1</kbd>~<kbd>4</kbd> 기어 P·R·N·D</span><span><kbd>Q</kbd><kbd>E</kbd> 회생 제동 강·약</span><span><kbd>R</kbd> READY(시동)</span><span><kbd>Enter</kbd> 대화 넘기기 · 시작</span>
+        </div>}
       </div>
     </div>
   );
 }
 function Prologue({ send }: { send: React.Dispatch<any> }) {
   const [slide, setSlide] = useState(0);
-  const lines = [
-    [
-      "THE GLORIOUS PAST",
-      "“봤지, 밍? 우리가 해냈어!” 밤낮없이 차를 깎고 조율한 보람이 있어.",
-    ],
-    [
-      "THE RED SIGNAL",
-      "하지만 완성 직후, 정체불명의 차량들이 차고를 포위했다.",
-    ],
-    [
-      "THE ESCAPE PLAN",
-      "항구 4번 부두. 해적선이 떠나기 전에 모든 시스템을 복구해야 한다.",
-    ],
+  // Enter / Space advance the story (same as the button; the title screen promises Enter = 대화 넘기기)
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => { if (event.repeat || (event.key !== "Enter" && event.code !== "Space")) return; event.preventDefault(); if (slide < 4) setSlide(slide + 1); else send({ type: "CONTINUE_PROLOGUE" }); };
+    addEventListener("keydown", key);
+    return () => removeEventListener("keydown", key);
+  }, [send, slide]);
+  // story (see src/game/cast.ts): champions → swindled and framed → fired and broke → take it back → race to the ship
+  const lines: [string, string, string][] = [
+    ["우승", "이야기", `${DRIVER}와 ${ENGINEER}는 직접 만든 차로 시즌 우승을 하고 최고 상금을 받았다.`],
+    ["누명", "이야기", `후원사 대표 ${VILLAIN}가 상금을 빼돌리고, 경기 조작 누명을 두 사람에게 씌웠다.`],
+    ["해고", "이야기", "두 사람은 팀에서 해고되었고, 오랫동안 일 없이 지냈다."],
+    ["계획", "이야기", `상금은 ${VILLAIN}의 저택 금고에 있다. 돈을 되찾고, 직접 만든 차로 실력을 증명하기로 했다.`],
+    ["목표", "이야기", "항구 뒷길로 달려 해적선에 오른다. 경찰이 따라오기 전에."],
   ];
+
   const images = [
     `${A}stitch23/prologue-race.png`,
     `${A}stitch23/prologue-loss.png`,
+    `${A}stitch23/prologue-loss.png`,
+    `${A}stitch23/prologue-plan.png`,
     `${A}stitch23/prologue-plan.png`,
   ];
   return (
     <div className="cinematic">
       <SceneBackdrop image={images[slide]} shade="deep" />
       <div className="cinTop">
-        <b>● ACT 00 // PROLOGUE [{slide + 1}/3]</b>
+        <b>프롤로그 {slide + 1}/{lines.length}</b>
         <span>{lines[slide][0]}</span>
         <button onClick={() => send({ type: "CONTINUE_PROLOGUE" })}>
-          SKIP »
+          건너뛰기 »
         </button>
       </div>
       <DialoguePanel
         portrait={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`}
-        speaker={slide === 1 ? "밍 (Ming)" : "루 (Lou)"}
+        speaker={lines[slide][1]}
         action={
           <ActionButton
             tone="primary"
-            keyHint="SPACE"
-            onClick={() => slide < 2 ? setSlide(slide + 1) : send({ type: "CONTINUE_PROLOGUE" })}
+            keyHint="Enter"
+            onClick={() => slide < lines.length - 1 ? setSlide(slide + 1) : send({ type: "CONTINUE_PROLOGUE" })}
           >계속</ActionButton>
         }
       >
-        {lines[slide][1]}
+        {lines[slide][2]}
       </DialoguePanel>
     </div>
   );
@@ -609,7 +673,7 @@ function Garage({
         <div className="catCoach">
           <img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} />
           <div>
-            <b>수석 엔지니어 밍</b>
+            <b>수석 엔지니어 {ENGINEER}</b>
             <p>{idx === 3 ? "설계 흐름을 확인했으면 실제 주행에서 증상을 만나보자냥!" : "입력에서 차량 반응까지 세 노드를 차례로 확인해보자냥."}</p>
           </div>
         </div>
@@ -1112,12 +1176,12 @@ function Bench({
   const allPass = allDone && tests.every((test) => results[test.id]);
   const referenceLevels = [
     { label: "로직 수준", detail: "조건·명령 일치", ok: true },
-    { label: "HILS 관점", detail: "교육용 신호·인터페이스", ok: true },
+    { label: "HILS 관점", detail: "신호·인터페이스", ok: true },
     { label: "시스템 수준", detail: "차량 응답 정상", ok: true },
   ];
   const playerLevels = [
     { label: "로직 수준", detail: currentPass ? "판단 블록 일치" : "조건/가설 불일치", ok: currentPass },
-    { label: "HILS 관점", detail: currentPass ? "교육용 명령 전달 일치" : "기대/실제 차이", ok: currentPass },
+    { label: "HILS 관점", detail: currentPass ? "명령 전달 일치" : "기대/실제 차이", ok: currentPass },
     { label: "시스템 수준", detail: currentPass ? "응답 범위 충족" : "증상 재발", ok: currentPass },
   ];
   return (
@@ -1159,7 +1223,7 @@ function Bench({
       <main className="twin">
         <div className="benchCoach">
           <img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} />
-          <b>정비사 밍의 정밀 진단</b>
+          <b>정비사 {ENGINEER}의 정밀 진단</b>
           <p>동일 초기 상태와 입력으로 기준/사용자 모델을 비교한다냥.</p>
         </div>
         <Rig
@@ -1247,10 +1311,10 @@ function VerifyFail({
         </div>
         <CommandBar label={<><Keycap>ESC</Keycap> 실패 기록은 자동 저장</>}>
           <ActionButton tone="neutral" onClick={() => send({ type: "OPEN_BOARD" })}>
-            메모판으로
+            원인 역추적으로
           </ActionButton>
           <ActionButton tone="primary" keyHint="ENTER" onClick={() => send({ type: "RETRY_WIRING" })}>
-            로직 수정
+            정상 동작 다시 복원
           </ActionButton>
         </CommandBar>
       </main>
@@ -1287,9 +1351,7 @@ function Repair({
             </small>
             <h2>{s.repair}</h2>
             <p>
-              {state.caseId === "propulsion"
-                ? "검증된 nominal 프리셋을 적용합니다."
-                : "SW 보호는 유지하고 실제 HW를 정비합니다."}
+              검증에서 확인한 SW 수정본을 적용합니다.
             </p>
           </div>
         </div>
@@ -1376,7 +1438,7 @@ function Ending({
             <span>
               필수 사건
               <b>
-                {state.completedCases.filter((x) => x !== "brake").length} / 2
+                {state.completedCases.filter((x) => x !== "brake" && x !== "regen" && x !== "ready" && x !== "gear" && x !== "cold").length} / 2
                 완료
               </b>
             </span>
@@ -1445,11 +1507,14 @@ function Overlay({
 function App() {
   const [state, send] = useCampaign();
   const canGoBack = ["GARAGE_L1", "GARAGE_L2", "GARAGE_L3", "GARAGE_L4", "DRIVE_BRIEFING", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR"].includes(state.scene);
-  const frame = (view: React.ReactNode) => <>{view}{(canGoBack || state.forwardScene) && <nav className="stageHistoryNav" aria-label="단계 이동">{canGoBack && <button className="stageBackButton" onClick={() => send({ type: "NAV_BACK" })}><i>←</i><span>이전 단계</span></button>}{state.forwardScene && <button className="stageForwardButton" onClick={() => send({ type: "NAV_FORWARD" })}><span>다음 단계</span><i>→</i></button>}</nav>}</>;
+  // STEP01~04 always show both history buttons in the same slot; unavailable moves are disabled, never hidden.
+  const stageNav = state.scene.startsWith("GARAGE") || ["BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL"].includes(state.scene);
+  const frame = (view: React.ReactNode) => <JourneyNavigationProvider campaign={state} navigate={stage => send({ type: "NAV_STAGE", stage })}>{view}{(stageNav || canGoBack || state.forwardScene) && <nav className="stageHistoryNav" aria-label="단계 이동">{(stageNav || canGoBack) && <button className="stageBackButton" disabled={!canGoBack} onClick={() => state.scene.startsWith("GARAGE") ? dispatchEvent(new CustomEvent("tb-garage-back")) : send({ type: "NAV_BACK" })}><i>←</i><span>이전 단계</span></button>}{(stageNav || state.forwardScene) && <button className="stageForwardButton" disabled={!state.forwardScene} onClick={() => send({ type: "NAV_FORWARD" })}><span>다음 단계</span><i>→</i></button>}</nav>}<VerdictLayer />{DevMenu && <Suspense fallback={null}><DevMenu scene={state.scene} /></Suspense>}</JourneyNavigationProvider>;
   if (state.scene === "TITLE") return <Title state={state} send={send} />;
   if (state.scene === "PROLOGUE") return frame(<Prologue send={send} />);
   if (state.scene.startsWith("GARAGE"))
     return frame(<GarageExperience state={state} send={send} />);
+  if (state.scene === "LEVEL_SELECT") return frame(<LevelSelect state={state} send={send} />);
   if (state.scene === "DRIVE_BRIEFING")
     return frame(<DriveBriefing state={state} send={send} />);
   if (state.scene === "CHASE_NORMAL")
@@ -1462,17 +1527,31 @@ function App() {
     return frame(<RaceExperience state={state} send={send} mode="ship" />);
   if (state.scene === "FAULT_CUE")
     return frame(<FaultDialogue state={state} send={send} />);
-  if (state.scene === "BOARD") return frame(<InvestigationBoard state={state} send={send} />);
-  if (state.scene === "WIRING") return frame(<WiringPuzzle state={state} send={send} />);
+  if (state.scene === "BOARD") return frame(<EeTrace state={state} send={send} />); // stage 1 v2 (E/E board + mugshots); DominoTrace / DominoBoard / InvestigationBoard / SuspectBoard kept unused
+  if (state.scene === "WIRING") return frame(<RefPuzzle state={state} send={send} />); // old WiringPuzzle kept unused
   if (state.scene === "TWIN_BENCH") return frame(<TwinBenchExperience state={state} send={send} />);
   if (state.scene === "VERIFY_FAIL")
     return frame(<FailureAnalysis state={state} send={send} />);
   if (state.scene === "REPAIR") return frame(<RepairSequence state={state} send={send} />);
   if (state.scene === "OPTIONAL_FAULT") return frame(<RaceExperience state={state} send={send} mode="ship" />);
   if (state.scene === "SHIP_BOARDING") return frame(<ShipBoardingSequence send={send} />);
-  if (state.scene === "ENDING") return frame(<Ending state={state} send={send} />);
+  if (state.scene === "ENDING") return frame(<WantedEnding state={state} send={send} />);
+  if (state.scene === "CAUGHT") return frame(<BustedEnding state={state} send={send} />);
   return frame(<Overlay state={state} send={send} />);
 }
+const devShowroom = import.meta.env.DEV && new URLSearchParams(location.search).get("showroom") === "car";
+const devPartShowroom = import.meta.env.DEV && new URLSearchParams(location.search).get("showroom") === "parts";
+const VehicleShowroom = import.meta.env.DEV
+  ? React.lazy(() => import("./features/vehicle/VehicleShowroom").then(module => ({ default: module.VehicleShowroom })))
+  : null;
+const PartShowroom = import.meta.env.DEV
+  ? React.lazy(() => import("./features/parts/PartShowroom").then(module => ({ default: module.PartShowroom })))
+  : null;
+installGlobalSfx();
 createRoot(document.getElementById("root")!).render(
-  <GameStage><App /></GameStage>,
+  devShowroom && VehicleShowroom
+    ? <React.Suspense fallback={null}><VehicleShowroom /></React.Suspense>
+    : devPartShowroom && PartShowroom
+      ? <React.Suspense fallback={null}><PartShowroom /></React.Suspense>
+      : <><GameStage><App /></GameStage><SoundToggle /></>,
 );

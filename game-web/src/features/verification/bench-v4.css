@@ -1,0 +1,267 @@
+/* STEP04 v4: mission row, test stage, 360px side panel (조건 / 결과 / 자료), 150px dock, next button under the panel. */
+.vbBench.bench4.qa2 .b4Work {
+  position: absolute !important; left: 16px !important; right: 16px !important; top: 140px !important; bottom: 14px !important;
+  display: grid !important; gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-rows: 56px minmax(0, 1fr) 150px;
+  word-break: keep-all; overflow-wrap: normal;
+}
+.vbBench.bench4.qa2 .b4Work > .missionBar { grid-column: 1 / -1; grid-row: 1; }
+.vbBench.bench4.qa2 .b4Work > .b4Stage { grid-column: 1; grid-row: 2; position: relative; min-width: 0; min-height: 0; overflow: hidden; border-radius: 16px; background: rgba(255, 250, 240, .92); border: 3px solid #e7d3a4; box-sizing: border-box; padding: 8px; }
+.vbBench.bench4.qa2 .b4Work > .b4Panel { grid-column: 2; grid-row: 2; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; box-sizing: border-box; overflow: hidden; border-radius: 16px; background: #fffdf5f0; border: 3px solid #e7d3a4; }
+.vbBench.bench4.qa2 .b4Work > .b4Dock { grid-column: 1; grid-row: 3; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; box-sizing: border-box; overflow: hidden; border-radius: 16px; background: #fffaf0f2; border: 3px solid #e7d3a4; }
+.vbBench.bench4.qa2 .b4Work > .b4NextCell { grid-column: 2; grid-row: 3; min-height: 0; display: flex; }
+.vbBench.bench4.qa2 .b4NextCell button { flex: 1; width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; position: static !important; font: 800 18px/1 Pretendard, system-ui !important; white-space: nowrap; }
+
+/* dock */
+.vbBench.bench4.qa2 .b4Say { margin: 0; flex: none; display: flex; align-items: center; gap: 8px; min-height: 34px; }
+.vbBench.bench4.qa2 .b4Say img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex: none; }
+.vbBench.bench4.qa2 .b4Say b { font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; flex: none; }
+.vbBench.bench4.qa2 .b4Say span { font: 500 13px/1.3 Pretendard, system-ui; color: #4a3a36; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vbBench.bench4.qa2 .b4Hint { font: 700 14px/1.3 Pretendard, system-ui; color: #5a4440; }
+.vbBench.bench4.qa2 .b4Dock .qaActionDock { position: static !important; width: auto !important; height: auto !important; margin: 0 !important; flex: 1 1 0; min-height: 0; display: flex !important; align-items: center; gap: 14px; padding: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; transform: none !important; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion { flex: 1 1 0; min-width: 0; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion small { font: 800 12px/1 Pretendard, system-ui; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion b { font: 800 15px/1.2 Pretendard, system-ui; display: block; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion span { font: 600 13px/1.3 Pretendard, system-ui; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vbBench.bench4.qa2 .b4Dock .qaChoices { flex: none; display: flex; gap: 8px; }
+.vbBench.bench4.qa2 .b4Dock .qaChoices button { min-height: 40px; white-space: nowrap; }
+
+/* hypothesis strip */
+.vbBench.bench4.qa2 .b4Col { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
+.vbBench.bench4.qa2 .b4Hyps { flex: none; display: flex; gap: 8px; }
+.vbBench.bench4.qa2 .b4Hyps button { all: unset; box-sizing: border-box; flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: 24px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 6px 10px; border-radius: 10px; border: 2px solid #e0cfa6; background: #fff; cursor: pointer; }
+.vbBench.bench4.qa2 .b4Hyps button.now { border-color: #9b6b64; background: #fff4ee; }
+.vbBench.bench4.qa2 .b4Hyps button:disabled { cursor: default; opacity: .75; }
+.vbBench.bench4.qa2 .b4Hyps button i { grid-row: 1 / span 2; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #9b6b64; color: #fff8f2; font: 800 12px/1 Pretendard, system-ui; font-style: normal; }
+.vbBench.bench4.qa2 .b4Hyps button b { font: 800 13px/1.2 Pretendard, system-ui; color: #3f302c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vbBench.bench4.qa2 .b4Hyps button small { font: 700 12px/1.2 Pretendard, system-ui; color: #8a6a63; }
+.vbBench.bench4.qa2 .b4Hyps button.a-supported small { color: #3f7a55; }
+.vbBench.bench4.qa2 .b4Hyps button.a-refuted small { color: #a0281e; }
+
+/* panel */
+.vbBench.bench4.qa2 .b4Panel > header { flex: none; display: flex; align-items: center; gap: 8px; }
+.vbBench.bench4.qa2 .b4Panel > header nav { display: flex; gap: 4px; flex: 1 1 0; min-width: 0; }
+.vbBench.bench4.qa2 .b4Panel > header nav button { flex: 1 1 0; min-height: 30px; white-space: nowrap; font: 800 13px/1 Pretendard, system-ui; border-radius: 10px; border: 2px solid #e0cfa6; background: #fff; color: #5a4440; cursor: pointer; }
+.vbBench.bench4.qa2 .b4Panel > header nav button.on { background: #9b6b64; border-color: #9b6b64; color: #fff8f2; }
+.vbBench.bench4.qa2 .b4Panel > header nav button:disabled { opacity: .45; cursor: not-allowed; }
+.vbBench.bench4.qa2 .b4PanelBody { flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
+.vbBench.bench4.qa2 .b4PanelBody > aside, .vbBench.bench4.qa2 .b4PanelBody > .b4Mat { position: static !important; width: auto !important; height: auto !important; max-height: none !important; margin: 0 !important; inset: auto !important; flex: 1 1 0; min-height: 0; overflow: hidden; background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+.vbBench.bench4.qa2 .b4PanelBody > aside, .vbBench.bench4.qa2 .b4PanelBody > .b4Mat { overflow: auto; overflow-wrap: anywhere; min-width: 0; }
+.vbBench.bench4.qa2 .b4Mat { display: flex; flex-direction: column; gap: 6px; }
+.vbBench.bench4.qa2 .b4MatTabs { display: flex; gap: 4px; flex: none; }
+.vbBench.bench4.qa2 .b4MatTabs button { flex: 1 1 0; min-height: 28px; white-space: nowrap; font: 700 12px/1 Pretendard, system-ui; border-radius: 8px; border: 1.5px solid #e0cfa6; background: #fff; cursor: pointer; color: #5a4440; }
+.vbBench.bench4.qa2 .b4MatTabs button.on { background: #f1e3df; border-color: #9b6b64; }
+.vbBench.bench4.qa2 .b4MatBody { flex: 1 1 0; min-height: 0; overflow: hidden; font-size: 12px; }
+.vbBench.bench4.qa2 .b4Help { flex: none; font: 600 12px/1.3 Pretendard, system-ui; }
+
+/* stage content: level tabs on top, simulation fills the rest */
+.vbBench.bench4.qa2 .b4Stage .v7View { position: relative !important; inset: auto !important; width: 100% !important; height: 100% !important; min-height: 0; display: flex !important; flex-direction: column; gap: 6px; margin: 0 !important; padding: 0 !important; overflow: hidden; }
+.vbBench.bench4.qa2 .b4Col > .v7View { flex: 1 1 0; height: auto !important; }
+.vbBench.bench4.qa2 .b4Stage .v7View > nav { flex: none; }
+.vbBench.bench4.qa2 .b4Stage .v7View > .vbSimView { flex: 1 1 0; min-height: 0; position: relative !important; width: 100% !important; height: auto !important; overflow: hidden; }
+.vbBench.bench4.qa2 .b4Stage .v7View > .qaSimCaption { flex: none; margin: 0; font: 600 12px/1.2 Pretendard, system-ui; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vbBench.bench4.qa2 .b4Stage .v7View > .v3dToggle { position: absolute !important; right: 10px; bottom: 30px; z-index: 5; }
+.vbBench.bench4.qa2 .b4Stage .vbStage { position: static !important; width: auto !important; height: 100% !important; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 8px; padding: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; }
+.vbBench.bench4.qa2 .b4Stage .v7View > .vbSimView { flex: 1 1 0 !important; aspect-ratio: auto !important; min-height: 0 !important; height: auto !important; width: 100% !important; max-height: none !important; }
+.vbBench.bench4.qa2 .b4Stage .v7View > .qaSimCaption { position: static !important; flex: none !important; width: auto !important; height: auto !important; transform: none !important; }
+.vbBench.bench4.qa2 .b4Stage .v7View > .qaLevelTabs { position: static !important; flex: none !important; }
+
+/* ---- fit fixes: no clamped text, compact panel tables, single-line labels ---- */
+.vbBench.bench4.qa2 .b4Say span, .vbBench.bench4.qa2 .b4Dock .qaQuestion span { display: block !important; -webkit-line-clamp: unset !important; overflow: visible !important; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion { display: flex; flex-direction: column; gap: 2px; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion span { font-size: 12.5px; line-height: 1.25; }
+.vbBench.bench4.qa2 .qaResultBlock { overflow: hidden !important; padding: 0 !important; }
+.vbBench.bench4.qa2 .b4PanelBody table { width: 100%; border-collapse: collapse; }
+.vbBench.bench4.qa2 .b4PanelBody th, .vbBench.bench4.qa2 .b4PanelBody td { padding: 3px 4px !important; font-size: 12px !important; line-height: 1.2 !important; }
+.vbBench.bench4.qa2 .b4PanelBody th { white-space: nowrap; }
+.vbBench.bench4.qa2 .b4PanelBody .qaPickedInput small, .vbBench.bench4.qa2 .b4PanelBody .qaSetupNote b, .vbBench.bench4.qa2 .b4PanelBody h3 { white-space: nowrap; }
+.vbBench.bench4.qa2 .b4PanelBody .qaVerdictNote, .vbBench.bench4.qa2 .b4PanelBody .qaProof small { font-size: 12px !important; }
+.vbBench.bench4.qa2 .b4Doc { flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 6px; }
+.vbBench.bench4.qa2 .b4Doc .v7Report, .vbBench.bench4.qa2 .b4Doc .finalJudge { position: static !important; width: auto !important; max-height: none !important; overflow: hidden !important; margin: 0 !important; padding: 8px !important; font-size: 12px; }
+.vbBench.bench4.qa2 .b4Doc li, .vbBench.bench4.qa2 .b4Doc p, .vbBench.bench4.qa2 .b4Doc small { font-size: 12px !important; line-height: 1.3 !important; }
+.vbBench.bench4.qa2 .b4MatBody .qaMatRole { display: none; }
+.vbBench.bench4.qa2 .b4MatBody h4 { white-space: normal; font-size: 13px; margin: 0 0 4px; }
+.vbBench.bench4.qa2 .b4MatBody .qaMatLine { display: block !important; margin: 0 0 4px !important; font-size: 12px !important; line-height: 1.3 !important; }
+.vbBench.bench4.qa2 .b4MatBody .qaMatLine > b { display: block; white-space: nowrap; font-size: 12px; color: #7a4a44; }
+.vbBench.bench4.qa2 .b4MatBody .qaMatList { margin: 0; padding-left: 16px; font-size: 12px; line-height: 1.3; }
+.vbBench.bench4.qa2 .b4MatBody details { display: none; }
+.vbBench.bench4.qa2 .rpFace { white-space: nowrap !important; font-size: 10.5px !important; letter-spacing: -.2px; max-width: 100% !important; }
+.vbBench.bench4.qa2 .abPane header b, .vbBench.bench4.qa2 .abPane header small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.vbBench.bench4.qa2 .b4Stage .vbChoices { flex: 1 1 0; min-height: 0; }
+.vbBench.bench4.qa2 .b4Stage .vbStage > h2 { flex: none; margin: 0; font-size: 17px; }
+
+/* A/B: two simulation panes side by side */
+.vbBench.bench4.qa2 .b4Stage .v7View.abView { flex-direction: row !important; gap: 8px; }
+.vbBench.bench4.qa2 .abPane { flex: 1 1 0; min-width: 0; min-height: 0; display: flex !important; flex-direction: column; gap: 4px; position: relative; }
+.vbBench.bench4.qa2 .abPane > header { flex: none; }
+.vbBench.bench4.qa2 .abPane .vbSimView { flex: 1 1 0 !important; min-height: 0 !important; aspect-ratio: auto !important; height: auto !important; width: 100% !important; }
+/* dock: only the question and the answer, the small label above it is redundant next to the mission bar */
+.vbBench.bench4.qa2 .b4Dock .qaQuestion > small { display: none; }
+.vbBench.bench4.qa2 .b4Doc header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.vbBench.bench4.qa2 .b4Doc header small, .vbBench.bench4.qa2 .b4Doc header b, .vbBench.bench4.qa2 .b4Doc header em { white-space: nowrap; }
+.vbBench.bench4.qa2 .b4MatBody .qaMatTable td:first-child { min-width: 128px; white-space: nowrap; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion b { height: auto !important; max-height: none !important; overflow: visible !important; line-height: 1.3 !important; white-space: normal !important; }
+.vbBench.bench4.qa2 .b4Doc .finalJudge header { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.vbBench.bench4.qa2 .b4Doc .finalJudge header * { white-space: nowrap !important; }
+.vbBench.bench4.qa2 .rpFace.tight { white-space: normal !important; font-size: 9.5px !important; line-height: 1.1; text-align: center; letter-spacing: 0; }
+
+/* 2026-11-15: dock = Directive (left) + question/choices (right), same layout as STEP02 */
+.vbBench.bench4.qa2 .b4Work > .b4Dock { flex-direction: row; align-items: stretch; gap: 12px; }
+.vbBench.bench4.qa2 .b4Dock > .directive { flex: 0 0 44%; min-width: 0; }
+.vbBench.bench4.qa2 .b4Dock .qaActionDock { flex: 1 1 0; flex-direction: column; align-items: stretch; justify-content: center; gap: 6px; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion { flex: none; }
+.vbBench.bench4.qa2 .b4Dock .qaQuestion small, .vbBench.bench4.qa2 .b4Dock .qaQuestion span { display: none !important; }
+.vbBench.bench4.qa2 .b4Dock .qaChoices { flex-wrap: wrap; }
+.vbBench.bench4.qa2 .b4Dock .qaChoices button { white-space: normal; line-height: 1.2; padding: 4px 10px; text-align: left; }
+.vbBench.bench4.qa2 .b4Dock .qaChoices.causeRow { flex-wrap: nowrap; }
+.vbBench.bench4.qa2 .b4Dock .causeMini { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; align-items: flex-start; min-height: 74px; padding: 4px 8px; border-radius: 10px; border: 1.5px solid #c9a9a0; background: #fff8f2; cursor: pointer; }
+.vbBench.bench4.qa2 .b4Dock .causeMini b { font: 800 12px/1.2 Pretendard, system-ui; color: #3f302c; word-break: keep-all; }
+.vbBench.bench4.qa2 .b4Dock .causeMini .causePhoto { display: none; }
+.vbBench.bench4.qa2 .b4Dock .causeMini .causeType { display: none; }
+.vbBench.bench4.qa2 .b4Dock .causeMini.right { border-color: #3f7a55; background: #eef8f0; }
+.vbBench.bench4.qa2 .b4Dock .causeMini.wrong { border-color: #a0281e; background: #fdeeea; }
+.reportStage .reportList { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.reportStage .reportList li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 8px 12px; border-radius: 10px; border: 1.5px solid #d8c2ba; background: #fffaf4; }
+.reportStage .reportList li b { font: 800 14px/1.3 Pretendard, system-ui; color: #3f302c; display: flex; gap: 6px; align-items: center; }
+.reportStage .reportList li em { font: 800 13px/1.3 Pretendard, system-ui; font-style: normal; color: #7a4a44; }
+.reportStage .reportList li span { grid-column: 1 / -1; font: 500 13px/1.35 Pretendard, system-ui; color: #4a3a36; }
+.reportStage .reportList li.a-supported em { color: #3f7a55; }
+.reportStage .reportList li.a-refuted em { color: #a0281e; }
+.reportStage .reportList li.a-skip { opacity: .65; }
+.vbBench .etTag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 999px; font: 700 11px/1.4 Pretendard, system-ui; background: #efe3dc; color: #6b4a44; vertical-align: 1px; }
+.vbBench .etTag[data-tag="HW"] { background: #f3dcd6; color: #8a2f25; }
+.vbBench .etTag[data-tag="센서"] { background: #dfeaf3; color: #2f5273; }
+.vbBench .etTag[data-tag="통신"] { background: #e2efdc; color: #3d5a34; }
+.vbBench .etTag[data-tag="SW 로직"] { background: #eadff3; color: #54357a; }
+.vbBench .etTag[data-tag="SW 설정"] { background: #f4e9cf; color: #75571a; }
+.eeTrace .etChecked { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.eeTrace .etChecked li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 6px 8px; border-radius: 8px; background: #fffaf5; border: 1px solid #e1d3c4; }
+
+/* ===== 2026-11-15 bench v8: hypothesis cards, persistent visualisation + monitor with ruler, dock cards, document popup ===== */
+.vbBench.bench4.qa2 .b4Stage { display: flex; flex-direction: column; overflow: hidden; }
+.b4Pick { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px; padding: 14px; }
+.b4HypList { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-rows: minmax(0, 1fr); gap: 8px; min-height: 0; }
+.b4HypList li { display: grid; grid-template-columns: 34px auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 0 14px; border-radius: 14px; border: 2px solid #dccbc2; background: #fffaf4; min-height: 0; }
+.b4HypList li.now { border-color: #9b6b64; background: #fff1ea; box-shadow: 0 0 0 3px rgba(155, 107, 100, .18); }
+.b4HypList li i { font-style: normal; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #9b6b64; color: #fff8f2; font: 800 14px/1 Pretendard, system-ui; }
+.b4HypList li b { font: 800 15px/1.3 Pretendard, system-ui; color: #3f302c; word-break: keep-all; }
+.b4HypList li em { font: 800 13px/1 Pretendard, system-ui; font-style: normal; color: #8a6a63; white-space: nowrap; }
+.b4HypList li.a-supported em { color: #3f7a55; } .b4HypList li.a-refuted em { color: #a0281e; } .b4HypList li.a-skip { opacity: .6; }
+.b4HypDetail { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 14px 16px; border-radius: 14px; background: #fffaf4; border: 2px solid #dccbc2; overflow: auto; }
+.b4HypDetail small { font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; }
+.b4HypDetail h3 { margin: 0; font: 800 19px/1.35 Pretendard, system-ui; color: #3f302c; word-break: keep-all; }
+.b4Criteria { padding: 10px 12px; border-radius: 12px; background: #fdf3df; border: 1.5px solid #e7cf9f; }
+.b4Criteria small { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+.b4Criteria p, .b4Criteria li { margin: 0; font: 600 14px/1.5 Pretendard, system-ui; color: #4a3a36; word-break: keep-all; }
+.b4Criteria ul { margin: 0; padding-left: 16px; display: grid; gap: 4px; }
+.b4Hint2 { margin: auto 0 0; font: 600 13px/1.4 Pretendard, system-ui; color: #7a5a53; }
+.b4Lab { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; }
+.vbBench.bench4.qa2 .b4Lab { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(260px, .85fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "levels levels" "model model" "visual monitor"; align-content: stretch; }
+.vbBench.bench4.qa2 .b4Lab > .b4Levels { grid-area: levels; }
+.vbBench.bench4.qa2 .b4Lab > .b4ModelBar { grid-area: model; min-width: 0; }
+.vbBench.bench4.qa2 .b4Lab > .b4Vis { grid-area: visual; min-width: 0; min-height: 0; }
+.vbBench.bench4.qa2 .b4Lab > .b4Monitor { grid-area: monitor; width: auto; height: auto; min-width: 0; min-height: 0; }
+.b4Levels { flex: none; display: flex; gap: 8px; }
+.b4Levels button { flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 0 12px; height: 44px; border-radius: 12px; border: 2px solid #dccbc2; background: #fffaf4; cursor: pointer; }
+.b4Levels button.on { border-color: #9b6b64; background: #fff1ea; }
+.b4Levels button i { display: grid; place-items: center; color: #9b6b64; }
+.b4Levels button b { font: 800 14px/1.2 Pretendard, system-ui; color: #3f302c; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b4Levels button em { font: 800 12px/1 Pretendard, system-ui; font-style: normal; color: #8a6a63; white-space: nowrap; }
+.b4Levels button.v-pass em { color: #3f7a55; } .b4Levels button.v-fail em { color: #a0281e; } .b4Levels button.v-inconclusive em { color: #8a6a1a; }
+.b4ModelBar { flex: none; display: flex; align-items: center; gap: 10px; padding: 0 4px; }
+.b4ModelBar > b { font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; white-space: nowrap; }
+.b4ModelBar small { font: 600 12px/1.3 Pretendard, system-ui; color: #6b5651; min-width: 0; }
+.b4Seg { display: inline-flex; gap: 4px; flex: none; }
+.b4Seg button, .b4Seg i { font-style: normal; padding: 5px 12px; border-radius: 999px; border: 1.5px solid #c9a39c; background: #fff8f2; color: #6b4a44; font: 700 12px/1 Pretendard, system-ui; white-space: nowrap; cursor: pointer; }
+.b4Seg i { cursor: default; }
+.b4Seg button.on { background: #9b6b64; color: #fff8f2; border-color: #9b6b64; }
+.b4Vis { flex: 1 1 0; min-height: 0; position: relative; border-radius: 12px; overflow: hidden; border: 1.5px solid #dccbc2; background: #f6efe6; }
+.b4Vis .vbSimView { position: absolute; inset: 0; }
+.b4Monitor { flex: none; height: 168px; display: flex; flex-direction: column; gap: 4px; min-height: 0; border-radius: 12px; border: 1.5px solid #dccbc2; background: #fffaf4; padding: 6px 8px; overflow: hidden; }
+.b4Monitor .ovGraph { flex: 1 1 0; min-height: 0; overflow: auto; }
+.ovGraph .ovRow { display: grid; grid-template-columns: 190px minmax(0, 1fr) 130px; align-items: center; gap: 8px; }
+.ovGraph .ovRow .ovVals { font-style: normal; display: flex; gap: 6px; justify-content: flex-end; }
+.ovGraph .ovRow .ovVals code { font: 700 11px/1 ui-monospace, Menlo, monospace; padding: 2px 5px; border-radius: 4px; }
+.ovGraph .ovRow .ovVals code.r { background: #e9e3dc; color: #5a4a44; } .ovGraph .ovRow .ovVals code.x { background: #f3dcd6; color: #8a2f25; }
+.ovGraph line.ruler { stroke: #3f302c; stroke-width: 1.6; stroke-dasharray: 3 2; }
+.b4Scrub { flex: none; display: flex; align-items: center; gap: 10px; }
+.b4Scrub button { height: 30px; padding: 0 12px; border-radius: 999px; border: 1.5px solid #c9a39c; background: #fff8f2; color: #6b4a44; font: 700 12px/1 Pretendard, system-ui; cursor: pointer; }
+.b4Scrub input[type=range] { flex: 1 1 0; accent-color: #9b6b64; }
+.b4Scrub span { font: 700 12px/1 ui-monospace, Menlo, monospace; color: #5a4a44; min-width: 70px; text-align: right; }
+.b4DocBtns { flex: none; display: flex; gap: 6px; margin: 0 0 6px; }
+.b4DocBtns button { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; border-radius: 10px; border: 1.5px solid #c9a39c; background: #fff8f2; color: #6b4a44; font: 700 13px/1 Pretendard, system-ui; cursor: pointer; }
+.b4WhyLevel { margin: 0 0 8px; padding: 10px 12px; border-radius: 12px; background: #fff8f2; border: 1.5px solid #dccbc2; }
+.b4WhyLevel small { display: block; font: 700 12px/1.2 Pretendard, system-ui; color: #7a5a53; margin-bottom: 4px; }
+.b4WhyLevel b { display: block; font: 800 15px/1.2 Pretendard, system-ui; margin-bottom: 4px; }
+.b4WhyLevel b.can { color: #3f7a55; } .b4WhyLevel b.cannot { color: #a0281e; }
+.b4WhyLevel p { margin: 0; font: 600 13px/1.45 Pretendard, system-ui; color: #4a3a36; word-break: keep-all; }
+/* dock cards */
+.b4Choices { display: flex; align-items: stretch; min-width: 0; }
+.b4Cards { flex: 1 1 0; display: flex; gap: 10px; min-width: 0; }
+html body .vbBench.bench4.qa2 .b4Dock .b4Card { flex: 1 1 0; min-width: 0; height: 100%; max-height: 176px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 10px 12px; border-radius: 16px; border: 2px solid #d9c3ba; background: linear-gradient(180deg, #fffdf8, #f7ebe3); cursor: pointer; text-align: center; }
+html body .vbBench.bench4.qa2 .b4Dock .b4Card:hover:not(:disabled) { border-color: #9b6b64; background: #fff1ea; }
+html body .vbBench.bench4.qa2 .b4Dock .b4Card:disabled { opacity: .55; cursor: default; }
+.b4Card i { display: grid; place-items: center; width: 40px; height: 40px; color: #9b6b64; }
+.b4Card b { font: 800 15px/1.25 Pretendard, system-ui; color: #3f302c; word-break: keep-all; }
+.b4Card small { font: 600 12px/1.3 Pretendard, system-ui; color: #6b5651; word-break: keep-all; }
+.b4Card em { font: 800 11px/1 Pretendard, system-ui; font-style: normal; color: #8a5a52; padding: 3px 8px; border-radius: 999px; background: #f3e2dc; }
+.b4Card.run { border-color: #9b6b64; background: linear-gradient(180deg, #fbe9e1, #f3d7cc); }
+.b4Card.cause .causePhoto { width: 54px; height: 44px; display: block; position: relative; } .b4Card.cause .causePhoto .pin { display: none; } .b4Card.cause .causePhotoWin { display: block; width: 100%; height: 100%; } .b4Card.cause img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+.b4Card.cause .causeType { font: 600 11px/1.2 Pretendard, system-ui; color: #7a5a53; }
+.b4Card.right { border-color: #3f7a55; background: #eef8f0; } .b4Card.wrong { border-color: #a0281e; background: #fdeeea; }
+.b4Card.ans-supported b { color: #3f7a55; } .b4Card.ans-refuted b { color: #a0281e; }
+.b4DockMsg { margin: auto; font: 700 15px/1.4 Pretendard, system-ui; color: #5a4440; }
+.b4Doc .b4DocCols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.b4Doc ul { margin: 0 0 12px; padding-left: 18px; font: 600 13px/1.5 Pretendard, system-ui; color: #4a3a36; }
+.b4Doc p { font: 600 13px/1.5 Pretendard, system-ui; color: #4a3a36; margin: 0 0 12px; }
+.rpFolderTabs .tab { all: unset; cursor: pointer; padding: 8px 20px 6px; border-radius: 12px 12px 0 0; background: #d9b9a0; color: #6b4a44; font: 700 14px/1 Pretendard, system-ui; }
+.rpFolderTabs .tab.on { background: #fff6e4; color: #3f302c; font-weight: 800; padding-top: 11px; }
+html body .vbBench.bench4.qa2 .b4Monitor { height: 138px; }
+html body .vbBench.bench4.qa2 .b4Monitor .ovGraph { position: static !important; inset: auto !important; width: auto !important; height: auto !important; display: grid; align-content: start; gap: 2px; padding: 0 !important; background: transparent !important; }
+html body .vbBench.bench4.qa2 .b4Monitor .ovGraph .ovLegend { margin: 0 0 2px; font: 700 11px/1 Pretendard, system-ui; }
+html body .vbBench.bench4.qa2 .b4Monitor .ovGraph .ovRow { min-height: 22px; }
+html body .vbBench.bench4.qa2 .b4Monitor .ovGraph .ovRow > span { font: 700 11px/1.1 Pretendard, system-ui; }
+html body .vbBench.bench4.qa2 .b4Monitor .ovGraph .ovRow svg { height: 22px; width: 100%; }
+.vbBench.bench4.qa2 .b4Lab { grid-template-columns: minmax(0, .92fr) minmax(480px, 1.08fr); }
+.vbBench.bench4.qa2 .b4Monitor { min-height: 300px !important; height: auto !important; padding: 12px 14px; gap: 10px; }
+.vbBench.bench4.qa2 .b4Monitor .ovGraph { gap: 8px; }
+.vbBench.bench4.qa2 .b4Monitor .ovGraph .ovLegend { font-size: 13px; margin-bottom: 4px; }
+.vbBench.bench4.qa2 .b4Monitor .ovGraph .ovRow { min-height: 48px; grid-template-columns: 150px minmax(0, 1fr) 130px; gap: 10px; }
+.vbBench.bench4.qa2 .b4Monitor .ovGraph .ovRow > span { font-size: 12px; line-height: 1.25; }
+.vbBench.bench4.qa2 .b4Monitor .ovGraph .ovRow svg { height: 42px; }
+
+/* The hypothesis question is a real first step, before choosing a test level. */
+.vbBench.bench4.qa2 .b4HypChoices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+.vbBench.bench4.qa2 .b4HypChoices .b4Card.hypothesis { display: grid; grid-template-columns: 34px auto; grid-template-rows: auto auto auto; align-items: center; justify-items: start; text-align: left; padding: 14px 16px; gap: 5px 10px; }
+.vbBench.bench4.qa2 .b4HypChoices .b4Card.hypothesis > i { grid-row: 1 / span 3; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #6a9d78; color: #fff; font-style: normal; }
+.vbBench.bench4.qa2 .b4HypChoices .b4Card.hypothesis > em { margin: 0; }
+.vbBench.bench4.qa2 .b4HypChoices .b4Card.hypothesis > b, .vbBench.bench4.qa2 .b4HypChoices .b4Card.hypothesis > small { grid-column: 2; white-space: normal; word-break: keep-all; }
+.vbBench.bench4.qa2 .b4HypChoices .b4Card.hypothesis.selected { border-color: #9b6b64; background: #fff1ea; }
+
+/* Every action uses balanced padding and wraps long Korean choices instead of stretching flat. */
+.vbBench.bench4.qa2 button { box-sizing: border-box; }
+.vbBench.bench4.qa2 .b4Card, .vbBench.bench4.qa2 .qaChoices button, .vbBench.bench4.qa2 .b4Panel button { padding: 10px 14px; }
+.vbBench.bench4.qa2 .b4Dock .qaChoices button { min-height: 46px; line-height: 1.3; white-space: normal; text-align: center; }
+.vbBench.bench4.qa2 .b4Dock .causeMini { padding: 10px 12px; min-height: 82px; }
+.vbBench.bench4.qa2 .b4Dock .causeMini b { white-space: normal; line-height: 1.3; }
+.vbBench.bench4.qa2 .b4PanelBody p, .vbBench.bench4.qa2 .b4PanelBody li, .vbBench.bench4.qa2 .b4PanelBody td { overflow-wrap: anywhere; word-break: keep-all; }
+.b4Card i svg { width: 32px; height: 32px; }
+.b4HypNow { flex: none; margin: 0; display: flex; align-items: center; gap: 8px; }
+.b4HypNow i { font-style: normal; font: 800 12px/1 Pretendard, system-ui; padding: 4px 8px; border-radius: 999px; background: #9b6b64; color: #fff8f2; }
+.b4HypNow b { font: 800 15px/1.2 Pretendard, system-ui; color: #3f302c; }
+.b4HypNow small { font: 600 13px/1 Pretendard, system-ui; color: #7a5a53; }
+
+/* Pick screen: two hypotheses are a deliberate comparison, not a thin text
+   list stretched across a dark empty canvas. Use bright paper cards with a
+   clear numbered visual anchor and a compact evidence panel beside them. */
+.vbBench.bench4.qa2 .b4Pick { grid-template-columns: minmax(0, 1.35fr) minmax(300px, .9fr); gap: 12px; padding: 12px; background: linear-gradient(135deg, #eef7f1, #fff8e8); border-radius: 12px; }
+.vbBench.bench4.qa2 .b4HypList { gap: 10px; grid-auto-rows: minmax(112px, 1fr); }
+.vbBench.bench4.qa2 .b4HypList li { grid-template-columns: 38px auto minmax(0, 1fr) auto; padding: 12px 14px; border: 2px solid #d8c89e; background: #fffdf4; box-shadow: 0 3px 0 rgba(126, 101, 57, .12); }
+.vbBench.bench4.qa2 .b4HypList li.now { border-color: #d69556; background: #fff4c9; box-shadow: 0 0 0 3px rgba(214, 149, 86, .18), 0 3px 0 rgba(126, 101, 57, .12); }
+.vbBench.bench4.qa2 .b4HypList li i { width: 34px; height: 34px; background: #6a9d78; font-size: 15px; }
+.vbBench.bench4.qa2 .b4HypList li b { font-size: 16px; line-height: 1.35; }
+.vbBench.bench4.qa2 .b4HypList li em { padding: 5px 8px; border-radius: 999px; background: #e8f1e5; color: #4a7954; }
+.vbBench.bench4.qa2 .b4HypDetail { padding: 16px; border-color: #d8c89e; background: #fffdf4; box-shadow: 0 3px 0 rgba(126, 101, 57, .12); }
+.vbBench.bench4.qa2 .b4HypDetail h3 { font-size: 21px; }
+.vbBench.bench4.qa2 .b4Criteria { background: #eef7f1; border-color: #a9c8ad; }

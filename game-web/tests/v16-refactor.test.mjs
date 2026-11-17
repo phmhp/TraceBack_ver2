@@ -54,9 +54,10 @@ test("diagnosis stays evidence-led and the restored logic uses compatible jigsaw
   assert.match(currentLayout, /\.twinCompareStage\{grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
 });
 
-test("garage learning asks for a prediction and the v16 layout protects readable surfaces", () => {
-  assert.match(garage, /correctPhysicalOutput/);
-  assert.match(garage, /먼저 예측하고 관찰/);
+test("garage learning lets players pull parts out and the v16 layout protects readable surfaces", () => {
+  assert.match(garage, /② 빼 보기/);
+  assert.match(garage, /범인 찾기/);
+  assert.match(garage, /RemovedPartMarker/);
   assert.match(layout, /\.garagePredictionChoices/);
   assert.match(layout, /\.reasoningMicroRail/);
   assert.match(layout, /\.verificationShell/);
@@ -64,11 +65,12 @@ test("garage learning asks for a prediction and the v16 layout protects readable
 });
 
 test("the playable race owns the complete dock jump and commits the ending after deck settlement", () => {
-  assert.match(garage, /const TRACK_LENGTH = 1380/);
+  assert.match(readFileSync(new URL("../src/game/traffic.ts", import.meta.url), "utf8"), /export const TRACK_LENGTH = 2200/);
   assert.match(garage, /const DECK_STOP = DECK_TOUCH \+ 12/);
   assert.match(garage, /planeGeometry args=\{\[120,320\]\}/);
   assert.match(garage, /setDeckSettled\(true\)/);
-  assert.match(garage, /mode === "ship" && deckSettled/);
+  // the ending opens after the arrival celebration (deck settled → camera turns to the cats → about 3 s)
+  assert.match(garage, /mode === "ship" && celebrated/);
   const runtime = readFileSync(new URL("../src/game/runtime.ts", import.meta.url), "utf8");
   assert.match(runtime, /checkpoint: "pirate_ramp" \}, "ENDING"/);
 });

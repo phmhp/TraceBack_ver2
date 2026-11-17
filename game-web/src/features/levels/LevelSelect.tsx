@@ -1,0 +1,80 @@
+import React, { useState } from "react";
+import type { Campaign } from "../../game/runtime";
+import { LEVELS as ALL_LEVELS, levelStatus, lockedReason, type LevelDef } from "../../game/levels";
+/** Every level now ends with its own pirate-ship ending, so the final escape is not a separate node on the hub. */
+const LEVELS = ALL_LEVELS.filter(item => item.kind !== "finale");
+import { EV_DOMAINS } from "../garage/evData";
+import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
+import { MissionBar } from "../../ui/MissionBar";
+import { Icon } from "../../ui/Icon";
+import { ENGINEER } from "../../game/cast";
+import { play } from "../../ui/sfx";
+import "./level-select.css";
+
+type Send = React.Dispatch<any>;
+// A straight coastal run: each level is a checkpoint further along the same road.
+const POS = [{ x: 90, y: 304 }, { x: 250, y: 304 }, { x: 410, y: 304 }, { x: 570, y: 304 }, { x: 730, y: 304 }, { x: 890, y: 304 }, { x: 1030, y: 304 }];
+const ROAD = "M 24 304 H 1076";
+
+const EPISODE_ART: Record<string, { image: string; alt: string; caption: string }> = {
+  propulsion: { image: "/assets/board-photos/torque_cmd.png", alt: "구동 신호 기록", caption: "페달을 밟아도 토크가 줄어든 주행 기록" },
+  thermal: { image: "/assets/board-photos/thermal_protection.png", alt: "열관리 보호 동작 기록", caption: "열 보호가 작동해 출력이 제한된 순간" },
+  brake: { image: "/assets/ending-thumbs/brake_caliper.png", alt: "제동 부품", caption: "제동 입력과 실제 감속을 비교하는 사건" },
+  regen: { image: "/assets/board-photos/regen_request.png", alt: "회생 요청 기록", caption: "페달을 놓았을 때 회생 요청이 바뀐 순간" },
+  ready: { image: "/assets/ending-thumbs/vcu.png", alt: "VCU 제어기", caption: "시동 시퀀스가 READY로 넘어가지 않은 사건" },
+  gear: { image: "/assets/ending-thumbs/diagnostic_port.png", alt: "통신 진단 기록", caption: "변속 신호가 늦게 도착한 출발 순간" },
+  cold: { image: "/assets/ending-thumbs/brake_ecu.png", alt: "제동 제어기", caption: "저온 회생 한계가 잘못 적용된 감속 순간" },
+};
+
+const Stars = ({ n }: { n: number }) => <span className="lvStars" aria-label={`별 ${n}개`}>{[1, 2, 3].map(i => <i key={i} className={i <= n ? "on" : ""}>★</i>)}</span>;
+
+export function LevelSelect({ state, send }: { state: Campaign; send: Send }) {
+  const firstOpen = LEVELS.find(def => levelStatus(state, def) === "open") ?? LEVELS[LEVELS.length - 1];
+  const [sel, setSel] = useState<number>(firstOpen.level);
+  const def = LEVELS.find(item => item.level === sel)!;
+  const status = levelStatus(state, def);
+  const cleared = LEVELS.filter(item => levelStatus(state, item) === "cleared").length;
+  const stars = def.caseId ? state.levelStars?.[def.caseId] ?? 0 : 0;
+  const start = () => { if (status !== "open") { play("error"); return; } play("pop"); send({ type: "START_LEVEL", level: def.level }); };
+  const say = status === "locked" ? lockedReason(def) : status === "cleared" ? "이미 클리어한 레벨이에요. 다음 레벨을 골라 보세요." : def.kind === "finale" ? "두 필수 레벨을 마쳤어요. 이제 부두로 달려요." : def.kind === "bonus" ? "선택 레벨이에요. 건너뛰고 탈출해도 돼요." : "준비가 되면 시작을 눌러요. 정비소에서 본 내용이 도움이 돼요.";
+  return <div className="levelSelect">
+    <SceneBackdrop image="/assets/stitch23/investigation-lab.png" position="center" shade="soft" />
+    <GameHeader chapter="레벨 선택" title="추격 코스" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <main className="lvWork">
+      <MissionBar action="도전할 레벨을 고르세요" question="이번에는 어떤 고장이 기다릴까요?" progress={{ now: cleared, total: LEVELS.filter(item => item.kind === "required").length + 0 || 1 }} />
+      <section className="lvMap" aria-label="레벨 지도">
+        <svg viewBox="0 0 1100 440" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d={ROAD} className="lvRoadEdge" /><path d={ROAD} className="lvRoad" /><path d={ROAD} className="lvRoadLine" /><path d="M 24 276 H 1076" className="lvRoadShoulder" /><path d="M 24 332 H 1076" className="lvRoadShoulder" /></svg>
+        {LEVELS.map((item, i) => { const st = levelStatus(state, item); const s = item.caseId ? state.levelStars?.[item.caseId] ?? 0 : 0; return <button type="button" key={item.level} className={`lvNode ${st} ${item.kind} ${sel === item.level ? "sel" : ""}`} style={{ left: `${POS[i].x / 11}%`, top: `${POS[i].y / 4.4}%` }} onClick={() => { setSel(item.level); play("pop"); }} aria-pressed={sel === item.level}>
+          <span className="lvBadge">{st === "locked" ? <Icon name="lock" /> : <img className="lvCarIcon" src="/assets/ui/icons/getaway-car.svg" alt="" />}</span>
+          <b>{item.kind === "finale" ? "탈출" : `${item.level}레벨`}</b>
+          <small>{item.kind === "bonus" ? "선택 · " : ""}{item.domainLabel}</small>
+          {st === "cleared" && <Stars n={s} />}
+        </button>; })}
+      </section>
+      <aside className="lvPanel" aria-label="레벨 정보">
+        <LevelCard def={def} status={status} stars={stars} />
+      </aside>
+      <footer className="lvDock"><p className="lvSay"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><b>{ENGINEER}</b><span>{say}</span></p>
+        <p className="lvProgress">클리어 {cleared} / {LEVELS.length} · 별 {Object.values(state.levelStars ?? {}).reduce((a, b) => a + (b ?? 0), 0)}개</p></footer>
+      <div className="lvStart"><button className="stageProgressAction" disabled={status !== "open"} onClick={start}>{status === "cleared" ? "클리어" : status === "locked" ? "잠김" : "시작 →"}</button></div>
+    </main>
+  </div>;
+}
+
+function LevelCard({ def, status, stars }: { def: LevelDef; status: "cleared" | "open" | "locked"; stars: number }) {
+  const art = def.caseId ? EPISODE_ART[def.caseId] : { image: "/assets/stitch23/fault-breakdown.png", alt: "해적선 탈출 장면", caption: "수리한 차로 이어지는 최종 탈출" };
+  return <div className="lvCard">
+    <small>{def.kind === "bonus" ? "선택 레벨" : def.kind === "finale" ? "마지막 레벨" : `${def.level}레벨`} · {def.domainLabel}</small>
+    <h2>{def.title}</h2>
+    <figure className="lvEpisodeArt"><img src={art.image} alt={art.alt} />{def.caseId && <img className="lvEpisodeCat" src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />}<figcaption><b>EPISODE {def.level}</b><span>{art.caption}</span></figcaption></figure>
+    <p className="lvTeaser">{status === "locked" ? "아직 잠겨 있어요." : def.teaser}</p>
+    <dl>
+      <div><dt>시점</dt><dd>{status === "locked" ? "?" : def.phase}</dd></div>
+      <div><dt>배우는 것</dt><dd>{status === "locked" ? "?" : def.learn}</dd></div>
+      <div><dt>난이도</dt><dd className="lvDots">{[1, 2, 3].map(i => <i key={i} className={i <= def.difficulty ? "on" : ""} />)}</dd></div>
+      {status === "cleared" && <div><dt>결과</dt><dd><Stars n={stars} /></dd></div>}
+    </dl>
+    {status === "cleared" && <div className="lvPrinciples"><small><Icon name="bulb" /> 배운 원리</small><ul>{def.principles.map(line => <li key={line}>{line}</li>)}</ul></div>}
+    {def.garage.length > 0 && <div className="lvGarage"><small><Icon name="book" /> 정비소에서 본 내용</small><ul>{def.garage.map(item => <li key={`${item.domain}-${item.feature}`}><b>{EV_DOMAINS[item.domain].label}</b><span>{EV_DOMAINS[item.domain].features[item.feature].name}</span></li>)}</ul></div>}
+  </div>;
+}

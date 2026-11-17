@@ -1,185 +1,72 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, RoundedBox, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import type { Campaign, CaseId } from "./game/runtime";
 import { SCENARIOS } from "./game/scenarios";
-import { GameHeader, JourneyProgress, SceneBackdrop } from "./ui/game-shell";
+import { GameHeader, JourneyProgress, PursuitHud, SceneBackdrop, StageFolderSubtitle } from "./ui/game-shell";
+import { useReportSubStep } from "./ui/stepRoadmap";
+import { PedalLab } from "./features/garage/PedalLab";
+import { MissionBar } from "./ui/MissionBar";
+import { useDevActions } from "./ui/dev/devActions";
+import { HeroConvertible } from "./features/vehicle/HeroConvertible";
+import { DevRenderProbe } from "./features/vehicle/DevRenderProbe";
+import { FittedPart } from "./features/parts/PartModel";
+import { getPartModel, hasPartModel } from "./features/parts/partModels";
+import { ComicBurst } from "./ui/ComicBurst";
+import { engineStop, play } from "./ui/sfx";
+import { ECUS } from "./sim/components";
+import { getComponent } from "./sim/registry";
+import { Picto, SimulinkDiagram, blockKind, plainText } from "./features/garage/SimulinkDiagram";
+import { EeBlueprint, type EeLayer } from "./features/garage/EeBlueprint";
+import { VehicleLayoutRig, VehiclePlatformOverview, flowLegend } from "./features/garage/VehicleLayout";
+import { DRIVER, DUO, ENGINEER } from "./game/cast";
+import { Icon, type IconName } from "./ui/Icon";
+import { ArchitectureOverview } from "./features/garage/ArchitectureOverview";
+import { DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainId } from "./features/garage/evData";
+import { CAR_CONTACT, TRACK_LENGTH, TRAFFIC_COUNT, resetTrafficStall, stallTraffic, trafficHitVisual, trafficStateFor } from "./game/traffic";
+import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
+import { CYCLE_JUNCTIONS, ROAD_ZONES, zoneBrakeFactor, zonesAt, junctionAhead, leadBraking, nearJunction, newRearState, pedestrianContact, pedestriansAt, signalPhase, stepRear, type RearState } from "./game/situations";
+import { CLIMB_ZONE, FINAL_ESCAPE_M, OVERTAKE_ZONE } from "./game/course";
+import { COLD_FAULT, DEMO_FAULTS, GEAR_FAULT, PROPULSION_FAULT, REGEN_FAULT, levelFaults, policeSpeedKph, secondsToCatch, mergeEffects, newFaultRuntime, stepFault, type FaultContext, type FaultEffect, type FaultRuntime, type FaultSpec } from "./game/faultSchedule";
+import { StageIntro } from "./ui/Verdict";
+// Dev-only A/B switch for render-cost checks: `?car=legacy` shows the previous placeholder car.
+const DEV_LEGACY_CAR = import.meta.env.DEV && new URLSearchParams(location.search).get("car") === "legacy";
 
 const A = "/assets/";
 type Send = React.Dispatch<any>;
-type DomainId = "drive" | "brake" | "steer" | "gear" | "power" | "thermal" | "suspension";
+export type { DomainId };
 
+// "도메인" here follows E/E architecture practice (not an ISO 26262 term): functions grouped by domain controller.
+const DOMAIN_GROUP: Record<DomainId, string> = Object.fromEntries(DOMAIN_ORDER.map(id => [id, EV_DOMAINS[id].group])) as Record<DomainId, string>;
+const DOMAIN_ICON: Record<DomainId, IconName> = { drive: "gear", power: "battery", charge: "bolt", thermal: "thermo", brake: "disc", steer: "wheel", suspension: "spring", gear: "shift", vcu: "chip", comm: "signal", adas: "eye" };
+const SHOW_PULL_TABS = false; // "빼 보기"·"범인 찾기" hidden: they added tabs without a clear task (code kept)
+const SHOW_EE_TABS = false; // E/E "흐름 따라가기/부품 소개" strip: replaced by the node popup (kept for reference)
+const garageAutoTour = false; // the old 1.45 s background tour fought the pause button
 const learningLayers = [
-  { name: "Vehicle / System", tag: "운전자 입력·차량 기능·실제 거동" },
-  { name: "E/E Architecture", tag: "동일 위치의 센서·ECU·액추에이터" },
-  { name: "Control Software", tag: "핵심 제어 로직·상태·보호·출력" },
+  // ISO 26262 abstraction: item (vehicle function) → system architecture (HW/SW elements) → SW architecture & unit design
+  { name: "Vehicle / System", tag: "기계 동작 흐름 · 차량 부품 위치" },
+  { name: "E/E Architecture", tag: "하드웨어·소프트웨어 연결 · 센서·ECU·통신" },
+  { name: "SW Architecture", tag: "제어기 안의 SW 컴포넌트(SWC) 구성과 연결" },
+  { name: "Control Software", tag: "ECU 내부 SW 로직 · 제어 판단" },
 ] as const;
 
 // Garage navigation has three learning lenses.  The content model keeps a
 // separate SW architecture row for later integration views, while the garage
 // deliberately jumps to the useful detailed controller view instead of
 // presenting two nearly identical SW pages.
-const garageLayerSource = [0, 1, 3] as const;
+const garageLayerSource = [0, 1, 2, 3] as const;
 
-const domainContent = {
-  drive: {
-    label: "구동",
-    icon: "⚡",
-    accent: "#ef6b54",
-    purpose: "운전자 가속 의도를 모터 토크와 바퀴 구동력으로 바꿉니다.",
-    functions: ["운전자 토크 요청", "D단 구동 인터록", "인버터 전류·토크 제어", "감속기·차동기어 전달"],
-    paths: [
-      ["가속 의도", "요구 토크", "전륜 구동력", "차량 가속"],
-      ["APS 센서", "VCU", "CAN", "인버터", "PMSM 모터"],
-      ["Signal Adapter", "Driver Request", "Drive Permit", "Torque Command"],
-      ["입력 제한", "페달 맵", "가용 토크 MIN", "허용 조건 GATE"],
-    ],
-  },
-  brake: {
-    label: "제동",
-    icon: "◉",
-    accent: "#5a86b8",
-    purpose: "감속 요구를 회생제동과 마찰제동으로 나눠 안전하게 멈춥니다.",
-    functions: ["제동력 요구 계산", "회생·마찰 협조", "ABS·EBD 휠 제어", "ESC 차체 안정 제어"],
-    paths: [
-      ["감속 의도", "제동력 요구", "휠 제동력", "차량 감속"],
-      ["페달 센서", "Brake ECU", "CAN", "인버터·캘리퍼"],
-      ["Brake Request", "Blend Manager", "Wheel Control", "Actuator Cmd"],
-      ["슬립 판단", "회생 한계", "마찰 보상", "압력 제어"],
-    ],
-  },
-  steer: {
-    label: "조향",
-    icon: "↔",
-    accent: "#8a72b5",
-    purpose: "핸들 입력과 EPS 보조를 앞바퀴 각도와 차량 방향으로 바꿉니다.",
-    functions: ["전륜 각도 요청", "EPS 보조 토크", "랙·타이로드 전달", "요레이트 안정 협조"],
-    paths: [
-      ["조향 의도", "보조 토크", "전륜 각도", "진로 변경"],
-      ["토크·각도 센서", "EPS ECU", "모터", "랙·타이로드"],
-      ["Input Plausibility", "Assist Map", "Current Control", "Angle Feedback"],
-      ["속도별 맵", "토크 제한", "전류 PI", "진단 폴백"],
-    ],
-  },
-  power: {
-    label: "전원",
-    icon: "⏻",
-    accent: "#4a9a82",
-    purpose: "고전압을 안전하게 연결하고 각 도메인에 사용 가능한 전력을 알립니다.",
-    functions: ["Pack Safe 판단", "프리차지·접촉기", "출력 가용량 계산", "OBC·DC/DC·12V 공급"],
-    paths: [
-      ["START 요청", "전원 안전 판단", "HV 연결", "READY"],
-      ["전압·절연 센서", "BMS·VCU", "접촉기", "인버터·부하"],
-      ["Pack Monitor", "Power State", "Limit Manager", "Power Enable"],
-      ["절연 조건", "프리차지 상태기", "토크 상한", "고장 차단"],
-    ],
-  },
-  gear: {
-    label: "기어", icon: "PRND", accent: "#b17752", purpose: "운전자 변속 의도를 검증해 주행 방향과 주차 잠금을 안전하게 결정합니다.",
-    functions: ["PRND 입력 판독", "방향 전환 인터록", "P단 잠금 제어", "기어 상태 표시"],
-    paths: [["변속 의도", "안전 조건", "주행 방향", "차량 이동"], ["PRND 센서", "VCU", "Park ECU", "구동 허용"], ["Gear Adapter", "Shift Arbiter", "Park Control", "State Output"], ["입력 디바운스", "차속 조건", "브레이크 조건", "상태 래치"]],
-  },
-  thermal: {
-    label: "열관리", icon: "♨", accent: "#d77857", purpose: "배터리·모터·인버터 온도를 목표 범위로 유지해 성능과 수명을 보호합니다.",
-    functions: ["온도 상태 추정", "펌프·팬 제어", "냉각 회로 배분", "열 한계 출력 제한"],
-    paths: [["발열·외기", "열 요구", "냉각 동작", "온도 유지"], ["온도 센서", "Thermal ECU", "펌프·밸브", "팬"], ["Temp Adapter", "Thermal State", "Actuator Manager", "Feedback"], ["범위 검증", "히스테리시스", "목표 유량", "고장 디레이팅"]],
-  },
-  suspension: {
-    label: "현가", icon: "↕", accent: "#6f8d7c", purpose: "노면 충격을 흡수하고 타이어 접지와 차체 자세를 안정적으로 유지합니다.",
-    functions: ["노면 충격 흡수", "댐핑력 제어", "차고·자세 유지", "접지 상태 감시"],
-    paths: [["노면 입력", "휠 상하 운동", "스프링·댐퍼", "차체 안정"], ["가속도·높이 센서", "Chassis ECU", "댐퍼 밸브", "현가 장치"], ["Motion Input", "Damping Map", "Valve Command", "Ride Feedback"], ["센서 필터", "차속별 맵", "전류 제한", "폴백 댐핑"]],
-  },
-} satisfies Record<DomainId, {
-  label: string;
-  icon: string;
-  accent: string;
-  purpose: string;
-  functions: string[];
-  paths: string[][];
-}>;
+const domainContent = Object.fromEntries(DOMAIN_ORDER.map(id => {
+  const meta = EV_DOMAINS[id];
+  return [id, { label: meta.label, accent: meta.accent, purpose: meta.purpose, functions: meta.features.map(feature => feature.name), categories: meta.features.map(feature => feature.category), group: meta.group }];
+})) as unknown as Record<DomainId, { label: string; accent: string; purpose: string; functions: string[]; categories: string[]; group: DomainGroup }>;
 
 type FeatureFlow = { summary: string; layers: [string[], string[], string[], string[]] };
-const featureFlows: Record<DomainId, FeatureFlow[]> = {
-  drive: [
-    { summary: "페달 요구를 차량이 낼 수 있는 안전한 토크 요청으로 변환합니다.", layers: [["운전자 가속", "차량 토크 요구", "전륜 추진력", "차량 가속"], ["APS 이중 센서", "VCU", "CAN Torque", "인버터·모터"], ["Signal Adapter", "Driver Request SWC", "Torque Arbiter", "Command Port"], ["입력 상관성", "페달 맵", "가용 토크 MIN", "출력 제한"]] },
-    { summary: "D단과 READY 조건이 모두 맞을 때만 구동 토크를 허용합니다.", layers: [["D단 선택", "구동 허용", "토크 전달", "안전 출발"], ["PRND 센서", "VCU Interlock", "CAN Permit", "인버터 Enable"], ["Gear Adapter", "Drive Permit SWC", "Safety Gate", "Enable Port"], ["Gear==D", "READY 확인", "고장 래치", "Permit Gate"]] },
-    { summary: "토크 명령을 인버터 전류와 모터 축 토크로 정밀하게 만듭니다.", layers: [["토크 요구", "전류 변환", "모터 회전", "축 토크"], ["VCU", "인버터 ECU", "3상 전력", "PMSM 모터"], ["Torque Command", "Current Control", "PWM Service", "Rotor Feedback"], ["dq 변환", "전류 PI", "PWM 제한", "토크 추정"]] },
-    { summary: "모터 회전을 전륜 감속기와 차동기어로 나누어 양쪽 바퀴에 전달합니다.", layers: [["모터 회전", "감속", "좌우 분배", "노면 구동력"], ["모터", "감속기", "차동기어", "전륜 속도센서"], ["Speed Observer", "Slip Monitor", "Torque Vector", "Wheel Feedback"], ["기어비", "차동 보정", "슬립 제한", "피드백 필터"]] },
-  ],
-  brake: [
-    { summary: "페달 입력을 목표 감속도와 총 제동력 요구로 변환합니다.", layers: [["페달 조작", "감속 요구", "제동력 계산", "차량 감속"], ["페달 센서", "Brake ECU", "압력 명령", "캘리퍼"], ["Pedal Adapter", "Brake Request", "Force Target", "Command Port"], ["입력 유효성", "감속 맵", "힘 제한", "출력 램프"]] },
-    { summary: "가능한 회생제동을 먼저 쓰고 부족분을 마찰제동으로 보충합니다.", layers: [["총 제동 요구", "회생 배분", "마찰 보상", "일관된 감속"], ["Brake ECU", "VCU·인버터", "Hydraulic ECU", "모터·캘리퍼"], ["Blend Manager", "Regen Limit", "Friction Comp", "Actuator Ports"], ["배터리 수용량", "회생 MIN", "잔여력 계산", "압력 변환"]] },
-    { summary: "휠 슬립을 감시해 잠김 직전의 바퀴 압력을 빠르게 조절합니다.", layers: [["휠 잠김 징후", "슬립 판단", "압력 조절", "조향 가능 제동"], ["휠속 센서", "ABS ECU", "유압 모듈레이터", "캘리퍼"], ["Wheel Adapter", "Slip Estimator", "ABS State", "Valve Command"], ["차속 추정", "슬립 임계", "감압·유지·증압", "밸브 PWM"]] },
-    { summary: "차량의 요 움직임을 감지해 바퀴별 제동력으로 자세를 안정화합니다.", layers: [["회전 불안정", "요 오차", "개별 휠 제동", "차체 안정"], ["요·가속도 센서", "ESC ECU", "Brake ECU", "4륜 캘리퍼"], ["Motion Observer", "Yaw Control", "Wheel Allocator", "Pressure Ports"], ["목표 요율", "오차 PI", "휠 선택", "압력 제한"]] },
-  ],
-  steer: [
-    { summary: "운전자 핸들 각을 목표 전륜 각도로 바꾸고 실제 각도를 추종합니다.", layers: [["핸들 회전", "전륜각 요구", "랙 이동", "진로 변경"], ["각도 센서", "EPS ECU", "랙 위치센서", "전륜"], ["Angle Adapter", "Steer Target", "Rack Command", "Angle Feedback"], ["비율 맵", "각도 제한", "추종 PI", "오차 진단"]] },
-    { summary: "차속과 운전자 토크에 맞춰 자연스러운 EPS 보조 토크를 만듭니다.", layers: [["운전자 힘", "보조량 계산", "EPS 모터", "가벼운 조향"], ["토크 센서", "EPS ECU", "모터 인버터", "조향축"], ["Torque Adapter", "Assist Map", "Current Control", "Motor Port"], ["센터 보정", "속도별 맵", "전류 PI", "토크 제한"]] },
-    { summary: "EPS 모터의 회전을 랙과 타이로드를 통해 양쪽 전륜에 전달합니다.", layers: [["모터 회전", "랙 직선 이동", "타이로드", "전륜 각도"], ["EPS 모터", "감속기", "랙 센서", "타이로드"], ["Rack Observer", "Travel Limit", "Angle Convert", "Feedback Port"], ["기어비", "스트로크 제한", "좌우 기하", "센서 필터"]] },
-    { summary: "요율과 횡가속도를 이용해 불안정한 조향 요구를 보정합니다.", layers: [["조향 요구", "차체 반응", "안정 보정", "진로 유지"], ["조향각 센서", "ESC ECU", "EPS ECU", "전륜"], ["Motion Input", "Stability Coord", "Overlay Torque", "EPS Port"], ["요율 오차", "보정 게인", "개입 제한", "폴백"]] },
-  ],
-  power: [
-    { summary: "전압·절연·온도를 확인해 고전압 팩이 사용 가능한지 판단합니다.", layers: [["START 요청", "팩 안전 확인", "전원 허용", "READY 준비"], ["전압·절연 센서", "BMS", "VCU", "HV 부하"], ["Pack Monitor", "Safety State", "PackSafe Port", "Power Coordinator"], ["전압 범위", "절연 임계", "온도 제한", "Safe Latch"]] },
-    { summary: "인버터 커패시터를 먼저 충전한 뒤 주 접촉기를 안전하게 닫습니다.", layers: [["전원 요청", "프리차지", "주 접촉기", "HV 연결"], ["팩 전압센서", "BMS", "프리차지 릴레이", "Main Contactor"], ["Voltage Adapter", "Precharge State", "Contactor Driver", "HV Feedback"], ["전압비 계산", "타임아웃", "용착 진단", "상태 전이"]] },
-    { summary: "배터리 상태와 열 한계로 각 도메인이 쓸 수 있는 출력 상한을 계산합니다.", layers: [["팩 상태", "출력 한계", "도메인 배분", "가용 성능"], ["BMS", "VCU", "CAN Limit", "인버터·부하"], ["Limit Receiver", "Power Budget", "Domain Allocator", "Limit Ports"], ["SOC 보정", "온도 디레이팅", "합계 제한", "램프율"]] },
-    { summary: "고전압과 저전압 부하를 변환·충전해 차량 전장품을 계속 공급합니다.", layers: [["외부·팩 전력", "전력 변환", "12V 공급", "전장품 동작"], ["충전 인렛", "OBC", "DC/DC", "12V 배터리"], ["Charge Control", "DCDC Manager", "LV Monitor", "Supply Port"], ["충전 인터록", "전압 목표", "전류 제한", "저전압 보호"]] },
-  ],
-  gear: [
-    { summary: "PRND 스위치의 접점과 통신 신호를 서로 검증해 운전자 의도를 확정합니다.", layers: [["PRND 조작", "변속 의도", "유효 상태"], ["PRND 센서", "VCU", "Cluster"], ["Gear Adapter", "Plausibility", "Gear State"], ["디바운스", "상관성", "상태 래치"]] },
-    { summary: "차량이 움직이는 중 반대 방향 선택을 막고 브레이크 조건을 확인합니다.", layers: [["방향 요청", "차속·브레이크 확인", "방향 허용"], ["PRND", "VCU", "Brake ECU", "Inverter"], ["Shift Request", "Safety Interlock", "Direction Permit"], ["차속 임계", "브레이크 조건", "거부 진단"]] },
-    { summary: "P단에서 파킹 폴 또는 전동 파킹 액추에이터를 안전하게 체결합니다.", layers: [["P 요청", "정지 확인", "잠금 체결", "차량 고정"], ["VCU", "Park ECU", "Lock Actuator", "Position Sensor"], ["Park Request", "Actuator Control", "Lock Feedback"], ["차속 0", "전류 제한", "체결 확인"]] },
-    { summary: "확정된 기어 상태를 계기판과 관련 제어기에 일관되게 전달합니다.", layers: [["기어 상태", "네트워크 배포", "표시·제어"], ["VCU", "CAN", "Cluster·ECU"], ["State Publisher", "Timeout Monitor", "Consumers"], ["상태 인코딩", "E2E 확인", "타임아웃"]] },
-  ],
-  thermal: [
-    { summary: "여러 온도 센서를 검증·필터링해 보호에 사용할 열 상태를 만듭니다.", layers: [["부품 발열", "온도 측정", "열 상태"], ["NTC 센서", "Thermal ECU", "VCU"], ["Temp Adapter", "Plausibility", "State Estimator"], ["범위 검사", "필터", "최대값 선택"]] },
-    { summary: "목표 온도에 따라 펌프 유량과 팬 회전수를 폐루프로 제어합니다.", layers: [["열 요구", "유량·풍량", "온도 저감"], ["Thermal ECU", "Pump·Fan", "RPM Feedback"], ["Target Manager", "PWM Control", "Feedback Monitor"], ["히스테리시스", "PI 제어", "무응답 진단"]] },
-    { summary: "배터리·구동계·실내 회로 사이에서 냉각수 경로와 밸브를 배분합니다.", layers: [["열원 우선순위", "회로 선택", "밸브 전환"], ["VCU", "Valve Manifold", "Coolant Loop"], ["Mode Manager", "Valve Command", "Position Feedback"], ["모드 상태기", "전환 지연", "피드백 확인"]] },
-    { summary: "냉각 능력이 부족할 때 구동 출력을 단계적으로 낮춰 부품을 보호합니다.", layers: [["온도 초과", "출력 제한", "부품 보호"], ["Thermal ECU", "VCU", "Inverter"], ["Derate Request", "Torque Limit", "Recovery"], ["단계 임계", "램프 제한", "복귀 히스테리시스"]] },
-  ],
-  suspension: [
-    { summary: "스프링과 댐퍼가 노면 충격을 흡수해 차체로 전달되는 진동을 줄입니다.", layers: [["노면 요철", "휠 운동", "스프링·댐퍼", "차체 진동 저감"], ["타이어", "스프링", "댐퍼", "차체"], ["Road Input", "Ride Model", "Body Response"], ["변위", "속도", "감쇠력"]] },
-    { summary: "전자제어 댐퍼가 차속과 차체 운동에 맞춰 감쇠력을 조절합니다.", layers: [["차체 운동", "댐핑 목표", "밸브 전류", "감쇠력"], ["IMU", "Chassis ECU", "Damper Valve", "Damper"], ["Motion Adapter", "Damping Map", "Current Command"], ["필터", "맵 보간", "전류 제한"]] },
-    { summary: "차고 센서와 공기 스프링을 이용하는 사양에서는 높이와 자세를 유지합니다.", layers: [["차고 오차", "압력 조절", "차고 복원"], ["Height Sensor", "Chassis ECU", "Compressor·Valve", "Air Spring"], ["Height Control", "Pressure Command", "Feedback"], ["목표 차고", "밸브 상태기", "누설 진단"]] },
-    { summary: "휠 가속도와 차고 변화를 감시해 접지 저하 또는 센서 고장을 판별합니다.", layers: [["휠 운동", "접지 추정", "보호 모드"], ["Wheel Sensor", "Chassis ECU", "ESC"], ["Contact Observer", "Fault Monitor", "Fallback"], ["스펙트럼", "임계 판단", "고정 댐핑"]] },
-  ],
-};
+const featureFlows = Object.fromEntries(DOMAIN_ORDER.map(id => [id, EV_DOMAINS[id].features.map(feature => ({ summary: feature.summary, layers: feature.layers }))])) as unknown as Record<DomainId, FeatureFlow[]>;
 
-// A vehicle function does not magically have four stages.  Each learning
-// lens exposes the number of boundaries that actually matter for that
-// function, while retaining the compact source data above as a fallback.
-const featureLayerOverrides: Record<DomainId, Record<number, Partial<Record<number, string[]>>>> = {
-  drive: {
-    0: { 0: ["가속 페달 조작", "가속 의도", "가용 토크 판단", "전륜 추진력", "차량 가속"], 1: ["APS A/B 가속 페달", "VCU", "CAN 토크", "인버터", "전륜 PMSM·감속기"], 3: ["A/B 상관성", "입력 필터", "페달 맵", "구동 허용", "가용 토크 MIN", "램프율", "토크 출력"] },
-    1: { 0: ["D단 선택", "READY 확인", "구동 허용", "안전 출발"], 1: ["PRND 센서", "VCU Interlock", "CAN Permit", "인버터 Enable"], 3: ["Gear==D", "HV READY", "브레이크 인터록", "고장 래치", "Permit Gate"] },
-    2: { 0: ["토크 요구", "전류 목표", "dq 제어", "PWM", "모터 회전", "축 토크"], 1: ["VCU", "CAN", "인버터 MCU", "3상 브리지", "PMSM", "리졸버"], 3: ["명령 수신", "dq 변환", "전류 PI", "전압 제한", "PWM 생성", "리졸버 피드백", "토크 추정"] },
-    3: { 0: ["모터 회전", "1단 감속", "차동 분배", "전륜 반축", "노면 구동력"], 1: ["PMSM", "전륜 감속기", "차동기어", "좌·우 드라이브샤프트", "전륜"], 3: ["회전속도", "기어비", "차동 보정", "슬립 제한", "휠 피드백"] },
-  },
-  brake: {
-    0: { 0: ["페달 조작", "감속 의도", "목표 감속도", "총 제동력", "차량 감속"], 1: ["페달 A/B 센서", "Brake ECU", "압력 제어기", "유압 라인", "4륜 캘리퍼"], 3: ["입력 상관성", "페달 필터", "감속 맵", "힘 제한", "압력 변환", "출력 램프"] },
-    1: { 0: ["총 제동 요구", "배터리 수용량", "회생 한계", "마찰 보상", "전·후륜 배분", "일관된 감속"], 1: ["Brake ECU", "VCU", "BMS", "인버터", "Hydraulic ECU", "모터·캘리퍼"], 3: ["요구 수신", "회생 가용량", "회생 MIN", "잔여력 계산", "마찰 압력", "블렌딩 피드백"] },
-    2: { 0: ["휠 잠김 징후", "차속 추정", "슬립 계산", "밸브 조절", "조향 가능 제동"], 1: ["4륜 속도센서", "ABS ECU", "유압 모듈레이터", "솔레노이드 밸브", "캘리퍼"], 3: ["휠속 필터", "기준 차속", "슬립 임계", "감압·유지·증압", "밸브 PWM", "재평가"] },
-    3: { 0: ["회전 불안정", "목표 요율", "요 오차", "개별 휠 제동", "차체 안정"], 1: ["요·횡가속 센서", "ESC ECU", "Brake ECU", "유압 모듈", "4륜 캘리퍼"], 3: ["센서 융합", "목표 요율", "오차 PI", "휠 선택", "압력 제한", "개입 종료"] },
-  },
-  steer: {
-    0: { 0: ["핸들 회전", "운전자 조향 의도", "목표 전륜각", "랙 이동", "진로 변경"], 1: ["핸들각 센서", "EPS ECU", "EPS 모터", "랙·타이로드", "전륜"], 3: ["각도 보정", "조향비 맵", "목표 랙 위치", "추종 PI", "각도 제한", "피드백 진단"] },
-    1: { 0: ["운전자 토크", "차속 보정", "보조 토크", "EPS 모터", "가벼운 조향"], 1: ["토크 센서", "차속 CAN", "EPS ECU", "모터 인버터", "조향축"], 3: ["센터 보정", "토크 필터", "속도별 맵", "복원 토크", "전류 PI", "보호 제한"] },
-    2: { 0: ["EPS 모터", "웜 감속", "피니언", "랙 직선 이동", "타이로드", "좌·우 전륜각"], 1: ["EPS 모터", "감속기", "피니언", "랙", "타이로드", "전륜 너클"], 3: ["모터각", "기어비", "랙 변환", "스트로크 제한", "아커만 보정", "각도 피드백"] },
-    3: { 0: ["조향 요구", "차체 요 반응", "안정도 판단", "오버레이 토크", "진로 유지"], 1: ["조향각 센서", "IMU", "ESC ECU", "EPS ECU", "전륜"], 3: ["요율 오차", "횡가속 검증", "안정 협조", "보정 게인", "개입 제한", "폴백"] },
-  },
-  power: {
-    0: { 0: ["시동 버튼", "START 요청", "팩 안전 확인", "전원 허용", "READY"], 1: ["START 버튼", "전압·절연·온도 센서", "BMS", "VCU", "HV 부하"], 3: ["START 입력", "전압 범위", "절연 임계", "온도 제한", "Crash 신호", "PackSafe 래치"] },
-    1: { 0: ["전원 요청", "부하측 전압 확인", "프리차지", "전압 동기화", "주 접촉기", "HV 연결"], 1: ["팩 전압센서", "BMS", "프리차지 저항", "릴레이", "주 접촉기", "HV 버스"], 3: ["전압비 계산", "Precharge 상태기", "타임아웃", "주 접촉기 명령", "용착 진단", "HV 피드백"] },
-    2: { 0: ["팩 상태", "열·SOC 한계", "출력 예산", "도메인 배분", "가용 성능"], 1: ["BMS", "VCU", "Power Coordinator", "CAN Limit", "인버터·부하"], 3: ["SOC 보정", "온도 디레이팅", "충방전 한계", "합계 제한", "도메인 우선순위", "램프율"] },
-    3: { 0: ["외부·팩 전력", "OBC", "HV 버스", "DC/DC", "12V 배터리", "전장품 공급"], 1: ["충전 인렛", "OBC", "HV Junction", "DC/DC", "12V 배터리", "LV 부하"], 3: ["충전 인터록", "전압 목표", "전류 제한", "DCDC 제어", "LV 모니터", "저전압 보호"] },
-  },
-  gear: {},
-  thermal: {},
-  suspension: {},
-};
-
-const getFeatureLayer = (domain: DomainId, feature: number, layer: number) =>
-  featureLayerOverrides[domain]?.[feature]?.[layer] ?? featureFlows[domain][feature].layers[layer];
+export const getFeatureLayer = (domain: DomainId, feature: number, layer: number) => featureFlows[domain][feature].layers[layer];
 
 function Tire({ position, steer = false, spin = 0 }: { position: [number, number, number]; steer?: boolean; spin?: number }) {
   return (
@@ -194,20 +81,30 @@ function PartLabel({ children, position, className = "" }: { children: React.Rea
   return <Html center position={position} distanceFactor={6}><span className={`garage3dLabel ${className}`.trim()}>{children}</span></Html>;
 }
 
-function SignalCable({ from, to, color = "#ef8c58", via = [] }: { from: [number, number, number]; to: [number, number, number]; color?: string; via?: [number, number, number][] }) {
+function SignalCable({ from, to, color = "#ef8c58", via = [], animated = true, progress = 0 }: { from: [number, number, number]; to: [number, number, number]; color?: string; via?: [number, number, number][]; animated?: boolean; progress?: number }) {
   const pulses = useRef<THREE.Mesh[]>([]);
   const curve = useMemo(() => {
     const a = new THREE.Vector3(...from), b = new THREE.Vector3(...to);
+    // Keep the default harness below the parts: descend vertically from each port,
+    // run the shared segment horizontally, then rise into the destination port.
+    // Explicit `via` routes remain available for component-specific harnesses.
     const points = via.length
       ? [a, ...via.map(point => new THREE.Vector3(...point)), b]
-      : [a, a.clone().add(new THREE.Vector3(.3, .55, 0)), b.clone().add(new THREE.Vector3(-.3, .55, 0)), b];
-    return new THREE.CatmullRomCurve3(points);
+      : (() => {
+        const lowY = Math.min(a.y, b.y) - .28;
+        const midX = (a.x + b.x) / 2;
+        const midZ = (a.z + b.z) / 2;
+        return [a, new THREE.Vector3(a.x, lowY, a.z), new THREE.Vector3(midX, lowY, midZ), new THREE.Vector3(b.x, lowY, b.z), b];
+      })();
+    const path = new THREE.CurvePath<THREE.Vector3>();
+    for (let index = 0; index < points.length - 1; index += 1) path.add(new THREE.LineCurve3(points[index], points[index + 1]));
+    return path;
   }, [from.join(","), to.join(","), via.flat().join(",")]);
   useFrame(({ clock }) => {
     pulses.current.forEach((pulse, index) => {
       if (!pulse) return;
-      const point = curve.getPointAt((clock.elapsedTime * .22 + index / 3) % 1);
-      pulse.position.copy(point);
+      pulse.visible = animated;
+      if (animated) pulse.position.copy(curve.getPointAt(Math.min(1, Math.max(0, progress + index / 3))));
     });
   });
   return <group>
@@ -216,16 +113,23 @@ function SignalCable({ from, to, color = "#ef8c58", via = [] }: { from: [number,
   </group>;
 }
 
-function GarageFlowPart({ label, position, kind, active, running, role }: { label: string; position: [number, number, number]; kind: HardwareKind; active: boolean; running: boolean; role: string }) {
+function GarageFlowPart({ label, position, kind, active, running, role, partId, inspect }: { label: string; position: [number, number, number]; kind: HardwareKind; active: boolean; running: boolean; role: string; partId?: string; inspect?: PartInspectTarget }) {
   const [hovered, setHovered] = useState(false);
+  // the input part uses the same long-press toggle as the shared control bar
+  const operable = role === "INPUT" && Boolean(inspect);
+  const press = (action: "start" | "end") => dispatchEvent(new CustomEvent("tb-garage-input", { detail: { action } }));
   return <group
+    onPointerDown={operable ? event => { event.stopPropagation(); press("start"); } : undefined}
+    onPointerUp={operable ? () => press("end") : undefined}
     position={position}
     scale={active ? 1.08 : .82}
-    onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = "help"; }}
-    onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; }}
+    onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = operable ? "pointer" : inspect ? "zoom-in" : "help"; }}
+    onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; if (operable) press("end"); }}
+    onDoubleClick={event => { if (!inspect) return; event.stopPropagation(); play("pop"); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: inspect })); }}
+    onClick={!operable && inspect ? event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-garage-step", { detail: { index: inspect.index } })); } : undefined}
   >
-    <HardwarePart kind={kind} active={active} running={running} />
-    {hovered && <PartLabel position={[0, 1.16, 0]}>{role} · {label}</PartLabel>}
+    <HardwarePart kind={kind} active={active} running={running} partId={partId} />
+    {hovered && <PartLabel className="hoverPartLabel" position={[0, 1.16, 0]}>{operable ? `${label} · 길게 눌러 입력 선택` : `${label}${inspect ? " · 더블클릭: 자세히" : ""}`}</PartLabel>}
   </group>;
 }
 
@@ -249,9 +153,135 @@ const domainHardware: Record<DomainId, { kinds: HardwareKind[]; labels: string[]
   power: { kinds: ["startbutton", "ecu", "contactor", "battery"], labels: ["START 시동 버튼", "BMS·VCU", "프리차지·접촉기", "고전압 배터리"] },
   thermal: { kinds: ["sensor", "ecu", "hydraulic", "fan"], labels: ["온도·유량 센서", "Thermal ECU", "냉각 펌프·밸브", "라디에이터 팬"] },
   suspension: { kinds: ["sensor", "ecu", "hydraulic", "rack"], labels: ["차고·가속도 센서", "Chassis ECU", "전자 댐퍼 밸브", "스프링·댐퍼"] },
+  charge: { kinds: ["sensor", "ecu", "contactor", "battery"], labels: ["충전 인렛·CP/PP 신호", "EVCC·OBC", "충전 접촉기", "고전압 배터리"] },
+  comm: { kinds: ["ecu", "ecu", "ecu", "ecu"], labels: ["송신 제어기", "CAN 버스", "게이트웨이", "수신 제어기"] },
+  vcu: { kinds: ["startbutton", "ecu", "contactor", "battery"], labels: ["START 시동 버튼", "VCU 제어기", "12V·DC/DC", "도메인 제어기들"] },
+  adas: { kinds: ["sensor", "ecu", "ecu", "ecu"], labels: ["전방 카메라·레이더", "ADAS ECU", "Brake ECU", "Cluster 경고등"] },
 };
 
-function HardwarePart({ kind, active = true, running = true }: { kind: HardwareKind; active?: boolean; running?: boolean }) {
+// Garage/bench label → code-built part model (src/features/parts). Labels without a
+// model yet keep the primitive HardwarePart below, so new models appear automatically.
+export const partModelFor = (domain: DomainId, label: string): string | undefined => {
+  const id =
+    /START 버튼|시동 버튼|START 시동/.test(label) ? "start_button"
+    : /3상 브리지/.test(label) ? "inverter"
+    : /압력 제어기|^유압 모듈$|솔레노이드 밸브/.test(label) ? "hydraulic_modulator"
+    : /유압 라인/.test(label) ? "brake_line"
+    : /요·횡가속/.test(label) ? "imu_sensor"
+    : /핸들각/.test(label) ? "steering_wheel"
+    : /차속 CAN/.test(label) ? "can_harness"
+    : /피니언|^랙$/.test(label) ? "steering_rack"
+    : /너클/.test(label) ? "wheel"
+    : /^릴레이$/.test(label) ? "main_contactor"
+    : /HV 버스/.test(label) ? "hv_cable"
+    : /HV Junction/.test(label) ? "hv_junction_box"
+    : /LV 부하/.test(label) ? "instrument_cluster"
+    : /Power Coordinator/.test(label) ? "vcu"
+    : domain === "steer" && /감속기/.test(label) ? "eps_motor"
+    : /^CAN/.test(label) ? "can_harness"
+    : /3상 전력/.test(label) ? "hv_cable"
+    : /압력 명령/.test(label) ? "hydraulic_modulator"
+    : /^토크 센서/.test(label) ? "steering_torque_sensor"
+    : /조향축/.test(label) ? "steering_column"
+    : /모터 인버터/.test(label) ? "eps_power_pack"
+    : /랙 위치센서|랙 센서/.test(label) ? "steering_rack"
+    : /요·가속도|^IMU/.test(label) ? "imu_sensor"
+    : /전압·절연|팩 전압센서/.test(label) ? "isolation_monitor"
+    : /HV 부하/.test(label) ? "hv_junction_box"
+    : /Cluster/.test(label) ? "instrument_cluster"
+    : /Park ECU/.test(label) ? "park_ecu"
+    : /Chassis ECU/.test(label) ? "chassis_ecu"
+    : /EVCC/.test(label) ? "evcc"
+    : /충전구 잠금 액추에이터/.test(label) ? "charge_lock_actuator"
+    : /전동 컴프레서/.test(label) ? "ac_compressor"
+    : /PTC 히터/.test(label) ? "ptc_heater"
+    : /전자식 팽창 ?밸브/.test(label) ? "eev"
+    : /전방 카메라/.test(label) ? "adas_camera"
+    : /전방 레이더/.test(label) ? "adas_radar"
+    : /ADAS ECU/.test(label) ? "adas_ecu"
+    : /텔레매틱스 제어기/.test(label) ? "tcu"
+    : /Lock Actuator|잠금 액추에이터/.test(label) ? "park_lock_actuator"
+    : /Position Sensor/.test(label) ? "park_position_sensor"
+    : /Height Sensor|높이 센서/.test(label) ? "ride_height_sensor"
+    : /RPM Feedback/.test(label) ? "cooling_fan"
+    : /Valve Manifold/.test(label) ? "coolant_valve"
+    : /Coolant Loop/.test(label) ? "radiator"
+    : /^타이어$/.test(label) ? "wheel"
+    : /^스프링$/.test(label) ? "coil_spring"
+    : /댐퍼 밸브|Damper Valve/.test(label) ? "cdc_damper"
+    : /댐퍼|Damper/.test(label) ? "damper"
+    : /Air Spring/.test(label) ? "air_spring"
+    : /Compressor/.test(label) ? "air_compressor"
+    : /^차체$/.test(label) ? "body_shell"
+    : /^ESC$/.test(label) ? "brake_ecu"
+    : /^PRND/.test(label) ? "gear_selector"
+    : /APS|페달/.test(label) ? (domain === "brake" ? "brake_pedal" : "accel_pedal")
+    : /조향각|^각도 센서/.test(label) ? "steering_wheel"
+    : /휠속|Wheel Sensor|속도센서/.test(label) ? "wheel_speed_sensor"
+    : /리졸버/.test(label) ? "rotor_position_sensor"
+    : /NTC/.test(label) ? "motor_temp_sensor"
+    : /^BMS/.test(label) ? "bms"
+    : /^VCU/.test(label) ? "vcu"
+    : /인버터 ECU|MCU/.test(label) ? "mcu"
+    : /Thermal ECU/.test(label) ? "thermal_ecu"
+    : /(Brake|ABS|ESC|Hydraulic) ECU/.test(label) ? "brake_ecu"
+    : /EPS ECU/.test(label) ? "eps_ecu"
+    : /EPS 모터/.test(label) ? "eps_motor"
+    : /고전압 배터리/.test(label) ? "hv_battery"
+    : /12V 배터리/.test(label) ? "lv_battery"
+    : /Main Contactor|접촉기|프리차지/.test(label) ? "main_contactor"
+    : /DC\/DC/.test(label) ? "dcdc_converter"
+    : /^OBC/.test(label) ? "obc"
+    : /충전 인렛/.test(label) ? "charging_port"
+    : /^인버터|Inverter/.test(label) ? "inverter"
+    : /PMSM|^모터$/.test(label) ? "traction_motor"
+    : /감속기/.test(label) ? "reduction_gear"
+    : /차동기어/.test(label) ? "differential"
+    : /드라이브 ?샤프트/.test(label) ? "drive_shaft"
+    : /^전륜$|휠·허브/.test(label) ? "wheel"
+    : /유압 모듈레이터/.test(label) ? "hydraulic_modulator"
+    : /캘리퍼/.test(label) ? "brake_caliper"
+    : /타이로드|랙·/.test(label) ? "steering_rack"
+    : /냉각 팬|라디에이터 팬/.test(label) ? "cooling_fan"
+    : /냉각 펌프|Pump·Fan/.test(label) ? "cooling_pump"
+    : undefined;
+  return id && hasPartModel(id) ? id : undefined;
+};
+
+// Where a cable meets a part: the model's port anchor (a real connector/terminal position), transformed the
+// same way HardwarePart → FittedPart places the model (size 1.3, turned -0.55 rad about Y), then the part scale.
+const HARDWARE_TURN = -.55, HARDWARE_SIZE = 1.3;
+/** World point of one named port anchor of a part placed with HardwarePart at `position`/`scale`. */
+function anchorPoint(id: string, port: string, position: [number, number, number], scale: number): [number, number, number] {
+  const model = getPartModel(id);
+  const anchor = model.anchors[port] ?? Object.values(model.anchors)[0];
+  const fit = HARDWARE_SIZE / Math.max(...model.size);
+  const local = new THREE.Vector3((anchor[0] - model.center[0]) * fit, (anchor[1] - model.center[1]) * fit, (anchor[2] - model.center[2]) * fit)
+    .applyAxisAngle(new THREE.Vector3(0, 1, 0), HARDWARE_TURN).multiplyScalar(scale);
+  return [position[0] + local.x, position[1] + local.y, position[2] + local.z];
+}
+function portPoint(domain: DomainId, label: string, position: [number, number, number], scale: number, side: "in" | "out"): [number, number, number] | undefined {
+  const id = partModelFor(domain, label);
+  if (!id) return undefined;
+  const model = getPartModel(id);
+  const ports = getComponent(id)?.ports;
+  const names = Object.keys(model.anchors);
+  const pick = ports
+    ? ports.find(port => port.direction === side && names.includes(port.id))?.id ?? names[side === "in" ? 0 : names.length - 1]
+    : side;
+  const anchor = model.anchors[pick] ?? model.anchors[names[0]];
+  const fit = HARDWARE_SIZE / Math.max(...model.size);
+  const local = new THREE.Vector3((anchor[0] - model.center[0]) * fit, (anchor[1] - model.center[1]) * fit, (anchor[2] - model.center[2]) * fit)
+    .applyAxisAngle(new THREE.Vector3(0, 1, 0), HARDWARE_TURN).multiplyScalar(scale);
+  return [position[0] + local.x, position[1] + local.y, position[2] + local.z];
+}
+
+function HardwarePart({ kind, active = true, running = true, partId }: { kind: HardwareKind; active?: boolean; running?: boolean; partId?: string }) {
+  if (partId) return <group rotation={[0, HARDWARE_TURN, 0]}><FittedPart id={partId} size={HARDWARE_SIZE} demo={active && running} /></group>;
+  return <PrimitiveHardwarePart kind={kind} active={active} running={running} />;
+}
+
+function PrimitiveHardwarePart({ kind, active = true, running = true }: { kind: HardwareKind; active?: boolean; running?: boolean }) {
   const root = useRef<THREE.Group>(null!);
   useFrame(({ clock }, delta) => {
     if (!root.current) return;
@@ -318,16 +348,16 @@ function DomainSignature({ domain, activeStep }: { domain: DomainId; activeStep:
     {[-2.3, 2.3].map(x => <group key={x} position={[x, 0, 0]} rotation={[0, activeStep > 1 ? Math.sign(x) * .22 : 0, 0]}><mesh rotation={[0, Math.PI / 2, 0]}><torusGeometry args={[.52, .14, 18, 42]} /><meshStandardMaterial color="#26302e" /></mesh><SignalCable from={[0, .06, 0]} to={[Math.sign(x) * .65, .06, 0]} color="#8d75b6" /></group>)}
   </group>;
   if (domain === "gear") return <group position={[0,.18,0]}>
-    <group position={[-2.1,.45,.25]} scale={.72}><HardwarePart kind="gear" active={activeStep < 2} /></group>
+    <group position={[-2.1,.45,.25]} scale={.72}><HardwarePart kind="gear" active={activeStep < 2} partId={partModelFor("gear", "PRND")} /></group>
     <RoundedBox args={[1.55,.7,1.05]} radius={.16} position={[0,.38,0]}><meshPhysicalMaterial color="#667672" metalness={.62} roughness={.24} clearcoat={.55} /></RoundedBox>
     {[-.5,0,.5].map(x => <mesh key={x} position={[x,.4,.58]}><cylinderGeometry args={[.13,.13,.18,24]} /><meshStandardMaterial color={activeStep>1?"#f0a154":"#b7c1bc"} metalness={.75} /></mesh>)}
-    <group position={[2.05,.32,-.15]} scale={.62}><HardwarePart kind="contactor" active={activeStep>1} /></group>
+    <group position={[2.05,.32,-.15]} scale={.78}><HardwarePart kind="contactor" active={activeStep>1} /></group>
     <SignalCable from={[-1.55,.65,.05]} to={[-.72,.65,.05]} color="#b17752" /><SignalCable from={[.72,.65,.05]} to={[1.55,.65,.05]} color="#ef8a4f" />
   </group>;
   if (domain === "thermal") return <group position={[0,.16,0]}>
-    <group position={[-2.15,.55,0]} scale={.58}><HardwarePart kind="sensor" active={activeStep<2} /></group>
+    <group position={[-2.15,.55,0]} scale={.58}><HardwarePart kind="sensor" active={activeStep<2} partId={partModelFor("thermal", "NTC 센서")} /></group>
     <mesh position={[0,.44,0]} rotation={[0,0,Math.PI/2]}><torusGeometry args={[1.12,.13,18,60]} /><meshStandardMaterial color="#4d94aa" metalness={.44} roughness={.32} /></mesh>
-    <group position={[2.05,.55,0]} scale={.78}><HardwarePart kind="fan" active={activeStep>1} /></group>
+    <group position={[2.05,.55,0]} scale={.78}><HardwarePart kind="fan" active={activeStep>1} partId={partModelFor("thermal", "라디에이터 팬")} /></group>
     <SignalCable from={[-1.55,.62,.12]} to={[-.7,.62,.12]} color="#4b9dc1" /><SignalCable from={[.72,.62,.12]} to={[1.48,.62,.12]} color="#d77857" />
   </group>;
   if (domain === "suspension") return <group position={[0,.08,0]}>
@@ -342,7 +372,50 @@ function DomainSignature({ domain, activeStep }: { domain: DomainId; activeStep:
   </group>;
 }
 
-function DomainFlowRig({ domain, feature, activeStep = 0, compact = false, running = true }: { domain: DomainId; feature: number; activeStep?: number; compact?: boolean; running?: boolean }) {
+// Domain backdrop built from the code-built part models (the primitive version above is kept unused).
+function DomainSignatureModels({ domain, activeStep }: { domain: DomainId; activeStep: number }) {
+  const on = activeStep > 1;
+  const P = ({ id, size, position, rotation = [0, 0, 0], demo = false }: { id: string; size: number; position: [number, number, number]; rotation?: [number, number, number]; demo?: boolean }) =>
+    <group position={position} rotation={rotation}><FittedPart id={id} size={size} demo={demo} castShadow={false} /></group>;
+  if (domain === "drive") return <group position={[1.55, .2, -.95]}>
+    <P id="differential" size={.8} position={[0, 0, 0]} demo={on} />
+    {[-1, 1].map(sx => <React.Fragment key={sx}><P id="drive_shaft" size={1.2} position={[sx * .95, 0, 0]} rotation={[0, sx < 0 ? Math.PI : 0, 0]} demo={on} /><P id="wheel" size={.95} position={[sx * 1.75, 0, 0]} rotation={[0, sx < 0 ? Math.PI : 0, 0]} demo={on} /></React.Fragment>)}
+  </group>;
+  if (domain === "brake") return <group position={[0, .12, 0]}>
+    {[-2.25, 2.25].flatMap(x => [-.92, .92].map(z => <P key={`${x}-${z}`} id="brake_caliper" size={.6} position={[x, .1, z]} rotation={[0, x < 0 ? Math.PI : 0, 0]} />))}
+    {[-.92, .92].map(z => <SignalCable key={z} from={[-1.95, .24, z]} to={[1.95, .24, z]} color={activeStep >= 2 ? "#4b9dc1" : "#81918d"} />)}
+  </group>;
+  if (domain === "steer") return <group position={[.45, .15, .5]}>
+    <P id="steering_rack" size={3.6} position={[0, 0, 0]} />
+    {[-2.3, 2.3].map(x => <group key={x} position={[x, 0, 0]} rotation={[0, on ? Math.sign(x) * .22 : 0, 0]}><P id="wheel" size={.95} position={[0, 0, 0]} rotation={[0, x < 0 ? Math.PI : 0, 0]} /></group>)}
+  </group>;
+  if (domain === "gear") return <group position={[0, .18, 0]}>
+    <P id="gear_selector" size={.7} position={[-2.1, .45, .25]} />
+    <P id="reduction_gear" size={1.4} position={[0, .4, 0]} demo={on} />
+    <P id="park_lock_actuator" size={.7} position={[2.05, .32, -.15]} />
+  </group>;
+  if (domain === "thermal") return <group position={[0, .16, 0]}>
+    <P id="radiator" size={1.6} position={[0, .6, -.2]} />
+    <P id="cooling_pump" size={.6} position={[-1.2, .35, .3]} />
+  </group>;
+  if (domain === "suspension") return <group position={[0, .08, 0]}>
+    {[-2.05, 2.05].flatMap(x => [-.78, .78].map(z => <group key={`${x}-${z}`}><P id="damper" size={1.05} position={[x, .55, z]} /><P id="coil_spring" size={.7} position={[x, .55, z]} /></group>))}
+    <RoundedBox args={[4.9, .14, 1.75]} radius={.06} position={[0, .3, 0]}><meshStandardMaterial color="#8a8f94" metalness={.35} roughness={.5} /></RoundedBox>
+  </group>;
+  return <group position={[0, .04, 0]}>
+    <P id="hv_battery" size={4.6} position={[0, .1, 0]} />
+  </group>;
+}
+
+/** Empty slot left after "빼 보기": a red dashed ring where the part used to be. */
+function RemovedPartMarker({ position }: { position: [number, number, number] }) {
+  return <group position={position}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.38, 0]}><ringGeometry args={[.42, .5, 40]} /><meshBasicMaterial color="#e0483c" transparent opacity={.85} /></mesh>
+    <PartLabel position={[0, .25, 0]} className="removedPartLabel"><Icon name="ban" /> 빠짐</PartLabel>
+  </group>;
+}
+
+function DomainFlowRig({ domain, feature, activeStep = 0, compact = false, running = true, removed = null, showWiring = true }: { domain: DomainId; feature: number; activeStep?: number; compact?: boolean; running?: boolean; removed?: number | null; showWiring?: boolean }) {
   const labels = getFeatureLayer(domain, feature, 1);
   const last = labels.length - 1;
   const positions = labels.map((_, index) => {
@@ -356,9 +429,9 @@ function DomainFlowRig({ domain, feature, activeStep = 0, compact = false, runni
     return [x, y, z] as [number, number, number];
   });
   return <group scale={compact ? .58 : labels.length > 5 ? .68 : .76}>
-    <DomainSignature domain={domain} activeStep={activeStep} />
-    {labels.map((label, index) => { const position = positions[index]; const kind = hardwareKindFor(domain, label, index, last); const role = index === 0 ? "INPUT" : index === last ? "OUTPUT" : /ECU|VCU|BMS|CAN/.test(label) ? "CONTROL" : "PLANT"; return <GarageFlowPart key={`${label}-${index}`} label={label} position={position} kind={kind} active={activeStep === index} running={running} role={role} />; })}
-    {positions.slice(0, -1).map((position, index) => { const next = positions[index + 1]; return <SignalCable key={`${position.join("-")}`} from={[position[0] + .32, position[1] + .04, position[2]]} to={[next[0] - .32, next[1] + .04, next[2]]} color={index < activeStep ? "#f2c653" : index === activeStep ? "#ff7b49" : domain === "brake" ? "#4b9dc1" : domain === "steer" ? "#8d75b6" : domain === "power" ? "#4a9a82" : "#7ca8b3"} />; })}
+    <DomainSignatureModels domain={domain} activeStep={activeStep} />
+    {labels.map((label, index) => { const position = positions[index]; const kind = hardwareKindFor(domain, label, index, last); const role = index === 0 ? "INPUT" : index === last ? "OUTPUT" : /ECU|VCU|BMS|CAN/.test(label) ? "CONTROL" : "PLANT"; return removed === index ? <RemovedPartMarker key={`${label}-${index}`} position={position} /> : <GarageFlowPart key={`${label}-${index}`} label={label} position={position} kind={kind} active={activeStep === index} running={running} role={role} partId={partModelFor(domain, label)} inspect={compact ? undefined : { domain, feature, index }} />; })}
+    {showWiring && positions.slice(0, -1).map((position, index) => { const next = positions[index + 1]; const scaleOf = (i: number) => activeStep === i ? 1.08 : .82; return <SignalCable key={`${position.join("-")}`} from={portPoint(domain, labels[index], position, scaleOf(index), "out") ?? [position[0] + .32, position[1] + .04, position[2]]} to={portPoint(domain, labels[index + 1], next, scaleOf(index + 1), "in") ?? [next[0] - .32, next[1] + .04, next[2]]} color={removed !== null && (index === removed || index + 1 === removed) ? "#e0483c" : index < activeStep ? "#f2c653" : index === activeStep ? "#ff7b49" : domain === "brake" ? "#4b9dc1" : domain === "steer" ? "#8d75b6" : domain === "power" ? "#4a9a82" : "#7ca8b3"} />; })}
     {!compact && <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0,-.04,0]}><ringGeometry args={[3.45,3.55,96]} /><meshStandardMaterial color="#c3d2cb" transparent opacity={.42} /></mesh>}
   </group>;
 }
@@ -407,18 +480,38 @@ function VehiclePlatformShell({ active }: { active: boolean }) {
   </group>;
 }
 
-function FullVehicleSystem({ domain, feature, activeStep }: { domain: DomainId; feature: number; activeStep: number }) {
-  return <group rotation={[0, -.18, 0]}>
-    <VehiclePlatformShell active />
-    <DomainFlowRig domain={domain} feature={feature} activeStep={activeStep} />
-    <PartLabel className="garageStaticLabel" position={[0, 2.12, 0]}>{domainContent[domain].functions[feature]} · 운전자 입력에서 차량 거동까지</PartLabel>
+function FullVehicleSystem({ domain, feature, activeStep, shell = false, inputOn = false, selectedIndex = null, onSelect }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean; selectedIndex?: number | null; onSelect?: (index: number) => void }) {
+  // real positions, real sizes, port-to-port cables (src/features/garage/VehicleLayout.tsx)
+  return <VehicleLayoutRig domain={domain} feature={feature} activeStep={activeStep} inputOn={inputOn} shell={shell} selectedIndex={selectedIndex} onSelect={onSelect} />;
+}
+
+// Whole vehicle: every domain's chain side by side (selected domain runs, others idle)
+function AllDomainsSystem({ domain, overlay = false, showWiring = true }: { domain: DomainId | null; overlay?: boolean; showWiring?: boolean }) {
+  const ids = Object.keys(domainContent) as DomainId[];
+  const slot = (index: number): [number, number, number] => { const col = index % 3, row = Math.floor(index / 3); return [(col - 1) * 3.7, 0, (row - 1) * 3.3]; };
+  // labels live outside the rigs so a slow part model never hides a name
+  const labels = ids.map((id, index) => {
+    const position: [number, number, number] = overlay
+      ? [-2.7 + (index % 6) * 1.08, 2.35 + Math.floor(index / 6) * .32, 0]
+      : [slot(index)[0], 1.7, slot(index)[2]];
+    return <PartLabel key={`label-${id}`} className={`allDomainLabel ${id === domain ? "allDomainOn" : ""}`} position={position}><Icon name={DOMAIN_ICON[id]} /> {domainContent[id].label}</PartLabel>;
+  });
+  // overlay: every domain sits in the same vehicle space, like layers of one car
+  // the very first label after the canvas remounts is dropped by the label library, so a hidden one goes first
+  const spacer = <PartLabel className="labelSpacer" position={[0, -20, 0]}>{" "}</PartLabel>;
+  if (overlay) return <group rotation={[0, -.18, 0]}>
+    {spacer}<VehiclePlatformOverview />
+  </group>;
+  return <group>
+    {spacer}{labels}
+    {ids.map((id, index) => <group key={id} position={slot(index)} scale={.78}><DomainFlowRig domain={id} feature={0} compact running={domain === null || id === domain} showWiring={showWiring} /></group>)}
   </group>;
 }
 
-function EeArchitectureRig({ domain, feature, activeStep }: { domain: DomainId; feature: number; activeStep: number }) {
+function EeArchitectureRig({ domain, feature, activeStep, removed = null, shell = false }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null; shell?: boolean }) {
   return <group rotation={[0, -.18, 0]}>
-    <VehiclePlatformShell active={false} />
-    <DomainFlowRig domain={domain} feature={feature} activeStep={activeStep} />
+    {shell && <VehiclePlatformShell active={false} />}
+    <DomainFlowRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} />
     <PartLabel className="garageStaticLabel" position={[0, 2.12, 0]}>차체를 벗겨도 센서·ECU·액추에이터 위치는 그대로</PartLabel>
   </group>;
 }
@@ -437,38 +530,313 @@ function EcuSoftwareRig({ domain, feature, detailed }: { domain: DomainId; featu
   </group>;
 }
 
-function MechanismModel({ domain, level, feature, activeStep }: { domain: DomainId; level: number; feature: number; activeStep: number }) {
-  if (level === 0) return <FullVehicleSystem domain={domain} feature={feature} activeStep={activeStep} />;
-  return <EeArchitectureRig domain={domain} feature={feature} activeStep={activeStep} />;
+function MechanismModel({ domain, level, feature, activeStep, removed = null, shell = false, inputOn = false, selectedIndex = null, onSelect }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean; selectedIndex?: number | null; onSelect?: (index: number) => void }) {
+  if (level === 0) return <FullVehicleSystem domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} selectedIndex={selectedIndex} onSelect={onSelect} />;
+  return <EeArchitectureRig domain={domain} feature={feature} activeStep={activeStep} removed={removed} shell={shell} />;
 }
 
-function SimulinkFlow({ domain, feature, level, activeStep }: { domain: DomainId; feature: number; level: number; activeStep: number }) {
+// Which controller (from the E/E view of the same feature) runs this feature's SWCs.
+// Rule: the first controller in the E/E chain; explicit entries where the chain lists the
+// requesting ECU first but the logic runs in the next one. null = not tied to one controller.
+const CONTROLLER_RE = /ECU|VCU|BMS|OBC|MCU/;
+const OWNER_OVERRIDE: Partial<Record<string, string>> = { "drive-3": "인버터 ECU" };
+export function ownerController(domain: DomainId, feature: number): { name: string; index: number } | null {
+  const chain = getFeatureLayer(domain, feature, 1);
+  const forced = OWNER_OVERRIDE[`${domain}-${feature}`];
+  const index = forced ? chain.indexOf(forced) : chain.findIndex(label => CONTROLLER_RE.test(label));
+  return index < 0 ? null : { name: chain[index], index };
+}
+
+function SimulinkFlow({ domain, feature, level, activeStep, onJump }: { domain: DomainId; feature: number; level: number; activeStep: number; onJump?: (level: number, step: number) => void }) {
   const base = getFeatureLayer(domain, feature, level);
-  const blocks = level === 3
-    ? [base[0], "신호 유효성·타이밍", base[1], base[2], "보호·고장 중재", base[3]]
-    : base;
   const boundary = domainHardware[domain];
+  const owner = ownerController(domain, feature);
+  const swcs = getFeatureLayer(domain, feature, 2);
   return <div className={`simulinkFlow level-${level}`}>
+    <nav className="simPath" aria-label="이 로직이 있는 위치">
+      <button onClick={() => onJump?.(1, owner?.index ?? 0)} title="E/E 관점에서 위치 보기"><Icon name="layers" /> 차량 E/E 구조</button>
+      <i>›</i>
+      {owner ? <button className="ecu" onClick={() => onJump?.(1, owner.index)} title="E/E 관점에서 이 제어기 보기"><Icon name="chip" /> {owner.name} <small>제어기</small></button>
+        : <span className="ecu none">여러 부품에 나뉜 기능</span>}
+      <i>›</i>
+      <span className="swcs" title={swcs.join(" · ")}><em>SWC {swcs.length}개</em><small>점선 칸 = SWC</small></span>
+    </nav>
     <div className="simulinkToolbar"><b>CORE CONTROL · {domain.toUpperCase()}_{feature + 1}</b><span>LIVE INPUT</span><span>STATE / PROTECTION</span><span>10 ms</span></div>
     <div className="softwarePhysicalBoundary inputBoundary"><i /><small>PHYSICAL INPUT</small><b>{boundary.labels[0]}</b><em>입력 신호가 ECU로 이동</em></div>
-    <div className="simulinkDiagram">{blocks.map((block, index) => <React.Fragment key={block}><article className={`${index === activeStep ? "active" : ""} ${index === 0 ? "input" : index === blocks.length - 1 ? "output" : "logic"}`}><i className="inPort" /><small>{index === 0 ? "IN" : index === blocks.length - 1 ? "OUT" : level === 2 ? "SWC" : "LOGIC"}</small><b>{block}</b><span>{level === 2 ? "signal / port" : index === 1 ? "condition" : index === 2 ? "calculation" : "state / limit"}</span><i className="outPort" /></article>{index < blocks.length - 1 && <div className={`simWire ${activeStep >= index ? "live" : ""}`}><i /></div>}</React.Fragment>)}</div>
+    <SimulinkDiagram logic={base} components={swcs} owner={owner?.name} inputLabel={boundary.labels[0]} outputLabel={boundary.labels[3]} activeStep={activeStep} />
     <div className="softwarePhysicalBoundary outputBoundary"><i /><small>PHYSICAL OUTPUT</small><b>{boundary.labels[3]}</b><em>명령이 실제 액추에이터를 구동</em></div>
     <div className="simulinkScope"><span>INPUT</span><svg viewBox="0 0 380 42"><path d="M0 30 L45 30 L48 8 L135 8 L138 24 L220 24 L225 12 L380 12" /></svg><b>OUTPUT</b></div>
   </div>;
 }
 
-function MechanismViewer({ domain, level, feature, activeStep }: { domain: DomainId; level: number; feature: number; activeStep: number }) {
+function SwcView({ domain, feature, activeStep, onPick }: { domain: DomainId; feature: number; activeStep: number; onPick?: (index: number) => void }) {
+  const swcs = getFeatureLayer(domain, feature, 2);
+  const owner = ownerController(domain, feature);
+  const hardware = domainHardware[domain];
+  const signals = flowSignals(domain, feature, swcs.length + 1);
+  const step = Math.min(activeStep, swcs.length - 1);
+  return <div className="mechanismViewer softwareView swcView">
+    <div className="swcIo"><small>물리 입력</small><b>{hardware.labels[0]}</b></div>
+    <div className="swcEcu">
+      <header><Icon name="chip" /><b>{owner?.name ?? "여러 제어기"}</b><small>SW 컴포넌트 구성</small></header>
+      <div className="swcRow">{swcs.map((name, index) => <React.Fragment key={name}>
+        <button className={`swcBox ${step === index ? "on" : ""} ${step > index ? "done" : ""}`} onClick={() => onPick?.(index)}><i>{index + 1}</i><b>{name}</b><span>{index === 0 ? "입력 처리" : index === swcs.length - 1 ? "출력 전달" : "판단·계산"}</span></button>
+        {index < swcs.length - 1 && <em><small>{signals[index + 1]}</small>→</em>}
+      </React.Fragment>)}</div>
+      <footer>RTE가 포트로 SW 컴포넌트를 연결합니다</footer>
+    </div>
+    <div className="swcIo"><small>물리 출력</small><b>{hardware.labels[3]}</b></div>
+  </div>;
+}
+
+function MechanismViewer({ domain, level, feature, activeStep, removed = null, onPick, onDomain, onArea, noDomain = false, overviewGroup = null, overview3dMode, onOverview3dChange, onJump, inputOn = false, eeLayer = "logic", onEeLayerChange, selectedVehiclePart = null, onVehiclePartSelect }: { domain: DomainId; level: number; feature: number; activeStep: number; removed?: number | null; onPick?: (index: number) => void; onDomain?: (id: DomainId) => void; onArea?: (area: DomainGroup | "coord") => void; noDomain?: boolean; overviewGroup?: DomainGroup | null; overview3dMode?: boolean; onOverview3dChange?: (show: boolean) => void; onJump?: (level: number, step: number) => void; inputOn?: boolean; eeLayer?: EeLayer; onEeLayerChange?: (layer: EeLayer) => void; selectedVehiclePart?: number | null; onVehiclePartSelect?: (index: number) => void }) {
+  const [shell, setShell] = useState(false);
+  const [view3d, setView3d] = useState<"one" | "grid" | "overlay">(noDomain ? "overlay" : "one");
+  // The first garage screen is a visual vehicle map. Logic cards remain one click away.
+  const [localOverview3d, setLocalOverview3d] = useState(noDomain && level === 0);
+  const overview3d = overview3dMode ?? localOverview3d;
+  const setOverview3d = (show: boolean) => { setLocalOverview3d(show); onOverview3dChange?.(show); };
+  const [inspect, setInspect] = useState<number | null>(null);
+  useEffect(() => setInspect(null), [domain, feature, level]);
+  const allDomains = view3d !== "one";
   const sourceLevel = garageLayerSource[level] ?? 3;
-  if (level >= 2) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={activeStep} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
+  const vehicleChain = getFeatureLayer(domain, feature, 1);
+  const vehicleSignals = flowSignals(domain, feature, vehicleChain.length);
+  const vehicleSelection = level === 0 && !allDomains && selectedVehiclePart !== null && vehicleChain[selectedVehiclePart]
+    ? { index: selectedVehiclePart, label: vehicleChain[selectedVehiclePart], role: partRole(vehicleChain[selectedVehiclePart], selectedVehiclePart, vehicleChain.length), input: selectedVehiclePart === 0 ? "운전자 조작 또는 센서가 재는 물리량" : vehicleSignals[selectedVehiclePart - 1], output: vehicleSignals[selectedVehiclePart] }
+    : null;
+  if (noDomain && level === 0 && !overview3d) return <ArchitectureOverview icons={DOMAIN_ICON} focusGroup={overviewGroup} onPick={id => onDomain?.(id)} onShow3d={() => setOverview3d(true)} />;
+  if (level === 1) {
+    const chain = getFeatureLayer(domain, feature, 1);
+    const roles = chain.map((label, index) => partRole(label, index, chain.length));
+    const signals = flowSignals(domain, feature, chain.length);
+    const photo = (index: number) => { const id = partModelFor(domain, chain[index]); return id ? (PART_THUMBS.has(id) ? `/assets/ending-thumbs/${id}.png` : `/assets/intake/images/${getPartModel(id).ref}`) : undefined; };
+    const pickNode = (index: number) => {
+      onPick?.(index);
+      if (eeLayer === "part") { play("pop"); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: { domain, feature, index } })); return; }
+      setInspect(previous => previous === index ? null : index); play("pop");
+    };
+    const inspector = inspect === null || inspect >= chain.length ? null : { index: inspect, tag: ROLE_TEXT[roles[inspect]].tag, input: inspect === 0 ? "운전자 조작 또는 센서가 재는 물리량" : signals[inspect - 1], does: ROLE_DOES[roles[inspect]](signals[inspect]), output: signals[inspect] };
+    return <div className="mechanismViewer eeView eeBlueprintView">
+      <EeBlueprint chain={chain} roles={roles} active={activeStep} energizedThrough={inputOn ? activeStep : -1} removed={removed} onPick={pickNode} signals={signals} layer={eeLayer} photo={photo} partId={index => partModelFor(domain, chain[index])} inspector={eeLayer === "part" ? null : inspector} onCloseInspector={() => setInspect(null)} />
+      <div className="eeBodyTools" role="group" aria-label="E/E 보기"><span>E/E 보기</span>{([['logic', '연결'], ['mix', '겹쳐'], ['part', '실제 부품']] as const).map(([id, label]) => <button key={id} className={eeLayer === id ? "on" : ""} onClick={() => onEeLayerChange?.(id)}>{label}</button>)}</div>
+      <PartInspector />
+    </div>;
+  }
+  if (level === 2) return <SwcView domain={domain} feature={feature} activeStep={inputOn ? activeStep : -1} onPick={onPick} />;
+  if (level >= 3) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={inputOn ? activeStep : -1} onJump={onJump} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
   return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
-    <Canvas key={`${domain}-${feature}`} shadows camera={{ position: [5.9, 3.35, 6.6], fov: 36 }} dpr={[1, 1.3]} gl={{ antialias: true, powerPreference: "high-performance" }}>
+    <Canvas key={`${domain}-${view3d}`} shadows={!allDomains} camera={{ position: view3d === "grid" ? [7.2, 7.4, 9.4] : view3d === "overlay" ? [6.4, 4.6, 7.6] : (domain === "power" || domain === "suspension" ? [4.6, 2.9, 5.2] : [2.9, 1.9, 3.3]), fov: 38 }} dpr={allDomains ? [1, 1] : [1, 1.3]} gl={{ antialias: !allDomains, powerPreference: "high-performance" }}>
+      {import.meta.env.DEV && <DevRenderProbe name="garage" />}
       <color attach="background" args={["#eef5ef"]} />
       <hemisphereLight intensity={2.25} color="#fff8e5" groundColor="#6d8c7b" />
-      <directionalLight castShadow position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
-      <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} />
-      <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={2.5} maxDistance={10} maxPolarAngle={Math.PI * .49} target={[0, .65, 0]} />
+      <directionalLight castShadow={!allDomains} position={[4, 7, 5]} intensity={3.1} shadow-mapSize={[1024, 1024]} />
+      {allDomains && level === 0 ? <AllDomainsSystem domain={noDomain ? null : domain} overlay={view3d === "overlay"} showWiring={view3d === "overlay"} /> : <MechanismModel domain={domain} level={level} feature={feature} activeStep={activeStep} removed={removed} shell={shell} inputOn={inputOn} selectedIndex={selectedVehiclePart} onSelect={onVehiclePartSelect} />}
+      <OrbitControls makeDefault enablePan enableZoom enableRotate minDistance={allDomains ? 2.5 : .8} maxDistance={allDomains ? 22 : 10} maxPolarAngle={Math.PI * .49} target={allDomains ? [0, .65, 0] : [0, .55, 0]} />
     </Canvas>
-    <span className="liveBadge"><i /> 좌클릭 회전 · 휠 확대/축소 · 우클릭 이동</span>
+    <span className="liveBadge"><i /> 드래그 회전 · 휠 확대{level === 0 && !allDomains ? " · 부품 클릭 선택" : ""}</span>
+    {level === 0 && <PartInspector />}
+    {level === 0 && !allDomains && !noDomain && <div className="flowLegend" aria-label="배선이 전달하는 것"><b>전달하는 것</b>{flowLegend(domain, feature).map(item => <span key={item.flow}><i style={{ background: item.color }} />{item.label}</span>)}</div>}
+    {vehicleSelection && <aside className="vehiclePartInfo" aria-live="polite"><small>{vehicleSelection.role === "input" ? "입력·센서" : vehicleSelection.role === "control" ? "제어기(ECU)" : vehicleSelection.role === "network" ? "통신" : vehicleSelection.role === "actuator" ? "액추에이터·부품" : "차량 반응"}</small><b>{vehicleSelection.label}</b>{vehicleSelection.role === "input" && <strong className={inputOn ? "inputActive" : "inputIdle"}>{inputOn ? "입력이 선택됨 · 다음 스텝으로 신호를 관찰하세요" : "길게 눌러 입력을 선택하세요"}</strong>}<span><em>받는 신호</em>{vehicleSelection.input}</span><span><em>보내는 신호</em>{vehicleSelection.output}</span><p>드래그로 카메라를 움직일 때는 선택되지 않아요.</p></aside>}
+    {noDomain && level === 0 && <div className="garageAreaPicker" role="group" aria-label="차량 영역 선택">
+      <p><b>차량 전체 3D 보기</b><span>살펴볼 영역을 고르면 해당 영역의 도메인과 기능으로 들어갑니다.</span></p>
+      <div>{DOMAIN_GROUPS.map((group, index) => <button key={group} className={`area-${index}`} onClick={() => { setOverview3d(false); onArea?.(group); }}><Icon name={group === "파워트레인" ? "gear" : group === "섀시" ? "wheel" : "chip"} /><b>{group}</b><small>{DOMAIN_ORDER.filter(id => EV_DOMAINS[id].group === group).length}개 도메인</small></button>)}<button className="area-coord" onClick={() => { setOverview3d(false); onArea?.("coord"); }}><Icon name="signal" /><b>도메인 협조제어</b><small>영역 사이 협조 신호</small></button></div>
+    </div>}
+    <div className="viewToggles">
+      {noDomain && <button className="shellToggle" onClick={() => setOverview3d(false)}><Icon name="layers" /> 아키텍처</button>}
+      {level === 0 && <span className="view3dSeg">{(noDomain ? [["overlay", "협조 신호"]] as const : [["one", "이 도메인"], ["overlay", "겹쳐 보기"]] as const).map(([id, label]: readonly [string, string]) => <button key={id} className={`shellToggle ${view3d === id ? "on" : ""}`} onClick={() => setView3d(id as "one" | "grid" | "overlay")}><Icon name={id === "one" ? "search" : "layers"} /> {label}</button>)}</span>}
+      {!allDomains && <button className={`shellToggle ${shell ? "on" : ""}`} onClick={() => setShell(value => !value)}><Icon name="car" /> 차체 {shell ? "숨기기" : "보기"}</button>}
+    </div>
+  </div>;
+}
+
+// ── "빼 보기" experiment: what breaks when one part of the chain is missing ──
+type PartRole = "input" | "control" | "network" | "actuator" | "result";
+const partRole = (label: string, index: number, length: number): PartRole => {
+  if (index === 0) return "input";
+  // sensors are inputs wherever they sit in the chain (e.g. pack voltage/insulation sensing before the BMS)
+  if (/센서|Sensor|IMU|리졸버/.test(label) && !/ECU|VCU|BMS/.test(label)) return "input";
+  if (/CAN|통신|메시지|Permit|Torque$|Limit$/.test(label) && !/ECU|VCU|BMS/.test(label)) return "network";
+  if (/ECU|VCU|BMS|MCU|Interlock|Coordinator|제어기/.test(label)) return "control";
+  if (index === length - 1 && (/^(차량|차체|노면)/.test(label) || /(가속|감속|진로 변경|거동|안정|유지|고정|복원|저감|추진력|구동력)$/.test(label))) return "result";
+  return "actuator";
+};
+const ROLE_TEXT: Record<PartRole, { tag: string; what: string; safe: string; clue: string }> = {
+  input: { tag: "입력·센서", what: "제어기가 상황을 몰라요", safe: "기능 제한 + 경고등", clue: "제어기는 멀쩡한데 들어오는 값이 0이래" },
+  control: { tag: "제어기(ECU)", what: "명령이 하나도 안 나가요", safe: "기능 정지 + 경고등", clue: "센서 값은 잘 오는데 아무 명령도 안 나간대" },
+  network: { tag: "통신(메시지)", what: "제어기끼리 소식이 끊겨요", safe: "안전한 기본값 사용", clue: "양쪽 제어기는 멀쩡한데 서로 연락이 끊겼대" },
+  actuator: { tag: "액추에이터·부품", what: "명령은 오는데 안 움직여요", safe: "고장 감지 + 경고등", clue: "명령은 100% 나갔는데 실제로는 안 움직였대" },
+  result: { tag: "차량 반응", what: "부품이 아니라 결과예요!", safe: "", clue: "" },
+};
+const DOMAIN_SYMPTOM: Record<DomainId, string> = {
+  drive: "페달을 밟아도 가속이 안 되거나 약해져요",
+  brake: "제동이 약해지거나 정지 거리가 늘어나요",
+  steer: "핸들이 무거워지거나 원하는 만큼 안 돌아요",
+  power: "READY가 안 켜지거나 출력이 제한돼요",
+  gear: "변속이 안 되거나 P에서 안 풀려요",
+  thermal: "온도가 올라 출력이 제한돼요(파워다운)",
+  suspension: "승차감이 나빠지고 자세 제어가 약해져요",
+  charge: "충전이 시작되지 않거나 중간에 멈춰요",
+  comm: "신호가 끊겨 제어기들이 안전 값으로 동작해요",
+  vcu: "READY가 안 되거나 고장 후 림프홈으로 전환돼요",
+  adas: "경고나 자동 감속이 늦거나 불필요하게 걸려요",
+};
+
+function PullOutBubble({ domain, label, role }: { domain: DomainId; label: string; role: PartRole }) {
+  const text = ROLE_TEXT[role];
+  return <div className="pullOutBubble" key={label}>
+    <img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" />
+    <p><b>{label} 빠짐!</b>{text.what}{role !== "result" && <span className="pullOutChips"><em>{DOMAIN_SYMPTOM[domain]}</em><em className="safe"><Icon name="shield" /> {text.safe}</em></span>}</p>
+  </div>;
+}
+
+// Controller intro card: what it receives, what it does, what it commands (icon chips, no paragraphs).
+const ecuIdFor = (label: string) =>
+  /^VCU/.test(label) ? "vcu" : /MCU|인버터 ECU/.test(label) ? "mcu" : /^BMS/.test(label) ? "bms"
+    : /Thermal ECU/.test(label) ? "thermal_ecu" : /(Brake|ABS|ESC|Hydraulic) ECU/.test(label) ? "brake_ecu" : /EPS ECU/.test(label) ? "eps_ecu" : undefined;
+const ROLE_INTRO: Record<PartRole, string> = {
+  input: "물리량(페달 위치·온도·압력 등)을 측정해 전기 신호로 제어기에 보내는 센서",
+  control: "입력 신호로 계산·판단해 명령 값을 출력하는 제어기(ECU)",
+  network: "제어기 사이에서 값을 메시지로 전달하는 통신(CAN)",
+  actuator: "명령 값에 따라 토크·압력·회전을 만드는 구동 부품(액추에이터)",
+  result: "부품 동작으로 나타나는 차량의 실제 거동",
+};
+// What each step of the chain sends on (plain words + example unit), from the vehicle-level layer.
+const SIGNAL_UNIT: [RegExp, string][] = [[/페달|가속 의도|운전자 가속|조작/, "0~100%"], [/토크|힘|추진/, "Nm"], [/온도|열/, "°C"], [/압력|제동력/, "bar"], [/감속|가속/, "m/s²"], [/회전|속도|RPM/, "rpm"], [/전류/, "A"], [/전압|전력/, "V"], [/조향|각/, "°"], [/허용|판단|요구|요청|명령|선택/, "명령"]];
+const flowSignals = (domain: DomainId, feature: number, length: number) => {
+  const meanings = getFeatureLayer(domain, feature, 0);
+  return Array.from({ length }, (_, index) => meanings[Math.round(index * (meanings.length - 1) / Math.max(1, length - 1))]);
+};
+const unitOf = (text: string) => SIGNAL_UNIT.find(([pattern]) => pattern.test(text))?.[1] ?? "신호";
+const ROLE_DOES: Record<PartRole, (out: string) => string> = {
+  input: out => `측정한 물리량을 전기 신호(‘${out}’)로 변환해 출력`,
+  control: out => `입력 신호로 계산해 ‘${out}’ 명령 값을 출력`,
+  network: out => `‘${out}’ 값을 CAN 메시지로 다음 제어기에 전달`,
+  actuator: out => `명령 값에 따라 ‘${out}’을(를) 물리적으로 생성`,
+  result: out => `차량 거동으로 나타남: ‘${out}’`,
+};
+
+function FlowStepCard({ chain, signals, step, onStep }: { chain: string[]; signals: string[]; step: number; onStep: (index: number) => void }) {
+  const [auto, setAuto] = useState(false);
+  useEffect(() => {
+    if (!auto) return;
+    const timer = window.setTimeout(() => { if (step < chain.length - 1) onStep(step + 1); else setAuto(false); }, 2200);
+    return () => clearTimeout(timer);
+  }, [auto, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  const role = partRole(chain[step], step, chain.length);
+  const input = step === 0 ? "운전자 조작 또는 센서가 재는 물리량" : signals[step - 1];
+  const output = signals[step];
+  return <div className="flowStepCard">
+    <div className="flowStepHead"><b>{step + 1}/{chain.length}단계</b><span>{ROLE_TEXT[role].tag}</span><strong>{chain[step]}</strong>
+      <div className="flowStepNav">
+        <button disabled={step === 0} onClick={() => onStep(step - 1)}>◀</button>
+        <span className="flowDots">{chain.map((_, index) => <i key={index} className={index === step ? "on" : index < step ? "done" : ""} onClick={() => onStep(index)} />)}</span>
+        <button disabled={step === chain.length - 1} onClick={() => onStep(step + 1)}>▶</button>
+        <button onClick={() => { if (step === chain.length - 1) onStep(0); setAuto(value => !value); }}>{auto ? "⏸ 멈춤" : "▶ 자동 재생"}</button>
+      </div>
+    </div>
+    <div className="flowStepBody">
+      <div className="fsIn"><small>받는 값</small><b>{input}</b>{step > 0 && <em>{unitOf(input)}</em>}</div>
+      <i>→</i>
+      <div className="fsDo"><small>하는 일</small><b>{ROLE_DOES[role](output)}</b></div>
+      <i>→</i>
+      <div className={`fsOut ${step === chain.length - 1 ? "final" : ""}`}><small>{step === chain.length - 1 ? "최종 출력" : "보내는 값"}</small><b>{output}</b><em>{unitOf(output)}</em></div>
+    </div>
+  </div>;
+}
+
+function PartIntroCard({ label, role, domain, onClose, onPull }: { label: string; role: PartRole; domain: DomainId; onClose: () => void; onPull: () => void }) {
+  if (role === "control") return <ControllerCard label={label} onClose={onClose} onPull={onPull} />;
+  const partId = partModelFor(domain, label);
+  return <div className="ecuCard" role="dialog">
+    <button className="ecuClose" onClick={onClose} aria-label="닫기">×</button>
+    {partId && ["accel_pedal", "brake_pedal", "traction_motor", "brake_caliper", "motor_temp_sensor", "cooling_fan"].includes(partId) ? <img src={`/assets/ending-thumbs/${partId}.png`} alt="" /> : <span className="ecuGeneric"><Icon name={role === "input" ? "eye" : role === "network" ? "mail" : role === "actuator" ? "arm" : "car"} /></span>}
+    <div><small>{ROLE_TEXT[role].tag}</small><b>{label}</b><div className="ecuRow"><i><Icon name="bulb" /></i><span><em className="do">{ROLE_INTRO[role]}</em></span></div>
+    {role !== "result" && <button className="ecuPull" onClick={onPull}>이 부품 빼 보기</button>}</div>
+  </div>;
+}
+
+// ── Vehicle/System: double-click a part → that part alone, 360° turntable + what it does ──
+type PartInspectTarget = { domain: DomainId; feature: number; index: number };
+const MOVE_TEXT: Record<string, string> = { press: "눌리는 부분", rotate: "회전하는 부분", spin: "계속 회전하는 부분", slide: "앞뒤로 움직이는 부분", explode: "분해해 볼 수 있는 부분" };
+function PartInspector() {
+  const [target, setTarget] = useState<PartInspectTarget | null>(null);
+  const [spin, setSpin] = useState(true);
+  const [moving, setMoving] = useState(true);
+  useEffect(() => {
+    const open = (event: Event) => { setTarget((event as CustomEvent<PartInspectTarget>).detail); setSpin(true); };
+    const key = (event: KeyboardEvent) => { if (event.key === "Escape") setTarget(null); };
+    addEventListener("tb-part-inspect", open); addEventListener("keydown", key);
+    return () => { removeEventListener("tb-part-inspect", open); removeEventListener("keydown", key); };
+  }, []);
+  if (!target) return null;
+  const { domain, feature, index } = target;
+  const chain = getFeatureLayer(domain, feature, 1);
+  const label = chain[index];
+  const signals = flowSignals(domain, feature, chain.length);
+  const role = partRole(label, index, chain.length);
+  const partId = partModelFor(domain, label);
+  const comp = partId ? getComponent(partId) : undefined;
+  const ecu = ECUS.find(item => item.id === (ecuIdFor(label) ?? comp?.relatedEcu));
+  const model = partId ? getPartModel(partId) : undefined;
+  const kind = hardwareKindFor(domain, label, index, chain.length - 1);
+  const ko = (id: string) => getComponent(id)?.nameKo ?? ECUS.find(item => item.id === id)?.name ?? id;
+  return createPortal(<div className="partInspect" role="dialog" aria-label={`${label} 자세히 보기`} onClick={() => setTarget(null)}>
+    <article onClick={event => event.stopPropagation()}>
+      <section className="piStage">
+        <Canvas camera={{ position: [1.6, 1.1, 2.2], fov: 34 }} dpr={[1, 1.5]}>
+          <color attach="background" args={["#f6efe9"]} />
+          <hemisphereLight intensity={2} color="#fff8e5" groundColor="#8a6f66" />
+          <directionalLight position={[3, 5, 4]} intensity={2.6} />
+          <directionalLight position={[-3, 2, -3]} intensity={.9} />
+          {partId ? <FittedPart id={partId} size={1.5} demo={moving} castShadow={false} /> : <group scale={.62} position={[0, -.25, 0]}><PrimitiveHardwarePart kind={kind} running={moving} /></group>}
+          <OrbitControls makeDefault autoRotate={spin} autoRotateSpeed={2.2} enablePan={false} minDistance={1.4} maxDistance={6} target={[0, 0, 0]} />
+        </Canvas>
+        <div className="piTools">
+          <button className={spin ? "on" : ""} onClick={() => setSpin(value => !value)}><Icon name="repeat" /> {spin ? "회전 멈춤" : "360° 회전"}</button>
+          {model?.moving.length ? <button className={moving ? "on" : ""} onClick={() => setMoving(value => !value)}><Icon name="gear" /> 동작 {moving ? "멈춤" : "보기"}</button> : null}
+        </div>
+        <small className="piHint">끌어서 돌리기 · 휠 확대/축소 · Esc 닫기</small>
+      </section>
+      <section className="piText">
+        <button className="piClose" onClick={() => setTarget(null)} aria-label="닫기">×</button>
+        <small>{domainContent[domain].label} 도메인 · {domainContent[domain].functions[feature]} · {index + 1}/{chain.length}단계</small>
+        <h2>{label}</h2>
+        {comp && comp.nameKo !== label && <p className="piName">{comp.nameKo} <em>{comp.name}</em></p>}
+        <p className="piRole"><b>{ROLE_TEXT[role].tag}</b>{ROLE_INTRO[role]}</p>
+        <dl>
+          <div><dt>받는 것</dt><dd>{index > 0 ? <>{chain[index - 1]} → <em>{signals[index - 1]}</em></> : "운전자 조작·물리량"}</dd></div>
+          <div><dt>하는 일</dt><dd>{ROLE_DOES[role](signals[index])}</dd></div>
+          <div><dt>보내는 곳</dt><dd>{index < chain.length - 1 ? <>{chain[index + 1]}</> : "차량 거동으로 나타남"}</dd></div>
+          {comp && comp.ports.length > 0 && <div><dt>신호·단위</dt><dd className="piPorts">{comp.ports.map(port => <em key={port.id} className={port.direction}>{port.direction === "in" ? "입력" : "출력"} {port.signal ?? port.id} <i>{port.unit}</i></em>)}</dd></div>}
+          {ecu && <div><dt>연결 제어기</dt><dd>{ecu.name} · {ecu.interfaces.join(" · ")}</dd></div>}
+          {ecu && ecuIdFor(label) && <div><dt>주요 기능</dt><dd>{ecu.functions.join(" · ")}</dd></div>}
+          {ecu && ecuIdFor(label) && ecu.actuators.length > 0 && <div><dt>구동 대상</dt><dd>{ecu.actuators.map(ko).join(" · ")}</dd></div>}
+          {model?.moving[0] && <div><dt>움직임</dt><dd>{MOVE_TEXT[model.moving[0].mode] ?? "움직이는 부분"} 표시</dd></div>}
+        </dl>
+        {!partId && <p className="piNote">아직 전용 3D 모델이 없어 기본 도형으로 보여요.</p>}
+      </section>
+    </article>
+  </div>, document.body);
+}
+
+function ControllerCard({ label, onPull, onClose }: { label: string; onPull: () => void; onClose: () => void }) {
+  const ecu = ECUS.find(item => item.id === ecuIdFor(label));
+  const ko = (id: string) => getComponent(id)?.nameKo ?? id;
+  return <div className="ecuCard" role="dialog">
+    <button className="ecuClose" onClick={onClose} aria-label="닫기">×</button>
+    {ecu ? <img src={`/assets/ending-thumbs/${ecu.id}.png`} alt="" /> : <span className="ecuGeneric"><Icon name="chip" /></span>}
+    <div>
+      <small>제어기 소개</small>
+      <b>{label}</b>
+      {ecu ? <>
+        <div className="ecuRow"><i><Icon name="eye" /></i><span>{ecu.sensors.length ? ecu.sensors.map(id => <em key={id}>{ko(id)}</em>) : <em>다른 제어기의 메시지</em>}</span></div>
+        <div className="ecuRow"><i><Icon name="chip" /></i><span>{ecu.functions.map(item => <em key={item} className="do">{item}</em>)}</span></div>
+        <div className="ecuRow"><i><Icon name="arm" /></i><span>{ecu.actuators.length ? ecu.actuators.map(id => <em key={id}>{ko(id)}</em>) : <em>다른 제어기에 명령 전달</em>}</span></div>
+        <div className="ecuRow"><i><Icon name="mail" /></i><span>{ecu.interfaces.map(item => <em key={item} className="bus">{item}</em>)}</span></div>
+      </> : <div className="ecuRow"><i><Icon name="chip" /></i><span><em className="do">입력 신호로 계산·판단해 명령 값을 출력</em></span></div>}
+      <button className="ecuPull" onClick={onPull}>이 제어기 빼 보기</button>
+    </div>
   </div>;
 }
 
@@ -477,80 +845,292 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const requestedDomain = garageParams.get("domain") as DomainId | null;
   const requestedView = Number(garageParams.get("view"));
   const requestedFeature = Number(garageParams.get("feature"));
-  const [routeLevel, setRouteLevel] = useState(Number.isInteger(requestedView) ? THREE.MathUtils.clamp(requestedView, 0, 2) : 0);
-  const [domain, setDomain] = useState<DomainId>(requestedDomain && requestedDomain in domainContent ? requestedDomain : "drive");
+  const [routeLevel, setRouteLevel] = useState(Number.isInteger(requestedView) ? THREE.MathUtils.clamp(requestedView, 0, 3) : 0);
+  const [domain, setDomainRaw] = useState<DomainId>(requestedDomain && requestedDomain in domainContent ? requestedDomain : "drive");
+  // the garage opens on the whole vehicle: every domain side by side, none selected yet
+  const [chosen, setChosen] = useState(Boolean(requestedDomain && requestedDomain in domainContent));
+  const [overviewGroup, setOverviewGroup] = useState<DomainGroup | null>(null);
+  const [overview3d, setOverview3d] = useState(!requestedDomain && routeLevel === 0);
+  const [pickNotice, setPickNotice] = useState(false);
+  useReportSubStep("garage", chosen ? 1 + Math.min(3, routeLevel) : 0, { max: chosen ? 4 : 0, goTo: index => { if (index === 0) showAllDomains(); else selectLevel(index - 1); } });
+  const setDomain = (id: DomainId) => { setDomainRaw(id); setChosen(true); setPickNotice(false); };
+  const showAllDomains = () => { setChosen(false); setPickNotice(false); setOverviewGroup(null); setOverview3d(true); setRouteLevel(0); };
+  const chooseOverviewArea = (area: DomainGroup | "coord") => { setChosen(false); setOverviewGroup(area === "coord" ? null : area); setOverview3d(false); setRouteLevel(0); setPickNotice(false); };
   const [feature, setFeature] = useState(Number.isInteger(requestedFeature) ? Math.max(0, requestedFeature) : 0);
   const [activeStep, setActiveStep] = useState(0);
+  const [selectedVehiclePart, setSelectedVehiclePart] = useState<number | null>(null);
   const [lessonHits, setLessonHits] = useState<Set<string>>(() => new Set());
-  const [prediction, setPrediction] = useState("");
-  const [predictionResult, setPredictionResult] = useState<"idle" | "correct" | "wrong">("idle");
+  const [removed, setRemoved] = useState<number | null>(null);
+  const [triedRemovals, setTriedRemovals] = useState<Set<string>>(() => new Set());
+  const [ecuCard, setEcuCard] = useState<number | null>(null);
+  const [labMode, setLabMode] = useState<"flow" | "intro" | "pull" | "hunt">("flow");
+  // "범인 찾기" mini-game: one part is secretly missing, the player finds it from the clue.
+  const [culprit, setCulprit] = useState<number | null>(null);
+  const [guess, setGuess] = useState<{ index: number; right: boolean } | null>(null);
+  const [caught, setCaught] = useState(0);
   const content = domainContent[domain];
   const selectedFeature = featureFlows[domain][feature];
-  const correctPhysicalOutput = getFeatureLayer(domain, feature, 1).at(-1)!;
-  const predictionOptions = useMemo(() => {
-    const alternatives = featureFlows[domain]
-      .map((_, index) => getFeatureLayer(domain, index, 1).at(-1)!)
-      .filter(item => item !== correctPhysicalOutput);
-    const options = [correctPhysicalOutput, ...alternatives.slice(0, 2)];
-    const shift = feature % options.length;
-    return [...options.slice(shift), ...options.slice(0, shift)];
-  }, [correctPhysicalOutput, domain, feature]);
-  const predictionDisplay = (option: string) => option.replace("전륜 PMSM·감속기", "전륜 모터·감속기");
-  const selectLevel = (level: number) => { setRouteLevel(level); setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-layer-${level}`)); };
+  const chain = getFeatureLayer(domain, feature, 1);
+  const selectLevel = (level: number) => { if (!chosen && level > 0) { setPickNotice(true); play("error"); return; } setRouteLevel(level); setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-layer-${level}`)); };
+  useEffect(() => {
+    const onGarageBack = () => {
+      if (feature > 0) { setFeature(value => Math.max(0, value - 1)); return; }
+      if (chosen && routeLevel > 0) { setRouteLevel(value => Math.max(0, value - 1)); return; }
+      if (chosen) { showAllDomains(); return; }
+      send({ type: "NAV_BACK" });
+    };
+    addEventListener("tb-garage-back", onGarageBack);
+    return () => removeEventListener("tb-garage-back", onGarageBack);
+  }, [chosen, feature, routeLevel]);
   const inspectStep = (index: number, step: number) => {
     setActiveStep(step);
     setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-${routeLevel}-${index}`));
   };
-  useEffect(() => { setFeature(0); setActiveStep(0); setPrediction(""); setPredictionResult("idle"); }, [domain]);
-  useEffect(() => { setActiveStep(0); setPrediction(""); setPredictionResult("idle"); }, [feature, routeLevel]);
+  // A long press chooses the live input.  It stays selected until the next long
+  // press so learners can inspect one shared signal stage in every view.
+  const [eeLayer, setEeLayer] = useState<EeLayer>("logic");
+  const [inputSelected, setInputSelected] = useState(false);
+  const [autoPlaying, setAutoPlaying] = useState(false);
+  const inputHold = useRef<number | null>(null);
+  const signalVisible = inputSelected;
+  // Short Overcooked-style mission: switch on the preconditions, then hold the input.
+  const [conds, setConds] = useState<Set<string>>(() => new Set());
+  const [gateMsg, setGateMsg] = useState("");
+  const [cleared, setCleared] = useState(false);
+  const [completedLessons, setCompletedLessons] = useState<Set<string>>(() => new Set());
+  const mission = INPUT_MISSION[domain];
+  const missing = mission.needs.filter(item => !conds.has(item.id));
+  const flowLength = routeLevel === 2 ? getFeatureLayer(domain, feature, 2).length : Math.max(getFeatureLayer(domain, feature, 1).length, getFeatureLayer(domain, feature, 3).length);
+  const stopAuto = () => setAutoPlaying(false);
+  const toggleInput = (inputIndex?: number) => {
+    stopAuto();
+    if (inputIndex !== undefined) {
+      setSelectedVehiclePart(inputIndex);
+      setActiveStep(inputIndex);
+    }
+    if (!inputSelected && missing.length) { setGateMsg(missing[0].why); play("error"); return; }
+    setGateMsg("");
+    setInputSelected(previous => !previous);
+    play("pop", inputSelected ? .85 : 1.1);
+  };
+  const beginInputHold = (inputIndex?: number) => {
+    if (inputHold.current !== null) return;
+    inputHold.current = window.setTimeout(() => { inputHold.current = null; toggleInput(inputIndex); }, 380);
+  };
+  const endInputHold = () => { if (inputHold.current !== null) { window.clearTimeout(inputHold.current); inputHold.current = null; } };
+  const toggleCondition = (id: string, index: number) => {
+    stopAuto(); setInputSelected(false); endInputHold();
+    setConds(previous => {
+      const next = new Set(previous);
+      if (next.has(id)) mission.needs.slice(index).forEach(item => next.delete(item.id));
+      else if (mission.needs.slice(0, index).every(item => next.has(item.id))) next.add(id);
+      return next;
+    });
+    setGateMsg("");
+    setCleared(false);
+    play("pop", conds.has(id) ? .8 : 1.15);
+  };
+  useEffect(() => { setConds(new Set()); setGateMsg(""); setCleared(false); setInputSelected(false); setAutoPlaying(false); }, [domain, feature]);
   useEffect(() => {
-    const flowLength = routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length : getFeatureLayer(domain, feature, 1).length;
+    const onInput = (event: Event) => {
+      const action = (event as CustomEvent).detail?.action;
+      if (action === "start") beginInputHold(Number.isInteger((event as CustomEvent).detail?.index) ? (event as CustomEvent).detail.index : undefined);
+      else if (action === "end") endInputHold();
+    };
+    const onStep = (event: Event) => { stopAuto(); setActiveStep(Number((event as CustomEvent).detail?.index) || 0); play("pop"); };
+    addEventListener("tb-garage-input", onInput); addEventListener("tb-garage-step", onStep);
+    return () => { removeEventListener("tb-garage-input", onInput); removeEventListener("tb-garage-step", onStep); };
+  });
+  useEffect(() => {
+    if (!autoPlaying || !inputSelected) return;
+    const timer = window.setInterval(() => setActiveStep(value => {
+      if (value >= flowLength - 1) { setAutoPlaying(false); return value; }
+      const next = value + 1;
+      if (next === flowLength - 1 && !cleared) { setCleared(true); setCompletedLessons(previous => new Set(previous).add(`${domain}-${feature}`)); window.setTimeout(() => play("success"), 0); }
+      return next;
+    }), 1200);
+    return () => window.clearInterval(timer);
+  }, [autoPlaying, inputSelected, flowLength, domain, feature, cleared]);
+  useEffect(() => {
+    if (!chosen) return;
+    const down = (event: KeyboardEvent) => { if (event.code === "Space" && !event.repeat && !(event.target instanceof HTMLInputElement)) { event.preventDefault(); beginInputHold(); } };
+    const up = (event: KeyboardEvent) => { if (event.code === "Space") endInputHold(); };
+    addEventListener("keydown", down); addEventListener("keyup", up);
+    return () => { removeEventListener("keydown", down); removeEventListener("keyup", up); };
+  });
+  useEffect(() => { setFeature(0); setActiveStep(0); setSelectedVehiclePart(null); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); }, [domain]);
+  // A view change must not restart the lesson: Vehicle/System, E/E, and SW
+  // are alternate views of this same feature and its current signal stage.
+  useEffect(() => { setActiveStep(0); setSelectedVehiclePart(null); setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("flow"); }, [feature]);
+  useEffect(() => { setRemoved(null); setEcuCard(null); setCulprit(null); setGuess(null); setLabMode("flow"); }, [routeLevel]);
+  useEffect(() => {
+    const flowLength = routeLevel === 3 ? getFeatureLayer(domain, feature, 3).length : routeLevel === 2 ? getFeatureLayer(domain, feature, 2).length : getFeatureLayer(domain, feature, 1).length;
+    // steps advance only when the player moves them (no background auto-advance; the flow card has its own play/pause)
+    if (!garageAutoTour) return;
     const timer = window.setInterval(() => setActiveStep(value => (value + 1) % flowLength), 1450);
     return () => window.clearInterval(timer);
   }, [domain, feature, routeLevel]);
+  const viewFlowLength = getFeatureLayer(domain, feature, garageLayerSource[routeLevel]).length;
+  const GV3_VIEW_NAMES = ["기능 흐름", "부품·E/E", "SW 구성", "SW 로직"] as const;
+  const GV3_QUESTIONS = ["어떤 부품이 실제로 움직일까?", "입력은 어떤 경로로 전달될까?", "제어기 안에서 어떤 SW 컴포넌트가 일할까?", "SW는 어떤 조건으로 출력을 정할까?"] as const;
+  const gv3Mission = {
+    question: chosen ? GV3_QUESTIONS[routeLevel] : "어떤 기능을 체험해 볼까?",
+    action: !chosen ? "도메인을 하나 고르세요"
+      : missing.length ? `다음 조작 · ${missing[0].label}`
+        : !inputSelected && !cleared ? `${INPUT_ACTION[domain]} · 길게 누르기`
+          : !cleared ? "‘다음 스텝’으로 신호 따라가기"
+            : "완료 · 다른 관점으로 같은 신호 확인",
+  };
+  useDevActions({ label: "STEP01", solve: () => {
+    if (!chosen) { setChosen(true); return; }
+    setConds(new Set(mission.needs.map(item => item.id))); setInputSelected(true); setActiveStep(flowLength - 1); setCleared(true);
+    setCompletedLessons(previous => new Set(previous).add(`${domain}-${feature}`));
+  } });
   return <div className="garageV2">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
-    <GameHeader chapter="GARAGE · VEHICLE LOGIC LAB" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
-    <nav className="garageLayerNav" aria-label="설계 추상화 단계">
-      <small className="viewAxisLabel">VIEWPOINT · 도메인과 독립된 관점 축</small>
-      {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={routeLevel === index ? "active" : ""}>
-        <span>{String(index + 1).padStart(2, "0")}</span><b>{layer.name}</b><small>{layer.tag}</small>
+    <GameHeader chapter="정비소" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <StageFolderSubtitle step="garage" className="garageStageFolder" action="차량 기능이 어떤 부품과 신호를 거쳐 동작하는지 확인하세요." detail={<>학습 대상: {chosen ? content.label : "전체 도메인"} <i>|</i> Vehicle/System · E/E · Control SW</>} />
+    <StageIntro id="garage" stage="STEP 01" title="정비소" goal="차량 기능이 부품·신호·SW를 거쳐 어떻게 동작하는지 이해하기" steps={[
+      { icon: "car", text: chosen ? "위 탭에서 도메인, 오른쪽에서 기능을 고르기" : "전체보기에서 파워트레인·섀시·차량 제어와 협조 신호를 먼저 살펴보기" },
+      { icon: "layers", text: "왼쪽 세 관점으로 같은 기능을 비교하기 (부품 · E/E 연결 · Control SW)" },
+      { icon: "signal", text: "입력 부품을 길게 눌러 신호가 한 단계씩 전달되는 과정 보기" },
+    ]} />
+    <div className="gv3Work" data-overview={!chosen && !overview3d ? "true" : "false"} data-mode={!chosen && overview3d ? "overview3d" : !chosen ? "architecture" : "domain"}>
+    <MissionBar action={gv3Mission.action} question={gv3Mission.question} progress={chosen ? { now: Math.min(activeStep + 1, viewFlowLength), total: viewFlowLength } : undefined} />
+    <nav className="garageLayerNav" aria-label="관점 선택">
+      {learningLayers.map((layer, index) => <button key={layer.name} onClick={() => selectLevel(index)} className={`${routeLevel === index ? "active" : ""} ${!chosen && index > 0 ? "needsDomain" : ""}`} title={!chosen && index > 0 ? "도메인을 먼저 고르면 열려요" : layer.tag}>
+        <span>{index + 1}</span><b>{GV3_VIEW_NAMES[index]}</b>
       </button>)}
     </nav>
     <main className="garageStudio">
-      <nav className="domainTabs">{(Object.keys(domainContent) as DomainId[]).map((id, index) => <button key={id} className={domain === id ? "active" : ""} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span>{domainContent[id].icon}</span><b>{domainContent[id].label}</b><small>{index < 4 ? "필수" : "확장"}</small></button>)}</nav>
+      {!chosen && !overview3d && <nav className={`domainTabs ${overviewGroup ? "scoped" : ""}`} aria-label="도메인 선택">
+        {overviewGroup && <button className="overviewBack" onClick={() => { setOverviewGroup(null); setOverview3d(true); }}><span aria-hidden="true">←</span> 상위 영역으로 돌아가기</button>}
+        {!overviewGroup && <button className="allDomains active" onClick={showAllDomains}><span><Icon name="car" /></span><b>전체보기</b></button>}
+        {(overviewGroup ? [overviewGroup] : DOMAIN_GROUPS).map(group => <div key={group} className="domainGroup" style={{ "--n": DOMAIN_ORDER.filter(id => domainContent[id].group === group).length } as React.CSSProperties}>
+          <em className="groupName">{group}</em>
+          <div className="groupBtns">{DOMAIN_ORDER.filter(id => domainContent[id].group === group).map(id => { const learned = Array.from(completedLessons).some(key => key.startsWith(`${id}-`)); return <button key={id} title={domainContent[id].label} aria-label={domainContent[id].label} className={`${chosen && domain === id ? "active" : ""} ${learned ? "learned" : ""}`} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span><Icon name={DOMAIN_ICON[id]} /></span><b>{domainContent[id].label}</b>{learned && <small>✓</small>}</button>; })}</div>
+        </div>)}
+      </nav>}
+      {chosen && <nav className="garageBreadcrumb" aria-label="현재 정비소 위치">
+        <button onClick={showAllDomains}><Icon name="car" /> 차량 전체</button><span>›</span>
+        <b>{content.group}</b><span>›</span><strong>{content.label}</strong>
+        <button className="changeDomain" onClick={showAllDomains}>영역 바꾸기</button>
+      </nav>}
       <section className="garageMechanismCard">
-        <header><small>차량 시스템 › {content.label} 도메인 › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
-        <MechanismViewer domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} />
+        {chosen ? <header className="garageVizTag"><small>{learningLayers[routeLevel].name} › {content.label} › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
+          : <header className="garageVizTag"><small>{learningLayers[routeLevel].name} › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "부품·E/E와 SW 층은 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레일로 같은 기능을 더 깊게 봅니다."}</p></header>}
+        <MechanismViewer key={`${chosen ? "domain" : "all"}-${overviewGroup ?? "all"}`} inputOn={signalVisible} eeLayer={eeLayer} onEeLayerChange={layer => { setEeLayer(layer); play("pop"); }} noDomain={!chosen} overviewGroup={overviewGroup} overview3dMode={!chosen && overview3d} onOverview3dChange={setOverview3d} onArea={chooseOverviewArea} onDomain={id => setDomain(id)} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} selectedVehiclePart={selectedVehiclePart} onVehiclePartSelect={index => { setSelectedVehiclePart(index); setActiveStep(index); play("pop"); }} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
-        <div className={`garageLearningMission prediction-${predictionResult}`}>
-          <span><small>LEARNING MISSION · 먼저 예측하고 관찰</small><b>“{content.functions[feature]}”의 최종 물리 출력은?</b></span>
-          <div className="garagePredictionChoices">{predictionOptions.map(option => <button key={option} className={prediction === option ? "selected" : ""} onClick={() => {
-            const correct = option === correctPhysicalOutput;
-            setPrediction(option);
-            setPredictionResult(correct ? "correct" : "wrong");
-            if (correct) {
-              setActiveStep(getFeatureLayer(domain, feature, garageLayerSource[routeLevel]).length - 1);
-              setLessonHits(previous => new Set(previous).add(`${domain}-${feature}-prediction`));
-            }
-          }}>{predictionDisplay(option)}</button>)}</div>
-          <em>{predictionResult === "correct" ? "✓ 흐름에서 출력 위치가 켜졌습니다" : predictionResult === "wrong" ? "입력 장치가 아니라 차량이 실제로 만드는 결과를 찾아보세요" : `${Math.min(6, lessonHits.size)}/6 관찰`}</em>
-        </div>
+        {chosen && <div className="inputBar" aria-label="입력 넣기">
+          <p className={`inputStatus ${gateMsg ? "warn" : cleared ? "ok" : ""}`} role="status">{gateMsg || (inputSelected ? "입력이 선택됨 · 다음 스텝으로 신호를 관찰하세요" : cleared ? NORMAL_RESPONSE[domain] : missing.length ? `${conds.size ? "준비 중" : "차량 OFF"} · ${missing[0].label}부터 켜세요` : READY_RESPONSE[domain])}</p>
+          {mission.needs.map((item, index) => { const locked = mission.needs.slice(0, index).some(previous => !conds.has(previous.id)); return <button key={item.id} disabled={locked} className={`ctlBtn conditionCtl ${conds.has(item.id) ? "on" : ""} ${locked ? "locked" : ""}`} onClick={() => toggleCondition(item.id, index)}><i>{conds.has(item.id) ? "✓" : index + 1}</i><span>{item.label}</span></button>; })}
+          <button disabled={missing.length > 0} className={`ctlBtn mainCtl ${inputSelected ? "pressing" : ""}`} onPointerDown={event => { event.preventDefault(); beginInputHold(); }} onPointerUp={endInputHold} onPointerLeave={endInputHold} onPointerCancel={endInputHold}><i>{mission.needs.length + 1}</i><span>{INPUT_ACTION[domain]}</span><small>{inputSelected ? "선택됨 · 꾹 해제" : "꾹 · Space"}</small></button>
+        </div>}
+        {chosen && <div className="swStepControls garageStepControls" aria-label="공통 신호 단계 조작"><button className="ctlBtn" onClick={() => { stopAuto(); if (!inputSelected) { setGateMsg("먼저 입력을 길게 눌러 선택하세요."); play("error"); return; } if (activeStep >= flowLength - 1) { setActiveStep(0); setCleared(false); } else setActiveStep(value => { const next = value + 1; if (next === flowLength - 1) { setCleared(true); setCompletedLessons(previous => new Set(previous).add(`${domain}-${feature}`)); } return next; }); play("pop", 1.1); }}>{activeStep >= flowLength - 1 ? "처음으로" : "다음 스텝"}</button><button className="ctlBtn" onClick={() => { if (!inputSelected) { setGateMsg("먼저 입력을 길게 눌러 선택하세요."); play("error"); return; } setAutoPlaying(value => !value); }}>{autoPlaying ? "일시정지" : "자동재생"}</button></div>}
+        {SHOW_EE_TABS && chosen && routeLevel === 1 && (() => {
+          const parts = chain.map((label, index) => ({ label, index, role: partRole(label, index, chain.length) })).filter(item => item.role !== "result");
+          const pullOut = (index: number) => { setRemoved(index); setActiveStep(index); setEcuCard(null); setTriedRemovals(previous => new Set(previous).add(`${domain}-${feature}-${index}`)); play("squish"); };
+          const startHunt = () => {
+            const pick = parts[Math.floor(Math.random() * parts.length)];
+            setCulprit(pick.index); setGuess(null); setRemoved(null); setEcuCard(null); setLabMode("hunt"); play("siren");
+          };
+          const answer = (index: number) => {
+            if (culprit === null || guess?.right) return;
+            const right = index === culprit;
+            setGuess({ index, right });
+            if (right) { setRemoved(index); setCaught(value => value + 1); window.setTimeout(() => { play("stamp"); play("success"); }, 60); } else play("error");
+          };
+          return <div className={`pullOutLab mode-${labMode}`}>
+            <header>
+              <nav className="labTabs">
+                <button className={labMode === "flow" ? "on" : ""} onClick={() => { setLabMode("flow"); setRemoved(null); setCulprit(null); setEcuCard(null); setActiveStep(0); }}><Icon name="compass" /> 흐름 따라가기</button>
+                <button className={labMode === "intro" ? "on" : ""} onClick={() => { setLabMode("intro"); setRemoved(null); setCulprit(null); }}>① 부품 소개</button>
+                {SHOW_PULL_TABS && <button className={labMode === "pull" ? "on" : ""} onClick={() => { setLabMode("pull"); setCulprit(null); setEcuCard(null); }}>② 빼 보기</button>}
+                {SHOW_PULL_TABS && <button className={labMode === "hunt" ? "on" : ""} onClick={startHunt}>③ 범인 찾기{caught ? ` · ${caught}` : ""}</button>}
+              </nav>
+              <em>{labMode === "flow" ? "부품을 누르면 아래에 받는 값 · 하는 일 · 보내는 값이 나와요" : labMode === "intro" ? "부품을 눌러 무슨 일을 하는지 보세요" : labMode === "pull" ? "부품을 하나 빼면 차가 어떻게 될까?" : `${ENGINEER}의 문제: 빠진 부품을 찾아보세요`}</em>
+            </header>
+            {labMode !== "flow" && <div className="pullOutChain">{chain.map((label, index) => { const role = partRole(label, index, chain.length); return <React.Fragment key={`${label}-${index}`}>
+              {index > 0 && <i className={removed !== null && (removed === index || removed === index - 1) ? "broken" : ""}>→</i>}
+              <button disabled={labMode === "hunt" || (role === "result" && labMode === "pull")} className={`${removed === index ? "is-out" : ""} ${ecuCard === index ? "is-open" : ""} role-${role}`} onClick={() => {
+                if (labMode === "intro") { setEcuCard(ecuCard === index ? null : index); setActiveStep(index); play("pop"); return; }
+                if (removed === index) { setRemoved(null); return; }
+                pullOut(index);
+              }}>
+                <small>{ROLE_TEXT[role].tag}</small><b>{label}</b>
+                <em>{labMode === "intro" ? "소개" : labMode === "hunt" ? "?" : removed === index ? "↩ 다시 끼우기" : role === "result" ? "결과" : "빼 보기"}</em>
+              </button>
+            </React.Fragment>; })}</div>}
+            {labMode === "intro" && ecuCard !== null && <PartIntroCard label={chain[ecuCard]} role={partRole(chain[ecuCard], ecuCard, chain.length)} domain={domain} onClose={() => setEcuCard(null)} onPull={() => { setLabMode("pull"); pullOut(ecuCard); }} />}
+            {labMode === "pull" && removed !== null && <PullOutBubble domain={domain} label={chain[removed]} role={partRole(chain[removed], removed, chain.length)} />}
+            {labMode === "hunt" && culprit !== null && <div className="pullOutBubble huntQuiz"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><div>
+              <p><b>{guess?.right ? "맞아요. 빠진 부품을 찾았어요" : guess ? "그 부품은 정상이에요" : "어느 부품이 빠졌는지 단서로 찾아보세요"}</b>{DOMAIN_SYMPTOM[domain]}<span className="pullOutChips"><em><Icon name="clue" /> 단서: {ROLE_TEXT[partRole(chain[culprit], culprit, chain.length)].clue}</em></span></p>
+              <div className="quizChoices">{parts.map(item => <button key={item.index} disabled={Boolean(guess?.right)} className={guess?.index === item.index ? guess.right ? "right" : "wrong" : guess?.right && item.index === culprit ? "right" : ""} onClick={() => answer(item.index)}>{item.label}</button>)}</div>
+              {guess?.right && <button className="huntButton" onClick={startHunt}>한 번 더!</button>}
+            </div></div>}
+          </div>;
+        })()}
       </section>
-      <aside className="domainFunctionShelf">
-        <small>CORE CONTROL FUNCTIONS</small><h2>{content.label}의 주요 기능</h2>
-        {content.functions.map((item, index) => <button key={item} className={feature === index ? "active" : ""} onClick={() => setFeature(index)}><span>{index + 1}</span><b>{item}</b><i>›</i></button>)}
-        <div className="functionNote"><b>{content.functions[feature]}</b><p>{selectedFeature.summary}</p><small>주요 기능들은 서로 이어지는 단계가 아니라 같은 도메인 안의 형제 기능입니다.</small></div>
-      </aside>
-      <section className="garageFlowPanel">
+      {!chosen && <aside className="domainFunctionShelf"><small>주요 기능</small><h2>도메인을 골라 보세요</h2><div className="functionNote"><b>주요 기능</b><p>위 탭에서 도메인을 고르면 그 도메인의 주요 기능과 신호 흐름이 여기에 나와요.</p></div></aside>}
+      {!chosen && <div className="garageFooterRow"><section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → ECU → 출력 순서가 여기에 나와요.</b><div /></section><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "OPEN_LEVELS" })}>다음 →</button></div>}
+      {chosen && <aside className={`domainFunctionShelf ${domain === "drive" && feature === 0 ? "withPedalLab" : ""}`}>
+        <small>주요 기능</small><h2>{content.label}의 주요 기능</h2>
+        {content.functions.map((item, index) => <button key={item} className={feature === index ? "active" : ""} onClick={() => setFeature(index)}><span>{index + 1}</span><b>{item}</b><em className="featureCat">{content.categories[index]}</em><i>›</i></button>)}
+        <div className="functionNote"><b>{content.functions[feature]}</b><p>{selectedFeature.summary}</p><small>{ownerController(domain, feature) ? `실행 제어기 · ${ownerController(domain, feature)!.name}` : "여러 제어기가 나눠 실행"}</small></div>
+        {domain === "drive" && feature === 0 && <PedalLab />}
+      </aside>}
+      {chosen && <div className="garageFooterRow"><section className="garageFlowPanel">
         <small>{content.functions[feature]} · {learningLayers[routeLevel].tag}</small>
-        <b className="flowRelationship">{routeLevel === 2 ? "핵심 제어 SW를 물리 입력·출력 경계와 함께 추적" : "선택한 기능에 필요한 경계만 표시 · 단계 수는 기능마다 달라집니다"}</b>
-        <div>{(routeLevel === 2 ? [getFeatureLayer(domain, feature, 1)[0], getFeatureLayer(domain, feature, 1).at(-1)!] : getFeatureLayer(domain, feature, garageLayerSource[routeLevel])).map((node, index, flow) => { const step = index ? (routeLevel === 2 ? getFeatureLayer(domain, feature, 3).length - 1 : index) : 0; return <React.Fragment key={`${node}-${index}`}><button onClick={() => inspectStep(index, step)} className={`${index === 0 || index === flow.length - 1 ? "focus" : ""} ${(activeStep === index || routeLevel === 2 && index === 1 && activeStep === getFeatureLayer(domain, feature, 3).length - 1) ? "activeStep" : ""}`}><i>{index + 1}</i><b>{node}</b><span>{index === 0 ? "PHYSICAL INPUT" : index === flow.length - 1 ? "OUTPUT ACTUATOR" : routeLevel === 0 ? "VEHICLE FUNCTION" : "HW / ECU"}</span></button>{index < flow.length - 1 && <em>→</em>}</React.Fragment>; })}</div>
-        <button className="garageProceed primary" onClick={() => send({ type: "START_RACE" })}>학습 마치고 도주 장면으로 →</button>
-      </section>
+        <b className="flowRelationship">{routeLevel === 3 ? "핵심 제어 SW를 물리 입력·출력 경계와 함께 추적" : routeLevel === 2 ? "제어기 안 SW 컴포넌트가 포트로 값을 넘기는 순서" : "선택한 기능에 필요한 경계만 표시 · 단계 수는 기능마다 달라집니다"}</b>
+        {routeLevel === 1 ? <FlowStepCard chain={chain} signals={flowSignals(domain, feature, chain.length)} step={Math.min(activeStep, chain.length - 1)} onStep={i => { setActiveStep(i); play("pop", 1 + i * .08); }} /> : <div>{(routeLevel === 3 ? [getFeatureLayer(domain, feature, 1)[0], getFeatureLayer(domain, feature, 1).at(-1)!] : getFeatureLayer(domain, feature, garageLayerSource[routeLevel])).map((node, index, flow) => { const step = index ? (routeLevel === 3 ? getFeatureLayer(domain, feature, 3).length - 1 : index) : 0; return <React.Fragment key={`${node}-${index}`}><button onClick={() => inspectStep(index, step)} className={`${index === 0 || index === flow.length - 1 ? "focus" : ""} ${(activeStep === index || routeLevel === 3 && index === 1 && activeStep === getFeatureLayer(domain, feature, 3).length - 1) ? "activeStep" : ""}`}><i>{index + 1}</i><b>{node}</b><span>{index === 0 ? "입력" : index === flow.length - 1 ? "출력" : routeLevel === 0 ? "기능 단계" : routeLevel === 2 ? "SW 컴포넌트" : "부품·제어기"}</span></button>{index < flow.length - 1 && <em>→</em>}</React.Fragment>; })}</div>}
+      </section><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "OPEN_LEVELS" })}>다음 →</button></div>}
     </main>
+    </div>
   </div>;
 }
+
+const PART_THUMBS = new Set(["accel_pedal", "bms", "brake_caliper", "brake_ecu", "brake_pedal", "can_harness", "charging_port", "coolant_valve", "cooling_fan", "cooling_pump", "eps_ecu", "mcu", "motor_temp_sensor", "obc", "radiator", "thermal_ecu", "traction_motor", "vcu"]);
+// Preconditions before the input does anything (game simplification of real interlocks: READY, brake, gear).
+const INPUT_MISSION: Record<DomainId, { needs: { id: string; label: string; why: string }[] }> = {
+  drive: { needs: [{ id: "ready", label: "READY 켜기", why: "READY(주행 준비)가 꺼져 있으면 구동 토크가 나가지 않아요." }, { id: "d", label: "D단", why: "D단이 아니면 VCU가 구동 토크를 막아요(변속 인터록)." }] },
+  brake: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 제동 협조(회생) 계산이 시작되지 않아요." }] },
+  steer: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 EPS 보조가 동작하지 않아요." }] },
+  power: { needs: [{ id: "brake", label: "브레이크 밟기", why: "브레이크를 밟은 상태에서 시동 버튼을 눌러야 READY가 돼요." }] },
+  gear: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 변속할 수 없어요." }, { id: "brake", label: "브레이크 밟기", why: "브레이크를 밟아야 P에서 다른 단으로 바뀌어요(변속 잠금)." }] },
+  thermal: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 냉각 펌프·팬 제어가 시작되지 않아요." }] },
+  suspension: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 전자제어 댐퍼가 동작하지 않아요." }] },
+  charge: { needs: [{ id: "park", label: "P단 정차", why: "충전 중에는 차량이 움직이지 않도록 P단이어야 해요." }] },
+  comm: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 대부분의 제어기 통신이 쉬고 있어요." }] },
+  vcu: { needs: [{ id: "brake", label: "브레이크 밟기", why: "브레이크를 밟은 상태에서 시동 요청이 들어와야 READY로 전환돼요." }] },
+  adas: { needs: [{ id: "ready", label: "READY 켜기", why: "READY가 꺼져 있으면 전방 인지와 개입 로직이 동작하지 않아요." }] },
+};
+const INPUT_ACTION: Record<DomainId, string> = { drive: "가속 페달 밟기", brake: "브레이크 밟기", steer: "핸들 돌리기", power: "시동 버튼 누르기", gear: "D단 고르기", thermal: "고속 주행 열 부하", suspension: "요철 지나가기", charge: "충전 커넥터 꽂기", comm: "진단 요청 보내기", vcu: "시동 버튼 누르기", adas: "앞차에 가까워지기" };
+const NORMAL_RESPONSE: Record<DomainId, string> = {
+  drive: "토크 명령이 모터와 전륜까지 전달돼 차량이 가속해요.",
+  brake: "회생·마찰 제동 명령이 합쳐져 차량이 안정적으로 감속해요.",
+  steer: "EPS 보조 토크가 생기고 랙이 움직여 전륜 각도가 바뀌어요.",
+  power: "팩 안전 확인과 프리차지를 거쳐 접촉기가 닫히고 READY가 켜져요.",
+  gear: "변속 인터록을 통과한 D단 상태가 구동계와 계기판에 전달돼요.",
+  thermal: "펌프·팬 명령이 출력되고 냉각수가 순환해 온도를 낮춰요.",
+  suspension: "댐퍼 명령과 스프링 변위가 노면 충격을 흡수해 차체를 안정시켜요.",
+  charge: "연결과 잠금을 확인하고 협상한 전류로 OBC가 팩을 충전해요.",
+  comm: "메시지가 정해진 주기로 전달되고 수신 제어기가 값을 반영해요.",
+  vcu: "시동 조건을 확인해 상태가 전환되고 도메인 요구가 중재돼요.",
+  adas: "전방 물체를 판단해 경고하고 필요하면 감속을 요청해요.",
+};
+const READY_RESPONSE: Record<DomainId, string> = {
+  drive: "구동 조건 완료 · 가속 입력을 꾹 누르세요",
+  brake: "제동 제어 준비 완료 · 브레이크 입력을 꾹 누르세요",
+  steer: "EPS 준비 완료 · 핸들 입력을 꾹 누르세요",
+  power: "시동 조건 완료 · START 입력을 꾹 누르세요",
+  gear: "변속 조건 완료 · D단 입력을 꾹 누르세요",
+  thermal: "열관리 준비 완료 · 열 부하 입력을 꾹 누르세요",
+  suspension: "현가 제어 준비 완료 · 요철 입력을 꾹 누르세요",
+  charge: "충전 조건 완료 · 커넥터 입력을 꾹 누르세요",
+  comm: "통신 준비 완료 · 진단 입력을 꾹 누르세요",
+  vcu: "상태 전환 조건 완료 · 시동 입력을 꾹 누르세요",
+  adas: "지원 기능 준비 완료 · 접근 입력을 꾹 누르세요",
+};
 
 function HeistCat3D({ groupRef, coat, role }: { groupRef: React.RefObject<THREE.Group | null>; coat: string; role: "driver" | "engineer" }) {
   const leftArm = useRef<THREE.Group>(null!);
@@ -587,6 +1167,7 @@ function HeistCutsceneScene({ onBeat, onDone }: { onBeat: (beat: number) => void
   const catA = useRef<THREE.Group>(null);
   const catB = useRef<THREE.Group>(null);
   const car = useRef<THREE.Group>(null);
+  const carCrew = useRef<THREE.Group>(null);
   const doorLeft = useRef<THREE.Group>(null);
   const doorRight = useRef<THREE.Group>(null);
   const alarm = useRef<THREE.PointLight>(null);
@@ -610,6 +1191,8 @@ function HeistCutsceneScene({ onBeat, onDone }: { onBeat: (beat: number) => void
     };
     placeCat(catA.current, -.72);
     placeCat(catB.current, .72);
+    // The running cats vanish as they board; the seated crew appears in the same instant.
+    if (carCrew.current) carCrew.current.visible = boarded;
     if (doorLeft.current) doorLeft.current.rotation.y = -doorOpen * Math.PI * .48;
     if (doorRight.current) doorRight.current.rotation.y = doorOpen * Math.PI * .48;
     if (alarm.current) alarm.current.intensity = t > 4.8 && t < 7 ? (Math.sin(t * 15) > 0 ? 7 : .3) : 0;
@@ -637,7 +1220,7 @@ function HeistCutsceneScene({ onBeat, onDone }: { onBeat: (beat: number) => void
       {[-3,3].map(x => <group key={x} position={[x,2.25,.34]}>{[0,.55,1.1].map(y => <RoundedBox key={y} args={[1.15,.36,.1]} radius={.05} position={[0,y-.55,0]}><meshStandardMaterial color="#ffe58d" emissive="#d39d28" emissiveIntensity={.3} metalness={.65} /></RoundedBox>)}</group>)}
     </group>
     <HeistCat3D groupRef={catA} coat="#f4ead8" role="driver" /><HeistCat3D groupRef={catB} coat="#f0e1cc" role="engineer" />
-    <group ref={car} scale={.72}><Convertible spin={0} /></group>
+    <group ref={car} scale={.72}><HeroConvertible spin={0} crewRef={carCrew} /></group>
     {Array.from({length:20},(_,i) => <mesh key={i} position={[-.75+(i%5)*.28,.18+Math.floor(i/5)*.12,-.65]} rotation={[0,0,(i%3)*.2]}><boxGeometry args={[.2,.09,.05]} /><meshStandardMaterial color="#d8b556" metalness={.72} /></mesh>)}
   </>;
 }
@@ -645,34 +1228,32 @@ function HeistCutsceneScene({ onBeat, onDone }: { onBeat: (beat: number) => void
 export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) {
   const [ready, setReady] = useState(false);
   const [heistFrame, setHeistFrame] = useState(0);
-  const heistCaptions = ["부잣집 진입", "경보 패널 우회", "금고 발견", "현금·금괴 확보", "경보 발생!", "가방 들고 탈출", "도주 차량 탑승", "시동 완료 · 출발 준비"];
+  const heistCaptions = ["폭스의 저택 진입", "경보 패널 우회", "금고 발견", "빼앗긴 상금 회수", "경보 발생", "가방 들고 탈출", "직접 만든 차에 탑승", "시동 완료 · 출발 준비"];
   return <div className="driveBriefing heistIntro">
     <SceneBackdrop image={`${A}stitch23/prologue-night-drive.png`} position="center" shade="deep" />
-    <GameHeader chapter="HEIST COMPLETE · GETAWAY" title="부잣집 탈출 작전" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="도주 준비" title="부잣집 탈출 작전" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <main>
       <section className="heistStage">
         <Canvas shadows camera={{position:[0,3.15,9.2],fov:45}} dpr={[1,1.35]} gl={{antialias:true,powerPreference:"high-performance"}}><HeistCutsceneScene onBeat={setHeistFrame} onDone={() => setReady(true)} /></Canvas>
         <div className="heistFrameRail">{heistCaptions.map((caption, index) => <i key={caption} className={index < heistFrame ? "done" : index === heistFrame ? "active" : ""} />)}</div>
-        <div className="heistCaption"><small>HEIST CUTSCENE · {heistFrame + 1}/8</small><b>{heistCaptions[heistFrame]}</b><span>{ready ? "루와 밍이 차에 탔습니다. 이제 직접 운전합니다." : "금고에서 도주 차량까지 실제 장면이 이어집니다."}</span></div>
+        <div className="heistCaption"><small>HEIST CUTSCENE · {heistFrame + 1}/8</small><b>{heistCaptions[heistFrame]}</b><span>{ready ? `${DUO}가 차에 탔습니다. 이제 직접 운전합니다.` : "금고에서 도주 차량까지 실제 장면이 이어집니다."}</span></div>
       </section>
-      <section className="briefingPanel heistPanel"><small>GETAWAY CONTROLS</small><h1>부잣집 탈출 완료<br />해안 도로로 도주!</h1><div className="briefingChecklist"><span><i>W / S</i><b>가속 · 브레이크</b></span><span><i>A / D</i><b>부드러운 조향</b></span><span><i>Q / E</i><b>기어 내림 · 올림</b></span></div><div className="briefingStatus"><span><small>GEARBOX</small><b>MANUAL D1–D3</b></span><span><small>POLICE</small><b>출발 후 뒤에서 합류</b></span><span><small>COURSE</small><b>CURVED COAST RUN</b></span></div><button className="primary" disabled={!ready} onClick={() => send({ type: "BEGIN_RACE" })}>{ready ? "3 · 2 · 1 도주 시작 →" : `${heistCaptions[heistFrame]}…`}</button></section>
+      <section className="briefingPanel heistPanel"><small>GETAWAY CONTROLS</small><h1>부잣집 탈출 완료<br />해안 도로로 도주!</h1><div className="briefingChecklist"><span><i>↑ / ↓</i><b>가속 · 브레이크</b></span><span><i>← / →</i><b>부드러운 조향</b></span><span><i>1~4 · Q / E</i><b>기어 P·R·N·D · 회생 패들</b></span></div><div className="briefingStatus"><span><small>DRIVE</small><b>D · 단일 감속기 · 회생 0–3</b></span><span><small>POLICE</small><b>출발 후 뒤에서 합류</b></span><span><small>COURSE</small><b>CURVED COAST RUN</b></span></div><button className="primary" disabled={!ready} onClick={() => send({ type: "BEGIN_RACE" })}>{ready ? "3 · 2 · 1 도주 시작 →" : `${heistCaptions[heistFrame]}…`}</button></section>
     </main>
   </div>;
 }
 
 type RaceMode = "normal" | "assist" | "resume" | "ship";
-type DriveSim = { speed: number; lane: number; steer: number; distance: number; gap: number; heat: number; elapsed: number };
+type DriveSim = { speed: number; lane: number; steer: number; distance: number; gap: number; heat: number; elapsed: number; /** gap (m) of a car about to hit the player from behind; null when none */ rear?: number | null };
 
 function formatRaceTime(seconds: number) {
   const whole = Math.max(0, Math.floor(seconds));
   return `${String(Math.floor(whole / 60)).padStart(2, "0")}:${String(whole % 60).padStart(2, "0")}`;
 }
 
-function PursuitRouteBar({ distance, gap, compact = false }: { distance: number; gap: number; compact?: boolean }) {
-  const routeProgress = Math.min(100, distance / (1200 / 100));
-  const playerMarker = Math.max(5, routeProgress);
-  const policeProgress = Math.max(1, Math.min(96, playerMarker - Math.max(4, gap / 12)));
-  return <div className={`routeTracker ${compact ? "compactRouteTracker" : ""}`}><div className="routeLabels"><span>START</span><b>추격차와 {Math.round(gap)}m</b><span>FINISH</span></div><div className="routeLine"><i className="policeIcon" style={{ left: `${policeProgress}%` }}>🚓</i><i className="playerIcon" style={{ left: `${playerMarker}%` }}>🚗</i><em /></div></div>;
+/** Kept for the existing scene code: the gap now lives in the shared top bar (GameHeader) and in the race via PursuitHud. */
+export function PursuitRouteBar({ distance, gap, compact = false }: { distance: number; gap: number; compact?: boolean }) {
+  return compact ? null : <PursuitHud gap={gap} distance={distance} />;
 }
 
 function CatRider({ color, x }: { color: string; x: number }) {
@@ -736,16 +1317,29 @@ function PoliceInterceptor({ spin = 0 }: { spin?: number }) {
 // The final escape starts at 1,050 m. Keep a full road approach after that
 // hand-off so the player sees the existing chase continue toward the dock
 // instead of spawning halfway up the ramp.
-const TRACK_LENGTH = 1380;
 const RAMP_START = TRACK_LENGTH - 170;
 const RAMP_END = RAMP_START + 52;
 const RAMP_RISE = 3.55;
 const DECK_TOUCH = RAMP_END + 18;
 const DECK_STOP = DECK_TOUCH + 12;
+// A coastal route made of long straights, a switchback, a tunnel bend and a
+// final open approach. Road, traffic, minimap and vehicle all share this map.
+const ROUTE_POINTS = [
+  [0, 0], [180, 5.2], [390, -9.5], [610, -3.1], [840, 11.5],
+  [1070, 4.4], [1290, -10.8], [1510, -4.2], [1740, 9.2], [1980, -5.8], [2200, 0],
+] as const;
+const routeX = (distance: number) => {
+  const s = THREE.MathUtils.clamp(distance, ROUTE_POINTS[0][0], ROUTE_POINTS.at(-1)![0]);
+  const found = ROUTE_POINTS.findIndex((point, i) => i > 0 && s <= point[0]);
+  const index = Math.min(ROUTE_POINTS.length - 2, Math.max(0, found < 0 ? ROUTE_POINTS.length - 2 : found - 1));
+  const a = ROUTE_POINTS[index], b = ROUTE_POINTS[index + 1];
+  const t = THREE.MathUtils.smoothstep((s - a[0]) / (b[0] - a[0]), 0, 1);
+  return THREE.MathUtils.lerp(a[1], b[1], t);
+};
 const trackFrame = (distance: number, lane = 0) => {
   const s = THREE.MathUtils.clamp(distance, -40, TRACK_LENGTH + 80);
-  const centerX = Math.sin(s / 74) * 5.4 + Math.sin(s / 181) * 3.2;
-  const dx = Math.cos(s / 74) * (5.4 / 74) + Math.cos(s / 181) * (3.2 / 181);
+  const centerX = routeX(s);
+  const dx = (routeX(s + 2) - routeX(s - 2)) / 4;
   const yaw = -Math.atan2(dx, 1);
   return {
     x: centerX + Math.cos(yaw) * lane,
@@ -789,7 +1383,7 @@ function CoastalHouse({ color, roof }: { color: string; roof: string }) {
 }
 
 function RoadsideEnvironment() {
-  return <>{Array.from({ length: 17 }, (_, index) => {
+  return <>{Array.from({ length: Math.ceil((TRACK_LENGTH - 100) / 68) }, (_, index) => {
     const distance = 55 + index * 68;
     // Keep the inhabited coast on the landward side.  The sea side remains
     // visually open instead of growing trees and houses out of the water.
@@ -798,9 +1392,24 @@ function RoadsideEnvironment() {
     return <group key={index} position={[frame.x,0,frame.z]} rotation={[0,frame.yaw,0]}>
       <group position={[side * 2.4,0,0]} scale={.85 + (index%3)*.08}><StylizedRoadTree tone={["#5d956b","#73a66f","#a28d68"][index%3]} /></group>
       {index % 3 === 0 && <group position={[side * 6.2,0,0]} rotation={[0,side>0?-.1:.1,0]} scale={.72}><CoastalHouse color={["#d88972","#7fafaa","#d8b76c"][index%3]} roof={index%2?"#635869":"#80604c"} /></group>}
-      <group position={[side * 7.55,0,-2.2]}><mesh position={[0,2.1,0]}><cylinderGeometry args={[.07,.1,4.2,12]} /><meshStandardMaterial color="#33413e" metalness={.65} /></mesh><mesh position={[0,4.2,0]}><sphereGeometry args={[.28,18,12]} /><meshStandardMaterial color="#fff0b3" emissive="#ffd76d" emissiveIntensity={2.4} /></mesh></group>
     </group>;
-  })}</>;
+  })}
+  {/* street lamps stand on the road edge (lateral -8.6 from the centre line), every second tree spacing */}
+  {Array.from({ length: Math.floor((TRACK_LENGTH - 100) / 136) }, (_, index) => { const frame = trackFrame(55 + index * 136 + 30, -8.6); return <group key={`lamp-${index}`} position={[frame.x, 0, frame.z]} rotation={[0, frame.yaw, 0]}>
+<group position={[0,0,0]}><mesh position={[0,2.1,0]}><cylinderGeometry args={[.07,.1,4.2,12]} /><meshStandardMaterial color="#33413e" metalness={.65} /></mesh><mesh position={[0,4.2,0]}><sphereGeometry args={[.28,18,12]} /><meshStandardMaterial color="#fff0b3" emissive="#ffd76d" emissiveIntensity={2.4} /></mesh></group>
+  </group>; })}</>;
+}
+
+/** HUD card text per environment zone tag (situations.ts ROAD_ZONES). */
+const ENV_HINT = {} as const;
+const TUNNEL_SEGMENTS: number[] = [];
+/** Tunnel shell over the road: walls, ceiling and a lamp strip every 12 m (only for ROAD_ZONES tagged "tunnel"). */
+function Tunnels() {
+  return <>{TUNNEL_SEGMENTS.map(distance => { const f = trackFrame(distance); return <group key={`tunnel-${distance}`} position={[f.x, 0, f.z]} rotation={[0, f.yaw, 0]}>
+    {[-8.4, 8.4].map(x => <mesh key={x} position={[x, 2.9, 0]}><boxGeometry args={[.7, 5.8, 12.2]} /><meshStandardMaterial color="#8a8f93" roughness={.9} /></mesh>)}
+    <mesh position={[0, 5.95, 0]}><boxGeometry args={[17.5, .7, 12.2]} /><meshStandardMaterial color="#6f7478" roughness={.9} /></mesh>
+    <mesh position={[0, 5.55, 0]}><boxGeometry args={[1.2, .12, 1.4]} /><meshStandardMaterial color="#fff2c4" emissive="#ffcf70" emissiveIntensity={2.6} /></mesh>
+  </group>; })}</>;
 }
 
 const trafficPalette = ["#737b7d", "#a8ada9", "#4d5559", "#8b9090", "#646b70", "#b6b4ac", "#555d61"];
@@ -812,23 +1421,28 @@ function CivilianCar({ color, spin = 0 }: { color: string; spin?: number }) {
     <mesh position={[0,1.03,-.72]} rotation={[-.2,0,0]}><planeGeometry args={[1.5,.72]} /><meshPhysicalMaterial color="#9cc6ce" transparent opacity={.68} transmission={.35} roughness={.08} /></mesh>
     <RoundedBox args={[1.52,.18,.52]} radius={.08} position={[0,.56,-1.62]}><meshStandardMaterial color="#202828" /></RoundedBox>
     {[-.56,.56].map(x => <mesh key={x} position={[x,.62,-1.82]}><sphereGeometry args={[.15,18,12]} /><meshStandardMaterial color="#fff1c2" emissive="#ffe5a0" emissiveIntensity={1.2} /></mesh>)}
+    {[-.56,.56].map(x => <mesh key={`tail${x}`} name="tail" position={[x,.6,1.8]}><boxGeometry args={[.42,.14,.06]} /><meshStandardMaterial color="#5a1d1d" emissive="#ff2a1a" emissiveIntensity={.15} /></mesh>)}
     {[-.78,.78].flatMap(x => [-1.1,1.1].map(z => <RaceWheel key={`${x}-${z}`} x={x} z={z} steer={0} spin={spin} />))}
   </group>;
 }
 
-function trafficStateFor(sim: DriveSim, index: number) {
-  const opposite = index % 2 === 1;
-  const speedKph = 38 + index * 3.5;
-  const start = 105 + index * 148;
-  const travel = sim.elapsed * speedKph / 3.6;
-  const distance = opposite
-    ? THREE.MathUtils.euclideanModulo(TRACK_LENGTH - start - travel, TRACK_LENGTH - 40)
-    : THREE.MathUtils.euclideanModulo(start + travel, TRACK_LENGTH - 40);
-  let lane = opposite ? (index % 4 === 1 ? -1.72 : -5.1) : index % 4 === 0 ? 1.68 : 5.05;
-  const playerLane = 3.35 + sim.lane;
-  const approachingPlayer = !opposite && distance > sim.distance && distance - sim.distance < 17;
-  if (approachingPlayer && Math.abs(lane - playerLane) < 1.38) lane = lane < 3.35 ? 5.05 : 1.68;
-  return { opposite, distance, lane, speedKph };
+/** People on the signalised crosswalks while the car signal is red. Simple figures; a contact is an emergency stop, never an injury scene. */
+const PED_COLORS = ["#e8a05a", "#6f9fc9", "#c76f86", "#7bb28a", "#d9c25a"];
+function Pedestrians({ elapsed }: { elapsed: number }) {
+  return <>{CYCLE_JUNCTIONS.flatMap(j => pedestriansAt(j, elapsed)).map((p, i) => {
+    const f = trackFrame(p.distance, p.lateral);
+    const bob = Math.abs(Math.sin(elapsed * 7 + i)) * .06;
+    return <group key={p.id} position={[f.x, bob, f.z]} rotation={[0, f.yaw + (p.heading === 1 ? -Math.PI / 2 : Math.PI / 2), 0]}>
+      <mesh position={[0, .55, 0]}><capsuleGeometry args={[.2, .55, 4, 10]} /><meshStandardMaterial color={PED_COLORS[i % PED_COLORS.length]} roughness={.8} /></mesh>
+      <mesh position={[0, 1.12, 0]}><sphereGeometry args={[.17, 14, 10]} /><meshStandardMaterial color="#f1d3b3" roughness={.85} /></mesh>
+      <mesh position={[0, .12, 0]}><boxGeometry args={[.28, .24, .16]} /><meshStandardMaterial color="#3a3f4a" /></mesh>
+    </group>;
+  })}</>;
+}
+/** The car that is about to hit the player from behind (after a hard stop). */
+function RearFollower({ sim }: { sim: DriveSim }) {
+  const f = trackFrame(sim.distance - (sim.rear ?? 0), 3.35 + sim.lane);
+  return <group position={[f.x, .02, f.z]} rotation={[0, f.yaw, 0]} scale={.94}><CivilianCar color="#6a7fa8" spin={sim.distance * .09} /></group>;
 }
 
 function TrafficFleet({ sim }: { sim: DriveSim }) {
@@ -842,61 +1456,72 @@ function TrafficFleet({ sim }: { sim: DriveSim }) {
       car.position.lerp(target, 1 - Math.exp(-delta * 8));
       const targetYaw = frame.yaw + (traffic.opposite ? Math.PI : 0);
       car.rotation.y = THREE.MathUtils.damp(car.rotation.y, targetYaw, 8, delta);
+      // brake lights: bright while the car brakes hard (scripted lead braking) or hesitates after a hit
+      const lit = leadBraking(index, sim.elapsed) || !!trafficHitVisual(index, sim.elapsed);
+      car.traverse(child => { if (child.name === "tail") ((child as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = lit ? 3.2 : .15; });
+      // a hit car is knocked around for a moment: sideways shove, spin and a small hop, bigger for harder hits
+      const hit = trafficHitVisual(index, sim.elapsed);
+      if (hit) {
+        const k = 1 - hit.age / 1.6, power = hit.level;
+        car.rotation.y += Math.sin(hit.age * 15) * .35 * power * k;
+        car.position.x += Math.sin(hit.age * 9) * .5 * power * k;
+        car.position.y += Math.abs(Math.sin(hit.age * 10)) * .12 * power * k;
+      }
     });
   });
-  return <>{Array.from({ length: 7 }, (_, index) => <group key={index} ref={element => { if (element) cars.current[index] = element; }} scale={.94}>
-    <CivilianCar color={trafficPalette[index]} spin={sim.distance*.09} />
+  return <>{Array.from({ length: TRAFFIC_COUNT }, (_, index) => <group key={index} ref={element => { if (element) cars.current[index] = element; }} scale={.94}>
+    <CivilianCar color={trafficPalette[index % trafficPalette.length]} spin={sim.distance*.09} />
   </group>)}</>;
 }
 
-function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: DriveSim; ship: boolean; policeVisible: boolean; waterFall?: boolean }) {
-  const player = useRef<THREE.Group>(null!);
-  const police = useRef<THREE.Group>(null!);
-  const lookTarget = useRef(new THREE.Vector3());
+// Sky dome whose horizon colour equals the fog colour, so far ground and sea
+// fade into the sky with no visible edge (replaces the flat painted backdrop).
+const SKY = { top: "#4f9fe0", mid: "#93cdf0", horizon: "#d6eef0" };
+// [angle around the camera (rad, 0 = straight ahead), height, scale]
+const CLOUDS: [number, number, number][] = [[-.5, 120, 1.4], [-.15, 160, 1], [.25, 110, 1.2], [.6, 150, .9], [1.2, 130, 1.3], [-1.1, 140, 1.1], [2.2, 120, 1], [-2.4, 150, 1.2], [3.1, 130, 1]];
+function SkyDome() {
+  const dome = useRef<THREE.Mesh>(null!);
+  const geometry = useMemo(() => {
+    const g = new THREE.SphereGeometry(900, 32, 24);
+    const top = new THREE.Color(SKY.top), mid = new THREE.Color(SKY.mid), horizon = new THREE.Color(SKY.horizon);
+    const colors: number[] = [];
+    const position = g.attributes.position;
+    for (let i = 0; i < position.count; i++) {
+      const h = position.getY(i) / 900; // -1 bottom … 1 top
+      const c = h <= 0 ? horizon.clone() : h < .08 ? horizon.clone().lerp(mid, h / .08) : mid.clone().lerp(top, Math.min(1, (h - .08) / .35));
+      colors.push(c.r, c.g, c.b);
+    }
+    g.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    return g;
+  }, []);
+  const sky = useRef<THREE.Group>(null!);
+  useFrame(({ camera }) => { if (sky.current) sky.current.position.set(camera.position.x, 0, camera.position.z); });
+  return <group ref={sky}>
+    <mesh ref={dome} geometry={geometry} renderOrder={-10}><meshBasicMaterial vertexColors side={THREE.BackSide} fog={false} depthWrite={false} /></mesh>
+    {CLOUDS.map(([angle, height, size], index) => <group key={index} position={[Math.sin(angle) * 620, height, -Math.cos(angle) * 620]} scale={size}>
+      {[[0, 0, 0, 14], [13, -3, 2, 10], [-13, -4, 1, 10], [6, 6, -2, 9], [-6, 5, 2, 8]].map(([x, y, z, r], k) => <mesh key={k} position={[x, y, z]} renderOrder={-9}><sphereGeometry args={[r, 14, 10]} /><meshLambertMaterial color="#ffffff" emissive="#dfeefa" emissiveIntensity={.55} fog={false} /></mesh>)}
+    </group>)}
+  </group>;
+}
+
+// Scenery that never changes during a run: rendered once, not on every sim step.
+const TrackStatic = React.memo(function TrackStatic({ ship, signalRed, signals }: { ship: boolean; signalRed: boolean; signals: string }) {
   const deckFrame = trackFrame(DECK_TOUCH + 28);
   const harborFrame = trackFrame((RAMP_START + DECK_STOP) / 2);
-  useFrame(({ camera }, delta) => {
-    const roadLane = 3.35 + sim.lane;
-    const playerFrame = trackFrame(sim.distance, roadLane);
-    const boarding = ship ? boardingPose(sim.distance) : { y: .02, pitch: 0, airborne: false };
-    // Keep the chase car physically behind the player model.  A zero gap is
-    // handled by the state machine before the meshes are allowed to overlap.
-    const freePoliceDistance = Math.max(0, sim.distance - Math.max(5.8, sim.gap));
-    const policeDistance = ship && sim.distance >= RAMP_START ? Math.min(RAMP_START - 12, freePoliceDistance) : freePoliceDistance;
-    const policeFrame = trackFrame(policeDistance, 3.35 + sim.lane * .42);
-    player.current.position.x = THREE.MathUtils.damp(player.current.position.x, playerFrame.x, waterFall ? 2.2 : 10, delta);
-    player.current.position.y = THREE.MathUtils.damp(player.current.position.y, waterFall ? -2.2 : boarding.y, waterFall ? 2.2 : 11, delta);
-    player.current.position.z = THREE.MathUtils.damp(player.current.position.z, playerFrame.z, waterFall ? 2.2 : 10, delta);
-    // Front-wheel steering: the front axle turns first and the body follows a
-    // smaller bicycle-model yaw.  Rear wheels never receive a steering angle.
-    player.current.rotation.y = THREE.MathUtils.damp(player.current.rotation.y, playerFrame.yaw - sim.steer * .34, 9, delta);
-    player.current.rotation.z = THREE.MathUtils.damp(player.current.rotation.z, -sim.steer * .08, 10, delta);
-    player.current.rotation.x = THREE.MathUtils.damp(player.current.rotation.x, waterFall ? .72 : boarding.pitch, waterFall ? 2.3 : 9, delta);
-    police.current.position.x = THREE.MathUtils.damp(police.current.position.x, policeFrame.x, 8, delta);
-    police.current.position.y = THREE.MathUtils.damp(police.current.position.y, .02, 8, delta);
-    police.current.position.z = THREE.MathUtils.damp(police.current.position.z, policeFrame.z, 8, delta);
-    police.current.rotation.y = THREE.MathUtils.damp(police.current.rotation.y, policeFrame.yaw, 8, delta);
-    const sideView = ship && boarding.airborne;
-    const chaseCam = trackFrame(sim.distance - (sideView ? 2 : 10.5), sideView ? -11.5 : 3.35 + sim.lane * .58);
-    const look = trackFrame(sim.distance + 17, 3.35 + sim.lane * .2);
-    camera.position.x = THREE.MathUtils.damp(camera.position.x, chaseCam.x, 5.2, delta);
-    camera.position.y = THREE.MathUtils.damp(camera.position.y, (sideView ? 4.35 : 3.92) + boarding.y * .45, 5.2, delta);
-    camera.position.z = THREE.MathUtils.damp(camera.position.z, chaseCam.z, 5.2, delta);
-    lookTarget.current.x = THREE.MathUtils.damp(lookTarget.current.x, look.x, 6.5, delta);
-    lookTarget.current.y = THREE.MathUtils.damp(lookTarget.current.y, .78 + boarding.y, 6.5, delta);
-    lookTarget.current.z = THREE.MathUtils.damp(lookTarget.current.z, look.z, 6.5, delta);
-    camera.lookAt(lookTarget.current);
-  });
   return <>
-    <fog attach="fog" args={["#b8e1e4", 58, 210]} />
+    <fog attach="fog" args={[SKY.horizon, 70, 260]} />
+    <SkyDome />
     <hemisphereLight intensity={1.8} color="#fff5dc" groundColor="#4c735d" />
     <directionalLight castShadow position={[-12, 22, 10]} intensity={2.8} />
-    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -.12, -TRACK_LENGTH / 2]}><planeGeometry args={[110, TRACK_LENGTH + 220]} /><meshStandardMaterial color="#76b47d" roughness={1} /></mesh>
-    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[34, -.095, -TRACK_LENGTH / 2]}><planeGeometry args={[38, TRACK_LENGTH + 220, 12, 80]} /><meshPhysicalMaterial color="#4f9fb5" roughness={.24} metalness={.08} clearcoat={.7} /></mesh>
+    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[-300, -.12, -TRACK_LENGTH / 2]}><planeGeometry args={[800, TRACK_LENGTH + 1400]} /><meshStandardMaterial color="#76b47d" roughness={1} /></mesh>
+    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[315, -.095, -TRACK_LENGTH / 2]}><planeGeometry args={[600, TRACK_LENGTH + 1400, 12, 80]} /><meshPhysicalMaterial color="#4f9fb5" roughness={.24} metalness={.08} clearcoat={.7} /></mesh>
     {Array.from({ length: 9 }, (_, index) => <group key={`landmark-${index}`} position={[-25 - (index % 2) * 8, 0, -80 - index * 138]}>
       <mesh position={[0, 3.2 + (index % 3), 0]} castShadow><coneGeometry args={[5.5 + (index % 2) * 2, 7 + (index % 3) * 2, 9]} /><meshStandardMaterial color={index % 2 ? "#668c73" : "#7d9d78"} roughness={1} /></mesh>
       <mesh position={[0, 6.4 + (index % 3), 0]}><coneGeometry args={[2.1, 2.2, 9]} /><meshStandardMaterial color="#d8e2d5" roughness={1} /></mesh>
     </group>)}
+    {/* Far layers: mountains on land and islands at sea, softened by fog for depth */}
+    {Array.from({ length: 14 }, (_, index) => <mesh key={`far-mtn-${index}`} position={[-150 - (index % 3) * 45, 0, 120 - index * 130]}><coneGeometry args={[60 + (index % 4) * 14, 55 + (index % 3) * 22, 7]} /><meshStandardMaterial color={index % 2 ? "#6f9a86" : "#7fa892"} roughness={1} flatShading /></mesh>)}
+    {Array.from({ length: 7 }, (_, index) => <mesh key={`island-${index}`} position={[170 + (index % 2) * 60, -.5, 60 - index * 230]} scale={[1, .35, 1]}><sphereGeometry args={[30 + (index % 3) * 10, 14, 10]} /><meshStandardMaterial color="#8fb58c" roughness={1} /></mesh>)}
     {trackSamples.map((s, i) => { if (ship && s >= RAMP_START) return null; const frame = trackFrame(s); return <group key={s} position={[frame.x, 0, frame.z]} rotation={[0, frame.yaw, 0]}>
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[14.8, 20.35]} /><meshStandardMaterial color={i % 2 ? "#48545b" : "#4b575e"} roughness={.96} /></mesh>
       {[-3.7, 3.7].map(x => <mesh key={x} rotation={[-Math.PI / 2, 0, 0]} position={[x, .012, 0]}><planeGeometry args={[.08, 3.5]} /><meshStandardMaterial color="#ece7d9" /></mesh>)}
@@ -904,15 +1529,14 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
       {s < TRACK_LENGTH - 72 && [-7.7, 7.7].map(x => <React.Fragment key={x}>
         <RoundedBox args={[.24, .48, 20.3]} radius={.06} position={[x, .2, 0]}><meshStandardMaterial color="#f0e5cd" /></RoundedBox>
         {i % 4 === 0 && <group position={[x + Math.sign(x) * 2.15, 0, 0]}><mesh position={[0, 1.1, 0]}><sphereGeometry args={[.88, 18, 14]} /><meshStandardMaterial color={i % 8 ? "#5b9b67" : "#e0ad72"} roughness={.9} /></mesh><mesh position={[0, .35, 0]}><cylinderGeometry args={[.13, .2, .8, 12]} /><meshStandardMaterial color="#74533e" /></mesh></group>}
-        {i % 10 === 0 && <RoundedBox args={[2.5, 1.1 + (i % 3) * .35, 3.1]} radius={.3} position={[x + Math.sign(x) * 4.3, .65, 0]} castShadow><meshStandardMaterial color={["#e98970", "#76b2aa", "#e6bf67", "#8da8c7"][i % 4]} roughness={.72} /></RoundedBox>}
+        {i % 10 === 0 && x < 0 && <RoundedBox args={[2.5, 1.1 + (i % 3) * .35, 3.1]} radius={.3} position={[x + Math.sign(x) * 4.3, .65, 0]} castShadow><meshStandardMaterial color={["#e98970", "#76b2aa", "#e6bf67", "#8da8c7"][i % 4]} roughness={.72} /></RoundedBox>}
       </React.Fragment>)}
     </group>})}
-    {[300, 620, 920].map(s => { const f = trackFrame(s); const missionSignalRed = s === 620 && sim.distance >= 540 && sim.distance <= 612.5; return <group key={`junction-${s}`} position={[f.x, .025, f.z]} rotation={[0, f.yaw, 0]}>
+    {[300, 620, 920, 1180, 1560].map(s => { const f = trackFrame(s); const missionSignalRed = s === 620 && signalRed; const cycleIndex = (CYCLE_JUNCTIONS as readonly number[]).indexOf(s); const cyclePhase = cycleIndex >= 0 ? signals[cycleIndex] : null; return <group key={`junction-${s}`} position={[f.x, .025, f.z]} rotation={[0, f.yaw, 0]}>
       {Array.from({ length: 9 }, (_, index) => <mesh key={index} rotation={[-Math.PI / 2, 0, 0]} position={[-6.4 + index * 1.6, .015, 0]}><planeGeometry args={[.72, 4.2]} /><meshStandardMaterial color="#f5efe2" /></mesh>)}
-      {[-7.1, 7.1].map(x => <group key={x} position={[x, 2.25, -2.8]}><mesh><boxGeometry args={[.15, 4.5, .15]} /><meshStandardMaterial color="#303b39" metalness={.65} /></mesh><RoundedBox args={[.6, 1.45, .35]} radius={.12} position={[0, 1.7, 0]}><meshStandardMaterial color="#25302e" /></RoundedBox>{[-.42, 0, .42].map((y, n) => { const lit = missionSignalRed ? n === 0 : n === 2; const lamp = missionSignalRed ? "#ff554d" : "#50d47a"; return <mesh key={y} position={[0, 1.7 + y, -.2]}><sphereGeometry args={[.14, 18, 12]} /><meshStandardMaterial color={lit ? lamp : "#473f3b"} emissive={lit ? lamp : "#000"} emissiveIntensity={lit ? 2.4 : 0} /></mesh>; })}</group>)}
+      {[-7.1, 7.1].map(x => <group key={x} position={[x, 2.25, -2.8]}><mesh><boxGeometry args={[.15, 4.5, .15]} /><meshStandardMaterial color="#303b39" metalness={.65} /></mesh><RoundedBox args={[.6, 1.45, .35]} radius={.12} position={[0, 1.7, 0]}><meshStandardMaterial color="#25302e" /></RoundedBox>{[.42, 0, -.42].map((y, n) => { const lit = cyclePhase ? n === (cyclePhase === "r" ? 0 : cyclePhase === "y" ? 1 : 2) : missionSignalRed ? n === 0 : n === 2; const lamp = (cyclePhase ? cyclePhase === "r" : missionSignalRed) ? "#ff3b30" : cyclePhase === "y" ? "#ffc533" : "#3ee072"; return <mesh key={y} position={[0, 1.7 + y, .2]}><sphereGeometry args={[.17, 18, 12]} /><meshStandardMaterial color={lit ? lamp : "#473f3b"} emissive={lit ? lamp : "#000"} emissiveIntensity={lit ? 2.4 : 0} /></mesh>; })}</group>)}
     </group>; })}
     <RoadsideEnvironment />
-    <TrafficFleet sim={sim} />
     {ship && <>
       {/* A continuous harbor basin sits above the green terrain plane from the
           final road approach through the far end of the ship. */}
@@ -941,13 +1565,130 @@ function RaceWorldScene({ sim, ship, policeVisible, waterFall = false }: { sim: 
         <PartLabel position={[0,5.35,-14]}>FINAL · THE RED WHISKER · PHYSICAL DECK</PartLabel>
       </group>
     </>}
-    <group ref={player}><Convertible steer={sim.steer} spin={sim.distance * .11} /></group>
+  </>;
+});
+
+function RaceWorldScene({ sim, ship, policeVisible, waterFall = false, celebrate = false, hit }: { sim: DriveSim; ship: boolean; policeVisible: boolean; waterFall?: boolean; celebrate?: boolean; hit?: { id: number; level: ImpactLevel } }) {
+  const player = useRef<THREE.Group>(null!);
+  // crash reaction: the car squashes and jolts for a moment (the camera stays steady), harder for bigger hits
+  const hitAt = useRef(-10), hitPower = useRef(1);
+  useEffect(() => { if (hit?.id) { hitAt.current = performance.now() / 1000; hitPower.current = hit.level; } }, [hit?.id, hit?.level]);
+  // Ship arrival: the chase camera orbits from behind the car to its front (0 → π) to show the cheering cats.
+  const orbit = useRef(0);
+  const orbitTmp = useRef({ forward: new THREE.Vector3(), cam: new THREE.Vector3() });
+  const police = useRef<THREE.Group>(null!);
+  const lookTarget = useRef(new THREE.Vector3());
+  // The simulation and Three.js render loops are independent. Keep a monotonic
+  // visual distance so a late React update never moves the car backwards for
+  // one frame (the source of the small launch judder in Chrome).
+  const visualDistance = useRef(sim.distance);
+  if (sim.distance > visualDistance.current) visualDistance.current = sim.distance;
+  useFrame(({ camera }, delta) => {
+    const projected = visualDistance.current + sim.speed / 3.6 * delta;
+    visualDistance.current = Math.max(sim.distance, ship ? Math.min(projected, DECK_STOP) : projected);
+    const distance = visualDistance.current;
+    const roadLane = 3.35 + sim.lane;
+    const playerFrame = trackFrame(distance, roadLane);
+    const boarding = ship ? boardingPose(distance) : { y: .02, pitch: 0, airborne: false };
+    // Keep the chase car physically behind the player model.  A zero gap is
+    // handled by the state machine before the meshes are allowed to overlap.
+    const freePoliceDistance = Math.max(0, distance - Math.max(5.8, sim.gap));
+    const policeDistance = ship && sim.distance >= RAMP_START ? Math.min(RAMP_START - 12, freePoliceDistance) : freePoliceDistance;
+    const policeFrame = trackFrame(policeDistance, 3.35 + sim.lane * .42);
+    player.current.position.x = THREE.MathUtils.damp(player.current.position.x, playerFrame.x, waterFall ? 2.2 : 10, delta);
+    player.current.position.y = THREE.MathUtils.damp(player.current.position.y, waterFall ? -2.2 : boarding.y, waterFall ? 2.2 : 11, delta);
+    player.current.position.z = THREE.MathUtils.damp(player.current.position.z, playerFrame.z, waterFall ? 2.2 : 10, delta);
+    // Front-wheel steering: the front axle turns first and the body follows a
+    // smaller bicycle-model yaw.  Rear wheels never receive a steering angle.
+    player.current.rotation.y = THREE.MathUtils.damp(player.current.rotation.y, playerFrame.yaw - sim.steer * .34, 9, delta);
+    player.current.rotation.z = THREE.MathUtils.damp(player.current.rotation.z, -sim.steer * .08, 10, delta);
+    player.current.rotation.x = THREE.MathUtils.damp(player.current.rotation.x, waterFall ? .72 : boarding.pitch, waterFall ? 2.3 : 9, delta);
+    police.current.position.x = THREE.MathUtils.damp(police.current.position.x, policeFrame.x, 8, delta);
+    police.current.position.y = THREE.MathUtils.damp(police.current.position.y, .02, 8, delta);
+    police.current.position.z = THREE.MathUtils.damp(police.current.position.z, policeFrame.z, 8, delta);
+    police.current.rotation.y = THREE.MathUtils.damp(police.current.rotation.y, policeFrame.yaw, 8, delta);
+    const sideView = ship && boarding.airborne;
+    const chaseCam = trackFrame(distance - (sideView ? 2 : 10.5), sideView ? -11.5 : 3.35 + sim.lane * .58);
+    const look = trackFrame(distance + 17, 3.35 + sim.lane * .2);
+    camera.position.x = THREE.MathUtils.damp(camera.position.x, chaseCam.x, 5.2, delta);
+    camera.position.y = THREE.MathUtils.damp(camera.position.y, (sideView ? 4.35 : 3.92) + boarding.y * .45, 5.2, delta);
+    camera.position.z = THREE.MathUtils.damp(camera.position.z, chaseCam.z, 5.2, delta);
+    lookTarget.current.x = THREE.MathUtils.damp(lookTarget.current.x, look.x, 6.5, delta);
+    lookTarget.current.y = THREE.MathUtils.damp(lookTarget.current.y, .78 + boarding.y, 6.5, delta);
+    lookTarget.current.z = THREE.MathUtils.damp(lookTarget.current.z, look.z, 6.5, delta);
+    orbit.current = THREE.MathUtils.damp(orbit.current, celebrate ? Math.PI : 0, 1.6, delta);
+    if (orbit.current > .01) {
+      const k = orbit.current / Math.PI, yaw = player.current.rotation.y, { forward, cam } = orbitTmp.current;
+      forward.set(-Math.sin(yaw), 0, -Math.cos(yaw)); // car front is -Z
+      const radius = THREE.MathUtils.lerp(9, 3.1, k), angle = orbit.current; // offset = −forward·r rotated by the orbit: behind at 0, in front at π
+      cam.set(forward.x * Math.cos(angle) - forward.z * Math.sin(angle), 0, forward.x * Math.sin(angle) + forward.z * Math.cos(angle)).multiplyScalar(-radius);
+      cam.add(player.current.position); cam.y = player.current.position.y + THREE.MathUtils.lerp(3.9, 2.05, k);
+      camera.position.copy(cam);
+      lookTarget.current.set(player.current.position.x, player.current.position.y + THREE.MathUtils.lerp(.8, 1.12, k), player.current.position.z);
+    }
+    const hitAge = performance.now() / 1000 - hitAt.current;
+    if (hitAge < 1.3) {
+      const k = Math.exp(-hitAge * 4) * (1 - hitAge / 1.3), power = hitPower.current;
+      player.current.scale.set(1 + .045 * power * k, 1 - .1 * power * k, 1 - .07 * power * k);
+      // only the car jolts (roll, pitch, a small hop); the camera and the world stay steady
+      player.current.rotation.z = Math.sin(hitAge * 42) * .09 * power * k;
+      player.current.rotation.x = Math.cos(hitAge * 35) * .05 * power * k;
+      player.current.position.y += Math.abs(Math.sin(hitAge * 24)) * .1 * power * k;
+    } else if (player.current.scale.x !== 1) { player.current.scale.set(1, 1, 1); player.current.rotation.z = 0; player.current.rotation.x = 0; }
+    camera.lookAt(lookTarget.current);
+  });
+  return <>
+    <TrackStatic ship={ship} signalRed={sim.distance >= 540 && sim.distance <= 612.5} signals={CYCLE_JUNCTIONS.map(j => signalPhase(j, sim.elapsed)[0]).join("")} />
+    <TrafficFleet sim={sim} />
+    <Pedestrians elapsed={sim.elapsed} />
+    <Tunnels />
+    {sim.rear != null && <RearFollower sim={sim} />}
+    <group ref={player}>{DEV_LEGACY_CAR ? <Convertible steer={sim.steer} spin={sim.distance * .11} /> : <HeroConvertible steer={sim.steer} spin={sim.distance * .11} speed={sim.speed} cheer={celebrate} />}</group>
     <group ref={police} visible={policeVisible}><PoliceInterceptor spin={sim.distance * .11} /></group>
+    {import.meta.env.DEV && <DevRenderProbe name="race" />}
   </>;
 }
 
-function RaceWorld({ sim, ship, policeVisible = true, waterFall = false }: { sim: DriveSim; ship: boolean; policeVisible?: boolean; waterFall?: boolean }) {
-  return <div className="raceWorldCanvas"><Canvas shadows camera={{ position: [0, 3.6, 10.5], fov: 54 }} dpr={[1, 1.08]} gl={{ antialias: true, powerPreference: "high-performance" }}><RaceWorldScene sim={sim} ship={ship} policeVisible={policeVisible} waterFall={waterFall} /></Canvas></div>;
+/** Arrival fireworks: light 2D bursts over the race view (pointer-transparent), each with its own pop. */
+function Fireworks() {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const el = canvas.current; if (!el) return;
+    const ctx = el.getContext("2d"); if (!ctx) return;
+    const colors = ["#ff5a4a", "#ffb000", "#ff7ab0", "#ffd23f", "#2fb38f", "#ff8c42"];
+    type Spark = { x: number; y: number; vx: number; vy: number; life: number; color: string };
+    const sparks: Spark[] = [];
+    let frame = 0, last = performance.now(), nextBurst = 0, bursts = 0;
+    const start = performance.now();
+    const loop = (now: number) => {
+      const dt = Math.min(.05, (now - last) / 1000); last = now;
+      const w = el.width = el.clientWidth * devicePixelRatio, h = el.height = el.clientHeight * devicePixelRatio;
+      if (now - start > nextBurst && bursts < 9) {
+        const cx = w * (.18 + Math.random() * .64), cy = h * (.12 + Math.random() * .3), color = colors[bursts % colors.length];
+        for (let i = 0; i < 90; i++) { const a = Math.PI * 2 * i / 90 + Math.random() * .05, v = (220 + Math.random() * 230) * devicePixelRatio; sparks.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, color }); }
+        play("firework"); bursts++; nextBurst += 380 + Math.random() * 260;
+      }
+      ctx.clearRect(0, 0, w, h);
+      ctx.lineCap = "round";
+      for (const p of sparks) {
+        if (p.life <= 0) continue;
+        const px = p.x, py = p.y;
+        p.vy += 200 * devicePixelRatio * dt; p.vx *= .982; p.vy *= .982; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * .62;
+        const a = Math.max(0, p.life);
+        // streak (motion trail) + bright head with a soft glow so it reads against the light sky
+        ctx.globalAlpha = a * .85; ctx.strokeStyle = p.color; ctx.lineWidth = 3.2 * devicePixelRatio; ctx.beginPath(); ctx.moveTo(px - (p.x - px) * 2.5, py - (p.y - py) * 2.5); ctx.lineTo(p.x, p.y); ctx.stroke();
+        ctx.globalAlpha = a; ctx.shadowColor = p.color; ctx.shadowBlur = 10 * devicePixelRatio; ctx.fillStyle = "#fffaf0"; ctx.beginPath(); ctx.arc(p.x, p.y, 2.4 * devicePixelRatio, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+      }
+      if (now - start < 6500) frame = requestAnimationFrame(loop);
+    };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  return <canvas ref={canvas} className="tbFireworks" aria-hidden="true" />;
+}
+
+function RaceWorld({ sim, ship, policeVisible = true, waterFall = false, celebrate = false, hit }: { sim: DriveSim; ship: boolean; policeVisible?: boolean; waterFall?: boolean; celebrate?: boolean; hit?: { id: number; level: ImpactLevel } }) {
+  return <div className="raceWorldCanvas"><Canvas shadows camera={{ position: [0, 3.6, 10.5], fov: 54 }} dpr={[1, 1.08]} gl={{ antialias: true, powerPreference: "high-performance" }}><RaceWorldScene hit={hit} sim={sim} ship={ship} policeVisible={policeVisible} celebrate={celebrate} waterFall={waterFall} /></Canvas></div>;
 }
 
 function RearMirror3D({ gap, visible }: { gap: number; visible: boolean }) {
@@ -964,17 +1705,26 @@ function RearMirror3D({ gap, visible }: { gap: number; visible: boolean }) {
       {Array.from({length:8},(_,i) => <group key={i} position={[i%2?-5.6:5.6,.4,-i*4]}><mesh position={[0,.55,0]}><cylinderGeometry args={[.08,.12,1.1,10]} /><meshStandardMaterial color="#70533e" /></mesh><mesh position={[0,1.35,0]}><sphereGeometry args={[.72,18,12]} /><meshStandardMaterial color="#5e9470" roughness={.9} /></mesh></group>)}
       <group visible={visible} position={[0,.02,-depth]} rotation={[0,Math.PI,0]} scale={.78}><PoliceInterceptor spin={gap*.08} /></group>
     </Canvas>
-    <small>REAR MIRROR · SAME 3D WORLD</small><em>{visible ? `${Math.round(gap)}m` : "…"}</em><strong>{visible ? "후방 카메라 실시간 렌더" : "출발 후 경찰차 합류"}</strong>
+    <small>후방 거울</small>
   </div>;
 }
 
 export function RaceExperience({ state, send, mode }: { state: Campaign; send: Send; mode: RaceMode }) {
   const firstStart = mode === "normal" && state.raceDistance < 1;
   const [countdown, setCountdown] = useState(firstStart ? 3 : 0);
+  // stage entry overlay: the race (countdown, physics, pursuit gap) waits until the player presses 풀기
+  const [introOpen, setIntroOpen] = useState(mode === "normal" || mode === "resume");
+  const introOpenRef = useRef(introOpen);
+  useEffect(() => { introOpenRef.current = introOpen; }, [introOpen]);
   const [goFlash, setGoFlash] = useState(false);
   const [sim, setSim] = useState<DriveSim>(() => ({ speed: 0, lane: 0, steer: 0, distance: state.raceDistance, gap: state.policeGapMeters, heat: state.caseId === "thermal" ? 66 : 36, elapsed: state.raceElapsedSeconds }));
-  const [gear, setGear] = useState(1);
+  // EVs use a single-speed reduction gear: no gear steps. Q/E set the regen level (0–3).
+  const [regen, setRegen] = useState(1);
+  // Shift-by-wire selector: P/R/N/D on keys 1–4 with the usual interlocks.
+  const [gear, setGear] = useState<"P" | "R" | "N" | "D">(mode === "normal" ? "P" : "D");
+  const [gearToast, setGearToast] = useState<{ text: string; id: number } | null>(null);
   const [impact, setImpact] = useState(0);
+  const [impactLevel, setImpactLevel] = useState<ImpactLevel>(1);
   const [impactMessage, setImpactMessage] = useState("가드레일 접촉 · 속도 감소 및 차체 반발");
   const [parking, setParking] = useState(false);
   const [driveMission, setDriveMission] = useState<"idle" | "red" | "restart" | "done">("idle");
@@ -983,6 +1733,58 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const assistTarget = state.raceDistance + 42;
   const keys = useRef(new Set<string>());
   const collisionCooldown = useRef(0);
+  const zoneThrottle = useRef(0); // seconds of full throttle inside the overtake zone
+  const coldHits = useRef(0);     // C06: seconds the cold regeneration fault has been felt (FAULT_CUE after 2.2 s)
+  const gearHits = useRef(0);     // C04: how many times the fallback reverse burst started (FAULT_CUE after the second)
+  const [gearHitCount, setGearHitCount] = useState(0);
+  // fault schedule model: runtime state per spec, merged effect of the last frame, event clocks, R-restart tries
+  const faultRuntime = useRef<Record<string, FaultRuntime>>({});
+  const faultFx = useRef<FaultEffect>({});
+  const faultRestarted = useRef(false);
+  const lastHitAt = useRef(-Infinity);
+  const rearState = useRef<RearState>(newRearState());
+  const lastGearAt = useRef(-Infinity);
+  // C01: every start attempt fails (READY_FAULT); after `startFails` attempts the fault cue fires
+  const finishRun = state.levelFinish === true; // repaired: a clean run to the pirate ship, no more faults
+  const startFails = finishRun ? 0 : levelFaults(mode, state.caseId).reduce((most, spec) => Math.max(most, spec.effect.startFails ?? 0), 0);
+  const startFailsRef = useRef(startFails);
+  const [startAttempts, setStartAttempts] = useState(0);
+  const startAttemptsRef = useRef(0);
+  useEffect(() => { startFailsRef.current = startFails; if (startFails > 0) setDriveMission("restart"); }, [startFails]);
+  const [readyTries, setReadyTries] = useState(0); // prestart fault: R presses still needed before READY is established
+  const readyTriesRef = useRef(0);
+  useEffect(() => {
+    if (FAULT_DEMO?.trigger.phase !== "prestart") return;
+    readyTriesRef.current = FAULT_DEMO.effect.readyBlockedTries ?? 1; setReadyTries(readyTriesRef.current); setDriveMission("restart");
+  }, []);
+  useEffect(() => { if (impact) play("crash"); }, [impact]);
+  // dev only: `dispatchEvent(new CustomEvent("tb-dev-hit", { detail: 1 | 2 | 3 }))` plays that crash level for visual checks
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const onHit = (event: Event) => { const level = Math.min(3, Math.max(1, Number((event as CustomEvent).detail) || 1)) as ImpactLevel; setImpactMessage(impactEffect(level === 1 ? 10 : level === 2 ? 30 : 70).toast); setImpactLevel(level); setImpact(value => value + 1); };
+    addEventListener("tb-dev-hit", onHit); return () => removeEventListener("tb-dev-hit", onHit);
+  }, []);
+  useEffect(() => { resetTrafficStall(); }, []);
+  // dev only: `dispatchEvent(new CustomEvent("tb-dev-seek", { detail: { distance: 280, elapsed: 15.5 } }))` jumps the race (QA of situations at a known signal phase)
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const onSeek = (event: Event) => { const d = (event as CustomEvent).detail as { distance?: number; elapsed?: number; speed?: number }; setSim(p => ({ ...p, distance: d.distance ?? p.distance, elapsed: d.elapsed ?? p.elapsed, speed: d.speed ?? 0 })); };
+    addEventListener("tb-dev-seek", onSeek); return () => removeEventListener("tb-dev-seek", onSeek);
+  }, []);
+  // EV sound only at power-on and pull-away (a continuous motor drone sounded unnatural);
+  // a hard brake at speed squeals once per press. engineSet is kept for later use.
+  const skidRef = useRef(false);
+  const movingRef = useRef(false);
+  useEffect(() => { play("ready"); }, []);
+  useEffect(() => {
+    const k = keys.current;
+    const braking = k.has("s") || k.has("arrowdown") || k.has(" ");
+    if (!movingRef.current && sim.speed > 3) { movingRef.current = true; play("vroom"); }
+    if (sim.speed < 1) movingRef.current = false;
+    if (braking && sim.speed > 32 && !skidRef.current) { skidRef.current = true; play("skid"); }
+    if (!braking) skidRef.current = false;
+  }, [sim.speed]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => engineStop(), []);
   const simRef = useRef(sim);
   useEffect(() => { simRef.current = sim; }, [sim]);
   useEffect(() => {
@@ -990,49 +1792,100 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
     ["/assets/cutscene-ship-jump-v1.png", "/assets/cutscene-ship-land-v1.png"].forEach(src => { const image = new Image(); image.src = src; });
   }, [mode]);
   useEffect(() => {
-    if (!countdown) return;
+    if (!countdown || introOpen) return;
+    play("beep");
     const timer = window.setTimeout(() => {
-      if (countdown === 1) { setCountdown(0); setGoFlash(true); window.setTimeout(() => setGoFlash(false), 650); }
+      if (countdown === 1) { setCountdown(0); setGoFlash(true); play("go"); window.setTimeout(() => setGoFlash(false), 650); }
       else setCountdown(value => value - 1);
     }, 820);
     return () => clearTimeout(timer);
-  }, [countdown]);
+  }, [countdown, introOpen]);
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
-      keys.current.add(event.key.toLowerCase());
-      if (!event.repeat && event.key.toLowerCase() === "q") setGear(value => Math.max(1, value - 1));
-      if (!event.repeat && event.key.toLowerCase() === "e") setGear(value => Math.min(3, value + 1));
-      if (!event.repeat && event.key.toLowerCase() === "r" && driveMission === "restart") setDriveMission("done");
+      if (introOpenRef.current) return;
+      const name = raceKey(event);
+      if (name.startsWith("arrow")) event.preventDefault();
+      keys.current.add(name);
+      // EV paddles: left (Q) = stronger regen, right (E) = weaker
+      if (!event.repeat && name === "q") setRegen(value => Math.min(3, value + 1));
+      if (!event.repeat && name === "e") setRegen(value => Math.max(0, value - 1));
+      if (!event.repeat && name === "r" && driveMission === "restart" && startFailsRef.current > 0) {
+        startAttemptsRef.current += 1; setStartAttempts(startAttemptsRef.current); play("error");
+        if (startAttemptsRef.current >= startFailsRef.current && !fired.current) {
+          fired.current = true; const now = simRef.current;
+          send({ type: "FAULT_CUE", caseId: "ready", distance: now.distance, gap: now.gap, elapsed: now.elapsed });
+        }
+      } else if (!event.repeat && name === "r" && driveMission === "restart") {
+        if (readyTriesRef.current > 1) { readyTriesRef.current -= 1; setReadyTries(readyTriesRef.current); play("error"); }
+        else { readyTriesRef.current = 0; setReadyTries(0); faultRestarted.current = true; setDriveMission("done"); play("success"); }
+      }
+      const wanted = ({ "1": "P", "2": "R", "3": "N", "4": "D" } as const)[name as "1" | "2" | "3" | "4"];
+      if (!event.repeat && wanted) {
+        const moving = simRef.current.speed > 3;
+        const brakeHeld = keys.current.has("s") || keys.current.has("arrowdown");
+        const toast = (text: string) => { setGearToast({ text, id: Date.now() }); play("error"); };
+        if (wanted === "P" && moving) toast("주행 중에는 P로 바꿀 수 없어요 · 변속 인터록");
+        else if (wanted === "R" && moving) toast("앞으로 달리는 중엔 R로 못 바꿔요");
+        else {
+          setGear(wanted); lastGearAt.current = performance.now() / 1000; play("pop", wanted === "D" ? 1.2 : .9);
+          // real cars need the brake to leave P; here it is a tip, not a blocker
+          setGearToast(gear === "P" && !brakeHeld ? { text: "실제 차는 브레이크를 밟고 P에서 변속해요", id: Date.now() } : null);
+        }
+      }
       if (event.key === "Escape") {
         const current = simRef.current;
         send({ type: "SYNC_RACE", distance: current.distance, gap: current.gap, elapsed: current.elapsed });
         send({ type: "PAUSE" });
       }
     };
-    const up = (event: KeyboardEvent) => keys.current.delete(event.key.toLowerCase());
+    const up = (event: KeyboardEvent) => keys.current.delete(raceKey(event));
     addEventListener("keydown", down); addEventListener("keyup", up);
     let last = performance.now(); let frame = 0;
     const loop = (now: number) => {
       const dt = Math.min(.05, (now - last) / 1000); last = now;
       setSim(previous => {
+        if (introOpenRef.current) return previous;
         const k = keys.current;
         const allowed = countdown === 0;
-        const throttle = allowed && (k.has("w") || k.has("arrowup"));
+        const throttle = allowed && gear === "D" && (k.has("w") || k.has("arrowup"));
         const braking = k.has("s") || k.has("arrowdown");
-        const gearCap = [0, 78, 124, 172][gear];
+        // fault schedule model (src/game/faultSchedule.ts): the level's specs plus the dev demo spec, merged into one effect for this frame
+        let fx: FaultEffect = {};
+        const faultSpecs = finishRun ? [] : FAULT_DEMO ? [...levelFaults(mode, state.caseId), FAULT_DEMO] : levelFaults(mode, state.caseId);
+        if (faultSpecs.length) {
+          const nowS = now / 1000;
+          const faultCtx: FaultContext = { speedKph: previous.speed, pedal: allowed && gear === "D" && (k.has("w") || k.has("arrowup")) ? 1 : 0, braking, gear, steerAbs: Math.abs(previous.steer) / .43, heat: previous.heat, distanceM: previous.distance, elapsedS: previous.elapsed, sinceEvent: { collision: nowS - lastHitAt.current, gearChange: nowS - lastGearAt.current }, zones: zonesAt(previous.distance), ready: driveMission !== "restart" };
+          const effects: FaultEffect[] = [];
+          for (const spec of faultSpecs) {
+            const demo = spec === FAULT_DEMO;
+            const step = stepFault(spec, faultRuntime.current[spec.id] ?? newFaultRuntime(), faultCtx, dt, Math.random, demo && faultRestarted.current);
+            faultRuntime.current[spec.id] = step.runtime; effects.push(step.effect);
+            if (spec.id === PROPULSION_FAULT.id || spec.id === REGEN_FAULT.id) zoneThrottle.current = step.runtime.heldSec; // seconds of throttle inside the zone (symptom / FAULT_CUE)
+            if (spec.id === COLD_FAULT.id && step.active) coldHits.current += dt;
+            if (spec.id === GEAR_FAULT.id && (faultRuntime.current[spec.id]?.burstLeft ?? 0) === 0 && step.runtime.burstLeft > 0) { gearHits.current += 1; setGearHitCount(gearHits.current); }
+          }
+          faultRestarted.current = false; fx = mergeEffects(effects); faultFx.current = fx;
+          if (fx.shutdown && driveMission === "idle") setDriveMission("restart");
+        }
+        // Motor characteristic: full torque at low speed, then constant power (accel falls with speed).
+        const topSpeed = 165;
         let speed = previous.speed;
-        if (throttle) speed += (gear === 1 ? 48 : gear === 2 ? 37 : 29) * dt;
-        else speed -= 2.15 * dt;
-        if (braking) speed -= 62 * dt;
-        speed = THREE.MathUtils.clamp(speed, 0, gearCap);
-        if (!allowed || parking || driveMission === "restart" || waterFall) speed = THREE.MathUtils.damp(speed, 0, 6.2, dt);
+        const driveAccel = throttle && !fx.driveCut && !fx.shutdown && !fx.reverseOnly ? 46 * Math.min(1, 70 / Math.max(speed, 1)) * (fx.pedalScale ?? 1) : 0;
+        if (throttle) speed += driveAccel * dt - (fx.reverseOnly ? 14 * dt : 0); // reverse-only fault: the pedal pulls the car backwards
+        else { const coast = (gear === "N" ? 1.6 : [2.15, 5.5, 9, 13][regen]) * (fx.regenScale ?? 1) * dt; speed = speed > 0 ? speed - coast : Math.min(0, speed + coast); } // coasting: regen level sets the deceleration (none in N)
+        if (!throttle && fx.coastAccelKphPerS) speed += fx.coastAccelKphPerS * dt;
+        if (braking) { const brakeStep = 62 * (fx.brakeScale ?? 1) * zoneBrakeFactor(zonesAt(previous.distance)) * dt; speed = speed > 0 ? speed - brakeStep : Math.min(0, speed + brakeStep); }
+        if (fx.speedCapKph !== undefined) speed = Math.min(speed, fx.speedCapKph);
+        speed = THREE.MathUtils.clamp(speed, fx.reverseOnly ? -25 : 0, topSpeed);
+        if (!allowed || parking || driveMission === "restart" || waterFall || gear === "P" || gear === "R") speed = THREE.MathUtils.damp(speed, 0, 6.2, dt);
         if (mode === "assist") speed = Math.min(speed || (allowed && !parking ? 27 : 0), 30);
-        const firstSymptom = mode === "normal" && previous.distance >= 210;
-        const secondSymptom = mode === "resume" && state.caseId === "propulsion" && previous.distance >= 780;
-        if (firstSymptom) speed = Math.min(speed, 31);
-        if (secondSymptom) speed = Math.min(speed, 38);
+        // Faults appear only under the driving condition that exposes them
+        // (= the reproduction condition the player later carries to the board).
+        // (the former hard-coded overtake / climb faults are now PROPULSION_FAULT / THERMAL_FAULT in faultSchedule.ts)
+        if (fx.accelCapKph !== undefined && throttle) speed = Math.min(speed, Math.max(previous.speed, fx.accelCapKph));
+        const inClimbZone = mode === "resume" && state.caseId === "propulsion" && previous.distance >= CLIMB_ZONE[0];
         const steerInput = (k.has("a") || k.has("arrowleft") ? -1 : 0) + (k.has("d") || k.has("arrowright") ? 1 : 0);
-        const steerTarget = steerInput * THREE.MathUtils.clamp(.14 + speed / 220, .14, .43);
+        const steerTarget = steerInput * (fx.steerScale ?? 1) * THREE.MathUtils.clamp(.14 + speed / 220, .14, .43);
         const steer = THREE.MathUtils.damp(previous.steer, steerTarget, steerInput ? 7.5 : 4.8, dt);
         // Bicycle-model inspired lateral movement: the body yaws into the
         // turn and follows a shallow arc instead of translating like a crab.
@@ -1060,53 +1913,91 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
         const hitRail = !dockApproach && Math.abs(roadOffset) > 6.92 && pushingOutward;
         if (hitRail) {
           lane = Math.sign(roadOffset) * 6.78 - 3.35;
-          speed *= .72;
           const nowSeconds = now / 1000;
+          const railEffect = impactEffect(previous.speed); // a fixed object: the closing speed is the whole speed
+          speed *= railEffect.level === 1 ? .78 : railEffect.level === 2 ? .6 : .4;
           if (nowSeconds > collisionCooldown.current) {
             collisionCooldown.current = nowSeconds + .8;
-            setImpactMessage("가드레일 접촉 · 속도 감소 및 차체 반발");
+            setImpactMessage(`가드레일 ${railEffect.toast}`);
+            setImpactLevel(railEffect.level);
             setImpact(value => value + 1);
-            send({ type: "COLLISION" });
+            if (railEffect.hvCut && (driveMission === "idle" || driveMission === "done")) setDriveMission("restart");
+            lastHitAt.current = nowSeconds; send({ type: "COLLISION", level: railEffect.level, gapPenalty: railEffect.gapPenalty });
           }
         }
-        let distance = previous.distance + speed * dt / 3.6;
+        let distance = Math.max(0, previous.distance + speed * dt / 3.6);
         if (mode === "ship" && distance > DECK_STOP) distance = DECK_STOP;
         if (driveMission === "red" && distance >= 612) {
           distance = 612;
           speed = THREE.MathUtils.damp(speed, 0, 8.5, dt);
         }
         const playerRoadLane = 3.35 + lane;
-        const trafficHit = dockApproach ? undefined : Array.from({ length: 7 }, (_, index) => trafficStateFor({ ...previous, lane, steer, distance, speed }, index)).find(traffic => !traffic.opposite && Math.abs(traffic.distance - distance) < 3.35 && Math.abs(traffic.lane - playerRoadLane) < 1.18);
+        const trafficHit = dockApproach ? undefined : Array.from({ length: TRAFFIC_COUNT }, (_, index) => trafficStateFor(previous, index)).find(traffic => !traffic.opposite && Math.abs(traffic.distance - distance) < CAR_CONTACT.longitudinal && Math.abs(traffic.lane - playerRoadLane) < CAR_CONTACT.lateral);
         if (trafficHit) {
-          speed = Math.min(speed, trafficHit.speedKph) * .42;
-          distance = Math.max(previous.distance, distance - .45);
-          lane = THREE.MathUtils.clamp(lane + (playerRoadLane <= trafficHit.lane ? -.3 : .3), -9.9, 3.45);
+          // both cars hesitate once per contact: the player loses about a third of its speed (never below the other car)
+          // and the hit car slows for 0.7 s; while the bodies still overlap they are only pushed apart
           const nowSeconds = now / 1000;
+          const hitEffect = impactEffect(previous.speed - trafficHit.speedKph); // closing speed decides how hard it is
+          if (nowSeconds > collisionCooldown.current) speed = speedAfterImpact(speed, trafficHit.speedKph, hitEffect);
+          distance = Math.max(previous.distance, distance - .45);
+          lane = THREE.MathUtils.clamp(lane + (playerRoadLane <= trafficHit.lane ? -.3 : .3) * hitEffect.level, -9.9, 3.45);
+          stallTraffic(trafficHit.index, previous.elapsed, trafficHit.speedKph, hitEffect.level);
           if (nowSeconds > collisionCooldown.current) {
             collisionCooldown.current = nowSeconds + 1.1;
-            setImpactMessage("일반 차량과 접촉 · 상대 속도 반영 및 차체 반발");
+            setImpactMessage(`일반 차량과 ${hitEffect.toast}`);
+            setImpactLevel(hitEffect.level);
             setImpact(value => value + 1);
-            send({ type: "COLLISION" });
+            if (hitEffect.hvCut && (driveMission === "idle" || driveMission === "done")) setDriveMission("restart");
+            lastHitAt.current = nowSeconds; send({ type: "COLLISION", level: hitEffect.level, gapPenalty: hitEffect.gapPenalty });
+          }
+        }
+        // situation set 1: pedestrians on the crosswalk (emergency stop + penalty) and the car that hits from behind after a hard stop
+        const roadSituations = mode !== "ship" && allowed;
+        const pedestrian = roadSituations ? pedestrianContact(distance, playerRoadLane, previous.elapsed) : null;
+        if (pedestrian) {
+          speed = Math.min(speed, 6);
+          distance = Math.max(previous.distance, distance - .6);
+          const nowSeconds = now / 1000;
+          if (nowSeconds > collisionCooldown.current) {
+            collisionCooldown.current = nowSeconds + 1.6;
+            setImpactMessage("보행자 접촉 · 긴급 정지 · 신호와 횡단보도를 확인하세요");
+            setImpactLevel(2); setImpact(value => value + 1); lastHitAt.current = nowSeconds;
+            send({ type: "COLLISION", level: 2, gapPenalty: 25 });
+          }
+        }
+        let rear: number | null = previous.rear ?? null;
+        if (roadSituations && mode !== "assist") {
+          const step = stepRear(rearState.current, speed, previous.elapsed, dt, nearJunction(distance));
+          rearState.current = step.state; rear = step.state.follower;
+          if (step.hitClosingKph !== null) {
+            const rearEffect = impactEffect(step.hitClosingKph);
+            speed += step.hitClosingKph * .22; // pushed forward by the car behind
+            const nowSeconds = now / 1000;
+            collisionCooldown.current = nowSeconds + 1.1; lastHitAt.current = nowSeconds;
+            setImpactMessage(`뒤에서 추돌당함 · ${rearEffect.toast}`);
+            setImpactLevel(rearEffect.level); setImpact(value => value + 1);
+            if (rearEffect.hvCut && (driveMission === "idle" || driveMission === "done")) setDriveMission("restart");
+            send({ type: "COLLISION", level: rearEffect.level, gapPenalty: 0 }); // being hit from behind does not cost chase distance
           }
         }
         const floor = state.completedCases.length < 2 ? 10 : 0;
         const policeHasJoined = mode !== "normal" || (previous.elapsed >= 3 && previous.distance >= 45);
-        const policeSpeed = speed < 4 ? 24 : THREE.MathUtils.clamp(68 + speed * .12, 68, 88);
+        const policeSpeed = policeSpeedKph(speed); // one source for the chase numbers (faultSchedule.ts)
         const finalBoardingZone = mode === "ship" && distance >= RAMP_START;
         const gap = finalBoardingZone
           ? Math.max(10, previous.gap)
           : allowed && policeHasJoined
             ? THREE.MathUtils.clamp(previous.gap + (speed - policeSpeed) * dt / 3.6, floor, 220)
             : previous.gap;
-        const heat = THREE.MathUtils.clamp(previous.heat + (secondSymptom ? speed * dt * .055 : -dt * .7), 35, 94);
+        const heat = THREE.MathUtils.clamp(previous.heat + (inClimbZone ? (throttle ? (12 + speed * .2) * dt : -dt * .4) : -dt * .7), 35, 94);
         const elapsed = previous.elapsed + (allowed ? dt : 0);
-        return { speed, lane, steer, distance, gap, heat, elapsed };
+        return { speed, lane, steer, distance, gap, heat, elapsed, rear };
       });
       frame = requestAnimationFrame(loop);
     };
     frame = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(frame); removeEventListener("keydown", down); removeEventListener("keyup", up); };
-  }, [countdown, driveMission, gear, mode, parking, send, state.caseId, state.completedCases, state.lastRepairDistance, state.lastRepairElapsedSeconds, waterFall]);
+  }, [countdown, driveMission, regen, gear, mode, parking, send, state.caseId, state.completedCases, state.lastRepairDistance, state.lastRepairElapsedSeconds, waterFall]);
   useEffect(() => {
     if (mode !== "resume" || state.caseId !== "propulsion" || driveMission !== "idle" || sim.distance < 550) return;
     setDriveMission("red");
@@ -1127,33 +2018,108 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const hasTouchedDeck = mode === "ship" && sim.distance >= DECK_TOUCH;
   useEffect(() => {
     if (!hasTouchedDeck) { setDeckSettled(false); return; }
+    play("fanfare");
     const timer = window.setTimeout(() => setDeckSettled(true), 2100);
     return () => window.clearTimeout(timer);
   }, [hasTouchedDeck]);
+  // After the car settles on the deck the camera turns to the cheering cats; the result opens about 3 s later.
+  const [celebrated, setCelebrated] = useState(false);
+  useEffect(() => {
+    if (!deckSettled) { setCelebrated(false); return; }
+    const timer = window.setTimeout(() => setCelebrated(true), 3200);
+    return () => window.clearTimeout(timer);
+  }, [deckSettled]);
   const fired = useRef(false);
   // CHASE_RESUME and SHIP_ESCAPE intentionally reuse the same RaceExperience
   // instance so speed/camera continuity is preserved. Reset only the segment
   // gate when the mode changes; otherwise the resume fault event permanently
   // blocks the later deck-arrival event.
-  useEffect(() => { fired.current = false; }, [mode]);
+  useEffect(() => { fired.current = false; zoneThrottle.current = 0; coldHits.current = 0; faultRuntime.current = {}; }, [mode]);
   useEffect(() => {
     if (fired.current) return;
     if (sim.gap <= 0) {
       fired.current = true; send({ type: "CAUGHT" });
-    } else if (mode === "normal" && sim.distance >= 260) {
+    } else if (finishRun) {
+      // repaired level: keep racing to the end of the course, then the pirate ship (SHIP_ESCAPE) and this level's ending
+      if (mode === "resume" && sim.distance >= FINAL_ESCAPE_M) { fired.current = true; send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "START_FINAL_ESCAPE" }); }
+    } else if (mode === "normal" && (zoneThrottle.current >= 1.8 || sim.distance >= OVERTAKE_ZONE[1])) {
       fired.current = true; send({ type: "FAULT_CUE", caseId: "propulsion", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
-    } else if (mode === "resume" && state.caseId === "propulsion" && sim.distance >= 830) {
+    } else if (mode === "resume" && state.caseId === "propulsion" && (sim.heat >= 84 || sim.distance >= CLIMB_ZONE[1])) {
       fired.current = true; send({ type: "FAULT_CUE", caseId: "thermal", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
-    } else if (mode === "resume" && state.caseId === "thermal" && sim.distance >= 1050) {
+    } else if (mode === "resume" && state.caseId === "regen" && zoneThrottle.current >= 2.2) {
+      fired.current = true; send({ type: "FAULT_CUE", caseId: "regen", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
+    } else if (mode === "resume" && state.caseId === "cold" && coldHits.current >= 2.2) {
+      fired.current = true; send({ type: "FAULT_CUE", caseId: "cold", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
+    } else if (mode === "resume" && state.caseId === "gear" && gearHits.current >= 2) {
+      fired.current = true; send({ type: "FAULT_CUE", caseId: "gear", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed });
+    } else if (mode === "resume" && state.caseId === "thermal" && sim.distance >= FINAL_ESCAPE_M) {
       fired.current = true; send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "START_FINAL_ESCAPE" });
-    } else if (mode === "ship" && deckSettled) {
+    } else if (mode === "ship" && celebrated) {
       fired.current = true;
       // A single reducer event commits the car to the ramp and prevents stale
       // distance, water fall or a 0 m pursuit tick from stealing the ending.
       send({ type: "FINISH_ESCAPE", distance: sim.distance, gap: Math.max(10, sim.gap), elapsed: sim.elapsed });
     }
-  }, [deckSettled, mode, send, sim.distance, sim.elapsed, sim.gap, state.caseId, state.lastRepairDistance, state.lastRepairElapsedSeconds]);
-  const symptom = (mode === "normal" && sim.distance >= 210) || (mode === "resume" && state.caseId === "propulsion" && sim.distance >= 780);
+  }, [celebrated, mode, send, sim.distance, sim.elapsed, sim.gap, state.caseId, state.lastRepairDistance, state.lastRepairElapsedSeconds]);
+  // The interceptor joins after the opening run. Keep every police-specific hint behind this gate.
+  const policeJoined = mode !== "normal" || (sim.elapsed >= 3 && sim.distance >= 45);
+  // situation set 1 hints (the player decides; only contact is enforced): braking lead car, red signal / pedestrians ahead
+  const situationHint = (() => {
+    if (countdown > 0 || mode === "ship" || mode === "assist" || introOpen) return null;
+    const ownLane = 3.35 + sim.lane;
+    if (sim.rear != null && sim.rear < 45) return { kind: "rear", title: "뒤차 접근", text: `${Math.round(sim.rear)}m 뒤 · 정차 중이면 바로 출발하세요` };
+    for (let index = 0; index < TRAFFIC_COUNT; index++) {
+      const traffic = trafficStateFor(sim, index);
+      const ahead = traffic.distance - sim.distance;
+      if (!traffic.opposite && ahead > 3 && ahead < 70 && Math.abs(traffic.lane - ownLane) < 3 && leadBraking(index, sim.elapsed)) return { kind: "lead", title: "앞차 급제동", text: `${Math.round(ahead)}m 앞 · 속도를 줄이고 차간 거리를 확보하세요` };
+    }
+    const junction = junctionAhead(sim.distance, sim.elapsed);
+    if (junction && junction.phase !== "green") return { kind: "signal", title: junction.phase === "red" ? "적색 신호" : "황색 신호", text: junction.crossing ? `${Math.max(0, Math.round(junction.distanceM))}m 앞 횡단보도 보행자 · 정지선 앞에서 정차` : `${Math.max(0, Math.round(junction.distanceM))}m 앞 정지선` };
+    const zoneNow = zonesAt(sim.distance), zoneSoon = zonesAt(sim.distance + 40);
+    // chase: how long until the police catch up at the current speed (stopping, reversing or an output limit all show up here)
+    const eta = secondsToCatch(sim.gap, sim.speed);
+    if (policeJoined && sim.gap > 0 && eta < 40) return { kind: "chase", title: "경찰 접근", text: `이 속도로는 약 ${Math.max(1, Math.round(eta))}초 뒤 따라잡혀요 · ${sim.speed < 0 ? "후진 중" : sim.speed < 4 ? "다시 출발하세요" : "속도를 올리세요"}` };
+    return null;
+  })();
+  const symptom = !finishRun && ((mode === "normal" && zoneThrottle.current > .25) || (mode === "resume" && state.caseId === "propulsion" && sim.heat >= 80) || (mode === "resume" && state.caseId === "regen" && zoneThrottle.current > .8) || (mode === "resume" && state.caseId === "gear" && gearHitCount >= 1) || (mode === "resume" && state.caseId === "cold" && coldHits.current > .6) || (startFails > 0 && startAttempts >= 1));
+  // Regression drive after a repair: the same condition that exposed the fault is measured on the live race model.
+  // propulsion: full pedal for 1.5 s → measured acceleration vs this model's healthy value (46·min(1, 70/v) km/h/s; the fault scaled it by 0.45)
+  // thermal: sustained throttle for 2 s → coolant temperature and output limit (the fault had ≥ 84 °C and a 55 km/h limit)
+  const regRef = useRef<{ t: number; v: number } | null>(null);
+  const [regression, setRegression] = useState<{ ok: boolean; title: string; text: string } | null>(null);
+  useEffect(() => {
+    if (mode !== "resume" || regression) return;
+    const k = keys.current;
+    const throttle = k.has("w") || k.has("arrowup");
+    const braking = k.has("s") || k.has("arrowdown") || k.has(" ");
+    const inNextFault = state.caseId === "propulsion" && sim.distance >= CLIMB_ZONE[0] - 40;
+    if (!throttle || braking || inNextFault) { regRef.current = null; return; }
+    const now = performance.now();
+    if (!regRef.current) { if (state.caseId !== "propulsion" || sim.speed < 60) regRef.current = { t: now, v: sim.speed }; return; }
+    const held = (now - regRef.current.t) / 1000;
+    if (state.caseId === "propulsion" && held >= 1.5) {
+      const measured = (sim.speed - regRef.current.v) / held;
+      const mid = (sim.speed + regRef.current.v) / 2;
+      const expected = 46 * Math.min(1, 70 / Math.max(mid, 1));
+      const ok = measured >= expected * .85;
+      setRegression({ ok, title: "회귀 주행 · 가속 페달 끝까지 1.5초", text: `가속 ${measured.toFixed(0)} km/h/s · 정상 기준 ${expected.toFixed(0)} km/h/s · ${ok ? "증상 재발 없음" : "기준보다 낮음"}` });
+    } else if (state.caseId === "thermal" && held >= 2 && sim.speed > 40) {
+      const ok = sim.heat < 80;
+      setRegression({ ok, title: "회귀 주행 · 고속 연속 주행 2초", text: `냉각수 ${sim.heat.toFixed(0)}°C (고장 당시 84°C 이상) · ${ok ? "출력 제한 없음" : "온도 높음"}` });
+    }
+  }, [sim.speed]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!regression) return; play(regression.ok ? "correct" : "error"); const timer = window.setTimeout(() => setRegression(previous => previous && { ...previous, title: "" }), 7000); return () => clearTimeout(timer); }, [regression?.text]); // eslint-disable-line react-hooks/exhaustive-deps
+  const zone = finishRun ? null : mode === "normal" && sim.distance >= OVERTAKE_ZONE[0] - 40 && sim.distance < OVERTAKE_ZONE[1]
+    ? { icon: "finish" as IconName, title: "추월 구간", text: "가속(↑)을 끝까지 밟아 추격차와 거리를 벌리세요" }
+    : mode === "resume" && state.caseId === "propulsion" && sim.distance >= CLIMB_ZONE[0] - 40 && sim.distance < CLIMB_ZONE[1]
+      ? { icon: "road" as IconName, title: "장거리 고속 구간", text: "가속을 유지해 속도를 지키세요" }
+      : mode === "resume" && state.caseId === "regen" && sim.distance < state.raceDistance + 400
+        ? { icon: "road" as IconName, title: "코스팅 구간", text: "40 km/h 이상으로 달린 뒤 가속 페달에서 발을 떼 보세요" }
+        : mode === "resume" && state.caseId === "gear" && sim.distance < state.raceDistance + 400
+          ? { icon: "road" as IconName, title: "정차 후 출발", text: "정차해 브레이크(S)를 밟고 D(4)로 바꾼 뒤 바로 가속(W)해 보세요" }
+          : mode === "resume" && state.caseId === "cold" && sim.distance < 700
+            ? { icon: "road" as IconName, title: "저온 구간", text: "40 km/h 이상으로 달린 뒤 가속 페달에서 발을 떼 보세요" }
+            : null;
   useEffect(() => {
     if (mode !== "assist" || parking || sim.distance < assistTarget) return;
     setParking(true);
@@ -1167,41 +2133,111 @@ export function RaceExperience({ state, send, mode }: { state: Campaign; send: S
   const routeProgress = Math.min(100, sim.distance / (TRACK_LENGTH / 100));
   const playerMarker = Math.max(5, routeProgress);
   const policeProgress = Math.max(1, Math.min(96, playerMarker - Math.max(4, sim.gap / 9)));
-  const mapPoint = (progress: number) => ({ x: 45 + Math.sin(progress / 12) * 18 + Math.sin(progress / 29) * 8, y: 92 - progress * .78 });
+  const mapPoint = (progress: number) => { const d = progress / 100 * TRACK_LENGTH; return { x: 45 + trackFrame(d).x * 3.4, y: 94 - progress * .86 }; };
   const mapPlayer = mapPoint(routeProgress);
   const mapPolice = mapPoint(policeProgress);
-  const policeJoined = mode !== "normal" || (sim.elapsed >= 3 && sim.distance >= 45);
   const policeInWorld = policeJoined && !(mode === "ship" && sim.distance >= TRACK_LENGTH - 82);
-  return <div className={`raceV2 raceMode-${mode} ${impact ? "raceImpact" : ""} ${waterFall ? "waterFall" : ""}`} data-race-mode={mode} data-race-distance={sim.distance.toFixed(2)} data-race-speed={sim.speed.toFixed(2)} data-race-gap={sim.gap.toFixed(2)}>
-    <RaceWorld sim={sim} ship={mode === "ship"} policeVisible={policeInWorld} waterFall={waterFall} />
+  // soft siren: once when the interceptor comes within 40 m, then every 5 s while it is within 25 m
+  const sirenAt = useRef(0), sirenNear = useRef(false);
+  useEffect(() => {
+    const near = policeInWorld && sim.gap > 0 && sim.gap < 40 && !symptom;
+    const now = performance.now();
+    if (near && (!sirenNear.current || (sim.gap < 25 && now - sirenAt.current > 5000))) { play("police"); sirenAt.current = now; }
+    sirenNear.current = near;
+  }, [policeInWorld, sim.gap, symptom]);
+  return <div className={`raceV2 raceMode-${mode} ${impact ? `raceImpact impactL${impactLevel}` : ""} ${waterFall ? "waterFall" : ""}`} data-race-mode={mode} data-race-distance={sim.distance.toFixed(2)} data-race-speed={sim.speed.toFixed(2)} data-race-gap={sim.gap.toFixed(2)}>
+    <RaceWorld sim={sim} ship={mode === "ship"} policeVisible={policeInWorld} waterFall={waterFall} celebrate={deckSettled} hit={{ id: impact, level: impactLevel }} />
+    {hasTouchedDeck && <Fireworks />}
     <JourneyProgress scene={mode === "ship" ? "SHIP_ESCAPE" : "CHASE_NORMAL"} />
-    <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button><div><small>{mode === "ship" ? "FINAL RUN" : "CHAPTER 04"}</small><b>{mode === "assist" ? "LIMITED DRIVE" : "ESCAPE RUN"}</b></div></div>
-    <PursuitRouteBar distance={sim.distance} gap={sim.gap} />
-    <div className="raceTripHud"><span><small>ELAPSED</small><b>{formatRaceTime(sim.elapsed)}</b></span><span><small>GEAR · Q/E</small><b>D{gear}</b></span><em>수동 3단 · Q 내림 / E 올림</em></div>
-    <div className="cockpitGauge"><small>SPEED</small><b>{Math.round(sim.speed)}</b><span>km/h</span><div><i style={{ width: `${Math.min(100, sim.speed)}%` }} /></div><em>{state.caseId === "thermal" ? `${Math.round(sim.heat)}°C` : "HV READY"}</em></div>
+    <div className="raceTopHud">
+      <div className="raceIdentity"><button onClick={() => { send({ type: "SYNC_RACE", distance: sim.distance, gap: sim.gap, elapsed: sim.elapsed }); send({ type: "PAUSE" }); }}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span>TraceBack</span></button></div>
+      <div className="raceTripHud"><span><small>주행시간</small><b>{formatRaceTime(sim.elapsed)}</b></span></div>
+    </div>
+    {policeJoined && sim.elapsed >= 12 && <PursuitRouteBar distance={sim.distance} gap={sim.gap} />}
+    <div className="cockpitGauge cluster1109" aria-label="계기판"><small>속도</small><b>{Math.round(sim.speed)}</b><span>km/h</span><div><i style={{ width: `${Math.min(100, sim.speed)}%` }} /></div>
+      <p className="clusterRow"><span className="prnd">{(["P", "R", "N", "D"] as const).map(g => <i key={g} className={gear === g ? "on" : ""}>{g}</i>)}</span><em className={driveMission === "restart" ? "readyOff" : "readyOn"}>{driveMission === "restart" ? "READY 꺼짐" : "READY"}</em></p>
+      <p className="clusterRow sub"><span>회생 {regen}단계</span>{state.caseId === "thermal" && <span>냉각수 {Math.round(sim.heat)}°C</span>}{symptom && <span className="warn">{mode === "normal" ? "출력 저하" : "출력 제한"}</span>}</p></div>
     <RearMirror3D gap={sim.gap} visible={policeInWorld} />
-    <div className="raceMiniMap"><b>LIVE CURVE MAP</b><svg viewBox="0 0 90 100"><path d="M45 98 C20 83 72 70 42 55 S16 30 48 8" /><circle className="cop" cx={mapPolice.x} cy={mapPolice.y} r="4" /><circle className="me" cx={mapPlayer.x} cy={mapPlayer.y} r="4.5" /></svg><small><i /> 자차 <em /> 경찰</small></div>
-    <div className="raceControls"><b>W/S</b> 가속·제동 <b>A/D</b> 조향 <b>Q/E</b> D1–D3 변속 <b>R</b> READY 재시동</div>
-    {impact > 0 && <div className="impactToast" key={impact}>{impactMessage}</div>}
-    {(countdown > 0 || goFlash) && <div className="startCountdown"><small>GET READY</small><b>{goFlash ? "GO!" : countdown}</b></div>}
-    {symptom && <div className="faultBeacon" role="alert"><span /><div><small>VEHICLE WARNING</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : "온도 상승 · 보호 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
-    {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
-    {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>DRIVING MISSION · 다음 검증용 주행 로그</small><b>{driveMission === "red" ? "적색 신호 정지 · 제동 시퀀스 기록" : "정차 후 READY 재인가 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(612-sim.distance))}m · S로 부드럽게 제동 · 정지선 이탈 금지` : "이 재출발 기록이 열관리 고장 재현 미션의 초기조건이 됩니다"}</span></div>}
-    {mode === "ship" && sim.distance >= TRACK_LENGTH - 230 && <div className="finalRampCommit"><small>FINAL DOCK</small><b>{deckSettled ? "갑판 정차 완료 · 탈출 성공" : sim.distance >= DECK_TOUCH ? "해적선 갑판 착지 · 자동 감속" : sim.distance >= RAMP_START ? "실물 오르막 램프 진입" : "해적선 연결 램프 접근"}</b><span>{sim.distance >= RAMP_END && sim.distance < DECK_TOUCH ? "차량 도약 중 · 측면 카메라" : sim.distance >= DECK_TOUCH ? "네 바퀴 착지 확인 · 엔딩 전환 준비" : "중앙 유도 · 램프와 갑판 충돌면 활성"}</span></div>}
+    <div className="raceMiniMap"><b>미니맵</b><svg viewBox="0 0 90 100"><path d={MINIMAP_PATH} />{policeJoined && <circle className="cop" cx={mapPolice.x} cy={mapPolice.y} r="4" />}<circle className="me" cx={mapPlayer.x} cy={mapPlayer.y} r="4.5" /></svg><small><i /> 자차 {policeJoined && <><em /> 경찰</>}</small></div>
+    <div className="raceControls keyBar">
+      {/* two rows per item: keys on top, meaning underneath */}
+      {([[["↑"], "가속"], [["↓"], "브레이크"], [["←", "→"], "조향"], [["1", "~", "4"], "기어 P·R·N·D"], [["Q", "E"], "회생 강·약"], [["R"], "READY"], [["Esc"], "멈춤"]] as [string[], string][]).map(([keys, meaning]) =>
+        <span key={meaning} className="keyItem"><i>{keys.map(key => key === "~" ? <small key={key}>~</small> : <kbd key={key} className={key.length > 1 ? "wide" : ""}>{key}</kbd>)}</i><em>{meaning}</em></span>)}
+    </div>
+    {introOpen && <StageIntro id={`race-${mode}`} stage={mode === "resume" ? "주행 복귀" : "주행"} title={mode === "resume" ? "수리 후 주행 복귀" : "주행"} goal={mode === "resume" ? "수리한 차로 추격을 따돌리며 다시 달리기" : "추격을 따돌리며 달리고, 고장 증상이 나타나면 관찰하기"} steps={[
+      { icon: "car", text: "↓ 브레이크를 밟고 4로 D단, ↑ 가속 · ←→ 조향" },
+      { icon: "bolt", text: "Q·E로 회생 제동 단계 조절, 추격차 격차 확인" },
+      { icon: "warning", text: "경고와 증상이 나타나면 무엇이 달라졌는지 기억하기" },
+    ]} onClose={() => setIntroOpen(false)} />}
+    {(countdown > 0 || goFlash) && <div className="startCountdown"><small>출발 준비</small><b>{goFlash ? "GO!" : countdown}</b></div>}
+    {policeJoined && sim.gap > 0 && sim.gap < 40 && !symptom && <ComicBurst tone="police" side="left" title="경찰 차량 접근" />}
+    {symptom && <ComicBurst tone="fault" side="right" image="/assets/ending-thumbs/accel_pedal.png" title="가속 저하 발생" sound="alarm" />}
+    {/* every message card lives in one column under the mirror, so cards never overlap */}
+    <div className="raceFeed">
+      {situationHint && <div className={`situationHint ${situationHint.kind}`} role="status" key={situationHint.kind}><small>{situationHint.kind === "env" ? "환경" : situationHint.kind === "lead" ? "앞차" : situationHint.kind === "rear" ? "후방" : situationHint.kind === "chase" ? "추격" : "교차로"}</small><b>{situationHint.title}</b><em>{situationHint.text}</em></div>}
+      {countdown === 0 && gear !== "D" && sim.speed < 1 && !parking && mode !== "ship" && <div className="gearPrompt"><kbd>↓</kbd> 브레이크 밟고 <kbd>4</kbd> 를 눌러 <b>D</b>로!</div>}
+      {gearToast && <div className="gearToast" key={gearToast.id}>{gearToast.text}</div>}
+      {impact > 0 && <div className={`impactToast impactToastL${impactLevel}`} key={impact}>{impactMessage}</div>}
+      {impact > 0 && <div className={`impactFlash flashL${impactLevel}`} key={`f${impact}`} aria-hidden="true" />}
+      {impact > 0 && <div className={`impactDebris debrisL${impactLevel}`} key={`d${impact}`} aria-hidden="true">{Array.from({ length: 6 + impactLevel * 4 }, (_, i) => <i key={i} style={{ "--dx": `${Math.cos(i * 2.399) * (80 + impactLevel * 60)}px`, "--dy": `${-40 - Math.abs(Math.sin(i * 1.7)) * (80 + impactLevel * 50)}px`, "--r": `${i * 47}deg`, "--d": `${(i % 4) * .03}s` } as React.CSSProperties} />)}</div>}
+      {impact > 0 && impactLevel >= 2 && <div className="catReact" key={`c${impact}`} role="status"><img src="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" alt="" /><b>{impactLevel === 3 ? "으앗!" : "앗!"}</b></div>}
+      {regression?.title && <div className={`regressionCard ${regression.ok ? "ok" : "no"}`} role="status"><i><Icon name="repeat" /></i><span><small>같은 조건 재주행</small><b>{regression.title}</b><em>{regression.text}</em></span></div>}
+      {zone && !symptom && <div className="raceZoneSign" key={zone.title}><i><Icon name={zone.icon} /></i><span><small>주행 구간</small><b>{zone.title}</b><em>{zone.text}</em></span></div>}
+      {symptom && <div className="faultBeacon" role="alert"><span /><div><small>차량 경고</small><b>{mode === "normal" ? "가속 입력 대비 출력 저하" : state.caseId === "regen" ? "발을 뗐는데 속도가 올라감" : state.caseId === "gear" ? "D인데 차가 뒤로 움찔함" : state.caseId === "cold" ? "발만 뗐는데 감속이 세요" : state.caseId === "ready" ? "HV 시스템 점검 표시등" : "파워다운 표시등 · 출력 제한"}</b><em>원인은 아직 알 수 없습니다</em></div></div>}
+      {mode === "assist" && <div className={`assistStop ${parking ? "parking" : ""}`}><span>{parking ? "안전 정차 완료" : "출력 제한 주행"}</span><b>{parking ? "주행 기록을 동결하고 추리 화면으로 이동합니다" : `${Math.max(0, Math.round(assistTarget - sim.distance))}m 후 자동 정차`}</b>{parking && <i className="parkingSpinner" />}</div>}
+      {driveMission !== "idle" && driveMission !== "done" && <div className={`driveMission ${driveMission}`}><small>주행 미션</small><b>{driveMission === "red" ? "적색 신호 정지 · 제동 시퀀스 기록" : startFails > 0 ? `시동 시도 ${Math.min(startAttempts + 1, startFails)}/${startFails} · R 키로 시동 걸기` : readyTries > 0 ? `READY 재인가 · R 키 ${readyTries}회 더` : "정차 후 READY 재인가 · R 키로 재시동"}</b><span>{driveMission === "red" ? `${Math.max(0,Math.round(612-sim.distance))}m · S로 부드럽게 제동 · 정지선 이탈 금지` : startFails > 0 ? (startAttempts > 0 ? "READY가 켜지지 않아요 · 점검 표시등을 확인하세요" : "브레이크를 밟은 상태로 시동을 걸어 출발하세요") : "이 재출발 기록이 열관리 고장 재현 미션의 초기조건이 됩니다"}</span></div>}
+      {mode === "ship" && sim.distance >= TRACK_LENGTH - 230 && <div className="finalRampCommit"><small>도착 지점</small><b>{deckSettled ? "갑판 정차 완료 · 탈출 성공" : sim.distance >= DECK_TOUCH ? "해적선 갑판 착지 · 자동 감속" : sim.distance >= RAMP_START ? "실물 오르막 램프 진입" : "해적선 연결 램프 접근"}</b><span>{sim.distance >= RAMP_END && sim.distance < DECK_TOUCH ? "차량 도약 중 · 측면 카메라" : sim.distance >= DECK_TOUCH ? "네 바퀴 착지 확인 · 엔딩 전환 준비" : "중앙 유도 · 램프와 갑판 충돌면 활성"}</span></div>}
+    </div>
   </div>;
 }
+
+/** Physical key position → name, so keys work in Korean (한글) input mode too. */
+const raceKey = (event: KeyboardEvent) => {
+  const code = event.code;
+  if (code.startsWith("Key")) return code.slice(3).toLowerCase();
+  if (code.startsWith("Digit")) return code.slice(5);
+  if (code.startsWith("Numpad") && /\d$/.test(code)) return code.slice(-1);
+  return code ? code.toLowerCase() : event.key.toLowerCase();
+};
+// Minimap path sampled from the same track function the car uses (markers always sit on it).
+const MINIMAP_PATH = Array.from({ length: 51 }, (_, i) => { const progress = i * 2; const d = progress / 100 * TRACK_LENGTH; return `${i ? "L" : "M"}${(45 + trackFrame(d).x * 3.4).toFixed(1)} ${(94 - progress * .86).toFixed(1)}`; }).join(" ");
+// Driving zones on the existing course where each fault shows up [start, fallback trigger] in metres.
+/** Dev switch `?faultdemo=release|stationary|prestart` runs one generic fault spec from src/game/faultSchedule.ts on top of the level (see docs/fault-cases/RACING_FAULT_MODEL.md). */
+/** `?faultdemo=release|stationary|prestart|reverse|limit` */
+const FAULT_DEMO: FaultSpec | null = import.meta.env.DEV && typeof location !== "undefined" ? (DEMO_FAULTS as Record<string, FaultSpec>)[new URLSearchParams(location.search).get("faultdemo") ?? ""] ?? null : null;
+
+// Warning lamp the driver sees for each case (generic EV cluster behaviour).
+const faultLamp: Record<CaseId, { icon: string; glyph: string; label: string; note: string }> = {
+  propulsion: { icon: "none", glyph: "—", label: "경고등 없음", note: "제어기가 고장을 감지하지 못한 채 출력만 약해짐 (운전자 체감만 있음)" },
+  thermal: { icon: "power", glyph: "!", label: "파워다운(출력 제한) 표시등", note: "출력이 제한됨 · 설명서상 원인 후보: 배터리 잔량 부족, 배터리 온도, 구동계 온도" },
+  brake: { icon: "brake", glyph: "(!)", label: "브레이크 경고등", note: "제동 계통 이상 — 제동 거리가 늘어날 수 있음" },
+  regen: { icon: "none", glyph: "—", label: "경고등 없음", note: "제어기가 고장을 감지하지 못함 (운전자 체감만 있음)" },
+  ready: { icon: "power", glyph: "!", label: "HV 시스템 점검 표시등", note: "시동 시퀀스가 실패함 · 설명서상 원인 후보: 배터리 상태, 12 V 전원, 고전압 연결 계통" },
+  gear: { icon: "power", glyph: "-", label: "경고등 없음", note: "계기판은 D를 표시함 · 켜진 경고등 없음" },
+  cold: { icon: "power", glyph: "-", label: "경고등 없음", note: "회생 표시가 평소보다 크게 나옴 · 켜진 경고등 없음" },
+};
 
 export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) {
   const [step, setStep] = useState(0);
   const [dialogueSim, setDialogueSim] = useState<DriveSim>({ speed: state.caseId === "thermal" ? 38 : 31, lane: 0, steer: 0, distance: state.raceDistance, gap: state.policeGapMeters, heat: state.caseId === "thermal" ? 84 : 39, elapsed: state.raceElapsedSeconds });
   const scenario = SCENARIOS[state.caseId];
+  // Short two-line exchange per case (symptom + warning lamp stated by the driver only; no cause hints).
+  const DRIVER_LINE: Record<CaseId, string> = {
+    propulsion: "페달을 끝까지 밟아도 가속이 안나와! 경고등도 안떴는데! 왜이러지?",
+    thermal: "오래 달렸더니 힘이 빠졌어! 계기판에 출력 제한 표시등이 켜졌어! 왜이러지?",
+    brake: "브레이크를 밟았는데 차가 잘 안 서! 브레이크 경고등까지 켜졌어! 왜이러지?",
+    regen: "발을 뗐는데 차가 더 빨라져요. 경고등은 하나도 안 켜졌어요. 왜 그럴까요?",
+    ready: "시동 버튼을 눌러도 READY가 안 켜져요. 점검 표시등만 켜졌어요. 왜 그럴까요?",
+    gear: "D에 놓았는데 가끔 뒤로 가요. 계기판은 D인데 왜 그럴까요?",
+    cold: "추울 때 발만 떼도 차가 확 서요. 경고등은 하나도 안 켜졌어요. 왜 그럴까요?",
+  };
   const dialogue = [
-    { who: "드라이버 루", role: "DRIVER", text: "뭐야, 차 제대로 개조했다는 거 아니었어? 차 고장 나면 우리 다 끝장이야!", tone: "driver" },
-    { who: "엔지니어 밍", role: "ENGINEER", text: "헉, 큰일 났다! 기억이 잘 안 나는데… 일단 내가 고쳐볼게!", tone: "engineer" },
+    { who: `드라이버 ${DRIVER}`, role: "DRIVER", text: DRIVER_LINE[state.caseId], tone: "driver" },
+    { who: `엔지니어 ${ENGINEER}`, role: "ENGINEER", text: "내가 만든 차가 이럴리 없는데! 내가 바로 고쳐볼게!", tone: "engineer" },
   ];
   const advance = () => step === 0 ? setStep(1) : send({ type: "CONTINUE_FAULT" });
   useEffect(() => {
-    const key = (event: KeyboardEvent) => { if (event.code === "Space") { event.preventDefault(); advance(); } };
+    const key = (event: KeyboardEvent) => { if (event.code === "Space" || event.key === "Enter") { event.preventDefault(); advance(); } };
     addEventListener("keydown", key);
     return () => removeEventListener("keydown", key);
   }, [step, send]);
@@ -1217,14 +2253,15 @@ export function FaultDialogue({ state, send }: { state: Campaign; send: Send }) 
     return () => cancelAnimationFrame(frame);
   }, [state.policeGapMeters, state.raceDistance]);
   return <div className="faultDialogueScene">
-    <RaceWorld sim={dialogueSim} ship={false} policeVisible />
+    {/* before the two required cases the stopped car cannot be caught, so the interceptor stays out of sight */}
+    <RaceWorld sim={dialogueSim} ship={false} policeVisible={state.completedCases.length >= 2} />
     <div className="faultDialogueShade" />
     <JourneyProgress scene="FAULT_CUE" />
     <div className="warningWash"><i /><i /></div>
-    <main>
-      <div className="faultSignalTitle"><span>!</span><div><small>DRIVE ANOMALY RECORDED</small><h1>주행 이상 감지</h1><p>{scenario.symptom}</p></div></div>
-      <div className="quickTrace"><span><small>INPUT</small><b>{state.caseId === "propulsion" ? "60%" : "78.4°C"}</b></span><i /><span><small>COMMAND</small><b>{state.caseId === "propulsion" ? "27%" : "FAN ON"}</b></span><i /><span><small>ACTUAL</small><b>{state.caseId === "propulsion" ? "91 Nm" : "0 RPM"}</b></span></div>
-      <div className={`catSpeech ${dialogue[step].tone}`}><div className="speechPortrait"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><i>{dialogue[step].role}</i></div><div><b>{dialogue[step].who}</b><p>{dialogue[step].text}</p><small>SPACE로 대화 넘기기 · 대화 중 추격 격차는 고정</small></div><button className="primary" onClick={advance}>{step === 0 ? "다음 대화" : "차는 제한 속도로 계속 주행 · 추리 시작"} →</button></div>
+    {/* one repair-order sheet: symptom, warning lamp, then the conversation and a single action */}
+    <main className="faultSheet">
+      <div className="fsTalk" key={step}><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><div><b>{dialogue[step].who}</b><p>{dialogue[step].text}</p></div></div>
+      <footer className="fsFoot"><button className="primary" onClick={advance}>{step === 0 ? "다음" : "원인 추적 시작"} →</button></footer>
     </main>
   </div>;
 }
@@ -1244,21 +2281,34 @@ const componentCutoutCell: Record<string, number> = {
   brake_request: 0, brake_actual: 7, brake_actuator: 7,
 };
 
-function CardGraphic({ id, kind, masked = false }: { id: string; kind: string; masked?: boolean }) {
+// Picture inside a polaroid: driving-symptom photo, a small meter screen for
+// measured values (normal vs measured), or the suspect part for a hypothesis.
+const CARD_PHOTO: Record<string, string> = Object.fromEntries(["pedal_raw", "pedal_processed", "torque_cmd", "motor_actual", "motor_temp", "thermal_protection", "brake_request", "regen_request", "brake_actual"].map(id => [id, id]));
+const CARD_CUTOUT: Record<string, string> = { fan_command: "thermal_ecu", fan_actual: "cooling_fan" };
+const SUSPECT_PART: Record<string, string> = {
+  gateway: "vcu", bms: "bms", motor: "traction_motor", aps_sensor: "accel_pedal", sensor: "motor_temp_sensor", software_command: "thermal_ecu",
+  fan_actuator: "cooling_fan", brake_actuator: "brake_caliper", regen_limit: "bms", pedal: "brake_pedal",
+};
+export type Reading = { value: string; ok: boolean };
+/** Photo of where the clue came from; a measured value appears as a sticker only after it is measured. */
+export function CardGraphic({ id, kind, reading }: { id: string; kind: string; masked?: boolean; reading?: Reading }) {
+  const tag = <span className="cardKindTag">{kind === "HYPOTHESIS" ? "원인 후보" : kind}</span>;
+  const sticker = reading && <em className={`valueSticker ${reading.ok ? "ok" : "bad"}`}>{reading.ok ? "✓" : "✗"} {reading.value}</em>;
+  if (CARD_PHOTO[id]) return <div className="polaroidGraphic photoFill"><img src={`/assets/board-photos/${CARD_PHOTO[id]}.png`} alt="" />{tag}{sticker}</div>;
+  const part = SUSPECT_PART[id] ?? CARD_CUTOUT[id];
+  if (part) return <div className="polaroidGraphic partFill"><img src={`/assets/ending-thumbs/${part}.png`} alt="" />{tag}{sticker}</div>;
   const cell = evidenceAtlasCell[id] ?? 1;
   const column = cell % 4, row = Math.floor(cell / 4);
-  return <div className="polaroidGraphic evidenceAssetPhoto" style={{ "--evidence-x": `${column * 33.333}%`, "--evidence-y": `${row * 100}%` } as React.CSSProperties}>
-    <span>{masked ? "미분류 단서" : kind === "HYPOTHESIS" ? "원인 후보" : kind}</span>
-  </div>;
+  return <div className="polaroidGraphic evidenceAssetPhoto" style={{ "--evidence-x": `${column * 33.333}%`, "--evidence-y": `${row * 100}%` } as React.CSSProperties}>{tag}{sticker}</div>;
 }
 
-function Polaroid({ id, title, value, kind, selected, picked = false, onToggle, onZoom, dragData, tool = "move" }: { id: string; title: string; value: string; kind: string; selected: boolean; picked?: boolean; onToggle?: () => void; onZoom?: () => void; dragData?: string; tool?: "move" | "thread" | "erase" | "pencil" }) {
+function Polaroid({ id, title, value, kind, selected, picked = false, onToggle, onZoom, dragData, tool = "move", reading }: { id: string; title: string; value: string; kind: string; selected: boolean; picked?: boolean; onToggle?: () => void; onZoom?: () => void; dragData?: string; tool?: "move" | "thread" | "erase" | "pencil"; reading?: Reading }) {
   return <button draggable={tool === "move" && Boolean(dragData)} onDragStart={event => { if (tool === "move" && dragData) { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", dragData); } }} onDoubleClick={event => { event.stopPropagation(); if (tool === "move") onZoom?.(); }} onClick={event => { event.stopPropagation(); if (tool === "move") onToggle?.(); }} className={`polaroidCard tool-${tool} ${selected ? "pinned" : ""} ${picked ? "picked" : ""}`}>
-    <i className="pushPin" /><CardGraphic id={id} kind={kind} masked={!selected} /><div className="polaroidCaption"><small>{selected ? kind : "미분류 카드"}</small><b>{title}</b><span>{value}</span></div>
+    <i className="pushPin" /><CardGraphic id={id} kind={kind} reading={reading} /><div className="polaroidCaption"><b>{title}</b><span>{value}</span></div>
   </button>;
 }
 
-function ReplayRaceView({ caseId }: { caseId: CaseId }) {
+export function ReplayRaceView({ caseId }: { caseId: CaseId }) {
   const [sim, setSim] = useState<DriveSim>({ speed: 72, lane: 0, steer: 0, distance: 140, gap: 56, heat: caseId === "thermal" ? 72 : 38, elapsed: 36 });
   useEffect(() => {
     const start = performance.now();
@@ -1274,7 +2324,110 @@ function ReplayRaceView({ caseId }: { caseId: CaseId }) {
     frame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frame);
   }, [caseId]);
-  return <div className="replayRaceWorld"><RaceWorld sim={sim} ship={false} /><div className="replayHud"><span>LAST 8.0 SEC</span><b>{Math.round(sim.speed)} km/h</b><em>{sim.speed < 40 ? "⚠ OUTPUT DROP" : "HV READY"}</em></div></div>;
+  return <div className="replayRaceWorld"><RaceWorld sim={sim} ship={false} /><div className="replayHud"><span>LAST 8.0 SEC</span><b>{Math.round(sim.speed)} km/h</b><em>{sim.speed < 40 ? "OUTPUT DROP" : "HV READY"}</em></div></div>;
+}
+
+// Signal measurement rail: stops along the signal chain. Measuring a stop shows
+// normal vs measured; the first ✗ is where the fault starts. Hypotheses whose
+// part measured fine, or sits after the first mismatch, are auto-stamped "반박".
+type RailStop = { at: string; value: string; expect: string; ok: boolean; ev: string };
+export const MEASURE_RAIL: Record<CaseId, { stops: RailStop[]; hypothesisAt: Record<string, number> }> = {
+  propulsion: {
+    stops: [
+      { at: "가속 페달(APS)", value: "60%", expect: "60%", ok: true, ev: "pedal_raw" },
+      { at: "VCU 입력 처리", value: "27%", expect: "60%", ok: false, ev: "pedal_processed" },
+      { at: "CAN 토크 명령", value: "92 Nm", expect: "204 Nm", ok: false, ev: "torque_cmd" },
+      { at: "모터 실제 토크", value: "91 Nm", expect: "204 Nm", ok: false, ev: "motor_actual" },
+    ],
+    hypothesisAt: { aps_sensor: 0, gateway: 1, bms: 2, motor: 3 },
+  },
+  thermal: {
+    stops: [
+      { at: "냉각수 온도 센서", value: "78.4°C", expect: "실제 고온", ok: true, ev: "motor_temp" },
+      { at: "출력 제한 상태", value: "LEVEL 1", expect: "고온 시 제한", ok: true, ev: "thermal_protection" },
+      { at: "팬 PWM 명령", value: "100%", expect: "100%", ok: true, ev: "fan_command" },
+      { at: "팬 실제 회전", value: "0 RPM", expect: "1850 RPM", ok: false, ev: "fan_actual" },
+    ],
+    hypothesisAt: { sensor: 0, software_command: 2, fan_actuator: 3 },
+  },
+  brake: {
+    stops: [
+      { at: "브레이크 페달", value: "55%", expect: "55%", ok: true, ev: "brake_request" },
+      { at: "회생 제동 명령", value: "22%", expect: "가능 범위", ok: true, ev: "regen_request" },
+      { at: "캘리퍼 제동 응답", value: "8%", expect: "부족분 보충", ok: false, ev: "brake_actual" },
+    ],
+    hypothesisAt: { pedal: 0, regen_limit: 1, brake_actuator: 2 },
+  },
+  regen: {
+    stops: [
+      { at: "가속 페달", value: "0%", expect: "0%", ok: true, ev: "accel_trend" },
+      { at: "Brake ECU 회생 요청", value: "−40 Nm", expect: "−40 Nm", ok: true, ev: "regen_request" },
+      { at: "VCU 토크 지령", value: "+40 Nm", expect: "−40 Nm", ok: false, ev: "torque_cmd" },
+    ],
+    hypothesisAt: { pedal: 0, brake_sw: 1, vcu_sign: 2, inv_wire: 2 },
+  },
+  ready: {
+    stops: [
+      { at: "시동 요청 · 브레이크", value: "입력됨", expect: "입력됨", ok: true, ev: "ready_off" },
+      { at: "BMS 시동 허용", value: "1", expect: "1", ok: true, ev: "hv_bus_scope" },
+      { at: "VCU 프리차지 시퀀스", value: "실패", expect: "대기 중", ok: false, ev: "dtc_precharge" },
+    ],
+    hypothesisAt: { start_cond: 0, bms_link: 1, seq_timeout: 2, precharge_hw: 2 },
+  },
+  gear: {
+    stops: [
+      { at: "변속 레버 위치", value: "D", expect: "D", ok: true, ev: "dtc_gear_timeout" },
+      { at: "게이트웨이 출력 기어", value: "D", expect: "D", ok: true, ev: "bus_load_scope" },
+      { at: "VCU가 쓰는 기어 값", value: "R", expect: "N", ok: false, ev: "motor_reverse_log" },
+    ],
+    hypothesisAt: { lever_hw: 0, gw_map: 1, gear_fallback: 2, interlock: 2 },
+  },
+  cold: {
+    stops: [
+      { at: "배터리 온도", value: "0 °C", expect: "0 °C", ok: true, ev: "battery_temp_view" },
+      { at: "게이트웨이 전달 한계", value: "20 Nm", expect: "20 Nm", ok: true, ev: "regen_limit_compare" },
+      { at: "제동 도메인 사용 한계", value: "60 Nm", expect: "20 Nm", ok: false, ev: "cold_decel_log" },
+    ],
+    hypothesisAt: { bms_calc: 0, gw_lag: 1, brake_fixed: 2, inv_cfg: 2 },
+  },
+};
+/** The fault boundary is known once the first ✗ and the stop just before it (a ✓) are both measured. */
+export const boundaryFound = (rail: (typeof MEASURE_RAIL)[CaseId], measured: number[]) => {
+  const firstBad = rail.stops.findIndex(stop => !stop.ok);
+  return firstBad >= 0 && measured.includes(firstBad) && (firstBad === 0 || measured.includes(firstBad - 1));
+};
+const verdictFor = (rail: (typeof MEASURE_RAIL)[CaseId], measured: number[], hypothesisId: string): "rebut" | "likely" | undefined => {
+  const at = rail.hypothesisAt[hypothesisId];
+  if (at === undefined) return undefined;
+  const firstBad = rail.stops.findIndex(stop => !stop.ok);
+  const firstBadKnown = boundaryFound(rail, measured);
+  if (measured.includes(at) && rail.stops[at].ok) return "rebut";
+  if (firstBadKnown && at > firstBad) return "rebut";
+  if (firstBadKnown && at === firstBad) return "likely";
+  return undefined;
+};
+
+const MEASURE_BUDGET = 3;
+function MeasureRail({ caseId, measured, budget, onMeasure, onBuy }: { caseId: CaseId; measured: number[]; budget: number; onMeasure: (index: number) => void; onBuy: () => void }) {
+  const rail = MEASURE_RAIL[caseId];
+  const firstBad = rail.stops.findIndex(stop => !stop.ok);
+  const found = boundaryFound(rail, measured);
+  const used = measured.length - 1; // the output (last stop) is measured for free: that is the symptom
+  const left = budget - used;
+  const stars = used <= 2 ? 3 : used === 3 ? 2 : 1;
+  return <div className={`measureRail ${found ? "is-found" : ""}`}>
+    <span className="railTitle">{found ? <><b>찾았다!</b><em className="railStars">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</em></> : <><b>🔍 출력이 이상해! ✓와 ✗의 경계를 찾자</b><em>측정 기회 {"●".repeat(Math.max(0, left))}{"○".repeat(Math.max(0, budget - Math.max(0, left)))}</em></>}</span>
+    {rail.stops.map((stop, index) => { const done = measured.includes(index); return <React.Fragment key={stop.at}>
+      {index > 0 && <i className={`railWire ${done && measured.includes(index - 1) ? (rail.stops[index - 1].ok ? "ok" : "bad") : ""}`} />}
+      <button disabled={!done && (left <= 0 || found)} className={`railStop ${done ? stop.ok ? "ok" : "bad" : ""} ${found && index === firstBad ? "first" : ""}`} onClick={() => !done && left > 0 && !found && onMeasure(index)}>
+        <small>{stop.at}</small>
+        {done ? <b>{stop.ok ? "✓" : "✗"} {stop.value}</b> : <b className="tap">{found ? "—" : "측정하기"}</b>}
+        {done && <em>정상 {stop.expect}</em>}
+        {found && index === firstBad && <span className="firstFlag">처음 어긋남!</span>}
+      </button>
+    </React.Fragment>; })}
+    {!found && left <= 0 && <button className="railBuy" onClick={onBuy}>측정 +1<small>추격 −5m</small></button>}
+  </div>;
 }
 
 export function InvestigationBoard({ state, send }: { state: Campaign; send: Send }) {
@@ -1292,6 +2445,26 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
   const [threadPaths, setThreadPaths] = useState<Record<string, { x: number; y: number }[]>>({});
   const [boardTool, setBoardTool] = useState<"move" | "thread" | "erase">("move");
   const [threadDraft, setThreadDraft] = useState<{ from: string; points: { x: number; y: number }[] } | null>(null);
+  const [measured, setMeasured] = useState<number[]>(() => [MEASURE_RAIL[state.caseId].stops.length - 1]);
+  useEffect(() => {
+    const last = MEASURE_RAIL[state.caseId].stops.at(-1)!;
+    if (!state.evidence[state.caseId].includes(last.ev)) send({ type: "RECORD_EVIDENCE", id: last.ev });
+  }, []); // the symptom at the output is known from the start
+  const [extraMeasures, setExtraMeasures] = useState(0);
+  const readingFor = (id: string): Reading | undefined => { const index = MEASURE_RAIL[state.caseId].stops.findIndex(stop => stop.ev === id); return index >= 0 && measured.includes(index) ? { value: MEASURE_RAIL[state.caseId].stops[index].value, ok: MEASURE_RAIL[state.caseId].stops[index].ok } : undefined; };
+  const rail = MEASURE_RAIL[state.caseId];
+  const measure = (index: number) => {
+    const stop = rail.stops[index];
+    setMeasured(previous => [...previous, index]);
+    play("zip"); window.setTimeout(() => play(stop.ok ? "pop" : "error"), 140);
+    if (!selectedEvidence.includes(stop.ev)) send({ type: "RECORD_EVIDENCE", id: stop.ev });
+    setCardPositions(previous => previous[stop.ev] ? previous : ({ ...previous, [stop.ev]: { x: 4 + index * (68 / Math.max(1, rail.stops.length - 1)), y: 30 + (index % 2) * 26 } }));
+    const nowMeasured = [...measured, index];
+    const firstBad = rail.stops.findIndex(item => !item.ok);
+    const nowFound = boundaryFound(rail, nowMeasured);
+    if (nowFound) window.setTimeout(() => { play("stamp"); play("success"); }, 420);
+    setFeedback(nowFound ? `찾았다! ${firstBad > 0 ? `${rail.stops[firstBad - 1].at}(✓)과 ` : ""}${rail.stops[firstBad].at}(✗) 사이에서 고장이 시작됐어요` : stop.ok ? `${stop.at}: 정상 ✓ — 고장은 이 뒤쪽에서 시작됐어요` : `${stop.at}: 여기도 이상해요 ✗ — 더 앞쪽을 재 볼까요?`);
+  };
   const hintKey = `${state.caseId}:board`;
   const hintUsed = Boolean(state.hintClaims[hintKey]);
   useEffect(() => { const timer = window.setInterval(() => setSeconds(value => value + 1), 1000); return () => clearInterval(timer); }, []);
@@ -1358,24 +2531,38 @@ export function InvestigationBoard({ state, send }: { state: Campaign; send: Sen
   };
   return <div className="boardV2 boardV3">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
-    <GameHeader chapter="INCIDENT INVESTIGATION" title="증거 메모판" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="사건 조사" title="증거 메모판" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
     <main className="investigationBoard detectiveLayout">
       <header><div><small>OBSERVE · MEASURE · HYPOTHESIZE</small><h1>{scenario.title}</h1><div className="reasoningMicroRail"><span>현상 확인</span><i>→</i><span>계측 단서</span><i>→</i><span>가능 원인 가설</span><i>→</i><span>후속 검증</span></div></div><div className="boardToolbox"><button className={boardTool === "move" ? "active" : ""} onClick={() => setBoardTool("move")}><img src={`${A}cursor-hand-open-v1.png`} alt="" /><span>손</span></button><button className={boardTool === "thread" ? "active" : ""} onClick={() => setBoardTool("thread")}><img src={`${A}detective-pencil-v1.png`} alt="" /><span>연필</span></button><button className={boardTool === "erase" ? "active" : ""} onClick={() => setBoardTool("erase")}><img src={`${A}detective-eraser-v1.png`} alt="" /><span>지우개</span></button></div><button onClick={() => setRulesOpen(value => !value)}>규칙</button><button onClick={() => setReplay(true)}>▶ QUICK REPLAY</button><button className="hintButton" disabled={seconds < 60 || hintUsed} onClick={() => { send({ type: "HINT", key: hintKey }); setFeedback(`힌트: ${scenario.hypotheses.find(item => item.id === scenario.root)?.label} 가설을 명령값과 실제 반응으로 검토해 보세요. (-5m)`); }}>{hintUsed ? "힌트 사용됨" : seconds < 60 ? `힌트 ${60 - seconds}초` : "힌트 보기 · -5m"}</button></header>
-      {rulesOpen && <aside className="boardRules"><b>목표 · 사실 단서로 가장 설명력 높은 원인 가설을 세우세요</b><ol><li>QUICK REPLAY에서 운전자가 겪은 <b>주행 현상</b>을 먼저 확인합니다.</li><li>입력값·제어 명령·실제 물리 응답처럼 직접 측정된 카드만 중앙으로 끌어옵니다.</li><li>오른쪽의 <b>가능 원인 가설</b> 한 장을 선택합니다. 이 단계에서는 아직 확정 원인이 아닙니다.</li><li>연필로 “이 단서가 이 가설을 지지한다”는 관계를 직접 연결합니다.</li><li>단서 두 장 이상이 가설을 지지하면 채택하고, 다음 제어 경로·추적 실험에서 입증하거나 기각합니다.</li></ol></aside>}
-      <aside className="evidenceInventory"><h2>관찰된 현상 · 계측 단서</h2><p>주행 현상과 입력·명령·실제 반응을 구분</p><div>{scenario.evidence.map(card => <div key={card.id} className={selectedEvidence.includes(card.id) ? "used" : ""}><Polaroid id={card.id} title={card.label} value={card.value} kind={card.kind} selected={false} tool={boardTool} dragData={boardTool === "move" ? `evidence:${card.id}` : undefined} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>)}</div></aside>
+      {rulesOpen && <aside className="boardRules"><b>🕵️ 목표 · 신호를 따라가며 고장이 시작된 곳을 찾고, 범인 가설을 증거로 묶기</b><ol>
+        <li><b>▶ QUICK REPLAY</b>로 운전자가 겪은 증상을 확인해요.</li>
+        <li><b>🔍 신호 측정</b>: 맨 오른쪽 <b>출력은 이미 ✗</b>(증상)예요. 레일의 지점을 눌러 정상값과 비교하며 <b>✓와 ✗가 바뀌는 경계</b>를 찾아요. 출력에서 거꾸로 올라가도, 입력부터 따라가도 OK! 기회는 <b>3번</b>, 가운데부터 재면 더 빨라요. (부족하면 <b>측정 +1</b>, 추격차가 5m 가까워져요)</li>
+        <li>측정할수록 오른쪽 가설에 <b>반박</b>·<b>유력</b> 도장이 찍혀요. 적게 측정할수록 ★이 많아요.</li>
+        <li><b>유력</b> 가설을 코르크판으로 끌어오고, <b>✏️ 연필</b>로 증거 사진에서 가설 카드까지 쭉 그어 실로 이어요. (지우개로 실 삭제)</li>
+        <li>증거 <b>2장 이상</b>을 이으면 다음 단계(경로 복원)로!</li>
+      </ol><button onClick={() => setRulesOpen(false)}>알겠어!</button></aside>}
+      <aside className="evidenceInventory"><h2>관찰된 현상 · 계측 단서</h2><p>주행 현상과 입력·명령·실제 반응을 구분</p><div>{scenario.evidence.map(card => <div key={card.id} className={selectedEvidence.includes(card.id) ? "used" : ""}><Polaroid reading={readingFor(card.id)} id={card.id} title={card.label} value={card.value} kind={card.kind} selected={false} tool={boardTool} dragData={boardTool === "move" ? `evidence:${card.id}` : undefined} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>)}</div></aside>
       <section className={`caseCorkCanvas tool-${boardTool}`} ref={boardRef} onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={dropOnBoard} onPointerMove={event => { if (!threadDraft) return; const point = boardPoint(event.clientX, event.clientY); setThreadDraft(previous => { if (!previous) return previous; const last = previous.points.at(-1)!; return Math.hypot(point.x - last.x, point.y - last.y) < .45 ? previous : { ...previous, points: [...previous.points, point] }; }); }} onPointerUp={() => threadDraft && setThreadDraft(null)}>
+        <MeasureRail caseId={state.caseId} measured={measured} budget={MEASURE_BUDGET + extraMeasures} onMeasure={measure} onBuy={() => { send({ type: "HINT", key: `${state.caseId}:measure${extraMeasures + 1}` }); setExtraMeasures(value => value + 1); play("squish"); }} />
         <div className="caseBoardTitle"><b>원인 가설 검토 보드</b><span>사실 단서와 가능 원인 가설을 놓고 지지 관계를 이으세요</span><em>{linkedEvidence.length} LINKED</em></div>
         <svg className={`evidenceThreads ${boardTool === "erase" ? "erasing" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none">{cause && selectedCards.filter(card => linkedEvidence.includes(card.id)).map(card => <path key={card.id} d={freehandPath(threadPaths[card.id] ?? [])} onPointerEnter={() => eraseThread(card.id)} onClick={() => eraseThread(card.id)} />)}{threadDraft && <path className="threadDraft" d={freehandPath(threadDraft.points)} />}</svg>
-        {selectedCards.map((card, index) => { const pos = cardPositions[card.id] ?? { x: 12 + (index % 3) * 27, y: 12 + Math.floor(index / 3) * 42 }; const linked = linkedEvidence.includes(card.id); return <div className={`boardPinnedCard ${linked ? "threaded" : ""}`} draggable={boardTool === "move"} key={card.id} style={{ left: `${pos.x}%`, top: `${pos.y}%` }} onDragEnd={event => boardTool === "move" && movePinned(card.id, event)} onPointerDown={event => beginThread(card.id, event)}><Polaroid id={card.id} title={card.label} value={card.value} kind={card.kind} selected tool={boardTool} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>; })}
-        {cause && (() => { const pos = cardPositions[`cause:${cause.id}`] ?? { x: 76, y: 34 }; return <div className="boardCausePin freePosition" draggable={boardTool === "move"} style={{ left: `${pos.x}%`, top: `${pos.y}%` }} onDragEnd={event => boardTool === "move" && movePinned(`cause:${cause.id}`, event)} onPointerUp={finishThread}><Polaroid id={cause.id} title={cause.label} value={cause.desc} kind="HYPOTHESIS" selected tool={boardTool} onZoom={() => setZoomCard({ id: cause.id, label: cause.label, value: cause.desc, kind: "HYPOTHESIS" })} /></div>; })()}
+        {selectedCards.map((card, index) => { const pos = cardPositions[card.id] ?? { x: 6 + (index % 3) * 24, y: 25 + Math.floor(index / 3) * 36 }; const linked = linkedEvidence.includes(card.id); return <div className={`boardPinnedCard ${linked ? "threaded" : ""}`} draggable={boardTool === "move"} key={card.id} style={{ left: `${pos.x}%`, top: `${pos.y}%` }} onDragEnd={event => boardTool === "move" && movePinned(card.id, event)} onPointerDown={event => beginThread(card.id, event)}><Polaroid reading={readingFor(card.id)} id={card.id} title={card.label} value={card.value} kind={card.kind} selected tool={boardTool} onZoom={() => setZoomCard({ id: card.id, label: card.label, value: card.value, kind: card.kind })} /></div>; })}
+        {cause && (() => { const pos = cardPositions[`cause:${cause.id}`] ?? { x: 78, y: 40 }; return <div className="boardCausePin freePosition" draggable={boardTool === "move"} style={{ left: `${pos.x}%`, top: `${pos.y}%` }} onDragEnd={event => boardTool === "move" && movePinned(`cause:${cause.id}`, event)} onPointerUp={finishThread}><Polaroid id={cause.id} title={cause.label} value={cause.desc} kind="HYPOTHESIS" selected tool={boardTool} onZoom={() => setZoomCard({ id: cause.id, label: cause.label, value: cause.desc, kind: "HYPOTHESIS" })} /></div>; })()}
         {!selectedCards.length && <div className="emptyCaseBoard"><b>① 증거 사진을 이곳으로 끌어오세요</b><span>② 원인 후보도 끌어온 뒤 ③ 연필로 압정 사이를 잇습니다</span></div>}
       </section>
-      <aside className="causeCandidates"><h2>가능 원인 가설</h2><p>검증할 가설 한 장을 보드에 배치</p>{scenario.hypotheses.map(item => <div key={item.id} className={selectedHypothesis === item.id ? "selected" : ""}><Polaroid id={item.id} title={item.label} value={item.desc} kind="원인 가설" selected={false} tool={boardTool} dragData={boardTool === "move" ? `cause:${item.id}` : undefined} onZoom={() => setZoomCard({ id: item.id, label: item.label, value: item.desc, kind: "원인 가설" })} /></div>)}</aside>
-      <footer className="boardDecisionBar"><span className="boardFeedback">{feedback || "성공 조건: 가능 원인 가설 1장 + 이를 지지하는 사실 단서 2장 이상의 직접 연결"}</span><button className="primary" disabled={linkedEvidence.length < 2 || !selectedHypothesis} onClick={() => send({ type: "OPEN_WIRING" })}>{linkedEvidence.length < 2 ? `단서 연결 ${linkedEvidence.length}/2` : "가설 채택 · 제어 경로 검증 →"}</button></footer>
+      <aside className="causeCandidates"><h2>가능 원인 가설</h2><p>검증할 가설 한 장을 보드에 배치</p>{scenario.hypotheses.map(item => { const verdict = verdictFor(rail, measured, item.id); return <div key={item.id} className={`${selectedHypothesis === item.id ? "selected" : ""} ${verdict ? `verdict-${verdict}` : ""}`}>{verdict && <span className={`verdictStamp ${verdict}`}>{verdict === "rebut" ? "반박" : "유력"}</span>}{verdict === "likely" && selectedHypothesis !== item.id && <span className="dragMeBadge">보드로 끌어오기 ↙</span>}<Polaroid id={item.id} title={item.label} value={item.desc} kind="원인 가설" selected={false} tool={boardTool} dragData={boardTool === "move" ? `cause:${item.id}` : undefined} onZoom={() => setZoomCard({ id: item.id, label: item.label, value: item.desc, kind: "원인 가설" })} /></div>; })}</aside>
+      <footer className="boardDecisionBar">{(() => { const steps = [
+          { label: "✓·✗ 경계 찾기", done: boundaryFound(rail, measured) },
+          { label: "'유력' 가설을 보드로", done: Boolean(selectedHypothesis) },
+          { label: "연필로 증거 2장 잇기", done: linkedEvidence.length >= 2 },
+        ]; const current = steps.findIndex(step => !step.done); return <div className="boardStepper">
+          {steps.map((step, index) => <span key={step.label} className={step.done ? "done" : index === current ? "now" : ""}><i>{step.done ? "✓" : index + 1}</i>{step.label}</span>)}
+          {feedback && <em className="boardFeedback">{feedback}</em>}
+        </div>; })()}<button className="primary" disabled={linkedEvidence.length < 2 || !selectedHypothesis} onClick={() => send({ type: "OPEN_WIRING" })}>{linkedEvidence.length < 2 ? `단서 연결 ${linkedEvidence.length}/2` : "가설 채택 · 제어 경로 검증 →"}</button></footer>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={() => { send({ type: "SOLVE_BOARD" }); setLinkedEvidence(state.caseId === "propulsion" ? ["pedal_raw", "pedal_processed", "torque_cmd"] : state.caseId === "thermal" ? ["motor_temp", "fan_command", "fan_actual"] : ["brake_request", "regen_request", "brake_actual"]); }}>정답 보기</button>
-    {zoomCard && <div className="evidenceZoom" onClick={() => setZoomCard(null)}><article onClick={event => event.stopPropagation()}><button onClick={() => setZoomCard(null)} aria-label="확대 카드 닫기">×</button><CardGraphic id={zoomCard.id} kind={zoomCard.kind} /><div className="zoomPolaroidCaption"><small>{zoomCard.kind}</small><h2>{zoomCard.label}</h2><p>{zoomCard.value}</p></div></article></div>}
+    {zoomCard && <div className="evidenceZoom" onClick={() => setZoomCard(null)}><article onClick={event => event.stopPropagation()}><button onClick={() => setZoomCard(null)} aria-label="확대 카드 닫기">×</button><CardGraphic id={zoomCard.id} kind={zoomCard.kind} reading={readingFor(zoomCard.id)} /><div className="zoomPolaroidCaption"><small>{zoomCard.kind}</small><h2>{zoomCard.label}</h2><p>{zoomCard.value}</p></div></article></div>}
     {replay && <div className="replayModal" onClick={() => setReplay(false)}><div onClick={event => event.stopPropagation()}><button onClick={() => setReplay(false)}>×</button><small>QUICK REPLAY · LAST 8.0 SEC</small><h2>고장 직전 실제 주행 재생</h2><ReplayRaceView caseId={state.caseId} /><div className="replaySignals"><span>운전자 입력<b>{state.caseId === "propulsion" ? "60%" : "주행 유지"}</b></span><span>차량 명령<b>{state.caseId === "propulsion" ? "27%" : "FAN ON"}</b></span><span>실제 반응<b>{state.caseId === "propulsion" ? "출력 저하" : "0 RPM"}</b></span></div><p>레이싱 당시 카메라·오픈카·추격차를 그대로 재생합니다. 원인명은 표시하지 않습니다.</p></div></div>}
   </div>;
 }
@@ -1393,27 +2580,35 @@ const puzzlePerspective: Record<CaseId, { active: string; depth: string; input: 
   propulsion: { active: "SW 로직", depth: "기능 슬라이스 · 상세 제어", input: "변수·신호·상태", middle: "검증·계산·제어·중재", output: "토크 명령값" },
   thermal: { active: "E/E + 물리 피드백", depth: "ECU–액추에이터 통합", input: "온도 센서·ECU 신호", middle: "ECU·PWM·전원·피드백", output: "팬 회전·RPM" },
   brake: { active: "차량 제어 통합", depth: "회생·마찰 제동 협조", input: "운전자 감속 요구", middle: "제동력 배분·ECU·I/O", output: "유압·휠 감속" },
+  regen: { active: "차량 제어 통합", depth: "코스팅 회생 토크 지령", input: "회생 요청", middle: "VCU 토크 지령 변환", output: "인버터·모터 토크" },
+  ready: { active: "고전압 전원", depth: "프리차지·접촉기", input: "시동 요청", middle: "VCU 프리차지 시퀀스", output: "주 접촉기·READY" },
+  gear: { active: "변속·주차", depth: "기어 상태 배포·표시", input: "변속 레버", middle: "VCU 변속 수신", output: "구동 지령" },
+  cold: { active: "제동", depth: "회생·마찰 협조 제동", input: "BMS 회생 한계", middle: "제동 도메인 한계 수신", output: "인버터 회생 토크" },
 };
 const puzzleMission: Record<CaseId, { domain: string; feature: string; input: string; output: string }> = {
   propulsion: { domain: "구동", feature: "운전자 토크 요청", input: "가속 페달 APS A/B", output: "인버터·전륜 모터 토크" },
-  thermal: { domain: "열관리", feature: "냉각 팬 폐루프 제어", input: "모터 온도 센서", output: "팬 PWM·실제 RPM" },
+  thermal: { domain: "열관리", feature: "냉각 팬 폐루프 제어", input: "냉각수 온도 센서", output: "팬 PWM·실제 RPM" },
   brake: { domain: "제동", feature: "회생·마찰 협조 제동", input: "브레이크 페달 요구", output: "캘리퍼 압력·휠 감속" },
+  regen: { domain: "구동", feature: "토크 배분·제한(코스팅 회생)", input: "Brake ECU 회생 요청", output: "인버터·모터 토크" },
+  ready: { domain: "고전압 전원", feature: "프리차지·접촉기", input: "시동 요청·브레이크", output: "주 접촉기·READY" },
+  gear: { domain: "변속·주차", feature: "기어 상태 배포·표시", input: "변속 레버·가속 페달", output: "구동 지령" },
+  cold: { domain: "제동", feature: "회생·마찰 협조 제동", input: "BMS 회생 한계", output: "인버터 회생 토크" },
 };
 const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNode, "x" | "y">[]; correct: string[]; program: string; faulty: string }> = {
   propulsion: {
     requirement: ["APS 입력 0~100%", "IF 신호 유효", "페달 맵·가용토크", "THEN CAN 토크 명령", "모터 실제 토크"],
     blocks: [
       { id: "aps", label: "APS 이중 센서", kind: "HW", detail: "운전자 페달 입력" }, { id: "adapter", label: "APS Signal Adapter", kind: "SW", detail: "범위·상관성 진단" },
-      { id: "map100", label: "Driver Torque Map 100%", kind: "SW", detail: "정상 토크 변환" }, { id: "map45", label: "Legacy Scale 45%", kind: "SW", detail: "오류 후보 블록" },
+      { id: "map100", label: "Driver Torque Map", kind: "SW", detail: "페달 %를 토크로 바꾸는 표" }, { id: "map45", label: "Torque Scale ×0.45", kind: "SW", detail: "페달 값에 0.45를 곱하는 보정" },
       { id: "can", label: "CAN Torque Command", kind: "SW", detail: "VCU→Inverter 명령" }, { id: "vcu", label: "VCU Controller", kind: "HW", detail: "SW 실행 제어기" },
       { id: "inverter", label: "Inverter + PMSM", kind: "HW", detail: "전류·모터 토크" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
     ], correct: ["aps", "adapter", "map100", "can", "vcu", "inverter"], program: "nominal", faulty: "underreport_45pct",
   },
   thermal: {
-    requirement: ["모터 온도 입력", "IF 65°C 초과", "히스테리시스 판단", "THEN Fan PWM", "팬 실제 회전"],
+    requirement: ["냉각수 온도 입력", "IF 65°C 초과", "히스테리시스 판단", "THEN Fan PWM", "팬 실제 회전"],
     blocks: [
-      { id: "temp", label: "Motor Temp Sensor", kind: "HW", detail: "NTC 온도 입력" }, { id: "filter", label: "Temperature Filter", kind: "SW", detail: "센서 노이즈 제거" },
-      { id: "threshold", label: "65°C Hysteresis", kind: "SW", detail: "ON/OFF 기준" }, { id: "forceoff", label: "Fan Force-OFF", kind: "SW", detail: "오류 후보 블록" },
+      { id: "temp", label: "Coolant Temp Sensor", kind: "HW", detail: "냉각수 NTC 온도 입력" }, { id: "filter", label: "Temperature Filter", kind: "SW", detail: "센서 노이즈 제거" },
+      { id: "threshold", label: "65°C Hysteresis", kind: "SW", detail: "ON/OFF 기준" }, { id: "forceoff", label: "Fan Force-OFF", kind: "SW", detail: "팬 명령을 끄기로 고정" },
       { id: "pwm", label: "Fan PWM Command", kind: "SW", detail: "냉각 명령 생성" }, { id: "thermalecu", label: "Thermal ECU", kind: "HW", detail: "SW 실행·출력" },
       { id: "fan", label: "Cooling Fan + Feedback", kind: "HW", detail: "회전·RPM 피드백" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
     ], correct: ["temp", "filter", "threshold", "pwm", "thermalecu", "fan"], program: "thermal_closed_loop", faulty: "open_loop_fan",
@@ -1422,12 +2617,67 @@ const puzzleConfig: Record<CaseId, { requirement: string[]; blocks: Omit<LogicNo
     requirement: ["제동 페달 입력", "IF 감속 요청", "회생 한계 계산", "THEN 마찰 보상", "휠 감속 응답"],
     blocks: [
       { id: "pedal", label: "Brake Pedal Sensor", kind: "HW", detail: "운전자 감속 의도" }, { id: "request", label: "Brake Force Request", kind: "SW", detail: "요구 제동력" },
-      { id: "blend", label: "Regen/Friction Blend", kind: "SW", detail: "회생·마찰 배분" }, { id: "regenonly", label: "Regen Only", kind: "SW", detail: "오류 후보 블록" },
+      { id: "blend", label: "Regen/Friction Blend", kind: "SW", detail: "회생·마찰 배분" }, { id: "regenonly", label: "Regen Only", kind: "SW", detail: "회생 제동만 사용" },
       { id: "pressure", label: "Pressure Command", kind: "SW", detail: "캘리퍼 압력" }, { id: "brakeecu", label: "Brake ECU", kind: "HW", detail: "휠 제어기" },
       { id: "caliper", label: "Caliper + Wheel", kind: "HW", detail: "마찰 제동 응답" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
     ], correct: ["pedal", "request", "blend", "pressure", "brakeecu", "caliper"], program: "blended_brake", faulty: "friction_only",
   },
+  // legacy puzzle (unused by the live flow; the live STEP03 is RefPuzzle.tsx)
+  regen: {
+    requirement: ["회생 요청 −40 Nm", "IF 코스팅", "부호 반영·한계", "THEN 토크 지령 −40 Nm", "모터 회생 토크"],
+    blocks: [
+      { id: "req", label: "Brake ECU 회생 요청", kind: "HW", detail: "감속 요청" }, { id: "sign", label: "Sign Rule", kind: "SW", detail: "요청의 부호를 그대로 반영" },
+      { id: "magonly", label: "Magnitude Only", kind: "SW", detail: "크기만 사용(부호 버림)" }, { id: "limit", label: "Regen Limit", kind: "SW", detail: "가용 회생 한계" },
+      { id: "can", label: "CAN Torque Command", kind: "SW", detail: "VCU→Inverter" }, { id: "vcu", label: "VCU Controller", kind: "HW", detail: "SW 실행 제어기" },
+      { id: "inverter", label: "Inverter + PMSM", kind: "HW", detail: "모터 토크" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
+    ], correct: ["req", "sign", "limit", "can", "vcu", "inverter"], program: "regen_sign_applied", faulty: "regen_sign_dropped",
+  },
+  ready: {
+    requirement: ["시동 요청", "IF 조건 허용", "프리차지 대기", "THEN 주 접촉기", "READY"],
+    blocks: [
+      { id: "req", label: "Start Request", kind: "HW", detail: "시동 요청" }, { id: "cond", label: "Start Condition", kind: "SW", detail: "브레이크·허용 확인" },
+      { id: "wait1500", label: "Precharge Wait 1500 ms", kind: "SW", detail: "버스 95 %까지 대기" }, { id: "wait500", label: "Precharge Wait 500 ms", kind: "SW", detail: "시간 제한 500 ms" },
+      { id: "main", label: "Main Contactor", kind: "SW", detail: "주 접촉기 명령" }, { id: "vcu", label: "VCU Controller", kind: "HW", detail: "SW 실행 제어기" },
+      { id: "bus", label: "HV Bus", kind: "HW", detail: "고전압 버스" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
+    ], correct: ["req", "cond", "wait1500", "main", "vcu", "bus"], program: "precharge_timeout_1500", faulty: "precharge_timeout_500",
+  },
+  gear: {
+    requirement: ["변속 레버 D", "게이트웨이 중계", "CAN 20 ms", "IF 100 ms 초과 THEN 안전 값 N", "구동 지령"],
+    blocks: [
+      { id: "lever", label: "Shift Lever", kind: "HW", detail: "변속 레버 위치" }, { id: "gw", label: "Gateway Relay", kind: "SW", detail: "신호 중계" },
+      { id: "can", label: "CAN 20 ms", kind: "HW", detail: "변속 메시지 20 ms 주기" }, { id: "rxN", label: "Gear Rx · fallback N", kind: "SW", detail: "타임아웃 100 ms · 폴백 N" },
+      { id: "rxR", label: "Gear Rx · fallback R", kind: "SW", detail: "타임아웃 100 ms · 폴백 R" }, { id: "vcu", label: "VCU Controller", kind: "HW", detail: "SW 실행 제어기" },
+      { id: "cmd", label: "Drive Command", kind: "SW", detail: "구동 지령" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
+    ], correct: ["lever", "gw", "can", "rxN", "vcu", "cmd"], program: "gear_fallback_n", faulty: "gear_fallback_r",
+  },
+  cold: {
+    requirement: ["BMS 한계", "게이트웨이 중계", "협조 신호 20 ms", "IF 한계 수신 THEN 상한으로 사용", "회생 토크"],
+    blocks: [
+      { id: "bms", label: "BMS Regen Limit", kind: "HW", detail: "온도별 회생 한계" }, { id: "gw", label: "Gateway Relay", kind: "SW", detail: "신호 중계" },
+      { id: "msg", label: "Coordination Msg 20 ms", kind: "HW", detail: "협조 신호 20 ms 주기" }, { id: "rxA", label: "Limit Rx · use received", kind: "SW", detail: "받은 한계 사용" },
+      { id: "rxB", label: "Limit Rx · fixed 60 Nm", kind: "SW", detail: "고정 상한 60 Nm" }, { id: "ecu", label: "Brake ECU", kind: "HW", detail: "SW 실행 제어기" },
+      { id: "inv", label: "Inverter Regen", kind: "HW", detail: "회생 토크" }, { id: "logger", label: "Trace Logger", kind: "SW", detail: "관측 전용" },
+    ], correct: ["bms", "gw", "msg", "rxA", "ecu", "inv"], program: "regen_limit_rx", faulty: "regen_limit_fixed",
+  },
 };
+
+// Real part photos (whole object visible, kept inside the piece's safe area) and plain-language pictos for SW
+const PART_PHOTO: Record<string, string> = {
+  aps: "accel_pedal", vcu: "vcu", inverter: "traction_motor", temp: "motor_temp_sensor", thermalecu: "thermal_ecu",
+  fan: "cooling_fan", pedal: "brake_pedal", brakeecu: "brake_ecu", caliper: "brake_caliper",
+};
+// SW blocks run inside a controller: show that controller's generated photo with a small logic badge.
+const SW_ATLAS: Record<CaseId, number> = { propulsion: 1, thermal: 5, brake: 8, regen: 1, ready: 1, gear: 1, cold: 1 }; // cells of the 3×3 evidence atlas
+const swLogicKind = (label: string) => /Adapter|진단/.test(label) ? "check" : /Map|Scale/.test(label) ? "lut" : /Filter/.test(label) ? "delay" : /Hysteresis/.test(label) ? "state" : /Force|Only|Gate/.test(label) ? "switch" : /Blend|Request/.test(label) ? "min" : blockKind(label);
+function PiecePicture({ node, caseId }: { node: { id: string; label: string; kind: string }; caseId: CaseId }) {
+  const cell = SW_ATLAS[caseId];
+  return <div className={`logicNodePhoto piecePicture ${node.kind === "HW" ? "hw" : "sw"}`}>
+    {node.kind === "HW" && PART_PHOTO[node.id]
+      ? <img src={`/assets/ending-thumbs/${PART_PHOTO[node.id]}.png`} alt="" draggable={false} />
+      : <><i className="swPhoto" style={{ backgroundPosition: `${(cell % 3) * 50}% ${Math.floor(cell / 3) * 50}%` }} /><span className="swBadge"><Picto kind={swLogicKind(node.label) as Parameters<typeof Picto>[0]["kind"]} /></span></>}
+    <small>{node.kind === "HW" ? "부품" : "SW 로직"}</small>
+  </div>;
+}
 
 const puzzleEdgeClass = (index: number, total: number) => {
   if (index === 0) return "edge-flat-tab";
@@ -1457,11 +2707,61 @@ export function RestoredPuzzleVisual({ caseId, running, works, reference }: { ca
   </section>;
 }
 
+// Signal value leaving each block (shown on the wire), trap-block reactions, and
+// which requirement row each block of the correct path implements.
+const SIGNAL_VALUE: Record<CaseId, Record<string, string>> = {
+  propulsion: { aps: "60%", adapter: "60% ✓", map100: "204 Nm", can: "204 Nm", vcu: "204 Nm" },
+  thermal: { temp: "78.4°C", filter: "78.4°C", threshold: "팬 ON", pwm: "100%", thermalecu: "PWM 100%" },
+  brake: { pedal: "55%", request: "3.2 m/s²", blend: "회생+마찰", pressure: "42 bar", brakeecu: "42 bar" },
+  regen: { req: "−40 Nm", sign: "−40 Nm", limit: "−40 Nm", can: "−40 Nm", vcu: "−40 Nm" },
+  ready: { req: "시동 1", cond: "허용", wait1500: "750 ms에 95 %", main: "닫힘", vcu: "READY" },
+  gear: { lever: "D", gw: "D · 120 ms", can: "120 ms", rx: "N", cmd: "0 Nm", motor: "정지" },
+  cold: { bms: "한계 20 Nm", gw: "20 Nm", msg: "20 Nm", rx: "한계 20 Nm", inv: "-20 Nm", car: "-0.25 m/s²" },
+};
+const TRAP_MSG: Record<string, string> = {
+  map45: "요구사항과 달라요: 페달 값을 0.45배로 줄여서 토크가 모자라요. 정상 기준에는 안 맞아요.",
+  forceoff: "요구사항과 달라요: 온도가 높아도 팬을 꺼 버려요. 정상 기준에는 안 맞아요.",
+  regenonly: "요구사항과 달라요: 회생 제동만 쓰고 모자란 힘을 마찰 제동으로 채우지 않아요.",
+  magonly: "요구사항과 달라요: 회생 요청의 크기만 쓰고 부호를 버려서 지령이 반대 방향이 돼요.",
+  wait500: "요구사항과 달라요: 대기 시간 제한이 500 ms라 충전이 끝나기 전에 실패해요.",
+  logger: "📝 기록 전용 블록이라 신호를 바꾸지 않아. 경로에는 안 넣어도 돼",
+};
+const REQ_OF_STEP = [0, 1, 2, 3, 3, 4];
+// Jigsaw tab shape = signal type, so only pieces with matching units fit together.
+export type Nub = "round" | "square" | "zigzag" | "wave" | "tri";
+const NUB_NAME: Record<Nub, string> = { round: "% 신호", square: "힘·토크", zigzag: "통신 명령", wave: "PWM 구동", tri: "온도·압력" };
+// Jigsaw silhouette on the 140×140 piece box: right edge has a tab, left edge a matching socket.
+const TAB: Record<Nub, string> = {
+  round: "V 46 C 128 42 140 42 140 58 C 140 74 128 74 128 70",
+  square: "V 46 H 140 V 70 H 128",
+  tri: "V 44 L 140 58 L 128 72",
+  zigzag: "V 44 L 136 44 L 140 50 L 136 58 L 140 66 L 136 72 L 128 72",
+  wave: "V 44 Q 140 44 136 51 Q 132 58 140 65 Q 140 72 128 72",
+};
+const SOCKET: Record<Nub, string> = {
+  round: "V 70 C 12 74 24 74 24 58 C 24 42 12 42 12 46",
+  square: "V 70 H 24 V 46 H 12",
+  tri: "V 72 L 24 58 L 12 44",
+  zigzag: "V 72 L 16 72 L 24 66 L 20 58 L 24 50 L 16 44 L 12 44",
+  wave: "V 72 Q 24 72 20 65 Q 16 58 24 51 Q 24 44 12 44",
+};
+export const piecePath = (io: { in?: Nub; out?: Nub }) =>
+  `path("M 18 6 H 122 Q 128 6 128 12 ${io.out ? TAB[io.out] : ""} V 128 Q 128 134 122 134 H 18 Q 12 134 12 128 ${io.in ? SOCKET[io.in] : ""} V 12 Q 12 6 18 6 Z")`;
+const PIECE_IO: Record<CaseId, Record<string, { in?: Nub; out?: Nub }>> = {
+  propulsion: { aps: { out: "round" }, adapter: { in: "round", out: "round" }, map100: { in: "round", out: "square" }, map45: { in: "round", out: "square" }, can: { in: "square", out: "zigzag" }, vcu: { in: "zigzag", out: "zigzag" }, inverter: { in: "zigzag" }, logger: { in: "round" } },
+  thermal: { temp: { out: "tri" }, filter: { in: "tri", out: "tri" }, threshold: { in: "tri", out: "zigzag" }, forceoff: { in: "tri", out: "zigzag" }, pwm: { in: "zigzag", out: "wave" }, thermalecu: { in: "wave", out: "wave" }, fan: { in: "wave" }, logger: { in: "tri" } },
+  brake: { pedal: { out: "round" }, request: { in: "round", out: "square" }, blend: { in: "square", out: "square" }, regenonly: { in: "square", out: "square" }, pressure: { in: "square", out: "tri" }, brakeecu: { in: "tri", out: "tri" }, caliper: { in: "tri" }, logger: { in: "round" } },
+  ready: { req: { out: "round" }, cond: { in: "round", out: "square" }, wait1500: { in: "square", out: "square" }, wait500: { in: "square", out: "square" }, main: { in: "square", out: "tri" }, vcu: { in: "tri", out: "tri" }, bus: { in: "tri" }, logger: { in: "round" } },
+  gear: { lever: { out: "round" }, gw: { in: "round", out: "square" }, can: { in: "square", out: "square" }, rx: { in: "square", out: "tri" }, rxB: { in: "square", out: "tri" }, cmd: { in: "tri", out: "tri" }, motor: { in: "tri" } },
+  cold: { bms: { out: "round" }, gw: { in: "round", out: "square" }, msg: { in: "square", out: "square" }, rx: { in: "square", out: "tri" }, rxB: { in: "square", out: "tri" }, drvlim: { in: "tri", out: "tri" }, inv: { in: "tri", out: "tri" }, car: { in: "tri" }, temp: { out: "round" } },
+  regen: { req: { out: "round" }, sign: { in: "round", out: "square" }, magonly: { in: "round", out: "square" }, limit: { in: "square", out: "square" }, can: { in: "square", out: "tri" }, vcu: { in: "tri", out: "tri" }, inverter: { in: "tri" }, logger: { in: "round" } },
+}; // correct path index → requirement row
+
 export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const config = puzzleConfig[state.caseId];
   const perspective = puzzlePerspective[state.caseId];
   const mission = puzzleMission[state.caseId];
-  const flowSlots = config.correct.map((_, index) => ({ x: 38 + index * 116, y: 105 }));
+  const flowSlots = config.correct.map((_, index) => ({ x: 40 + index * 116, y: 112 }));
   const gapIndexes = [2, 3];
   const gapIds = gapIndexes.map(index => config.correct[index]);
   const spreadNodes = () => {
@@ -1469,7 +2769,7 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
     return config.blocks.map(block => {
       const correctIndex = config.correct.indexOf(block.id);
       if (correctIndex >= 0 && !gapIndexes.includes(correctIndex)) return { ...block, ...flowSlots[correctIndex] };
-      const position = { x: 80 + looseIndex * 195, y: 360 + (looseIndex % 2) * 8 };
+      const position = { x: 60 + looseIndex * 190, y: 318 };
       looseIndex += 1;
       return { ...block, ...position };
     });
@@ -1482,6 +2782,19 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const [dragging, setDragging] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const initialWireScale = () => window.innerWidth < 1100 ? .72 : .9;
   const [view, setView] = useState({ x: 0, y: 0, scale: initialWireScale() });
+  // start fitted: the whole puzzle (pieces x 0–980, y 90–460) is visible without zooming
+  useEffect(() => {
+    const fit = () => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect || !rect.width) return;
+      // world content: x 20–880, y 70–490
+      const scale = Math.min(rect.width / 880, (rect.height - 30) / 430, 1.15); // 30px kept for the help line
+      setView({ scale, x: (rect.width - 860 * scale) / 2 - 20 * scale, y: (rect.height - 30 - 420 * scale) / 2 - 70 * scale });
+    };
+    const timer = window.setTimeout(fit, 50);
+    addEventListener("resize", fit);
+    return () => { clearTimeout(timer); removeEventListener("resize", fit); };
+  }, []);
   const [panning, setPanning] = useState<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const [wireTool, setWireTool] = useState<"move" | "pencil" | "erase">("move");
   const eraser = wireTool === "erase";
@@ -1504,20 +2817,23 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
     const targetIndex = config.correct.indexOf(to);
     if (sourceIndex < 0 || targetIndex !== sourceIndex + 1) {
       setPuzzleFeedback("이 두 조각은 홈 방향 또는 제어 순서가 맞지 않습니다.");
+      play("error");
       setSource(""); setWireDraft(null);
       return;
     }
     const target = nodes.find(node => node.id === to);
     const points = wireDraft && target ? [...wireDraft.points, { x: target.x + 12, y: target.y + 70 }] : undefined;
     setEdges(previous => [...previous.filter(edge => edge.to !== to), { from: source, to, points }]);
-    setPuzzleFeedback("홈과 순서가 맞았습니다. 다음 끊긴 경로를 이어 보세요.");
+    setPuzzleFeedback(`연결 성공! 신호가 ${SIGNAL_VALUE[state.caseId][source] ?? ""} 로 흘러가요`);
+    play("success");
     setSource(""); setWireDraft(null);
   };
   const chooseWireNode = (node: LogicNode) => {
     if (wireTool !== "pencil") return;
     if (source) { connect(node.id); return; }
     if (config.correct.indexOf(node.id) < 0) {
-      setPuzzleFeedback("오류 후보와 기록 블록은 정상 경로에 연결되지 않습니다.");
+      setPuzzleFeedback(TRAP_MSG[node.id] ?? "오류 후보와 기록 블록은 정상 경로에 연결되지 않습니다.");
+      play("error");
       return;
     }
     setSource(node.id);
@@ -1539,13 +2855,22 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
     const pointer = clientX !== undefined && clientY !== undefined ? localPoint(clientX, clientY) : null;
     const draggedNode = pointer ? { ...storedNode, x: THREE.MathUtils.clamp(pointer.x - dragging.dx / view.scale, 5, 1075), y: THREE.MathUtils.clamp(pointer.y - dragging.dy / view.scale, 5, 525) } : storedNode;
     if (!gapIndexes.includes(gapIndex)) {
-      if (gapIndexes.some(index => Math.hypot(draggedNode.x - flowSlots[index].x, draggedNode.y - flowSlots[index].y) < 130)) setPuzzleFeedback("이 조각의 홈은 빈 경로와 맞지 않습니다.");
+      if (gapIndexes.some(index => Math.hypot(draggedNode.x - flowSlots[index].x, draggedNode.y - flowSlots[index].y) < 130)) { setPuzzleFeedback(TRAP_MSG[draggedNode.id] ?? "이 조각의 홈은 빈 경로와 맞지 않습니다."); play("error"); }
       return;
     }
     const slot = flowSlots[gapIndex];
     if (Math.hypot(draggedNode.x - slot.x, draggedNode.y - slot.y) >= 130) return;
     setNodes(previous => previous.map(node => node.id === dragging.id ? { ...node, ...slot } : node));
+    // jigsaw: a piece that fits connects itself to its neighbours (no pencil needed)
+    setEdges(previous => {
+      const id = config.correct[gapIndex], before = config.correct[gapIndex - 1], after = config.correct[gapIndex + 1];
+      const next = previous.filter(edge => edge.to !== id && edge.from !== id);
+      if (before) next.push({ from: before, to: id });
+      if (after) next.push({ from: id, to: after });
+      return next;
+    });
     setPuzzleFeedback(`${draggedNode.label} 조각이 맞는 홈에 끼워졌습니다.`);
+    play("squish");
   };
   const solvePuzzle = () => {
     const solved = spreadNodes().map(node => { const index = config.correct.indexOf(node.id); return index >= 0 ? { ...node, ...flowSlots[index] } : node; });
@@ -1563,34 +2888,54 @@ export function WiringPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const ready = slotsFilled && isCorrect;
   return <div className="wiringV2">
     <SceneBackdrop image={`${A}stitch23/prologue-plan.png`} position="center" shade="soft" />
-    <GameHeader chapter="CONTROL PATH RESTORATION" title="제어 경로 복원" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="BUILD THE REFERENCE" title="정상 기준 만들기" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <div className="wiringTitle"><div><small>CONTROL PATH RESTORATION · GUIDED FUNCTION SLICE</small><h1><em className="puzzlePerspectiveTag" onMouseEnter={() => setHelpOpen(true)} onMouseLeave={() => setHelpOpen(false)} onFocus={() => setHelpOpen(true)}>{perspective.active} 수준</em><span>{mission.domain} 도메인 · {mission.feature}</span></h1><p><b>관찰 입력</b> {mission.input}<i>→</i><b>관찰 출력</b> {mission.output}</p></div><span>{source ? `${nodes.find(node => node.id === source)?.label} → 다음 카드` : `빈칸 ${gapIds.length}개 · 확대 ${Math.round(view.scale * 100)}%`}</span><div className="wiringToolbox"><button className={wireTool === "move" ? "active" : ""} onClick={() => { setWireTool("move"); setSource(""); setWireDraft(null); }}><img src={`${A}cursor-hand-open-v1.png`} alt="" /><small>이동</small></button><button className={wireTool === "pencil" ? "active" : ""} onClick={() => setWireTool("pencil")}><img src={`${A}detective-pencil-v1.png`} alt="" /><small>배선</small></button><button className={wireTool === "erase" ? "active" : ""} onClick={() => { setWireTool("erase"); setSource(""); setWireDraft(null); }}><img src={`${A}detective-eraser-v1.png`} alt="" /><small>지우개</small></button></div><button onClick={() => setHelpOpen(value => !value)}>도움말</button><button onClick={() => setRulesOpen(value => !value)}>규칙</button><button className="wiringHint" disabled={seconds < 60 || hintUsed} onClick={() => send({ type: "HINT", key: hintKey })}>{hintUsed ? `힌트: ${gapIds.join(" → ")}` : seconds < 60 ? `힌트 ${60 - seconds}초` : "힌트 · -5m"}</button><button onClick={() => { setNodes(spreadNodes()); setEdges(starterEdges()); setSource(""); setWireDraft(null); setView({ x: 0, y: 0, scale: initialWireScale() }); }}>초기화</button></div>
     {helpOpen && <aside className="perspectiveHelp"><button onClick={() => setHelpOpen(false)}>×</button><b>완성된 핵심 흐름의 빈칸 두 곳만 복원합니다</b><p><strong>현재 관점</strong> {perspective.active} · {perspective.depth}</p><p><strong>경계</strong> {perspective.input} → {perspective.middle} → {perspective.output}</p><p><strong>주의</strong> HW가 반드시 양끝일 필요는 없습니다. 이번 고장과 직접 연결된 기능 경계만 봅니다.</p></aside>}
-      {rulesOpen && <aside className="wiringRules"><button className="wiringRulesClose" onClick={() => setRulesOpen(false)} aria-label="규칙 닫기">×</button><b>배선 퍼즐 규칙</b><ol><li>이미 고정된 흐름 사이의 빈칸 두 곳을 채웁니다.</li><li>아래 느슨한 카드 중 맞는 두 장만 빈칸 가까이 끌면 자리에 붙습니다.</li><li>연필로 끊긴 구간을 직접 그어 연결합니다.</li><li>오류 후보와 기록 블록은 사용하지 않아도 됩니다.</li><li>손은 이동·확대, 지우개는 선 삭제만 담당합니다.</li></ol></aside>}
+      {rulesOpen && <aside className="wiringRules"><button className="wiringRulesClose" onClick={() => setRulesOpen(false)} aria-label="규칙 닫기">×</button><b>정상 기준 만들기 규칙</b><ol><li>요구사항(오른쪽)대로 <b>정상 로직</b>을 조립해요. 이게 메모판에서 이번 주행과 비교할 <b>기준</b>이 돼요.</li><li>아래 조각을 끌어 빈칸에 끼우면 자동으로 이어져요. <b>홈 모양이 같은 신호 종류</b>끼리만 맞아요.</li><li>모양이 맞아도 <b>사양이 다른 함정 조각</b>이 있어요. 눌러 보면 무슨 일을 하는지 알려 줘요.</li><li>선 아래 <b>신호 값</b>과 요구사항 ✓를 확인하고 완성해요.</li></ol></aside>}
     <main className="eePuzzle">
-      <aside className="verticalRequirement"><small>REQUIREMENT FLOW</small>{config.requirement.map((item, index) => <React.Fragment key={item}><div><span>{index === 0 ? "INPUT" : index === 1 ? "IF" : index === 3 ? "THEN" : index === 4 ? "OUTPUT" : "CONTROL"}</span><b>{item}</b></div>{index < config.requirement.length - 1 && <i>↓</i>}</React.Fragment>)}</aside>
+      <aside className="verticalRequirement"><small>REQUIREMENT FLOW</small>{config.requirement.map((item, index) => { const steps = REQ_OF_STEP.map((row, k) => row === index ? k : -1).filter(k => k >= 0); const done = steps.every(k => k === 0 ? edges.some(edge => edge.from === config.correct[0]) : edges.some(edge => edge.to === config.correct[k] && edge.from === config.correct[k - 1])); return <React.Fragment key={item}><div className={done ? "reqDone" : ""}>{done && <em className="reqTick">✓</em>}<span>{index === 0 ? "INPUT" : index === 1 ? "IF" : index === 3 ? "THEN" : index === 4 ? "OUTPUT" : "CONTROL"}</span><b>{item}</b></div>{index < config.requirement.length - 1 && <i>↓</i>}</React.Fragment>; })}</aside>
       <section className={`wireCanvas tool-${wireTool} ${eraser ? "erasing" : ""}`} ref={canvasRef} onContextMenu={event => event.preventDefault()} onWheel={event => { event.preventDefault(); setView(previous => ({ ...previous, scale: THREE.MathUtils.clamp(previous.scale * (event.deltaY > 0 ? .9 : 1.1), .48, 1.5) })); }} onPointerDown={event => { if (event.button === 2) setPanning({ x: event.clientX, y: event.clientY, ox: view.x, oy: view.y }); }} onPointerMove={event => { if (!canvasRef.current) return; if (panning) { setView(previous => ({ ...previous, x: panning.ox + event.clientX - panning.x, y: panning.oy + event.clientY - panning.y })); return; } const point = localPoint(event.clientX, event.clientY); if (wireTool === "pencil" && wireDraft) setWireDraft(previous => { if (!previous) return previous; const last = previous.points.at(-1)!; return Math.hypot(point.x - last.x, point.y - last.y) < 7 ? previous : { points: [...previous.points, point] }; }); if (!dragging) return; setNodes(previous => previous.map(node => node.id === dragging.id ? { ...node, x: THREE.MathUtils.clamp(point.x - dragging.dx / view.scale, 5, 1075), y: THREE.MathUtils.clamp(point.y - dragging.dy / view.scale, 5, 525) } : node)); }} onPointerUp={event => { snapDraggedNode(event.clientX, event.clientY); setDragging(null); setPanning(null); }} onPointerLeave={event => { snapDraggedNode(event.clientX, event.clientY); setDragging(null); setPanning(null); }}>
         <div className="wireWorld" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}>
         <div className="canvasGrid" />
+        <div className="puzzleTray" style={{ left: flowSlots[0].x - 6, top: flowSlots[0].y - 12, width: (flowSlots.length - 1) * 116 + 146, height: 158 }}><span>정상 기준 퍼즐판</span></div>
+        <div className="spareTray" style={{ left: 40, top: 300, width: 800, height: 170 }}><span>남은 조각 · 끌어서 빈칸에 끼워 보세요</span></div>
         {gapIndexes.map(index => { const slot = flowSlots[index]; const node = nodes.find(item => item.id === config.correct[index]); const filled = Boolean(node && Math.hypot(node.x - slot.x, node.y - slot.y) < 8); return <div key={index} className={`guidedLogicSlot ${filled ? "filled" : ""}`} style={{ left: slot.x, top: slot.y }}><b>빈칸 {index - 1}</b><span>{config.correct[index] === gapIds[0] ? "판단·변환" : "명령·전달"}</span></div>; })}
-        <svg viewBox="0 0 1000 560">{edges.map((edge, index) => { const a = nodes.find(node => node.id === edge.from); const b = nodes.find(node => node.id === edge.to); if (!a || !b) return null; const x1 = a.x + 128, y1 = a.y + 70, x2 = b.x + 12, y2 = b.y + 70, direction = index % 2 ? 1 : -1; const d = edge.points?.length ? curveFromPoints(edge.points) : `M ${x1} ${y1} C ${x1 + 55} ${y1 + 45 * direction}, ${x2 - 55} ${y2 - 45 * direction}, ${x2} ${y2}`; return <path key={`${edge.from}-${edge.to}`} className="wormWire" d={d} onPointerEnter={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} onClick={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} />; })}{source && wireDraft && <path className="wormWire wireDraft" d={curveFromPoints(wireDraft.points)} />}</svg>
-        {nodes.map((node) => { const correctIndex = config.correct.indexOf(node.id); const locked = correctIndex >= 0 && !gapIndexes.includes(correctIndex); const edgeClass = correctIndex >= 0 ? puzzleEdgeClass(correctIndex, config.correct.length) : "edge-mismatch"; return <div className={`logicNode puzzlePiece ${edgeClass} ${node.kind.toLowerCase()} ${source === node.id ? "source" : ""} ${locked ? "locked" : ""}`} style={{ left: node.x, top: node.y }} key={node.id} onDoubleClick={event => { event.stopPropagation(); if (wireTool === "move") setZoomNode(node); }} onClick={event => { event.stopPropagation(); chooseWireNode(node); }} onPointerDown={event => { if (locked || wireTool !== "move" || event.button !== 0) return; const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect(); setDragging({ id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top }); (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId); }}>
-          {node.kind === "HW" ? <div className={`logicNodePhoto componentAssetPhoto asset-${componentAtlasCell[node.id] ?? 2}`}><small>HW · REAL PART</small><em>{perspective.active.includes("E/E") ? "E/E 아키텍처" : "물리 플랜트"}</em></div> : <div className="logicNodePhoto simulinkNodeArt"><small>SW · SIMULINK BLOCK</small><em>SW 로직</em><b>f(u)</b><i /><i /><i /></div>}<div className="logicNodeCaption"><b>{node.label}</b><span>{node.detail}</span></div>
+        <svg viewBox="0 0 1000 560">{edges.map((edge, index) => { const a = nodes.find(node => node.id === edge.from); const b = nodes.find(node => node.id === edge.to); if (!a || !b) return null; const x1 = a.x + 128, y1 = a.y + 70, x2 = b.x + 12, y2 = b.y + 70, direction = index % 2 ? 1 : -1; const d = edge.points?.length ? curveFromPoints(edge.points) : `M ${x1} ${y1} C ${x1 + 55} ${y1 + 45 * direction}, ${x2 - 55} ${y2 - 45 * direction}, ${x2} ${y2}`; const pill = SIGNAL_VALUE[state.caseId][edge.from]; return <g key={`${edge.from}-${edge.to}`}>{pill && <g className="wirePill" transform={`translate(${(x1 + x2) / 2} ${(y1 + y2) / 2 + 92})`}><path d="M0 -24 L0 -12" className="pillStem" /><rect x={-38} y={-12} width={76} height={24} rx={12} /><text textAnchor="middle" y={5}>{pill}</text></g>}<path className="wormWire" d={d} onPointerEnter={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} onClick={() => eraser && setEdges(previous => previous.filter(item => item !== edge))} /></g>; })}{source && wireDraft && <path className="wormWire wireDraft" d={curveFromPoints(wireDraft.points)} />}</svg>
+        {nodes.map((node) => { const correctIndex = config.correct.indexOf(node.id); const locked = correctIndex >= 0 && !gapIndexes.includes(correctIndex); const inFlow = locked || flowSlots.some(slot => Math.hypot(node.x - slot.x, node.y - slot.y) < 8); const edgeClass = !inFlow ? "edge-square" : correctIndex >= 0 ? puzzleEdgeClass(correctIndex, config.correct.length) : "edge-mismatch"; return <div className={`logicNode puzzlePiece ${edgeClass} ${node.kind.toLowerCase()} ${source === node.id ? "source" : ""} ${locked ? "locked" : ""}`} style={{ left: node.x, top: node.y, ...({ "--piece": PIECE_IO[state.caseId][node.id] && inFlow ? piecePath(PIECE_IO[state.caseId][node.id]) : "none" } as React.CSSProperties) }} title={[PIECE_IO[state.caseId][node.id]?.in && `들어오는 신호: ${NUB_NAME[PIECE_IO[state.caseId][node.id].in!]}`, PIECE_IO[state.caseId][node.id]?.out && `나가는 신호: ${NUB_NAME[PIECE_IO[state.caseId][node.id].out!]}`].filter(Boolean).join(" · ")} key={node.id} onDoubleClick={event => { event.stopPropagation(); if (wireTool === "move") setZoomNode(node); }} onClick={event => { event.stopPropagation(); chooseWireNode(node); }} onPointerDown={event => { if (locked || wireTool !== "move" || event.button !== 0) return; const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect(); setDragging({ id: node.id, dx: event.clientX - rect.left, dy: event.clientY - rect.top }); (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId); }}>
+          <PiecePicture node={node} caseId={state.caseId} /><div className="logicNodeCaption"><b>{node.label}</b><span>{node.detail}</span></div>
         </div>; })}
         </div>
-        <div className="canvasHelp">손: 이동/확대 · 우클릭 드래그: 작업대 이동 · 연필: 끊긴 경로 연결 · 지우개: 선 삭제</div>
+        <div className="canvasHelp">조각을 끌어 빈칸에 끼우면 자동으로 이어져요 · 홈 모양 = 신호 종류(● % · ■ 힘·토크 · ⚡ 통신 명령 · ∿ PWM · ▶ 온도·압력) · 휠: 확대 · 우클릭 드래그: 작업대 이동</div>
       </section>
     </main>
     <button className="secretSolve" title="개발용 정답 적용" onClick={solvePuzzle}>정답 보기</button>
-    <div className="wiringFooter"><span>{puzzleFeedback}</span><button className="primary" disabled={!ready} onClick={() => { send({ type: "COMPILE", program: isCorrect ? config.program : config.faulty }); send({ type: "OPEN_BENCH" }); }}>통합 실험으로 →</button></div>
-    {zoomNode && <div className="evidenceZoom logicZoom" onClick={() => setZoomNode(null)}><article className="logicZoomCard" onClick={event => event.stopPropagation()}><button onClick={() => setZoomNode(null)}>×</button>{zoomNode.kind === "HW" ? <div className={`logicNodePhoto componentAssetPhoto asset-${componentAtlasCell[zoomNode.id] ?? 2}`}><small>HW · REAL PART</small></div> : <div className="logicNodePhoto simulinkNodeArt"><small>SW · CONTROL LOGIC</small><b>f(u)</b><i /><i /><i /></div>}<div className="logicZoomCopy"><small>{zoomNode.kind === "HW" ? "실물 부품 경계" : "제어 로직 블록"}</small><h2>{zoomNode.label}</h2><p>{zoomNode.detail}</p></div></article></div>}
+    <div className="wiringFooter"><span>{puzzleFeedback}</span><button className="primary" disabled={!ready} onClick={() => { send({ type: "COMPILE", program: isCorrect ? config.program : config.faulty }); send({ type: "OPEN_BOARD" }); }}>정상 기준 완성 → 메모판에서 비교</button></div>
+    {zoomNode && (() => { const io = PIECE_IO[state.caseId][zoomNode.id] ?? {}; const value = SIGNAL_VALUE[state.caseId][zoomNode.id]; return <div className="pieceZoom" onClick={() => setZoomNode(null)}><article className="pieceZoomCard" onClick={event => event.stopPropagation()}>
+      <button className="pieceZoomClose" onClick={() => setZoomNode(null)}>×</button>
+      <div className="pieceZoomStage"><div className={`logicNode puzzlePiece ${zoomNode.kind.toLowerCase()}`} style={{ "--piece": piecePath(io) } as React.CSSProperties}><PiecePicture node={zoomNode} caseId={state.caseId} /><div className="logicNodeCaption"><b>{zoomNode.label}</b><span>{zoomNode.detail}</span></div></div></div>
+      <div className="pieceZoomText">
+        <small>{zoomNode.kind === "HW" ? "부품 (하드웨어)" : "SW 로직 블록"}</small><h2>{zoomNode.label}</h2>
+        <p className="pzDo">💡 {zoomNode.detail}{zoomNode.kind === "SW" ? ` · ${plainText(zoomNode.label, swLogicKind(zoomNode.label) as Parameters<typeof plainText>[1])}` : ""}</p>
+        <div className="pzIo"><span><em>받는 신호</em>{io.in ? NUB_NAME[io.in] : "운전자·실제 상황"}</span><i>→</i><span><em>보내는 신호</em>{io.out ? NUB_NAME[io.out] : "차량 반응"}</span></div>
+        {value && <p className="pzVal">요구사항대로라면 여기서 <b>{value}</b></p>}
+        <p className="pzTip">조각 옆 홈 모양 = 주고받는 신호 종류예요.</p>
+      </div>
+    </article></div>; })()}
   </div>;
 }
 
 export type BenchTab = "sw" | "embedded" | "system" | "vehicle";
-function LabRaceView({ running, works, caseId }: { running: boolean; works: boolean; caseId: CaseId }) {
+function LabRaceView({ running, works, caseId, progress }: { running: boolean; works: boolean; caseId: CaseId; progress?: number }) {
   const [sim, setSim] = useState<DriveSim>({ speed: 0, lane: 0, steer: 0, distance: 80, gap: 48, heat: caseId === "thermal" ? 68 : 38, elapsed: 18 });
   useEffect(() => {
+    if (progress !== undefined) {
+      const p = THREE.MathUtils.clamp(progress, 0, 1);
+      const distance = 80 + p * (works ? 95 : 24);
+      const speed = works ? 72 : Math.max(12, 46 - p * 34);
+      const steer = works ? Math.sin(p * Math.PI) * .11 : .18;
+      setSim({ speed, lane: works ? Math.sin(p * Math.PI) * .35 : p * .7, steer, distance, gap: 48 - p * 7, heat: caseId === "thermal" ? 68 + p * 5 : 38, elapsed: 18 + p * 8 });
+      return;
+    }
     if (!running) return;
     const start = performance.now();
     let frame = 0;
@@ -1604,31 +2949,72 @@ function LabRaceView({ running, works, caseId }: { running: boolean; works: bool
     };
     frame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frame);
-  }, [running, works, caseId]);
+  }, [running, works, caseId, progress]);
   return <div className={`labRaceWorld ${works ? "works" : "broken"}`}><RaceWorld sim={sim} ship={false} /><div className="labRaceHud"><span>{Math.round(sim.speed)} km/h</span><b>{works ? "차량 응답 정상" : "명령 대비 출력 저하"}</b></div></div>;
 }
 
-function EmbeddedBenchScene({ caseId, running, works }: { caseId: CaseId; running: boolean; works: boolean }) {
+// Bench scene: input part → controller (SW inside) → output part, wired port to port (no table).
+const BENCH_PARTS: Record<CaseId, { input: string; ecu: string; output: string; labels: [string, string, string]; wires: { from: [0 | 1 | 2, string]; to: [0 | 1 | 2, string]; color: string }[] }> = {
+  propulsion: { input: "accel_pedal", ecu: "vcu", output: "inverter", labels: ["APS 이중 센서", "VCU", "인버터·모터"], wires: [
+    { from: [0, "app_out"], to: [1, "app_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
+  thermal: { input: "motor_temp_sensor", ecu: "thermal_ecu", output: "cooling_fan", labels: ["냉각수 온도 센서(NTC)", "THERMAL ECU", "냉각 팬"], wires: [
+    { from: [0, "temp_out"], to: [1, "temp_in"], color: "#4f9ab5" }, { from: [1, "fan_pwm_out"], to: [2, "pwm_in"], color: "#ef8a4f" }, { from: [2, "speed_out"], to: [1, "fan_speed_in"], color: "#56a68d" }] },
+  brake: { input: "brake_pedal", ecu: "brake_ecu", output: "brake_caliper", labels: ["페달 센서", "BRAKE ECU", "캘리퍼"], wires: [
+    { from: [0, "bpp_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "pressure_cmd_out"], to: [2, "pressure_in"], color: "#ef8a4f" }] },
+  regen: { input: "brake_ecu", ecu: "vcu", output: "inverter", labels: ["BRAKE ECU", "VCU", "인버터·모터"], wires: [
+    { from: [0, "pressure_cmd_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
+  ready: { input: "bms", ecu: "vcu", output: "inverter", labels: ["BMS", "VCU", "인버터·HV 버스"], wires: [
+    { from: [0, "pressure_cmd_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
+  gear: { input: "gear_selector", ecu: "vcu", output: "inverter", labels: ["변속 레버", "VCU", "인버터·모터"], wires: [
+    { from: [0, "gear_out"], to: [1, "gear_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
+  cold: { input: "bms", ecu: "brake_ecu", output: "inverter", labels: ["BMS", "BRAKE ECU", "인버터·모터"], wires: [
+    { from: [0, "pressure_cmd_out"], to: [1, "bpp_in"], color: "#4f9ab5" }, { from: [1, "torque_req_out"], to: [2, "gate_in"], color: "#ef8a4f" }] },
+};
+const BENCH_SLOTS: { position: [number, number, number]; scale: number }[] = [{ position: [-2.25, .62, 0], scale: .94 }, { position: [0, .72, 0], scale: 1.12 }, { position: [2.25, .68, 0], scale: .96 }];
+function EmbeddedBenchScene({ caseId, running, works, progress = 0 }: { caseId: CaseId; running: boolean; works: boolean; progress?: number }) {
+  const bench = BENCH_PARTS[caseId];
+  const ids = [bench.input, bench.ecu, bench.output];
+  const kinds: HardwareKind[] = [caseId === "thermal" ? "sensor" : caseId === "brake" ? "brakepedal" : caseId === "regen" ? "ecu" : "pedal", "ecu", caseId === "thermal" ? "fan" : caseId === "brake" ? "caliper" : "motor"];
+  const point = (slot: 0 | 1 | 2, port: string) => anchorPoint(ids[slot], port, BENCH_SLOTS[slot].position, BENCH_SLOTS[slot].scale);
+  return <>
+    {import.meta.env.DEV && <DevRenderProbe name="bench" />}
+    <PartLabel className="labelSpacer" position={[0, -20, 0]}>{" "}</PartLabel>
+    <color attach="background" args={["#eef2ee"]} />
+    <hemisphereLight intensity={2.2} color="#fff8e8" groundColor="#678077" />
+    <directionalLight castShadow position={[3, 6, 4]} intensity={2.8} />
+    {ids.map((id, slot) => <group key={id} position={BENCH_SLOTS[slot].position} scale={BENCH_SLOTS[slot].scale}>
+      <HardwarePart kind={kinds[slot]} active={slot === 2 ? works : true} running={slot === 2 ? running && works : running} partId={id} />
+      <PartLabel position={[0, slot === 1 ? 1.05 : 1.0, 0]}>{bench.labels[slot]}{slot === 1 ? " · SW 내장" : ""}</PartLabel>
+    </group>)}
+    {bench.wires.map((wire, k) => { const a = point(wire.from[0], wire.from[1]), b = point(wire.to[0], wire.to[1]); const mid: [number, number, number] = [(a[0] + b[0]) / 2, Math.max(a[1], b[1]) + .35 + k * .12, (a[2] + b[2]) / 2 + .25]; return <SignalCable key={k} from={a} to={b} via={[mid]} animated={running} progress={progress} color={wire.color === "#ef8a4f" && !works ? "#be514f" : wire.color} />; })}
+    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -.02, 0]}><circleGeometry args={[3.6, 48]} /><meshStandardMaterial color="#e4ebe6" roughness={.9} /></mesh>
+  </>;
+}
+
+/** Previous bench scene (table, primitive panels) — kept unused. */
+function EmbeddedBenchSceneV1({ caseId, running, works }: { caseId: CaseId; running: boolean; works: boolean }) {
   const inputKind: HardwareKind = caseId === "thermal" ? "sensor" : caseId === "brake" ? "brakepedal" : "pedal";
   const outputKind: HardwareKind = caseId === "thermal" ? "fan" : caseId === "brake" ? "caliper" : "motor";
-  const labels = caseId === "thermal" ? ["NTC 온도 센서", "THERMAL ECU", "냉각 팬"] : caseId === "brake" ? ["페달 센서", "BRAKE ECU", "캘리퍼"] : ["APS 이중 센서", "VCU", "인버터·모터"];
+  const labels = caseId === "thermal" ? ["냉각수 온도 센서(NTC)", "THERMAL ECU", "냉각 팬"] : caseId === "brake" ? ["페달 센서", "BRAKE ECU", "캘리퍼"] : ["APS 이중 센서", "VCU", "인버터·모터"];
   return <>
+    {import.meta.env.DEV && <DevRenderProbe name="bench" />}
+    <PartLabel className="labelSpacer" position={[0, -20, 0]}>{" "}</PartLabel>
     <color attach="background" args={[works ? "#eaf5ee" : "#f5e8e3"]} />
     <hemisphereLight intensity={2.2} color="#fff8e8" groundColor="#678077" />
     <directionalLight castShadow position={[3, 6, 4]} intensity={2.8} />
-    <group position={[-2.25, .62, 0]} scale={.94}><HardwarePart kind={inputKind} active running={running} /><PartLabel position={[0, 1.32, 0]}>INPUT · {labels[0]}</PartLabel></group>
+    <group position={[-2.25, .62, 0]} scale={.94}><HardwarePart kind={inputKind} active running={running} partId={partModelFor(caseId === "brake" ? "brake" : caseId === "thermal" ? "thermal" : "drive", labels[0])} /><PartLabel position={[-.2, .02, .9]}>{labels[0]}</PartLabel></group>
     <SignalCable from={[-1.72, .78, .04]} to={[-.68, .78, .04]} color="#4f9ab5" />
     <SignalCable from={[-1.72, .68, -.12]} to={[-.68, .68, -.12]} color="#e5c451" />
     <group position={[0, .72, 0]} scale={1.12}>
-      <HardwarePart kind="ecu" active running={running} />
+      <HardwarePart kind="ecu" active running={running} partId={caseId === "thermal" ? "thermal_ecu" : caseId === "brake" ? "brake_ecu" : "vcu"} />
       <mesh position={[0, .02, .435]}><boxGeometry args={[.82, .4, .025]} /><meshStandardMaterial color="#263c37" roughness={.6} /></mesh>
       {[.26, .08, -.1, -.28].map((x, index) => <mesh key={x} position={[x, .04, .458]}><boxGeometry args={[.11, .18, .018]} /><meshStandardMaterial color={index === 3 ? (works ? "#f2c753" : "#c95a52") : index % 2 ? "#7bb9b0" : "#9b83c4"} emissive={index === 3 ? (works ? "#a37300" : "#6b1510") : "#172c28"} emissiveIntensity={running ? .8 : .15} /></mesh>)}
       <mesh position={[0, -.16, .46]}><boxGeometry args={[.76, .055, .025]} /><meshStandardMaterial color={works ? "#56b997" : "#cf665d"} emissive={works ? "#1f7f61" : "#8b201a"} emissiveIntensity={running ? 1.2 : .2} /></mesh>
-      <PartLabel position={[0, 1.26, 0]}>CONTROL UNIT · {labels[1]} · SW 내장</PartLabel>
+      <PartLabel position={[0, 1.18, 0]}>{labels[1]} · SW 내장</PartLabel>
     </group>
     <SignalCable from={[.68, .78, .04]} to={[1.66, .78, .04]} color={works ? "#ef8a4f" : "#be514f"} />
     <SignalCable from={[1.66, .62, -.16]} to={[.68, .62, -.16]} color={works ? "#56a68d" : "#7f7772"} />
-    <group position={[2.25, .68, 0]} scale={.96}><HardwarePart kind={outputKind} active={works} running={running && works} /><PartLabel position={[0, 1.32, 0]}>OUTPUT · {labels[2]} {works ? "정상 응답" : "무응답"}</PartLabel></group>
+    <group position={[2.25, .68, 0]} scale={.96}><HardwarePart kind={outputKind} active={works} running={running && works} partId={partModelFor(caseId === "brake" ? "brake" : caseId === "thermal" ? "thermal" : "drive", labels[2])} /><PartLabel position={[.2, .02, .9]}>{labels[2]} · {works ? "정상 응답" : "무응답"}</PartLabel></group>
     <group position={[0, .03, -.7]}>
       <RoundedBox args={[5.65, .16, 2.5]} radius={.12}><meshStandardMaterial color="#cfd9d2" roughness={.74} /></RoundedBox>
       {[-2.55, 2.55].flatMap(x => [-.95, .95].map(z => <mesh key={`${x}-${z}`} position={[x, -.38, z]}><cylinderGeometry args={[.08, .08, .8, 14]} /><meshStandardMaterial color="#77847f" metalness={.7} /></mesh>))}
@@ -1637,18 +3023,18 @@ function EmbeddedBenchScene({ caseId, running, works }: { caseId: CaseId; runnin
   </>;
 }
 
-export function EmbeddedBench3D({ caseId, running, works, wide = false, compact = false }: { caseId: CaseId; running: boolean; works: boolean; wide?: boolean; compact?: boolean }) {
+export function EmbeddedBench3D({ caseId, running, works, progress = 0, wide = false, compact = false }: { caseId: CaseId; running: boolean; works: boolean; progress?: number; wide?: boolean; compact?: boolean }) {
   const camera = compact ? { position: [0, 2.25, 4.35] as [number, number, number], fov: 36 } : { position: [0, wide ? 3.8 : 3.15, wide ? 9.1 : 7.2] as [number, number, number], fov: wide ? 43 : 40 };
-  return <div className={`benchEmbedded3D ${running ? "running" : ""} ${works ? "works" : "broken"} ${wide ? "wideView" : ""} ${compact ? "compactView" : ""}`}><Canvas shadows camera={camera} dpr={[1, 1.15]}><EmbeddedBenchScene caseId={caseId} running={running} works={works} /><OrbitControls enablePan minDistance={compact ? 3.6 : wide ? 7.1 : 5.8} maxDistance={compact ? 8 : 12} maxPolarAngle={Math.PI * .48} target={[0, .5, -.25]} /></Canvas><div className="embeddedBoundaryLabels"><span>INPUT SENSOR / DRIVER DEVICE</span><b>REAL ECU + I/O HARNESS</b><em>OUTPUT ACTUATOR + FEEDBACK</em></div></div>;
+  return <div className={`benchEmbedded3D ${running ? "running" : ""} ${works ? "works" : "broken"} ${wide ? "wideView" : ""} ${compact ? "compactView" : ""}`}><Canvas shadows camera={camera} dpr={[1, 1.15]}><EmbeddedBenchScene caseId={caseId} running={running} works={works} progress={progress} /><OrbitControls enablePan minDistance={compact ? 3.6 : wide ? 7.1 : 5.8} maxDistance={compact ? 8 : 12} maxPolarAngle={Math.PI * .48} target={[0, .5, -.25]} /></Canvas><div className="embeddedBoundaryLabels"><span>입력 센서·운전자 조작</span><b>실제 제어기·배선</b><em>출력 부품·피드백</em></div></div>;
 }
 
-export function BenchVisual({ tab, caseId, running, works }: { tab: BenchTab; caseId: CaseId; running: boolean; works: boolean }) {
-  const swNodes = caseId === "propulsion" ? [["APS A/B", "60.0 / 60.2%"], ["PLAUSIBILITY", "MATCH · 10ms"], ["DRIVER REQUEST", works ? "204Nm" : "92Nm"], ["DRIVE PERMIT", "D · READY"], ["TRACTION LIMIT", "NO SLIP"], ["POWER LIMIT", "MIN 240Nm"], ["TORQUE RAMP", works ? "+24Nm/s" : "+9Nm/s"], ["CAN COMMAND", works ? "204Nm" : "92Nm"]] : caseId === "thermal" ? [["NTC INPUT", "78.4°C"], ["RANGE CHECK", "VALID"], ["DEBOUNCE", "120ms"], ["HYSTERESIS", ">65°C ON"], ["DERATE STATE", "LEVEL 0"], ["FAN TARGET", "1850RPM"], ["PWM DRIVER", "100%"], ["FEEDBACK", works ? "1846RPM" : "0RPM"]] : [["PEDAL A/B", "55 / 55.3%"], ["VALIDATE", "MATCH"], ["DECEL TARGET", "3.2m/s²"], ["REGEN LIMIT", "1.1m/s²"], ["BLEND", works ? "REGEN+FRICTION" : "REGEN ONLY"], ["ABS GUARD", "NO SLIP"], ["PRESSURE CMD", works ? "42bar" : "8bar"], ["WHEEL RESPONSE", works ? "DECEL" : "LOW DECEL"]];
+export function BenchVisual({ tab, caseId, running, works, progress }: { tab: BenchTab; caseId: CaseId; running: boolean; works: boolean; progress?: number }) {
+  const swNodes = caseId === "propulsion" ? [["APS A/B", "60.0 / 60.2%"], ["PLAUSIBILITY", "MATCH · 10ms"], ["DRIVER REQUEST", works ? "204Nm" : "92Nm"], ["DRIVE PERMIT", "D · READY"], ["TRACTION LIMIT", "NO SLIP"], ["POWER LIMIT", "MIN 240Nm"], ["TORQUE RAMP", works ? "+24Nm/s" : "+9Nm/s"], ["CAN COMMAND", works ? "204Nm" : "92Nm"]] : caseId === "thermal" ? [["COOLANT NTC", "78.4°C"], ["RANGE CHECK", "VALID"], ["DEBOUNCE", "120ms"], ["HYSTERESIS", ">65°C ON"], ["DERATE STATE", "LEVEL 1 · 토크 제한"], ["FAN TARGET", "1850RPM"], ["PWM DRIVER", "100%"], ["FEEDBACK", works ? "1846RPM" : "0RPM"]] : [["PEDAL A/B", "55 / 55.3%"], ["VALIDATE", "MATCH"], ["DECEL TARGET", "3.2m/s²"], ["REGEN LIMIT", "1.1m/s²"], ["BLEND", works ? "REGEN+FRICTION" : "REGEN ONLY"], ["ABS GUARD", "NO SLIP"], ["PRESSURE CMD", works ? "42bar" : "8bar"], ["WHEEL RESPONSE", works ? "DECEL" : "LOW DECEL"]];
   const swPositions = [[4,14],[27,14],[50,14],[73,14],[73,62],[50,62],[27,62],[4,62]];
   if (tab === "sw") return <div className={`benchSwVisual detailed ${running ? "running" : ""} ${works ? "works" : "broken"}`}><div className="simulinkModelHeader"><b>요구사항 기반 실행 모델 · MIL/SIL 개념</b><span>입력 검증 → 상태/분기 → 제어 계산 → 제한 → 출력 → 폐루프 피드백</span></div><div className="swFlowchart"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M13 25 H27 M36 25 H50 M59 25 H73 M82 25 V62 M73 74 H59 M50 74 H36 M27 74 H13" /><path className="feedback" d="M13 74 C3 74 3 25 13 25" /></svg>{swNodes.map(([name,value],index)=><span key={name} style={{left:`${swPositions[index][0]}%`,top:`${swPositions[index][1]}%`}} className={`swDiagramBlock ${index===1?"decision":""} ${index===7?"sink":""}`}><i>{index===1?"◇":String(index+1).padStart(2,"0")}</i><b>{name}</b><small>{value}</small><u className="swInPort" /><u className="swOutPort" /></span>)}<em className="swFeedbackLabel">FEEDBACK · 상태/진단 경계로 되먹임</em></div></div>;
-  if (tab === "embedded") return <EmbeddedBench3D caseId={caseId} running={running} works={works} />;
-  if (tab === "system") return <div className={`systemBenchVisual ${running ? "running" : ""} ${works ? "works" : "broken"}`}><header><b>차량 시스템 통합 · 가상 차량/네트워크</b><span>여러 ECU와 물리 플랜트의 상호작용을 한 기능 시나리오로 검증</span></header><section><article><small>DRIVER / ENV</small><b>{caseId === "thermal" ? "열부하 78.4°C" : caseId === "brake" ? "제동 요구 55%" : "가속 요구 60%"}</b></article><i>CAN FD</i><article><small>DOMAIN CONTROLLERS</small><b>VCU · BMS · Brake · Thermal</b><em className="networkBus" /></article><i>COMMAND</i><article><small>VEHICLE PLANT</small><b>{works ? "요구 성능 만족" : "통합 경계에서 불일치"}</b></article></section><footer><span>요구사항</span><i /><span>기능 네트워크</span><i /><span>차량 거동</span></footer></div>;
-  return <div className={`benchVehicleVisual ${running ? "running" : ""} ${works ? "works" : "broken"}`}><LabRaceView running={running} works={works} caseId={caseId} /><div className="vehicleReadout"><span>요구<b>{caseId === "propulsion" ? "60%" : caseId === "thermal" ? "72°C" : "55%"}</b></span><span>응답<b>{works ? "정상 범위" : "반응 없음"}</b></span></div></div>;
+  if (tab === "embedded") return <EmbeddedBench3D caseId={caseId} running={running} works={works} progress={progress} />;
+  if (tab === "system") return <div className={`systemBenchVisual ${running ? "running" : ""} ${works ? "works" : "broken"}`}><header><b>차량 시스템 통합 · 가상 차량/네트워크</b><span>여러 ECU와 물리 플랜트의 상호작용을 한 기능 시나리오로 검증</span></header><section><article><small>DRIVER / ENV</small><b>{caseId === "thermal" ? "열부하 78.4°C" : caseId === "brake" ? "제동 요구 55%" : "가속 요구 60%"}</b></article><i>CAN FD</i><article><small>DOMAIN CONTROLLERS</small><b>VCU · BMS · Brake · Thermal</b><em className="networkBus" style={{ "--bench-progress": String(THREE.MathUtils.clamp(progress ?? 0, 0, 1)) } as React.CSSProperties} /></article><i>COMMAND</i><article><small>VEHICLE PLANT</small><b>{works ? "요구 성능 만족" : "통합 경계에서 불일치"}</b></article></section><footer><span>요구사항</span><i /><span>기능 네트워크</span><i /><span>차량 거동</span></footer></div>;
+  return <div className={`benchVehicleVisual ${running ? "running" : ""} ${works ? "works" : "broken"}`}><LabRaceView running={running} works={works} caseId={caseId} progress={progress} /></div>;
 }
 
 function TwinDesign({ title, subtitle, tab, caseId, running, works, result }: { title: string; subtitle: string; tab: BenchTab; caseId: CaseId; running: boolean; works: boolean; result?: boolean }) {
@@ -1684,7 +3070,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
     <GameHeader chapter="MING'S V-MODEL LAB" title="요구사항 기반 V-모델 검증 실험실" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
     <main className="catLab">
-      <header className="labHeader"><div className="labCat"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span><b>엔지니어 밍의 3D 통합 실험실</b><small>같은 요구사항·시험 입력을 SW→ECU→시스템→차량 경계에서 비교합니다.</small></span></div><nav>{tabs.map(item => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><b>{item.label}</b><small>{item.desc}</small>{results[item.id] !== undefined && <i className={results[item.id] ? "ok" : "bad"} />}</button>)}</nav></header>
+      <header className="labHeader"><div className="labCat"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><span><b>엔지니어 {ENGINEER}의 3D 통합 실험실</b><small>같은 요구사항·시험 입력을 SW→ECU→시스템→차량 경계에서 비교합니다.</small></span></div><nav>{tabs.map(item => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><b>{item.label}</b><small>{item.desc}</small>{results[item.id] !== undefined && <i className={results[item.id] ? "ok" : "bad"} />}</button>)}</nav></header>
       <div className="twinCompare"><TwinDesign title="정상 시나리오 설계" subtitle="REFERENCE DESIGN" tab={tab} caseId={state.caseId} running={running} works result={activeResult === undefined ? undefined : true} /><div className="versus"><span>동일 입력</span><b>VS</b><i /></div><TwinDesign title="내가 만든 설계" subtitle="PLAYER DESIGN" tab={tab} caseId={state.caseId} running={running} works={works} result={activeResult} /></div>
       {activeResult === false && <aside className="benchExplanation fail"><b>최초 불일치 경계 · {report.boundary}</b><p>{tab === "sw" ? "선택한 블록 또는 연결 순서 때문에 CONTROL 경계부터 기준 출력과 달라졌습니다." : tab === "embedded" ? "실 ECU의 I/O 또는 가상 Plant 피드백에서 명령과 반응이 갈라졌습니다." : tab === "system" ? "ECU 간 신호·기능 통합에서 요구 차량 기능이 성립하지 않았습니다." : "앞 단계의 차이가 누적되어 차량 시나리오 성능이 기준에 못 미칩니다."}</p></aside>}
       <div className="labConsole tcConsole"><section className="tcWorkbench"><header><small>TEST CASE · {report.id}</small><b>{tabs.find(item => item.id === tab)?.label} 경계 시험</b></header><div className="tcChoices"><span>기법</span><button className={testTechnique === "requirement" ? "active" : ""} onClick={() => setTestTechnique("requirement")}>요구사항 기반</button><button className={testTechnique === "boundary" ? "active" : ""} onClick={() => setTestTechnique("boundary")}>경계값</button><button className={testTechnique === "fault" ? "active" : ""} onClick={() => setTestTechnique("fault")}>고장 주입</button><span>인가값</span><button className={stimulus === "nominal" ? "active" : ""} onClick={() => setStimulus("nominal")}>정상값</button><button className={stimulus === "limit" ? "active" : ""} onClick={() => setStimulus("limit")}>한계값</button></div><dl><div><dt>INPUT</dt><dd>{stimulus === "nominal" ? report.expected.split("→")[0] : "경계 ±1 step"}</dd></div><div><dt>EXPECTED</dt><dd>{report.expected.split("→").at(-1)}</dd></div><div><dt>ACTUAL</dt><dd>{actualValue}</dd></div><div><dt>VERDICT</dt><dd>{activeResult === undefined ? "—" : activeResult ? "PASS" : "FAIL"}</dd></div></dl></section><button className="runLab" disabled={running} onClick={run}>{running ? "실험 중…" : `▶ ${tabs.find(item => item.id === tab)?.label} 시험 실행`}</button><button className="primary" disabled={!allRun} onClick={() => send({ type: "BENCH_RESULT", pass: works, causeCorrect: correctCause })}>{!allRun ? `검증 ${Object.keys(results).length}/4` : works ? "수리 적용으로 →" : "실패 원인 해설 보기 →"}</button></div>
@@ -1704,10 +3090,10 @@ export function FailureAnalysis({ state, send }: { state: Campaign; send: Send }
   const actual = state.caseId === "propulsion" ? "APS 60% → Torque 92Nm" : state.caseId === "thermal" ? "Fan CMD 100% → 0RPM" : "Brake 55% → 8bar";
   return <div className="failureAnalysis">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="deep" />
-    <GameHeader chapter="GUIDED DIAGNOSIS" title="실패 원인 해설" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="해설" title="실패 원인 해설" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <PursuitRouteBar compact distance={state.raceDistance} gap={state.policeGapMeters} />
-    <main><section className="analysisHeader"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><div><small>ENGINEER MING · STEP BY STEP</small><h1>틀린 지점부터 정상 경로까지 직접 재생할게</h1><p>다시 메모판으로 돌려보내지 않고, 이번 한 판 안에서 풀이를 완성한 뒤 수리와 주행 복귀까지 이어집니다.</p></div></section><section className="analysisCompare"><div><small>EXPECTED</small><b>{expected}</b></div><i>≠</i><div><small>ACTUAL</small><b>{actual}</b></div></section><section className="guidedSteps">{[
-      ["1 · 최초 차이", `기준과 실제가 처음 갈라진 경계는 ${state.caseId === "thermal" ? "ECU 명령 이후 실제 팬 피드백" : state.caseId === "brake" ? "제동력 배분 이후 마찰 압력" : "토크 맵 출력"}입니다.`],
+    <main><section className="analysisHeader"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><div><small>ENGINEER {ENGINEER} · STEP BY STEP</small><h1>틀린 지점부터 정상 경로까지 차례로 다시 봅니다</h1><p>다시 메모판으로 돌려보내지 않고, 이번 한 판 안에서 풀이를 완성한 뒤 수리와 주행 복귀까지 이어집니다.</p></div></section><section className="analysisCompare"><div><small>EXPECTED</small><b>{expected}</b></div><i>≠</i><div><small>ACTUAL</small><b>{actual}</b></div></section><section className="guidedSteps">{[
+      ["1 · 최초 차이", `기준과 실제가 처음 갈라진 경계는 ${state.caseId === "thermal" ? "ECU 명령 이후 실제 팬 피드백" : state.caseId === "brake" ? "제동력 배분 이후 마찰 압력" : state.caseId === "regen" ? "VCU 토크 지령 변환 출력" : "토크 맵 출력"}입니다.`],
       ["2 · 원인 판정", `${root.label}: ${root.desc}`],
       ["3 · 정상 연결", correctLabels.join(" → ")],
       ["4 · 수정 결과", `${expected}로 회복되는 것을 SW·임베디드·차량 수준에서 다시 확인했습니다.`],
@@ -1725,11 +3111,10 @@ export function RepairSequence({ state, send }: { state: Campaign; send: Send })
     const timer = window.setTimeout(() => setCountdown(value => value - 1), 1000);
     return () => clearTimeout(timer);
   }, [countdown, ready, send]);
-  const isOta = state.caseId === "propulsion";
   return <div className="repairV2">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
-    <GameHeader chapter="RECOVERY SEQUENCE" title="검증된 수리 적용" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
-    <main><section className={`repairMechanism repairMechanism3D ${ready ? "fixed" : "working"}`}><EmbeddedBench3D caseId={state.caseId} running works={ready} wide /><span>{ready ? "입력 센서 → ECU의 검증된 SW → 출력 액추에이터 정상 응답" : isOta ? "검증된 제어 로직을 ECU에 OTA 전송 중…" : "ECU 명령과 실제 출력 액추에이터 응답 복원 중…"}</span></section><section className="repairDialogue"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><div><small>ENGINEER MING</small><h1>{ready ? "수리 완료!" : "복구 적용 중"}</h1><p>{ready ? (isOta ? "OTA 업데이트로 페달 신호 변환을 정상화했어! 휴, 달리던 곳으로 바로 돌아가자." : "제어 명령과 실제 출력 액추에이터 응답을 모두 복원했어! 달리던 지점으로 돌아가자.") : "검증을 통과한 설계만 ECU와 실제 부품에 적용하고 있어."}</p><b>현재 주행 지점 {Math.round(state.raceDistance)}m · 추격차 격차 {Math.round(state.policeGapMeters)}m</b></div>{ready && <div className="autoResumeCountdown"><strong>{Math.max(0, countdown)}</strong><span>초 후 달리던 지점에서 자동 주행 복귀</span></div>}</section></main>
+    <GameHeader chapter="수리" title="검증된 수리 적용" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <main><section className={`repairMechanism repairMechanism3D ${ready ? "fixed" : "working"}`}><EmbeddedBench3D caseId={state.caseId} running works={ready} wide /><span>{ready ? "입력 센서 → ECU의 검증된 SW → 출력 액추에이터 정상 응답" : "검증된 제어 로직을 ECU에 OTA 전송 중…"}</span></section><section className="repairDialogue"><img src={`${A}ASSET_003_Cat_Face_Identity_REFERENCE.png`} alt="" /><div><small>ENGINEER {ENGINEER}</small><h1>{ready ? "수리 완료" : "복구 적용 중"}</h1><p>{ready ? "검증을 통과한 SW를 OTA로 배포했어요. 같은 입력에서 정상 응답도 확인했어요. 달리던 지점으로 돌아갑니다." : "검증을 통과한 수정만 차량에 적용하고 있어요."}</p><b>현재 주행 지점 {Math.round(state.raceDistance)}m · 추격차 격차 {Math.round(state.policeGapMeters)}m</b></div>{ready && <div className="autoResumeCountdown"><strong>{Math.max(0, countdown)}</strong><span>초 후 달리던 지점에서 자동 주행 복귀</span></div>}</section></main>
   </div>;
 }
 
@@ -1779,7 +3164,7 @@ function ShipJumpScene({ onBeat }: { onBeat: (beat: number) => void }) {
       <PartLabel position={[2.8,.82,0]}>UPHILL LEVER RAMP</PartLabel>
     </group>
     <group position={[6.4,.4,0]}><RoundedBox args={[8.6,1.25,5.7]} radius={.7} position={[0,-.12,0]} castShadow><meshPhysicalMaterial color="#352522" roughness={.5} metalness={.16} clearcoat={.25} /></RoundedBox><RoundedBox args={[7.4,.34,4.6]} radius={.18} position={[-.3,.67,0]}><meshStandardMaterial color="#9c744f" roughness={.78} /></RoundedBox><mesh position={[1.2,4.7,0]}><cylinderGeometry args={[.13,.22,7.8,18]} /><meshStandardMaterial color="#322722" /></mesh><mesh position={[3.25,4.55,0]} rotation={[0,0,-.13]}><planeGeometry args={[4.2,3.2]} /><meshStandardMaterial color="#bd4945" side={THREE.DoubleSide} /></mesh><PartLabel position={[0,2.1,0]}>THE RED WHISKER · DECK</PartLabel></group>
-    <group ref={car} scale={.84}><Convertible steer={0} spin={18} /></group>
+    <group ref={car} scale={.84}><HeroConvertible steer={0} spin={18} speed={60} /></group>
     <group ref={police} position={[-8.4,.02,0]} rotation={[0,Math.PI/2,0]} scale={.76}><PoliceInterceptor spin={12} /></group>
   </>;
 }
@@ -1787,6 +3172,6 @@ function ShipJumpScene({ onBeat }: { onBeat: (beat: number) => void }) {
 export function ShipBoardingSequence({ send }: { send: Send }) {
   const [beat, setBeat] = useState(0);
   useEffect(() => { const endTimer = window.setTimeout(() => send({ type: "COMPLETE_ENDING" }), 5900); return () => window.clearTimeout(endTimer); }, [send]);
-  const captions = ["부두 끝 · 갑판이 올라간다!", "나무 연결판이 지렛대처럼 들린다", "루와 밍의 붉은 EV, 도약!", "측면 비행 · 경찰차는 부두에 멈춤", "해적선 갑판 안착 — 탈출 성공"];
+  const captions = ["부두 끝 · 갑판이 올라간다!", "나무 연결판이 지렛대처럼 들린다", `${DUO}의 붉은 EV, 도약`, "측면 비행 · 경찰차는 부두에 멈춤", "해적선 갑판 안착 — 탈출 성공"];
   return <div className={`shipBoarding shipJump beat-${beat}`}><Canvas shadows camera={{position:[0,3.35,12.8],fov:43}} dpr={[1,1.3]} gl={{antialias:true,powerPreference:"high-performance"}}><ShipJumpScene onBeat={setBeat} /></Canvas><div className="boardingCaption"><small>FINAL · THELMA-STYLE DOCK JUMP</small><h1>{captions[beat]}</h1><p>{beat < 4 ? "올라가는 나무 램프를 타고 해적선 갑판으로 날아갑니다." : "차량과 두 고양이가 모두 갑판에 안전하게 착지했습니다."}</p></div></div>;
 }

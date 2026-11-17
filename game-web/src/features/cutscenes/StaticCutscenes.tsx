@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { Campaign } from "../../game/runtime";
 import { GameHeader, SceneBackdrop } from "../../ui/game-shell";
+import { DUO } from "../../game/cast";
 
 type Send = React.Dispatch<any>;
 const A = "/assets/";
@@ -8,15 +9,15 @@ const A = "/assets/";
 const heistFrames = [
   {
     image: `${A}cutscene-heist-escape-v1.png`,
-    eyebrow: "STORY CUT · 1/2",
-    title: "금괴 자루를 챙겨 저택을 빠져나왔다",
-    body: "루와 밍은 해안 도로에 세워 둔 붉은 EV로 달려간다.",
+    eyebrow: "장면 1/2",
+    title: "폭스의 금고에서 상금을 되찾아 저택을 빠져나왔다",
+    body: `${DUO}는 해안 도로에 세워 둔 붉은 EV로 달려간다.`,
   },
   {
     image: `${A}cutscene-heist-board-v1.png`,
-    eyebrow: "STORY CUT · 2/2",
-    title: "탑승 완료 · 이제 직접 운전한다",
-    body: "출발 3초 뒤 경찰차가 후방에 합류한다. 고장 사건은 코스 지점에서 발생한다.",
+    eyebrow: "장면 2/2",
+    title: "탑승 완료 · 이제 직접 운전할 차례",
+    body: "출발 3초 뒤 경찰차가 뒤에 따라붙는다. 해적선까지 붙잡히지 않고 달려야 한다.",
   },
 ] as const;
 
@@ -34,7 +35,7 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
   }, [ready, requestedFrame]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.code !== "Space" || !ready) return;
+      if ((event.code !== "Space" && event.key !== "Enter") || !ready) return;
       event.preventDefault();
       beginRace();
     };
@@ -43,7 +44,7 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
   }, [ready]);
   return <div className="staticCutscene heistStillScene">
     <SceneBackdrop image={current.image} position="center" shade="none" />
-    <GameHeader chapter="HEIST COMPLETE · GETAWAY" title="부잣집 탈출 작전" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="도주 준비" title="부잣집 탈출 작전" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
     <main className="stillCutLayout">
       <section className="stillStoryCard">
         <small>{current.eyebrow}</small>
@@ -52,15 +53,15 @@ export function DriveBriefing({ state, send }: { state: Campaign; send: Send }) 
         <div className="stillFrameDots">{heistFrames.map((_, index) => <i key={index} className={index <= frame ? "active" : ""} />)}</div>
       </section>
       <aside className="getawayBriefingCard">
-        <small>GETAWAY MISSION</small>
+        <small>도주 미션</small>
         <h2>{ready ? "붉은 EV 탑승 완료" : "도주 장면 재생 중"}</h2>
         <dl>
           <div><dt>경찰</dt><dd>출발 3초 뒤 후방 합류</dd></div>
-          <div><dt>고장</dt><dd>코스의 특정 지점에서 발생</dd></div>
+          <div><dt>고장</dt><dd>주행 중 이상이 생기면 원인을 찾아 수리</dd></div>
           <div><dt>목표</dt><dd>해적선 갑판까지 도주</dd></div>
         </dl>
         <button className="primary" disabled={!ready} onClick={beginRace}>{ready ? "도주 시작" : "잠시 후 탑승 장면"}<i>→</i></button>
-        {ready && <em>SPACE 또는 클릭</em>}
+        {ready && <em>Enter 또는 클릭</em>}
       </aside>
     </main>
   </div>;
@@ -76,10 +77,10 @@ export function RepairSequence({ state, send }: { state: Campaign; send: Send })
     const timer = window.setTimeout(() => setCountdown(value => value - 1), 850);
     return () => clearTimeout(timer);
   }, [countdown, ready, send]);
-  const repairLabel = state.caseId === "propulsion" ? "페달 신호 변환 로직" : state.caseId === "thermal" ? "냉각 팬 출력 경로" : "마찰 제동 액추에이터";
+  const repairLabel = state.caseId === "propulsion" ? "페달 신호 변환 로직" : state.caseId === "thermal" ? "팬 PWM 출력 어댑터 SW" : state.caseId === "regen" ? "토크 지령 변환의 회생 부호 반영" : state.caseId === "ready" ? "프리차지 대기 시간 설정" : state.caseId === "gear" ? "변속 수신 폴백 값 설정" : state.caseId === "cold" ? "회생 한계 수신 사용" : "압력 명령 I/O 어댑터 SW";
   return <div className="staticCutscene repairStillScene">
     <SceneBackdrop image={`${A}cutscene-repair-v1.png`} position="center" shade="none" />
-    <GameHeader chapter="RECOVERY SEQUENCE" title="검증된 수리 적용" progressScene={state.scene} distanceMeters={state.policeGapMeters} onPause={() => send({ type: "PAUSE" })} />
+    <GameHeader chapter="수리" title="검증된 수리 적용" progressScene={state.scene} distanceMeters={state.policeGapMeters} raceDistanceMeters={state.raceDistance} onPause={() => send({ type: "PAUSE" })} />
     <main className="repairStillLayout">
       <section className="repairResultCard">
         <small>ENGINEER MING · VERIFIED FIX</small>

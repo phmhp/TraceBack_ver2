@@ -1,0 +1,888 @@
+/* Final interaction/render pass for the live v2 routes.
+   This file is intentionally last in main.tsx so the older compact overrides
+   cannot undo the interaction contracts below. */
+
+/* Shared button contract: equal visual rhythm, no clipped Korean labels. */
+.eeTrace button,
+.refPuzzle.v2 button,
+.vbBench.bench4.qa2 button {
+  box-sizing: border-box;
+  min-width: 0;
+  font-family: Pretendard, system-ui, sans-serif;
+}
+.eeTrace button:not(.polClose),
+.refPuzzle.v2 .rpRun,
+.refPuzzle.v2 .rpExpect,
+.vbBench.bench4.qa2 .b4Card,
+.vbBench.bench4.qa2 .qaChoices button,
+.vbBench.bench4.qa2 .b4Panel button {
+  padding: 10px 14px;
+  line-height: 1.25;
+}
+
+/* Nut's modal is a true focus layer: the board behind it is blurred and
+   darkened, while the explanation itself reads as a paper note. */
+.nutFocusBackdrop {
+  z-index: 999 !important;
+  background: rgba(28, 25, 22, .48) !important;
+  backdrop-filter: blur(8px) brightness(.7) saturate(.8) !important;
+}
+.nutPopup {
+  z-index: 1000 !important;
+  width: min(560px, calc(100vw - 56px)) !important;
+  min-height: 220px;
+  padding: 22px 24px 20px !important;
+  border: 2px solid #c99b82 !important;
+  border-radius: 10px !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(111, 83, 55, .055) 0 1px, transparent 1px 29px),
+    linear-gradient(135deg, #fffdf7, #fff5e8) !important;
+  box-shadow: 0 22px 55px rgba(30, 15, 8, .42), 0 0 0 8px rgba(255,255,255,.18) !important;
+}
+.nutPopup::before { content: "" !important; position: absolute; inset: 14px !important; top: 0 !important; width: auto !important; height: auto !important; translate: none !important; rotate: none !important; background: linear-gradient(90deg, transparent 0 52px, rgba(214, 119, 105, .2) 52px 54px, transparent 54px) !important; box-shadow: none !important; pointer-events: none; }
+.nutPopupBody { position: relative; z-index: 1; }
+.nutPopupBody ol { margin: 12px 0 18px !important; padding-left: 0 !important; display: grid; gap: 8px; }
+.nutPopupBody li { padding-left: 26px !important; font: 700 15px/1.55 Pretendard, system-ui; color: #493830; }
+.nutOk,
+.nutAgain {
+  box-sizing: border-box !important;
+  min-height: 40px !important;
+  padding: 10px 16px !important;
+  border: 2px solid #9b6b64 !important;
+  border-radius: 10px !important;
+  background: #9b6b64 !important;
+  color: #fffaf4 !important;
+  font: 800 13px/1.15 Pretendard, system-ui !important;
+}
+.nutOk { display: inline-flex; align-items: center; gap: 8px; }
+.nutOk kbd { padding: 3px 6px; border-radius: 5px; background: rgba(255,255,255,.2); color: inherit; font: 800 11px/1 ui-monospace, monospace; }
+.nutGuide .nutNote,
+.vrBubble p,
+.rpActuator b,
+.qaResultState,
+.vbBench .feedback,
+.vbBench .vbFeedback {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+  white-space: normal;
+}
+.nutGuide .nutNote {
+  overflow: hidden !important;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+.vrBubble { min-width: 0; max-width: 100%; }
+.vrBubble p { max-height: 140px; overflow: hidden; }
+.rpActuator { right: max(18px, min(326px, 22vw)); width: min(240px, calc(100vw - 36px)); max-height: 34vh; overflow: hidden; }
+.rpActuator b { overflow: hidden; overflow-wrap: anywhere; }
+.refPuzzle.v2 .rpBubble { max-width: min(340px, calc(100vw - 32px)); max-height: 42%; overflow: hidden; overflow-wrap: anywhere; word-break: keep-all; box-sizing: border-box; }
+.eeTrace .etZoneTab,
+.eeTrace .etMeasureTab,
+.eeTrace .etHypTab,
+.eeTrace .etEvidenceContent { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.eeTrace .etZoom,
+.eeTrace .etZoomCol,
+.eeTrace .etChecked,
+.eeTrace .etReasonPath { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.eeTrace .etZoom span,
+.eeTrace .etChecked li,
+.eeTrace .etReasonPath span { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+
+/* Verification answer feedback stays inside the same card as the choices. */
+.vbBench.bench4.qa2 .b4Choices,
+.vbBench.bench4.qa2 .b4Cards,
+.vbBench.bench4.qa2 .vbChoices,
+.vbBench.bench4.qa2 .vbAsk,
+.vbBench.bench4.qa2 .b4HypChoices { min-width: 0; max-width: 100%; }
+.vbBench.bench4.qa2 .b4Card,
+.vbBench.bench4.qa2 .vbChoices button { white-space: normal; overflow-wrap: anywhere; }
+.vbBench.bench4.qa2 .b4Card b,
+.vbBench.bench4.qa2 .b4Card small,
+.vbBench.bench4.qa2 .b4Card em { white-space: normal; overflow-wrap: anywhere; }
+
+/* Hypothesis cards: the Photo component has a nested .dtPhoto wrapper. The
+   wrapper, not only the inner img, must be constrained or it can escape the
+   right rail and become the giant floating image reported by the player. */
+.eeTrace .etHypTab { min-width: 0; overflow: auto; padding: 2px; }
+.eeTrace .etHyp { min-width: 0; grid-template-columns: 56px minmax(0, 1fr) auto !important; }
+.eeTrace .etHypGraphic { width: 56px !important; height: 44px !important; min-width: 56px; max-width: 56px; overflow: hidden !important; display: grid !important; place-items: center; }
+.eeTrace .etHypGraphic .dtPhoto,
+.eeTrace .etHypGraphic .dtPhoto img,
+.eeTrace .etHypGraphic > img { display: block !important; width: 100% !important; height: 100% !important; max-width: 100% !important; max-height: 100% !important; object-fit: contain !important; object-position: center !important; }
+.eeTrace .etHypCopy { min-width: 0; overflow: hidden; }
+.eeTrace .etHypCopy b { overflow-wrap: anywhere; white-space: normal !important; }
+.eeTrace .etHypCopy small { overflow-wrap: anywhere; white-space: normal !important; }
+.eeTrace .etHyp em { min-width: 0; max-width: 86px; white-space: normal !important; text-align: center; }
+.eeTrace .etEvidenceTabs > img,
+.eeTrace .etEvidence > header img,
+.eeTrace .etEvidenceTabs .dtPhoto { display: none !important; }
+.eeTrace .etEvidence > header { min-width: 0; overflow: hidden !important; }
+.eeTrace .etEvidenceTabs { min-width: 0; overflow: hidden !important; }
+.eeTrace .etEvidenceTabs button { min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis; }
+
+/* STEP02 evidence tabs and hypothesis cards: every photo has one bounded
+   polaroid window.  Photo() adds a nested .dtPhoto wrapper, so both layers
+   must be constrained; otherwise the image can grow to the full rail height. */
+.eeTrace .etEvidence > header { min-width: 0; }
+.eeTrace .etEvidenceTabs { min-width: 0; overflow: hidden; }
+.eeTrace .etEvidenceTabs button { min-width: 0 !important; overflow: hidden; text-overflow: ellipsis; padding: 10px !important; }
+.eeTrace .etHyp { box-sizing: border-box; padding: 10px !important; }
+.eeTrace .etHypGraphic,
+.eeTrace .etHypGraphic .dtPhoto,
+.eeTrace .etHypGraphic .dtPhoto img {
+  width: 56px !important;
+  height: 44px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  max-height: 44px !important;
+  aspect-ratio: auto !important;
+  overflow: hidden !important;
+  object-fit: contain !important;
+}
+.eeTrace .etHypGraphic .dtPhoto { display: grid !important; place-items: center; background: #f3eadf; }
+
+/* The lower candidate is a compact polaroid + summary + two equal actions.
+   The previous flex row left a large empty centre and allowed long metrics to
+   press the verdict buttons against the edge. */
+.eeTrace .etDockTrace .etCand,
+.eeTrace .etDock .etCand.hyp {
+  display: grid !important;
+  grid-template-columns: 92px minmax(0, 1fr) 176px;
+  align-items: center;
+  gap: 10px !important;
+  padding: 10px !important;
+}
+.eeTrace .etCand .etCardPol { width: 92px; min-width: 92px; aspect-ratio: 88 / 107; padding: 6px 6px 10px; box-sizing: border-box; position: relative; background: #fffefa; border-radius: 4px; box-shadow: 0 2px 2px rgba(0,0,0,.12), 0 5px 10px rgba(60,40,20,.14); }
+.eeTrace .etCand .etCardPol .polPhoto { display: grid; place-items: center; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; background: #efe7da; }
+.eeTrace .etCand .etCardPol .polPhoto .dtPhoto,
+.eeTrace .etCand .etCardPol .polPhoto .dtPhoto img { width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; }
+.eeTrace .etCandText { min-width: 0; display: grid; gap: 4px; overflow: hidden; }
+.eeTrace .etCandText small,
+.eeTrace .etCandText b,
+.eeTrace .etCandText > span { min-width: 0; white-space: normal !important; overflow-wrap: anywhere; }
+.eeTrace .etCandText small { line-height: 1.2; }
+.eeTrace .etCandText b { line-height: 1.25; }
+.eeTrace .etCandText > span { line-height: 1.3; }
+.eeTrace .etCand .etFlags { width: 176px !important; min-width: 176px !important; max-width: 176px; }
+.eeTrace .etCand .etFlags button { padding: 10px !important; min-height: 44px; }
+
+/* Player-facing action boxes use one symmetric padding contract.  Tiny keycaps,
+   circular sound toggles, and status pills remain intentionally compact. */
+.eeTrace :is(.etCard, .etCand, .etChoices button, .etInside, .etDockLink, .etFlags button, .etEvidenceTabs button, .polPager button, .etStageReplay),
+.levelSelect .lvStart button,
+.refPuzzle.v2 :is(.rpTools button, .rpFoot button, .rpRun, .rpExpect, .rpNext),
+.vbBench.bench4.qa2 :is(.qaChoices button, .b4Panel button, .b4Card) {
+  box-sizing: border-box !important;
+  padding: 10px !important;
+}
+
+/* Evidence and enlarged polaroids use one photo window ratio everywhere. */
+.eeTrace .etEvidence .polBoard { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; grid-auto-rows: minmax(0, auto) !important; align-content: start; overflow-y: auto !important; }
+.eeTrace .etEvidence .pol { min-width: 0; width: 100%; overflow: hidden !important; }
+.eeTrace .etEvidence .polPhoto,
+.eeTrace .etEvidence .polPhoto .dtPhoto { width: 100% !important; aspect-ratio: 4 / 3 !important; height: auto !important; min-height: 0; display: grid !important; place-items: center; overflow: hidden !important; }
+.eeTrace .etEvidence .polPhoto img,
+.eeTrace .etEvidence .polPhoto .dtPhoto img { width: 100% !important; height: 100% !important; object-fit: contain !important; }
+.eeTrace .polZoom { z-index: 1200 !important; padding: 22px; box-sizing: border-box; }
+.eeTrace .polBig { width: min(430px, 88vw) !important; max-height: 88vh; overflow: auto; box-sizing: border-box; }
+.eeTrace .polBig .polPhoto.big,
+.eeTrace .polBig .polPhoto.big .dtPhoto { width: 100% !important; height: auto !important; aspect-ratio: 4 / 3 !important; max-height: 58vh; display: grid !important; place-items: center; overflow: hidden !important; }
+.eeTrace .polBig .polPhoto.big img,
+.eeTrace .polBig .polPhoto.big .dtPhoto img { width: 100% !important; height: 100% !important; object-fit: contain !important; }
+.eeTrace .polCaption { min-width: 0; overflow-wrap: anywhere; }
+.eeTrace .polCaption span,
+.eeTrace .polCaption small { display: block; white-space: normal; overflow-wrap: anywhere; }
+.eeTrace .polPager { flex: none; min-height: 34px !important; height: auto !important; }
+
+/* Candidate cards: keep the photo, description, and two verdict actions in
+   the same row without letting the right actions push text out of the box. */
+.eeTrace .etCand { min-width: 0; width: 100%; align-items: stretch; }
+.eeTrace .etCandText { min-width: 0; overflow: hidden; }
+.eeTrace .etCandText b,
+.eeTrace .etCandText span { min-width: 0; white-space: normal !important; overflow-wrap: anywhere; }
+.eeTrace .etFlags { flex: 0 1 190px !important; width: 190px !important; min-width: 154px; }
+.eeTrace .etFlags button { min-width: 0; min-height: 44px; white-space: normal !important; overflow-wrap: anywhere; }
+.eeTrace .etChoices { min-width: 0; width: 100%; align-items: stretch; }
+.eeTrace .etChoices button { min-width: 0; min-height: 64px; padding: 10px 14px !important; white-space: normal !important; overflow-wrap: anywhere; }
+.eeTrace .etChoices button > b,
+.eeTrace .etChoices button > small { display: block; width: 100%; white-space: normal; line-height: 1.25; }
+.eeTrace .etChoices button > b { font-weight: 800; }
+.eeTrace .etChoices button > small { color: #80665d; font-size: 11px; }
+.eeTrace .etInside { min-height: 42px; }
+
+/* Give the lower puzzle tray a stable green target frame and stable slots. */
+.refPuzzle.v2 .rpChoiceTray {
+  min-width: 0;
+  padding: 10px 12px 12px !important;
+  border: 2px solid #8fbd9d !important;
+  border-radius: 14px !important;
+  background: linear-gradient(180deg, #f6fbf3, #edf7ef) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.7), 0 4px 12px rgba(76, 113, 86, .12);
+}
+.refPuzzle.v2 .rpChoiceTray > small { color: #477254 !important; }
+.refPuzzle.v2 .rpChoiceTray > div { grid-template-columns: repeat(var(--piece-count, 4), 140px) !important; justify-content: center !important; align-items: center !important; }
+.refPuzzle.v2 .rpChoicePlaceholder,
+.refPuzzle.v2 .rpChoicePiece { width: 140px !important; height: 140px !important; min-width: 140px; flex: none; }
+.refPuzzle.v2 .rpChoicePlaceholder { display: block; visibility: hidden; }
+.refPuzzle.v2 .rpChoicePiece { transform: translateZ(0); transition: filter .16s ease, box-shadow .16s ease; }
+.refPuzzle.v2 .rpChoicePiece:hover { filter: drop-shadow(0 4px 0 #6c9a79); }
+.refPuzzle.v2 .rpChoicePiece.picked { outline: 3px solid #78a887; outline-offset: 3px; }
+.refPuzzle.v2 .rpPiece.dragging { transform: translateZ(0) scale(1) !important; transform-origin: top left; z-index: 40; pointer-events: none; }
+.refPuzzle.v2 .rpInputCard { min-width: 0; padding: 12px 14px !important; border-color: #9bc5a8 !important; background: #f4fbf5 !important; }
+.refPuzzle.v2 .rpInputCard > div small { max-width: 300px; }
+.refPuzzle.v2 .rpSlider { min-width: 250px; }
+.refPuzzle.v2 .rpSlider input { accent-color: #5e9b72; }
+.refPuzzle.v2 .rpSlider b { min-width: 60px; padding: 7px 9px; border-radius: 7px; background: #e2f0e4; color: #356344; text-align: center !important; }
+.refPuzzle.v2 .rpFolderBack { z-index: 1100; }
+.refPuzzle.v2 .rpFolder { max-height: 90vh; overflow: auto; }
+.refPuzzle.v2 .rpFolderPaper { overflow-wrap: anywhere; }
+.refPuzzle.v2 .rpFolderPaper table { table-layout: fixed; }
+.refPuzzle.v2 .rpFolderPaper td { overflow-wrap: anywhere; }
+
+/* The experiment monitor is a primary result view, not a thumbnail. */
+.vbBench.bench4.qa2 .b4Lab { grid-template-columns: minmax(0, 1fr) minmax(420px, 1.1fr) !important; }
+.vbBench.bench4.qa2 .b4Monitor { min-width: 0; min-height: 330px !important; height: auto !important; padding: 14px 16px !important; overflow: auto !important; }
+.vbBench.bench4.qa2 .b4Monitor .ovGraph { min-width: 0; overflow: visible !important; }
+.vbBench.bench4.qa2 .b4Monitor .ovGraph .ovRow { min-width: 0; grid-template-columns: 150px minmax(0, 1fr) 128px !important; }
+.vbBench.bench4.qa2 .b4Monitor .ovGraph .ovRow > span,
+.vbBench.bench4.qa2 .b4Monitor .ovGraph .ovVals { min-width: 0; overflow-wrap: anywhere; white-space: normal; }
+.vbBench.bench4.qa2 .b4Panel,
+.vbBench.bench4.qa2 .b4PanelBody,
+.vbBench.bench4.qa2 .b4PanelBody > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.vbBench.bench4.qa2 .b4PanelBody { overflow: auto; }
+.vbBench.bench4.qa2 .b4PanelBody p,
+.vbBench.bench4.qa2 .b4PanelBody li,
+.vbBench.bench4.qa2 .b4PanelBody td,
+.vbBench.bench4.qa2 .b4PanelBody th,
+.vbBench.bench4.qa2 .b4PanelBody b { overflow-wrap: anywhere; word-break: keep-all; white-space: normal; }
+.vbBench.bench4.qa2 .b4PanelBody table { width: 100%; table-layout: fixed; }
+
+/* No background animation may imply that a test is running. The 3D scene and
+   cable pulse are driven by the same running/progress props in TSX; this keeps
+   the idle state visually still until the player presses execute. */
+.benchEmbedded3D:not(.running) .embeddedBoundaryLabels,
+.systemBenchVisual section article:nth-of-type(2) { position: relative; }
+.systemBenchVisual .networkBus {
+  position: absolute;
+  left: 8%;
+  bottom: 9px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ef8a4f;
+  box-shadow: 0 0 0 3px rgba(239,138,79,.18);
+  transform: translateX(calc(var(--bench-progress, 0) * 360%));
+}
+.systemBenchVisual:not(.running) .networkBus { animation: none !important; opacity: .42; }
+.systemNetworkVisual:not(.running) .systemSignalPackets { display: none; }
+.benchEmbedded3D .embeddedBoundaryLabels { pointer-events: none; }
+
+/* Garage overview is the architecture entry point, but it still needs the
+   same navigation and progression frame as the drilled-in view.  The previous
+   version hid every sibling of the canvas, which made STEP01 look like a bare
+   visualization window and removed the next button. */
+.garageV2 .gv3Work[data-overview="true"] {
+  grid-template-columns: 84px minmax(0, 1fr) 360px !important;
+  grid-template-rows: 56px 64px minmax(0, 1fr) 150px !important;
+  grid-template-areas: "mission mission mission" "domains domains domains" "rail stage side" "flow flow flow" !important;
+}
+.garageV2 .gv3Work[data-overview="true"] .domainTabs { display: flex !important; }
+.garageV2 .gv3Work[data-overview="true"] .garageLayerNav { display: flex !important; }
+.garageV2 .gv3Work[data-overview="true"] .domainFunctionShelf { display: flex !important; }
+.garageV2 .gv3Work[data-overview="true"] .garageFooterRow { display: grid !important; }
+.garageV2 .gv3Work[data-overview="true"] .garageMechanismCard {
+  grid-area: stage !important;
+}
+
+/* Visualization labels need to survive the bright vehicle shell and remain
+   readable while orbiting the model. */
+.garageV2 .garageMechanismCard :is(.garage3dLabel, .garageVehiclePartLabel, .cableTag, .stepBadge, .liveBadge, .mechanismLegend, .flowLegend, .archView, .archView b, .archView small, .archView span, .archView li) {
+  font-family: Pretendard, system-ui, sans-serif !important;
+  font-weight: 800 !important;
+}
+.garageV2 .garageMechanismCard .garage3dLabel,
+.garageV2 .garageMechanismCard .garageVehiclePartLabel,
+.garageV2 .garageMechanismCard .cableTag { -webkit-text-stroke: .24px rgba(255,255,255,.9); }
+
+/* Final control-box contract: action labels get the same breathing room on
+   every side.  Older stage sheets mixed 0 16px, 8px 18px, and fixed-height
+   controls, which made equivalent choices look unrelated. */
+body :is(
+  .gv3Work .domainTabs button,
+  .gv3Work .garageLayerNav button,
+  .gv3Work .domainFunctionShelf > button,
+  .gv3Work .garageFlowPanel button,
+  .gv3Work .ctlBtn,
+  .levelSelect .lvStart button,
+  .eeTrace .etChoices button,
+  .eeTrace .etFlags button,
+  .eeTrace .etHyp span button,
+  .refPuzzle.v2 .rpChoicePiece,
+  .refPuzzle.v2 .rpRun,
+  .refPuzzle.v2 .rpExpect,
+  .refPuzzle.v2 .rpNext,
+  .garageV2 .archView .archGroupCard,
+  .garageV2 .archView .archCoordPreview button,
+  .garageV2 .archView .archAsk .arch3d,
+  .garageV2 .archView .archCrumb button,
+  .garageV2 .archView .archSignals button,
+  .vbBench.bench4.qa2 .qaChoices button,
+  .vbBench.bench4.qa2 .b4Panel button
+) {
+  box-sizing: border-box !important;
+  padding: 10px !important;
+}
+body .garageV2 .gv3Work .domainTabs button { min-height: 44px !important; }
+body .garageV2 .gv3Work .garageLayerNav button { min-height: 68px !important; }
+body .garageV2 .gv3Work .domainFunctionShelf > button {
+  height: auto !important;
+  min-height: 42px !important;
+  align-items: center !important;
+}
+body .garageV2 .gv3Work .garageFlowPanel button { min-height: 42px !important; }
+body .eeTrace .etChoices button,
+body .eeTrace .etFlags button,
+body .refPuzzle.v2 .rpChoicePiece,
+body .vbBench.bench4.qa2 .qaChoices button { min-height: 44px !important; }
+body .vbBench.bench4.qa2 .b4Panel button { min-height: 40px !important; }
+
+/* Final player-surface contract: every player-facing action button uses the
+   same 10px inset.  Small status text, keycaps and decorative chips are not
+   controls and keep their compact treatment. */
+body :is(
+  .levelSelect button,
+  .garageV2 button,
+  .eeTrace button,
+  .refPuzzle.v2 button,
+  .vbBench.bench4.qa2 button
+) {
+  box-sizing: border-box !important;
+  padding: 10px !important;
+}
+/* Graphic pieces and icon-only dismiss controls are not text action cards;
+   keep their authored hit area/geometry so the padding contract cannot make
+   the puzzle pieces or close icons jump in size. */
+body :is(.refPuzzle.v2 .rpChoicePiece, .refPuzzle.v2 .rpHelp, .refPuzzle.v2 .rpBubbleX, .eeTrace .polClose) {
+  padding: 0 !important;
+}
+
+/* Main cards share the same inset so the route feels like one game surface,
+   while their internal grids remain responsible for fitting their content. */
+body :is(
+  .levelSelect .lvPanel,
+  .levelSelect .lvDock,
+  .garageV2 .garageMechanismCard,
+  .garageV2 .garageFlowPanel,
+  .eeTrace .etBoard,
+  .eeTrace .etEvidence,
+  .eeTrace .etMugs,
+  .refPuzzle.v2 .rp3Work > .rpPanel,
+  .refPuzzle.v2 .rp3Work > .rpFoot,
+  .vbBench.bench4.qa2 .b4Stage,
+  .vbBench.bench4.qa2 .b4Panel,
+  .vbBench.bench4.qa2 .b4Dock
+) {
+  box-sizing: border-box !important;
+  padding: 10px !important;
+}
+
+/* The architecture cards contain role, input, output, and domain chips. Keep
+   that information inside the card even when the 1600x900 layout is dense. */
+.garageV2 .archView .archGroupCards { overflow: auto !important; padding-bottom: 2px; }
+.garageV2 .archView .archGroupCard {
+  overflow: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155,107,100,.45) transparent;
+}
+.garageV2 .archView .archGroupCard h3 { font-size: 19px !important; }
+.garageV2 .archView .archGroupCard .agPurpose { margin: 0 0 2px !important; line-height: 1.25 !important; }
+.garageV2 .archView .archGroupCard .agDomains { gap: 4px !important; }
+.garageV2 .archView .archGroupCard .agDomains em { padding: 3px 6px !important; font-size: 11px !important; }
+
+/* Domain and vehicle-part labels remain legible over the photographic scene.
+   The white keyline is deliberately applied to the glyph, not the label box. */
+.garageV2 :is(.domainTabs button b, .domainTabs button small, .allDomainLabel, .garage3dLabel, .garageVehiclePartLabel) {
+  font-family: Pretendard, system-ui, sans-serif !important;
+  -webkit-text-stroke: .42px rgba(255, 255, 255, .96);
+  text-shadow: 0 1px 1px rgba(255,255,255,.96), 0 0 5px rgba(255,255,255,.86);
+}
+.garageV2 .domainTabs button:hover b,
+.garageV2 .domainTabs button:focus-visible b,
+.garageV2 .domainTabs button:hover small,
+.garageV2 .domainTabs button:focus-visible small {
+  -webkit-text-stroke: .58px #fff;
+  text-shadow: 0 1px 2px #fff, 0 0 8px #fff;
+}
+
+/* Experiment hypothesis choices use the same evidence language as Domino:
+   a related polaroid is part of the choice card, never a giant image in the
+   side rail. */
+.vbBench.bench4.qa2 .b4HypChoices .b4Card.hypothesis {
+  grid-template-columns: 82px minmax(0, 1fr) !important;
+  grid-template-rows: auto auto auto !important;
+  align-items: center;
+  justify-items: start;
+  text-align: left;
+  gap: 5px 10px !important;
+  padding: 10px !important;
+}
+.vbBench.bench4.qa2 .b4HypChoices .hypPhoto {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  position: relative;
+  width: 82px;
+  min-width: 82px;
+  aspect-ratio: 88 / 107;
+  padding: 6px 6px 10px;
+  box-sizing: border-box;
+  display: block;
+  background: #fffefa;
+  border-radius: 4px;
+  box-shadow: 0 2px 2px rgba(0,0,0,.12), 0 5px 10px rgba(60,40,20,.14);
+}
+.vbBench.bench4.qa2 .b4HypChoices .hypPhotoWin {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #efe7da;
+}
+.vbBench.bench4.qa2 .b4HypChoices .hypPhotoWin img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.vbBench.bench4.qa2 .b4HypChoices .hypPhoto > b {
+  position: absolute;
+  left: 8px;
+  bottom: 2px;
+  font: 800 11px/1 Pretendard, system-ui;
+  color: #7a4a44;
+}
+.vbBench.bench4.qa2 .b4HypChoices .hypPhoto .pin {
+  position: absolute;
+  z-index: 2;
+  top: -5px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff8a7a, #c0392b 70%);
+  box-shadow: 0 2px 2px rgba(0,0,0,.3);
+}
+.vbBench.bench4.qa2 .b4HypChoices .hypPhoto + .etTag { grid-column: 2; grid-row: 1; }
+.vbBench.bench4.qa2 .b4HypChoices .hypPhoto ~ b { grid-column: 2; grid-row: 2; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.vbBench.bench4.qa2 .b4HypChoices .hypPhoto ~ small { grid-column: 2; grid-row: 3; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+
+/* Never hide the end of a long function label such as 운전자 지원·HMI. */
+.garageV2 .domainFunctionShelf > button {
+  height: auto !important;
+  min-height: 42px !important;
+  align-items: flex-start !important;
+  padding: 10px !important;
+}
+.garageV2 .domainFunctionShelf > button > b {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere;
+  line-height: 1.2 !important;
+}
+
+/* Architecture cards make the E/E-style grouping and cooperation signals the
+   primary visual hierarchy rather than a second row of unrelated tabs. */
+.garageV2 .archView .archGroupPick { gap: 10px; }
+.garageV2 .archView .archAsk { padding: 0 2px; }
+.garageV2 .archView .archGroupCards { gap: 12px; }
+.garageV2 .archView .archCoordPreview {
+  flex: 0 0 auto;
+  padding: 10px !important;
+  border: 2px solid rgba(155,107,100,.35) !important;
+  border-radius: 14px !important;
+  background: rgba(255,253,246,.88) !important;
+}
+.garageV2 .archView .archCoordPreview > header {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+}
+.garageV2 .archView .archCoordPreview > header small { line-height: 1.35; }
+.garageV2 .archView .archCoordPreview > div {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px !important;
+}
+.garageV2 .archView .archCoordPreview > div button {
+  min-width: 0 !important;
+  min-height: 48px !important;
+  padding: 10px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 3px 4px !important;
+  text-align: center;
+}
+.garageV2 .archView .archCoordPreview > div button strong { min-width: 0; overflow-wrap: anywhere; }
+.garageV2 .archView .archCoordPreview > div button span {
+  grid-column: 1 / -1; white-space: normal !important; overflow-wrap: anywhere;
+}
+
+/* Equal-width option actions: changing the label must never resize the card. */
+.eeTrace .etFlags { align-items: stretch; }
+.eeTrace .etFlags button {
+  display: grid !important;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  justify-content: initial !important;
+  gap: 7px !important;
+  text-align: left !important;
+}
+.eeTrace .etFlags button kbd { order: 0; width: 28px; min-width: 28px; text-align: center; }
+.eeTrace .etFlags button span { min-width: 0; text-align: left; overflow-wrap: anywhere; }
+
+/* ===== final player-surface pass ===== */
+/* Level selection uses the supplied garage whiteboard as the content surface.
+   The road remains a navigation cue, not the visual background. */
+.levelSelect .lvMap {
+  background:
+    linear-gradient(180deg, rgba(255,252,243,.76), rgba(255,247,229,.78)),
+    url('/assets/ui/level-select-board.png') center / cover no-repeat !important;
+}
+.levelSelect .lvMap::before { background: linear-gradient(90deg, rgba(255,252,243,.22), rgba(255,252,243,.06), rgba(255,252,243,.2)) !important; }
+.levelSelect .lvMap::after { content: "" !important; }
+.levelSelect .lvNode .lvBadge {
+  width: 112px !important;
+  height: 58px !important;
+  border-radius: 14px !important;
+  display: grid !important;
+  place-items: center !important;
+  box-shadow: 0 4px 0 rgba(104,78,52,.28), 0 7px 12px rgba(80,60,35,.13) !important;
+}
+.levelSelect .lvNode .lvCarIcon { font: 30px/1 "Segoe UI Emoji", "Apple Color Emoji", sans-serif; }
+.levelSelect .lvNode b, .levelSelect .lvNode small { border-radius: 10px !important; }
+
+/* The puzzle tray and board use one fixed piece geometry.  The tray never
+   lets a piece escape its green boundary, and the board keeps the same scale. */
+.refPuzzle.v2 .rpStage { touch-action: none !important; overflow: hidden !important; }
+.refPuzzle.v2 .rpChoiceTray { overflow: hidden !important; box-sizing: border-box !important; padding: 8px !important; border: 2px solid #78ae84 !important; border-radius: 14px !important; background: #eef8f0 !important; }
+.refPuzzle.v2 .rpChoiceTray > div { flex: 0 0 140px !important; min-height: 140px !important; align-items: center !important; justify-content: center !important; grid-template-columns: repeat(var(--piece-count, 4), 140px) !important; overflow: hidden !important; }
+.refPuzzle.v2 .rpChoicePiece, .refPuzzle.v2 .rpPiece { width: 140px !important; height: 140px !important; min-width: 140px !important; min-height: 140px !important; box-sizing: border-box !important; }
+.refPuzzle.v2 .rpChoicePiece { flex: none !important; }
+.refPuzzle.v2 .rpPiece.dragging { position: absolute !important; pointer-events: none !important; z-index: 50 !important; }
+.refPuzzle.v2 .rpHelp { left: auto !important; right: 5px !important; bottom: 5px !important; width: 24px !important; height: 24px !important; min-width: 24px !important; min-height: 24px !important; padding: 0 !important; display: grid !important; place-items: center !important; line-height: 1 !important; }
+.refPuzzle.v2 .rpBoardZoom { display: none !important; }
+.refPuzzle.v2 .rpRun, .refPuzzle.v2 .rpExpect { border-radius: 12px !important; border-width: 2px !important; box-shadow: none !important; }
+
+/* Document sheets are centered in one modal layer.  Nut's spoken note sits
+   above the dimmed document, then disappears without moving the sheet. */
+.rpFolderBack { z-index: 1400 !important; place-items: center !important; padding: 24px !important; box-sizing: border-box !important; background: rgba(30,24,21,.58) !important; backdrop-filter: blur(8px) brightness(.72) !important; }
+.rpFolder { position: relative !important; margin: auto !important; max-height: min(88vh, 760px) !important; overflow: auto !important; transform: none !important; }
+.rpFolderPaper { max-height: calc(88vh - 58px) !important; overflow: auto !important; box-sizing: border-box !important; }
+.nutFocusBackdrop { z-index: 1500 !important; background: rgba(28,25,22,.42) !important; backdrop-filter: blur(8px) brightness(.72) saturate(.8) !important; }
+.nutPopup { z-index: 1600 !important; transform: none !important; rotate: none !important; }
+.nutPopupBody li { padding-left: 32px !important; }
+.nutPopupBody li::before { left: 6px !important; }
+
+/* No slanted control surfaces.  Positioning transforms used by the level
+   nodes are intentionally excluded. */
+body :is(.rpRun, .rpExpect, .rpNext, .b4Card, .b4Panel button, .b4Levels button, .b4Seg button, .b4Review button, .rpFolderTabs .tab, .openBook .obTabs button, .etEvidenceTabs button) { transform: none !important; rotate: none !important; background-image: none !important; }
+
+/* Open-book answer layer lock. */
+.openBook .obTabs button.locked { color: #9d948d !important; background: #eee9e1 !important; border-color: #d6cbc0 !important; cursor: not-allowed !important; }
+.openBook .obLocked { margin-top: 16px; padding: 24px; border: 2px dashed #c9a39c; border-radius: 14px; background: #fffaf4; text-align: center; }
+.openBook .obLocked b { display: block; font: 800 18px/1.3 Pretendard, system-ui; color: #7a4a44; }
+.openBook .obLocked p { margin: 8px 0 0; font: 600 14px/1.5 Pretendard, system-ui; color: #5a4440; }
+
+/* Hypothesis picking is a review surface, not a second unstable hypothesis
+   list.  Previous-step material is tabbed and remains inside the stage. */
+.vbBench.bench4.qa2 .hypReviewPick { grid-template-columns: minmax(0, 1fr) minmax(300px, .9fr) !important; }
+.vbBench.bench4.qa2 .b4Review { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.vbBench.bench4.qa2 .b4Review nav { display: flex; gap: 8px; }
+.vbBench.bench4.qa2 .b4Review nav button { flex: 1 1 0; min-width: 0; padding: 10px !important; border: 2px solid #d8c89e; border-radius: 12px; background: #fffdf4; color: #6b4a44; font: 800 13px/1.2 Pretendard, system-ui; }
+.vbBench.bench4.qa2 .b4Review nav button.on { background: #9b6b64; border-color: #9b6b64; color: #fff8f2; }
+.vbBench.bench4.qa2 .b4ReviewPaper { flex: 1 1 0; min-height: 0; padding: 20px; border: 2px solid #d8c89e; border-radius: 14px; background: #fffdf4; overflow: hidden; }
+.vbBench.bench4.qa2 .b4ReviewPaper small { font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; }
+.vbBench.bench4.qa2 .b4ReviewPaper h3 { margin: 10px 0; font: 800 22px/1.3 Pretendard, system-ui; color: #3f302c; }
+.vbBench.bench4.qa2 .b4ReviewPaper p { margin: 8px 0; font: 600 14px/1.5 Pretendard, system-ui; color: #5a4440; overflow-wrap: anywhere; }
+
+/* Real example imagery for test-level cards and stable equal-height monitor. */
+.vbBench.bench4.qa2 .b4ChoicePhoto, .vbBench.bench4.qa2 .b4LevelPhoto { position: relative; display: grid; place-items: center; overflow: hidden; background: #efe7da; border: 5px solid #fffefa; border-bottom-width: 11px; border-radius: 4px; box-shadow: 0 2px 2px rgba(0,0,0,.12), 0 5px 10px rgba(60,40,20,.12); }
+.vbBench.bench4.qa2 .b4ChoicePhoto { width: 88px; height: 74px; }
+.vbBench.bench4.qa2 .b4ChoicePhoto img, .vbBench.bench4.qa2 .b4LevelPhoto img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.vbBench.bench4.qa2 .b4ChoicePhoto .pin { position: absolute; z-index: 2; top: -8px; left: 50%; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #b94e40; }
+.vbBench.bench4.qa2 .b4Levels button { grid-template-columns: 54px minmax(0,1fr) auto !important; height: 64px !important; padding: 6px 10px !important; }
+.vbBench.bench4.qa2 .b4LevelPhoto { width: 48px; height: 42px; border-width: 3px; border-bottom-width: 7px; }
+.vbBench.bench4.qa2 .b4Monitor { height: 300px !important; min-height: 300px !important; flex: 0 0 300px !important; position: relative; }
+.vbBench.bench4.qa2 .b4Monitor::before { content: "모니터링 · 정상 기준선과 시험 대상 비교"; display: block; flex: none; font: 800 13px/1 Pretendard, system-ui; color: #7a4a44; }
+.vbBench.bench4.qa2 .b4Monitor .ovGraph { flex: 1 1 0 !important; overflow: hidden !important; }
+.vbBench.bench4.qa2 .b4Monitor .ovGraph .ovRow { min-height: 42px !important; }
+.vbBench.bench4.qa2 .b4Scrub button { background: #fff8f2 !important; background-image: none !important; padding: 10px !important; height: auto !important; }
+
+/* Bench choices use the same solid card language as the rest of the game. */
+.vbBench.bench4.qa2 .b4Dock .b4Card { background: #fffdf8 !important; background-image: none !important; padding: 10px !important; }
+.vbBench.bench4.qa2 .b4Dock .b4Card.run { background: #fbe9e1 !important; background-image: none !important; }
+.vbBench.bench4.qa2 .b4Card code, .vbBench.bench4.qa2 .qaTable code, .vbBench.bench4.qa2 .qaConditionBlock code { display: inline-block; padding: 2px 5px; border-radius: 4px; background: #efe7da; color: #4a3a36; font: 700 12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.vbBench.bench4.qa2 .b4PanelBody { overflow: hidden !important; }
+.vbBench.bench4.qa2 .b4PanelBody :is(.qaResultState, .qaProof, .qaVerdictNote) { overflow: hidden !important; max-width: 100%; }
+.vbBench.bench4.qa2 .qaResultState span { display: block; white-space: normal !important; line-height: 1.35 !important; }
+.vbBench.bench4.qa2 .qaResultState .qaVerdictNote { display: block; margin-top: 4px; }
+.eeTrace .etDockSection {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 280px !important;
+  align-items: stretch;
+  gap: 10px !important;
+}
+.eeTrace .etDockSection .etInside {
+  width: 280px !important;
+  min-width: 280px !important;
+  max-width: 280px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: normal !important;
+}
+
+/* The slow-time badge is explanatory prose, not a debug fraction. */
+.timeDilation { white-space: nowrap; }
+.timeDilation small { font: inherit; font-size: .8em; }
+
+@media (max-width: 1120px) {
+  .eeTrace .etLayout { grid-template-columns: minmax(0, 1fr) minmax(300px, 33vw) !important; }
+  .eeTrace .etFlags { width: 154px !important; min-width: 132px; }
+  .eeTrace .etDockSection { grid-template-columns: minmax(0, 1fr) 230px !important; }
+  .eeTrace .etDockSection .etInside { width: 230px !important; min-width: 230px !important; max-width: 230px !important; }
+  .vbBench.bench4.qa2 .b4Lab { grid-template-columns: minmax(0, 1fr) minmax(320px, 1fr) !important; }
+}
+
+@media (max-width: 860px) {
+  .eeTrace .etLayout { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: minmax(420px, 1fr) auto auto auto !important; }
+  .eeTrace .etLayout > .etEvidence { grid-column: 1 !important; grid-row: 2 !important; }
+  .eeTrace .etLayout > .etMugs { grid-column: 1 !important; grid-row: 3 !important; }
+  .eeTrace .etLayout > .etNextCell { grid-column: 1 !important; grid-row: 4 !important; }
+  .eeTrace .etFlags { width: 180px !important; }
+  .eeTrace .etDockSection { grid-template-columns: 1fr !important; }
+  .eeTrace .etDockSection .etInside { width: 100% !important; min-width: 0 !important; max-width: none !important; }
+  .vbBench.bench4.qa2 .b4Lab { grid-template-columns: 1fr !important; grid-template-rows: auto auto minmax(260px, 1fr) auto !important; }
+}
+
+/* 2026-11-16 final structural pass: the game is a fixed play surface. */
+html body:has(.garageV2),
+html body:has(.eeTrace),
+html body:has(.refPuzzle),
+html body:has(.vbBench) { overflow: hidden !important; }
+.garageV2 .gv3Work,
+.garageV2 .gv3Work .garageMechanismCard,
+.garageV2 .gv3Work .archView { overflow: hidden !important; }
+.garageV2 .gv3Work .archView { min-height: 0 !important; }
+
+/* Long domain labels remain readable instead of becoming an ellipsis. */
+.garageV2 .gv3Work .domainTabs .groupBtns button > b {
+  overflow: visible !important; text-overflow: clip !important; white-space: normal !important;
+  line-height: 1.12 !important; text-align: center;
+}
+
+/* The evidence rail uses its whole row; no hidden OpenBook control squeezes tabs. */
+.eeTrace .etEvidence > header { min-height: 42px !important; }
+.eeTrace .etEvidenceTabs { width: 100% !important; overflow: visible !important; }
+.eeTrace .etEvidenceTabs button { overflow: visible !important; text-overflow: clip !important; white-space: nowrap !important; padding: 10px !important; }
+.eeTrace .etEvidenceContent { min-height: 0 !important; overflow: hidden !important; }
+.eeTrace .etMeasureTab, .eeTrace .etZoneTab, .eeTrace .etHypTab { min-height: 0 !important; overflow: hidden !important; }
+.eeTrace .etHypCopy b, .eeTrace .etHypCopy small { overflow: visible !important; text-overflow: clip !important; }
+.eeTrace .etHyp { min-height: 74px !important; }
+
+/* Shared player controls: equal inset on every side, no tilted/gradient controls. */
+body .gameStage :is(.garageV2 .domainTabs button, .garageV2 .garageLayerNav button, .garageV2 .garageFlowPanel button, .eeTrace .etEvidenceTabs button, .eeTrace .etFlags button, .eeTrace .etChoices button, .eeTrace .etInside, .refPuzzle .rpRun, .refPuzzle .rpExpect, .vbBench .b4Card, .vbBench .b4Levels button, .vbBench .b4Seg button) {
+  box-sizing: border-box !important; padding: 10px !important; background-image: none !important; transform: none !important; rotate: none !important;
+}
+
+/* Full viewport modal composition. */
+body .gameStage .rpFolderBack,
+body .gameStage .nutFocusBackdrop { position: fixed !important; inset: 0 !important; min-height: 100dvh !important; align-items: center !important; justify-items: center !important; }
+body .gameStage .rpFolder { max-height: calc(100dvh - 48px) !important; overflow: auto !important; }
+
+/* Puzzle tray and board share a stable inset and target geometry. */
+.refPuzzle .rpChoiceTray { padding: 10px !important; overflow: hidden !important; }
+.refPuzzle .rpChoiceTray > div { padding: 10px !important; gap: 10px !important; align-content: center !important; }
+.refPuzzle .rpChoiceTray .rpPiece { margin: 0 !important; }
+.refPuzzle .rpStage { display: grid !important; place-items: center !important; }
+.refPuzzle .rpBoard { margin: 0 auto !important; }
+.refPuzzle .rpBoardZoom { display: none !important; }
+.refPuzzle .rpQuestion { z-index: 12 !important; right: 10px !important; left: auto !important; bottom: 10px !important; width: 24px !important; height: 24px !important; padding: 0 !important; display: grid !important; place-items: center !important; }
+
+/* Numeric values are visually code-like in every experiment surface. */
+.vbBench .b4Card code, .vbBench .qaConditionBlock code, .vbBench .qaPickedInput code,
+.vbBench .b4Panel code, .vbBench .b4Dock code { display: inline-block; padding: 2px 5px; border-radius: 4px; background: rgba(155,107,100,.12); font: 800 12px/1.2 ui-monospace, Menlo, monospace; }
+.vbBench .b4Panel, .vbBench .b4Stage, .vbBench .b4Dock { min-width: 0 !important; overflow: hidden !important; }
+.vbBench .b4Monitor { min-height: 300px !important; height: 300px !important; }
+
+/* Prevent visual thumbnails from leaking into the evidence tab header. */
+.eeTrace .etEvidenceTabs > img, .eeTrace .etEvidence > header > img, .eeTrace .etEvidenceTabs .dtPhoto { display: none !important; }
+
+/* Final architecture entry: the player chooses one of the three vehicle
+   areas in the architecture cards.  The old all-domain rail and empty side
+   shelf duplicated that choice and made the first screen look like a dense
+   control panel.  Keep the layer rail and the progression footer, but let
+   the architecture canvas use the complete middle/right surface. */
+.garageV2 .gv3Work[data-overview="true"] {
+  grid-template-columns: 84px minmax(0, 1fr) !important;
+  grid-template-rows: 56px minmax(0, 1fr) 150px !important;
+  grid-template-areas: "mission mission" "rail stage" "flow flow" !important;
+}
+.garageV2 .gv3Work[data-overview="true"] .domainTabs,
+.garageV2 .gv3Work[data-overview="true"] .domainFunctionShelf { display: none !important; }
+.garageV2 .gv3Work[data-overview="true"] .garageMechanismCard {
+  grid-area: stage !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+.garageV2 .gv3Work[data-overview="true"] .archView { padding-inline: 14px !important; }
+.garageV2 .gv3Work[data-overview="true"] .archGroupCard,
+.garageV2 .gv3Work[data-overview="true"] .archCoordPreview,
+.garageV2 .gv3Work[data-overview="true"] .archCoordPreview button { padding: 10px !important; }
+.garageV2 .gv3Work[data-overview="true"] .archGroupCards { gap: 10px !important; }
+.garageV2 .gv3Work[data-overview="true"] .archGroupCards {
+  flex: 0 0 168px !important;
+  height: 168px !important;
+  min-height: 168px !important;
+}
+.garageV2 .gv3Work[data-overview="true"] .archGroupCard {
+  gap: 4px !important;
+  min-height: 168px !important;
+}
+.garageV2 .gv3Work[data-overview="true"] .archGroupCard .agIo { display: none !important; }
+.garageV2 .gv3Work[data-overview="true"] .archGroupCard .agPurpose { margin: 0 !important; line-height: 1.2 !important; }
+.garageV2 .gv3Work[data-overview="true"] .archGroupVisual { margin: 0 !important; padding: 6px !important; }
+.garageV2 .gv3Work[data-overview="true"] .archCoordPreview { margin-top: 0 !important; }
+
+/* No player-facing page scroll.  Internal content is fitted or shortened in
+   the owning panel; the game viewport itself never becomes a document scroll. */
+html, body, #root, .gameStage { overflow: hidden !important; }
+
+/* Keep long domain names readable instead of silently replacing the tail
+   with an ellipsis.  The architecture entry no longer exposes the old
+   crowded domain rail, but this also protects the drilled-in view. */
+.garageV2 .domainTabs button > b,
+.garageV2 .domainFunctionShelf > button > b,
+.garageV2 .garageBreadcrumb strong {
+  text-overflow: clip !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* Drilled-in domain/layer choices must grow with their label.  A fixed
+   34px row made the vehicle-assistance label collapse into an ellipsis and
+   also broke the equal-inset rule when it wrapped. */
+.garageV2 .gv3Work .domainFunctionShelf > button {
+  height: auto !important;
+  min-height: 44px !important;
+  padding: 10px !important;
+  align-items: center !important;
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+/* Reverse-trace empty state: use the available rail as a deliberate empty
+   card instead of leaving loose text at the top with a large unstructured
+   blank area. */
+.eeTrace .etMeasureTab { min-height: 0 !important; display: flex !important; flex-direction: column; gap: 12px; padding: 10px !important; box-sizing: border-box; }
+.eeTrace .etMeasureTab > .etEmpty { flex: 1 1 auto; min-height: 170px; display: grid !important; place-items: center; align-content: center; gap: 8px; margin: 0 !important; padding: 24px 18px !important; box-sizing: border-box; text-align: center; border: 1px dashed rgba(155,107,100,.36); border-radius: 14px; background: rgba(255,250,242,.72); color: #7a5a53; font: 700 14px/1.45 Pretendard, system-ui; }
+.eeTrace .etMeasureTab > .etEmpty svg { width: 24px; height: 24px; color: #9b6b64; }
+.eeTrace .etReasonPath { flex: none; margin: 0 !important; padding: 10px !important; border: 1px solid rgba(155,107,100,.25); border-radius: 12px; background: rgba(255,253,246,.8); }
+
+/* Puzzle tray: the piece slot and its title must fit inside the green frame.
+   The old fixed 140px item plus inner padding exceeded the 150px footer row. */
+.refPuzzle.v2 .rp3Work { grid-template-rows: 56px minmax(0, 1fr) 184px !important; }
+.refPuzzle.v2 .rp3Work > .rpFoot { min-height: 0 !important; padding: 8px 12px !important; }
+.refPuzzle.v2 .rp3Work .rpChoiceTray { min-height: 0 !important; height: 100% !important; }
+.refPuzzle.v2 .rp3Work .rpChoiceTray > div { min-height: 0 !important; height: 140px !important; padding: 0 !important; align-content: center !important; }
+.refPuzzle.v2 .rp3Work .rpChoiceTray > small { flex: none !important; line-height: 1.1 !important; }
+.refPuzzle.v2 .rp3Work .rpChoicePiece,
+.refPuzzle.v2 .rp3Work .rpChoicePlaceholder { flex: none !important; }
+
+/* Equal inset contract for the remaining visible cards and tabs.  Close
+   controls and circular status markers remain compact by design. */
+body .gameStage :is(
+  .archGroupCard, .archCoordPreview, .archCoordPreview button,
+  .etEvidenceTabs button, .etEmpty, .etReasonPath,
+  .rpPanel, .rpReq, .rpReqHead, .rpRun, .rpExpect,
+  .rpFolderPaper, .rpFolderTabs span,
+  .vbBench .v7Card, .vbBench .vbChoices button, .vbBench .v7NoteBtn,
+  .vbBench .vbGo, .vbBench .v7Judge, .vbBench .v7JudgeRow,
+  .vbBench .vbMonitor, .vbBench .v7View
+) { box-sizing: border-box !important; }
+body .gameStage :is(
+  .archGroupCard, .archCoordPreview, .archCoordPreview button,
+  .etEvidenceTabs button, .etEmpty, .etReasonPath,
+  .rpPanel, .rpReq, .rpReqHead, .rpRun, .rpExpect,
+  .rpFolderPaper, .rpFolderTabs span,
+  .vbBench .v7Card, .vbBench .vbChoices button, .vbBench .v7NoteBtn,
+  .vbBench .vbGo, .vbBench .v7Judge, .vbBench .v7JudgeRow,
+  .vbBench .vbMonitor, .vbBench .v7View
+) { padding: 10px !important; }
+
+/* Numbers in the live experiment surface use the same inline-code treatment
+   as the design sheet, including values inside level/input cards and the
+   monitor legend. */
+.vbBench.v7 :is(.v7Goal, .vbSub, .v7Plan, .v7Scope, .v7JudgeEv, .vbLegend, .vbVal, .v7TabNote, .v7Report, .vbBubble) code.num,
+.vbBench.v7 :is(.v7Card, .vbChoices button, .vbLegend, .vbVal, .v7JudgeEv) code.num {
+  display: inline-block !important;
+  padding: 2px 5px !important;
+  border-radius: 4px !important;
+  background: rgba(155,107,100,.12) !important;
+  color: #a84942 !important;
+  font: 800 12px/1.2 ui-monospace, Menlo, monospace !important;
+  white-space: nowrap !important;
+}
+
+/* Garage entry is deliberately a visual first step.  The 3D vehicle owns the
+   whole content row; the player chooses a translucent vehicle area over it,
+   then moves into the architecture/domain view. */
+.garageV2 .gv3Work[data-mode="overview3d"] {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: 56px minmax(0, 1fr) !important;
+  grid-template-areas: "mission" "stage" !important;
+}
+.garageV2 .gv3Work[data-mode="overview3d"] :is(.garageLayerNav, .domainTabs, .domainFunctionShelf, .garageFooterRow) { display: none !important; }
+.garageV2 .gv3Work[data-mode="overview3d"] .garageMechanismCard { grid-area: stage !important; min-height: 0 !important; border-radius: 18px !important; }
+.garageV2 .gv3Work[data-mode="overview3d"] .garageMechanismCard > .garageVizTag { max-width: 390px !important; background: rgba(255,253,246,.78) !important; backdrop-filter: blur(8px); }
+.garageV2 .garageAreaPicker { position: absolute; z-index: 7; left: 5%; right: 5%; bottom: 18px; display: grid; gap: 10px; pointer-events: none; }
+.garageV2 .garageAreaPicker > p { margin: 0; display: flex; align-items: baseline; gap: 10px; color: #3f302c; text-shadow: 0 1px 2px rgba(255,255,255,.8); }
+.garageV2 .garageAreaPicker > p b { font: 900 18px/1 Pretendard, system-ui; }
+.garageV2 .garageAreaPicker > p span { font: 700 13px/1.3 Pretendard, system-ui; }
+.garageV2 .garageAreaPicker > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; pointer-events: auto; }
+.garageV2 .garageAreaPicker button { min-width: 0; min-height: 70px; display: grid; grid-template-columns: 28px minmax(0,1fr); grid-template-rows: 1fr auto; align-items: center; column-gap: 8px; padding: 10px !important; border: 2px solid rgba(255,255,255,.9); border-radius: 14px; background: rgba(255,253,246,.78); color: #4a3a36; box-shadow: 0 5px 12px rgba(43,31,25,.22); backdrop-filter: blur(7px); cursor: pointer; text-align: left; }
+.garageV2 .garageAreaPicker button:hover, .garageV2 .garageAreaPicker button:focus-visible { background: rgba(255,248,218,.92); border-color: #c4553a; outline: 3px solid rgba(196,85,58,.28); outline-offset: 2px; }
+.garageV2 .garageAreaPicker button > svg { grid-row: 1 / 3; width: 24px; height: 24px; color: #9b6b64; }
+.garageV2 .garageAreaPicker button b { min-width: 0; font: 900 14px/1.15 Pretendard, system-ui; }
+.garageV2 .garageAreaPicker button small { grid-column: 2; min-width: 0; font: 700 11px/1.15 Pretendard, system-ui; color: #7a5a53; }
+.garageV2 .garageAreaPicker .area-0 { border-color: rgba(76,143,116,.72); }
+.garageV2 .garageAreaPicker .area-1 { border-color: rgba(128,112,176,.72); }
+.garageV2 .garageAreaPicker .area-2 { border-color: rgba(208,143,120,.72); }
+.garageV2 .garageAreaPicker .area-coord { border-color: rgba(196,85,58,.78); background: rgba(255,239,223,.84); }
+.garageV2 .gv3Work[data-mode="architecture"] .domainTabs.scoped { align-items: stretch; }
+.garageV2 .gv3Work[data-mode="architecture"] .domainTabs.scoped .overviewBack { flex: 0 0 170px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 10px !important; border-color: #9b6b64 !important; background: #9b6b64 !important; color: #fff8f2 !important; font: 800 13px/1.15 Pretendard, system-ui; white-space: normal !important; }
+
+/* After a hypothesis is chosen, keep the evidence on the left as compact
+   visual facts.  This replaces a second dense list with image + route + first
+   deviation cards, so the following test-level choice has a stable anchor. */
+.vbBench.bench4.qa2 .b4SelectedHypothesis { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0,1fr) auto; gap: 10px; padding: 12px; border: 2px solid #d8c89e; border-radius: 14px; background: #fffdf4; overflow: hidden; }
+.vbBench.bench4.qa2 .b4SelectedHypHero { min-width: 0; display: grid; grid-template-columns: 112px minmax(0,1fr); gap: 12px; align-items: center; padding: 10px; border: 2px solid #e4d3ae; border-radius: 12px; background: #fffaf0; }
+.vbBench.bench4.qa2 .b4SelectedHypHero img { width: 112px; height: 78px; object-fit: contain; border: 4px solid #fff; border-bottom-width: 9px; border-radius: 4px; background: #eee7dc; box-shadow: 0 3px 8px rgba(60,40,20,.14); }
+.vbBench.bench4.qa2 .b4SelectedHypHero small, .vbBench.bench4.qa2 .b4SelectedHypFacts small, .vbBench.bench4.qa2 .b4SelectedHypPrediction small { display: block; color: #8a5a52; font: 800 12px/1.1 Pretendard, system-ui; }
+.vbBench.bench4.qa2 .b4SelectedHypHero h3 { margin: 5px 0 4px; color: #3f302c; font: 900 18px/1.22 Pretendard, system-ui; overflow-wrap: anywhere; }
+.vbBench.bench4.qa2 .b4SelectedHypHero p { margin: 0; color: #7a5a53; font: 700 12px/1.25 Pretendard, system-ui; overflow-wrap: anywhere; }
+.vbBench.bench4.qa2 .b4SelectedHypFacts { min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+.vbBench.bench4.qa2 .b4SelectedHypFacts article { min-width: 0; padding: 10px; border: 1px solid #e4d3ae; border-radius: 10px; background: #fffaf0; }
+.vbBench.bench4.qa2 .b4SelectedHypFacts b, .vbBench.bench4.qa2 .b4SelectedHypFacts span { display: block; margin-top: 6px; color: #4a3a36; font: 800 13px/1.3 Pretendard, system-ui; overflow-wrap: anywhere; }
+.vbBench.bench4.qa2 .b4SelectedHypFacts span { color: #8a6a63; font: 700 11px/1.3 ui-monospace, Menlo, monospace; }
+.vbBench.bench4.qa2 .b4SelectedHypPrediction { min-width: 0; padding: 10px; border-left: 4px solid #6fa08c; border-radius: 8px; background: #eef5e9; }
+.vbBench.bench4.qa2 .b4SelectedHypPrediction p { margin: 5px 0 0; color: #345f48; font: 700 13px/1.35 Pretendard, system-ui; overflow-wrap: anywhere; }

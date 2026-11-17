@@ -1,0 +1,44 @@
+/* Sub-step milestone row inside the common folder subtitle (STEP01–04). Same slot/height as the old detail line. */
+.stageFolderSubtitle small.stepRoadmap {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.stepRoadmap > b { flex: none; font: 800 11px/1 Pretendard, system-ui; color: #7a4a44; }
+.stepRoadmap ol { display: flex; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.stepRoadmap li {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px 2px 3px; border-radius: 999px;
+  font: 650 10.5px/1.1 Pretendard, system-ui; color: #8a6a63;
+  background: rgba(155, 107, 100, .08);
+}
+.stepRoadmap li:not(:last-child)::after { content: ""; }
+.stepRoadmap li i {
+  display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%;
+  font: 800 9px/1 Pretendard, system-ui; font-style: normal;
+  background: rgba(155, 107, 100, .22); color: #fff8f2;
+}
+.stepRoadmap li.done { color: #6f5650; }
+.stepRoadmap li.done i { background: #8a9a78; }
+.stepRoadmap li.now { color: #fff8f2; background: #9b6b64; font-weight: 800; box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset; }
+.stepRoadmap li.now i { background: #fff8f2; color: #9b6b64; }
+
+/* chips are buttons: back is free, forward is locked until reached */
+.stepRoadmap li { padding: 0; background: none; }
+.stepRoadmap li button {
+  all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+  padding: 3px 9px 3px 3px; border-radius: 999px; cursor: pointer;
+  font: 650 12px/1.1 Pretendard, system-ui; color: #8a6a63; background: rgba(155, 107, 100, .08);
+}
+.stepRoadmap li.done button { color: #6f5650; }
+.stepRoadmap li.done button:hover { background: rgba(155, 107, 100, .2); }
+.stepRoadmap li.now button { cursor: default; color: #fff8f2; background: #9b6b64; font-weight: 800; }
+.stepRoadmap li.locked button { cursor: not-allowed; opacity: .5; }
+.stepRoadmap li button:focus-visible { outline: 2px solid #9b6b64; outline-offset: 1px; }
+.stepRoadmap li button i { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; font: 800 10px/1 Pretendard, system-ui; font-style: normal; background: rgba(155, 107, 100, .22); color: #fff8f2; }
+.stepRoadmap li.done button i { background: #8a9a78; }
+.stepRoadmap li.now button i { background: #fff8f2; color: #9b6b64; }
+.stepRoadmap > b { font-size: 12px; }
+.stepRoadmap li.now, .stepRoadmap li.done, .stepRoadmap li.locked { background: none; box-shadow: none; }

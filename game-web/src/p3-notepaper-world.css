@@ -1,0 +1,258 @@
+/* p3 — the note-paper skin for the rest of the game (garage, race HUD, cutscenes, fault dialogue, failure/repair).
+   Same tokens as p2: paper #fffdf6, ink #33291f, red stamp #d4473c, yellow label #ffdf5e, radius 6px, layered paper shadow.
+   Only surfaces and buttons change; positions stay as they were. */
+:root {
+  --np-paper: #fffdf6; --np-paper-2: #f8f1e3; --np-ink: #33291f; --np-soft: #7b6a5c;
+  --np-red: #d4473c; --np-yellow: #ffdf5e; --np-r: 6px;
+  --np-shadow: 0 1px 1px rgba(0,0,0,.16), 0 4px 6px rgba(30,15,5,.2), 0 14px 26px rgba(20,10,0,.26);
+  --np-shadow-sm: 0 1px 1px rgba(0,0,0,.14), 0 3px 6px rgba(30,15,5,.18);
+}
+
+/* ---------- shared: backgrounds slightly blurred and darkened ---------- */
+.garageV2 > .sceneBackdrop, .failureAnalysis > .sceneBackdrop, .repairV > .sceneBackdrop { filter: blur(4px) brightness(.9); transform: scale(1.04); }
+
+/* ---------- shared: paper surfaces ---------- */
+.garageLayerNav, .garageMechanismCard, .domainFunctionShelf, .garageFlowPanel,
+.sharedDialogue, .catSpeech, .faultLamp, .quickTrace,
+.stillStoryCard, .getawayBriefingCard, .finaleCaptionCard, .repairResultCard, .boardingCaption, .heistCaption,
+.analysisHeader, .analysisCompare, .guidedSteps, .repairDialogue,
+.raceFeed > div, .keyGuideCard, .raceMiniMap, .raceV2 > .routeTracker, .raceTripHud, .driveMission {
+  border: 0 !important; border-radius: var(--np-r) !important; background: var(--np-paper) !important;
+  box-shadow: var(--np-shadow) !important; color: var(--np-ink) !important; backdrop-filter: none !important;
+}
+.garageLayerNav button, .domainFunctionShelf button, .garageFlowPanel button, .domainTabs button, .labTabs button, .pullOutChain button, .quizChoices button {
+  border-radius: var(--np-r) !important; border: 1.5px solid #e2d5c2 !important; background: var(--np-paper) !important; box-shadow: 0 2px 0 #e2d5c2 !important; color: var(--np-ink) !important; font-weight: 500 !important;
+}
+.garageLayerNav button.active, .domainFunctionShelf button.active, .domainTabs button.active, .labTabs button.on, .garageFlowPanel button.activeStep {
+  background: var(--np-yellow) !important; border-color: #e6c74a !important; box-shadow: 0 2px 0 #d9b938 !important;
+}
+.garageMechanismCard > header, .functionNote, .pullOutLab, .flowStepCard, .pullOutBubble, .ControllerCard, .partIntroCard {
+  border-radius: var(--np-r) !important;
+}
+.garageMechanismCard > header { background: var(--np-paper-2) !important; border: 0 !important; box-shadow: none !important; }
+.functionNote { background: var(--np-paper-2) !important; border: 0 !important; }
+.garageMechanismCard header h1, .domainFunctionShelf h2 { font-weight: 600 !important; color: var(--np-ink) !important; }
+.garageV2 .viewAxisLabel, .domainFunctionShelf > small, .garageMechanismCard header small { color: var(--np-red) !important; }
+
+/* ---------- primary actions: red rubber stamp everywhere ---------- */
+.garageProceed, .sharedDialogue .primary, .catSpeech .primary, .faultDialogueScene .primary, .staticCutscene .primary,
+.failureAnalysis .primary, .repairV .primary, .cinematic .primary {
+  border: 2px solid var(--np-red) !important; border-radius: var(--np-r) !important; background: #fff6f3 !important; color: var(--np-red) !important;
+  font-weight: 600 !important; box-shadow: 0 3px 0 rgba(160,40,30,.3), 0 6px 10px rgba(60,20,10,.16) !important; text-shadow: none !important;
+}
+.garageProceed:active, .sharedDialogue .primary:active, .catSpeech .primary:active, .staticCutscene .primary:active, .failureAnalysis .primary:active, .repairV .primary:active, .cinematic .primary:active {
+  transform: translateY(2px) !important; box-shadow: 0 1px 0 rgba(160,40,30,.3) !important;
+}
+
+/* ---------- race HUD: readable paper notes over the 3D road ---------- */
+.raceFeed > div { padding: 8px 12px !important; }
+.raceZoneSign i, .raceFeed .tbIcon { color: var(--np-red); }
+.raceV2 > .routeTracker .routeLabels b { color: var(--np-red) !important; }
+.keyGuideCard kbd, .raceControls kbd { border-radius: 4px !important; background: var(--np-paper) !important; color: var(--np-ink) !important; border: 1.5px solid #d9c9b3 !important; box-shadow: 0 2px 0 #d9c9b3 !important; }
+.gearPrompt b, .driveMission b { color: var(--np-red) !important; }
+
+/* ---------- dialogue and captions ---------- */
+.sharedDialogue b, .catSpeech b, .stillStoryCard h1, .getawayBriefingCard h1, .finaleCaptionCard h1 { color: var(--np-ink) !important; font-weight: 600 !important; }
+.sharedDialogue small, .stillStoryCard small, .getawayBriefingCard small, .finaleCaptionCard small { color: var(--np-red) !important; }
+.faultLamp small { color: var(--np-red) !important; }
+
+/* ---------- sound toggles: small paper buttons ---------- */
+.soundToggle button { border-radius: 50% !important; background: var(--np-paper) !important; color: var(--np-ink) !important; box-shadow: var(--np-shadow-sm) !important; border: 0 !important; }
+
+/* garage: empty flow panel text never runs under the proceed button */
+.garageV2 .garageFlowEmpty .flowRelationship { position: static !important; inset: auto !important; transform: none !important; margin: 0 !important; grid-column: 1 !important; grid-row: 2 !important; min-width: 0 !important; text-align: left !important; justify-self: start !important; align-self: center !important; }
+.garageV2 .garageFlowEmpty > div { display: none !important; }
+/* race: the journey rail is narrow here — show only the current stage name */
+.raceV2 .journeyRail article:not(.active) > span { display: none !important; }
+/* shared ActionButton (prologue, dialogues, cutscenes, verify-fail, endings): primary = red stamp, others = paper */
+button.clayAction.tone-primary { border: 2px solid var(--np-red) !important; border-radius: var(--np-r) !important; background: #fff6f3 !important; color: var(--np-red) !important; font-weight: 600 !important; box-shadow: 0 3px 0 rgba(160,40,30,.3), 0 6px 10px rgba(60,20,10,.16) !important; text-shadow: none !important; }
+button.clayAction.tone-neutral, button.clayAction.tone-secondary { border: 1.5px solid #d9c9b3 !important; border-radius: var(--np-r) !important; background: var(--np-paper) !important; color: var(--np-ink) !important; font-weight: 500 !important; box-shadow: 0 2px 0 #d9c9b3 !important; }
+button.clayAction:active { transform: translateY(2px) !important; }
+button.clayAction .keycap, button.clayAction kbd { border-radius: 4px !important; background: var(--np-paper-2) !important; color: var(--np-ink) !important; }
+/* race: on narrow windows the regen hint chip would run under the rear mirror — the key bar already shows Q/E */
+@media (max-width: 1240px) { .raceV2 .raceTripHud > em { display: none !important; } }
+/* garage: layers that need a domain look locked, and the domain tabs pulse until one is chosen */
+.garageLayerNav button.needsDomain { opacity: .55 !important; cursor: not-allowed !important; }
+.garageV2 .domainTabs:not(:has(button.active)) button { animation: npPulse 1.6s ease-in-out infinite; }
+@keyframes npPulse { 50% { box-shadow: 0 0 0 3px rgba(255,223,94,.75), 0 2px 0 #e2d5c2; } }
+
+/* ---------- title: one taped note card ---------- */
+.titleScene > .sceneBackdrop { filter: none !important; transform: none !important; }
+.titleScene .titleMenu { width: min(360px, 90vw) !important; min-width: 0 !important; height: auto !important; border: 0 !important; border-radius: var(--np-r) !important; padding: 22px 24px 20px !important;
+  background: repeating-linear-gradient(180deg, transparent 0 27px, #d3e2f0 27px 28px), var(--np-paper) !important; box-shadow: var(--np-shadow) !important; color: var(--np-ink) !important; }
+.titleScene .titleMenu::before { content: ""; position: absolute; top: -9px; left: 50%; translate: -50% 0; width: 70px; height: 18px; border-radius: 2px; background: rgba(250,244,220,.7); box-shadow: 0 1px 1px rgba(0,0,0,.1); }
+.titleScene .titleMenu .eyebrow { color: var(--np-red) !important; font-weight: 600 !important; letter-spacing: .02em !important; background: none !important; border: 0 !important; box-shadow: none !important; }
+.titleScene .titleMenu h1 { color: var(--np-ink) !important; text-shadow: none !important; }
+.titleScene .titleMenu h1 > span { font-family: Pretendard, sans-serif !important; font-weight: 800 !important; letter-spacing: -.03em !important; color: var(--np-ink) !important; text-shadow: none !important; -webkit-text-stroke: 0 !important;
+  background: linear-gradient(transparent 58%, var(--np-yellow) 58% 92%, transparent 92%) !important; -webkit-background-clip: border-box !important; background-clip: border-box !important; -webkit-text-fill-color: currentColor !important; }
+.titleScene .titleMenu h1 > small { color: var(--np-soft) !important; font-weight: 500 !important; letter-spacing: 0 !important; }
+.titleScene .titleMenu h1 > img { border-radius: 50% !important; background: #fff !important; box-shadow: var(--np-shadow-sm) !important; }
+.titleScene .heroBtn { border: 2px solid var(--np-red) !important; border-radius: var(--np-r) !important; background: #fff6f3 !important; color: var(--np-red) !important; box-shadow: 0 3px 0 rgba(160,40,30,.3), 0 6px 10px rgba(60,20,10,.16) !important; justify-content: center !important; }
+.titleScene .heroBtn b { color: var(--np-red) !important; font-weight: 600 !important; }
+.titleScene .cloud, .titleScene .keyHelp { border: 0 !important; border-radius: var(--np-r) !important; background: var(--np-paper) !important; color: var(--np-soft) !important; box-shadow: var(--np-shadow-sm) !important; }
+
+/* ---------- history buttons (이전 단계 / 다음 단계), every screen ---------- */
+.stageHistoryNav .stageBackButton, .stageHistoryNav .stageForwardButton {
+  height: 30px !important; padding: 3px 10px !important; border: 1.5px solid #d9c9b3 !important; border-radius: var(--np-r) !important;
+  background: var(--np-paper) !important; color: var(--np-ink) !important; box-shadow: 0 2px 0 #d9c9b3, 0 4px 8px rgba(30,15,5,.15) !important;
+  font: 500 12px Pretendard, system-ui !important; backdrop-filter: none !important;
+}
+.stageHistoryNav .stageForwardButton { background: #fff8d6 !important; border-color: #e6cf7a !important; box-shadow: 0 2px 0 #e6cf7a, 0 4px 8px rgba(30,15,5,.15) !important; }
+/* garage: the nav sits above the layer list, which starts lower so they never overlap */
+.garageV2 + .stageHistoryNav { top: 80px !important; left: 14px !important; }
+.garageV2 .garageLayerNav { top: 120px !important; }
+
+/* ---------- note lines + highlighter on key words ---------- */
+.dtLayout, .vbLayout { background: repeating-linear-gradient(180deg, transparent 0 27px, rgba(150,180,210,.28) 27px 28px), var(--np-paper) !important; }
+.dtChain, .dtQuestion .dtCands, .dtImpact, .vbStage .vbChoices button, .vbMonitor { position: relative; z-index: 1; }
+mark, .np-mark, .dtQuestion h2 b, .vbStage h2 b, .rpHead h1 em, .refPuzzle .rpHead p b, .dtBBox b {
+  background: linear-gradient(transparent 56%, rgba(255,223,94,.85) 56% 92%, transparent 92%) !important; color: inherit !important; padding: 0 2px;
+}
+
+.titleScene .titleMenu h1 { font-size: 30px !important; margin: 4px 0 12px !important; }
+.titleScene .titleMenu h1 > img { width: 40px !important; height: 40px !important; }
+.titleActions { display: grid; gap: 8px; }
+.titleScene .heroBtn { width: 100% !important; min-height: 0 !important; height: auto !important; padding: 9px 14px !important; font-size: 14px !important; }
+.titleScene .heroBtn span { display: grid !important; justify-items: center; } .titleScene .heroBtn small { color: #7b6a5c !important; font: 500 11.5px Pretendard, system-ui !important; }
+.titleBtn { width: 100%; padding: 8px 12px; border: 1.5px solid #d9c9b3; border-radius: var(--np-r); background: var(--np-paper); color: var(--np-ink); box-shadow: 0 2px 0 #d9c9b3; font: 500 13px Pretendard, system-ui; cursor: pointer; }
+.titleBtn:active { transform: translateY(2px); box-shadow: 0 0 0 #d9c9b3; }
+.titleRow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.titlePanel { display: grid; gap: 6px; margin-top: 10px; padding: 10px 12px; border-radius: var(--np-r); background: var(--np-paper-2); font: 500 12.5px/1.5 Pretendard, system-ui; color: var(--np-ink); }
+.titlePanel small { color: var(--np-soft); } .titlePanel label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.titlePanel kbd { padding: 0 5px; border-radius: 4px; border: 1px solid #d9c9b3; background: #fff; font: 600 11px Pretendard, system-ui; }
+.titleScene .cloud, .titleScene .keyHelp { display: none !important; }
+.titleScene .heroBtn small { display: block !important; }
+.titleScene .titleMenu h1 > span { display: inline-block !important; width: fit-content !important; }
+/* fault notice: one repair-order sheet at the bottom centre, nothing stacked on top of the race view */
+.faultDialogueScene > main.faultSheet { position: absolute !important; z-index: 5 !important; left: 50% !important; right: auto !important; top: auto !important; bottom: 28px !important; width: min(720px, calc(100% - 32px)) !important; translate: -50% 0;
+  display: grid !important; gap: 10px; padding: 18px 20px 14px !important; border-radius: var(--np-r); background: repeating-linear-gradient(180deg, transparent 0 25px, rgba(150,180,210,.3) 25px 26px), var(--np-paper); box-shadow: var(--np-shadow); color: var(--np-ink); }
+.faultSheet::before { content: ""; position: absolute; top: -8px; left: 50%; translate: -50% 0; width: 60px; height: 16px; border-radius: 2px; background: rgba(250,244,220,.7); }
+.fsHead { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: center; }
+.fsBang { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--np-red); color: #fff; font: 800 22px Pretendard, system-ui; }
+.fsHead small { color: var(--np-red); font: 600 12px Pretendard, system-ui; } .fsHead h1 { margin: 2px 0 0; font: 600 17px/1.4 Pretendard, system-ui; color: var(--np-ink); }
+.fsLamp { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: center; padding: 8px 10px; border-radius: var(--np-r); background: var(--np-paper-2); }
+.fsLamp .lampIcon { position: static !important; width: 44px !important; height: 44px !important; border-radius: 8px; display: grid !important; place-items: center; }
+.fsLamp small { color: var(--np-red); font: 600 11px Pretendard, system-ui; } .fsLamp b { display: block; font: 600 14px Pretendard, system-ui; } .fsLamp em { font: 500 12px Pretendard, system-ui; font-style: normal; color: var(--np-soft); }
+.fsTalk { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: center; }
+.fsTalk img { width: 44px; height: 44px; border-radius: 50%; background: #fff; object-fit: cover; box-shadow: var(--np-shadow-sm); }
+.fsTalk b { font: 600 13px Pretendard, system-ui; color: var(--np-red); } .fsTalk p { margin: 2px 0 0; font: 500 14.5px/1.45 Pretendard, system-ui; }
+.fsFoot { display: flex; justify-content: space-between; align-items: center; gap: 12px; } .fsFoot small { color: var(--np-soft); font: 500 11.5px Pretendard, system-ui; }
+.fsFoot .primary { padding: 9px 18px !important; }
+.faultDialogueScene > main.faultSheet { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: none !important; height: auto !important; } .faultSheet > * { grid-column: 1 !important; width: auto !important; max-width: none !important; margin: 0 !important; }
+
+/* ---------- verdict stamp (정답 / 오답) ---------- */
+.verdictLayer { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; pointer-events: none; }
+.verdictStamp { padding: 10px 46px; border: 10px solid currentColor; border-radius: 18px; font: 900 112px/1 Pretendard, system-ui; letter-spacing: .06em; background: rgba(255,253,246,.92);
+  box-shadow: 0 12px 40px rgba(0,0,0,.25); animation: verdictSlam 1.1s cubic-bezier(.2,1.6,.4,1) forwards; }
+.verdictStamp.ok { color: #2f8a55; } .verdictStamp.no { color: #d4473c; }
+@keyframes verdictSlam { 0% { transform: scale(3) rotate(-18deg); opacity: 0; } 18% { transform: scale(.92) rotate(-11deg); opacity: 1; } 28% { transform: scale(1.04) rotate(-12deg); } 80% { transform: scale(1) rotate(-12deg); opacity: 1; } 100% { transform: scale(1) rotate(-12deg); opacity: 0; } }
+.verdictLayer:has(.no) { animation: verdictShake .4s; }
+@keyframes verdictShake { 25% { translate: -8px 0; } 75% { translate: 8px 0; } }
+
+/* ---------- first-visit stage tutorial ---------- */
+.stageIntro { position: fixed; inset: 0; z-index: 350; display: grid; place-items: center; background: rgba(40,26,20,.35); backdrop-filter: blur(6px); }
+.stageIntro article { width: min(560px, calc(100% - 32px)); padding: 22px 24px 18px; border-radius: var(--np-r); background: repeating-linear-gradient(180deg, transparent 0 27px, rgba(150,180,210,.3) 27px 28px), var(--np-paper); box-shadow: var(--np-shadow); color: var(--np-ink); position: relative; }
+.stageIntro article::before { content: ""; position: absolute; top: -9px; left: 50%; translate: -50% 0; width: 64px; height: 18px; border-radius: 2px; background: rgba(250,244,220,.75); }
+.stageIntro small { color: var(--np-red); font: 600 12px Pretendard, system-ui; }
+.stageIntro h2 { margin: 2px 0 6px; font: 700 21px Pretendard, system-ui; }
+.stageIntroGoal { margin: 0 0 12px; font: 500 14px/1.5 Pretendard, system-ui; background: linear-gradient(transparent 55%, rgba(255,223,94,.7) 55% 92%, transparent 92%); display: inline; }
+.stageIntro ol { list-style: none; margin: 14px 0 16px; padding: 0; display: grid; gap: 8px; }
+.stageIntro li { display: grid; grid-template-columns: 38px 22px 1fr; gap: 8px; align-items: center; padding: 8px 10px; border-radius: var(--np-r); background: var(--np-paper-2); font: 500 14px/1.45 Pretendard, system-ui; }
+.stageIntro li i { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: #fff; font-size: 20px; color: var(--np-red); font-style: normal; }
+.stageIntro li b { font: 700 15px Pretendard, system-ui; color: var(--np-red); }
+.stageIntro .primary { width: 100%; padding: 10px !important; border: 2px solid var(--np-red) !important; border-radius: var(--np-r) !important; background: #fff6f3 !important; color: var(--np-red) !important; font: 600 15px Pretendard, system-ui !important; cursor: pointer; }
+.stageIntro { z-index: 600 !important; } .verdictLayer { z-index: 650 !important; }
+/* garage E/E: overview list above (in the lab), detailed step card below (in the flow panel) */
+.flowOverview > small { display: block; margin-bottom: 4px; font: 500 11.5px Pretendard, system-ui; color: var(--np-soft); }
+.flowOverview > div { display: flex; flex-wrap: wrap; gap: 4px; }
+.flowOverview button { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: var(--np-r); border: 1.5px solid #e2d5c2; background: var(--np-paper); font: 500 12px Pretendard, system-ui; color: var(--np-ink); cursor: pointer; }
+.flowOverview button i { font-style: normal; font-weight: 700; color: var(--np-red); }
+.flowOverview button.on { background: var(--np-yellow); border-color: #e3bb45; } .flowOverview button.done { background: #eef4e8; }
+.garageV2 .garageFlowPanel .flowStepCard { grid-column: 1 !important; grid-row: 2 !important; min-width: 0; }
+.garageStudio:has(.garageFlowPanel .flowStepCard) { grid-template-rows: 42px minmax(0, 1fr) 190px !important; }
+.garageV2 .garageFlowPanel:has(.flowStepCard) > small, .garageV2 .garageFlowPanel:has(.flowStepCard) > .flowRelationship { display: none !important; }
+.garageV2 .garageFlowPanel:has(.flowStepCard) { grid-template-rows: minmax(0, 1fr) !important; }
+.garageV2 .garageFlowPanel .flowStepCard { grid-row: 1 / -1 !important; display: grid !important; grid-template-rows: auto minmax(0, 1fr); gap: 8px; width: 100% !important; height: 100%; padding: 6px 4px; box-sizing: border-box; background: transparent !important; border: 0 !important; box-shadow: none !important; }
+.garageV2 .garageFlowPanel .flowStepHead { display: flex !important; align-items: center; gap: 10px; flex-wrap: nowrap; }
+.garageV2 .garageFlowPanel .flowStepHead strong { font: 600 15px Pretendard, system-ui; }
+.garageV2 .garageFlowPanel .flowStepNav { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.garageV2 .garageFlowPanel .flowStepNav button { min-width: 0 !important; min-height: 0 !important; padding: 4px 10px !important; }
+.garageV2 .garageFlowPanel .flowStepBody { display: grid !important; grid-template-columns: 1fr 24px 1.4fr 24px 1fr; align-items: stretch; gap: 6px; min-height: 0; }
+.garageV2 .garageFlowPanel .flowStepBody > div { padding: 8px 10px; border-radius: var(--np-r); background: var(--np-paper-2); display: grid; align-content: center; gap: 2px; }
+.garageV2 .garageFlowPanel .flowStepBody > i { align-self: center; text-align: center; font-style: normal; color: var(--np-soft); }
+.garageV2 .garageFlowPanel .flowStepBody small { color: var(--np-red); font: 600 11px Pretendard, system-ui; }
+.garageV2 .garageFlowPanel .flowStepBody b { font: 600 14px/1.35 Pretendard, system-ui; }
+.garageV2 .garageFlowPanel .flowStepBody em { font: 500 11.5px Pretendard, system-ui; font-style: normal; color: var(--np-soft); }
+.garageV2 .garageFlowPanel .flowStepCard { position: static !important; inset: auto !important; top: auto !important; left: auto !important; right: auto !important; bottom: auto !important; margin: 0 !important; grid-column: 1 !important; height: auto !important; max-height: 100% !important; }
+.garageV2 .garageLayerNav { top: 132px !important; }
+
+/* Control SW: where this logic lives (like a Simulink model path) */
+.simulinkFlow .simPath { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 2px 0 6px; font-size: 12.5px; color: #5b4540; }
+.simulinkFlow .simPath > i { font-style: normal; opacity: .55; }
+.simulinkFlow .simPath button { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 6px; border: 1px solid #d9c3bd; background: #fffaf6; color: #6e4a44; font: 500 12.5px Pretendard, sans-serif; cursor: pointer; box-shadow: 0 1px 2px #6b453c22; }
+.simulinkFlow .simPath button:hover { background: #f7e7e2; }
+.simulinkFlow .simPath button.ecu { background: #f3e2dd; border-color: #c99d94; font-weight: 600; }
+.simulinkFlow .simPath button small { font-weight: 500; opacity: .7; }
+.simulinkFlow .simPath button svg { width: 14px; height: 14px; }
+.simulinkFlow .simPath .ecu.none { opacity: .7; }
+.simulinkFlow .simPath .swcs { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.simulinkFlow .simPath .swcs em { font-style: normal; padding: 3px 8px; border-radius: 6px; border: 1px dashed #b98f86; background: #fffdfb; }
+.simulinkFlow .simPath .swcs small { opacity: .6; margin-left: 2px; }
+.subsystemName i { font-style: normal; opacity: .65; margin-right: 4px; }
+.garageMechanismCard .simulinkFlow .simPath { margin-left: 232px; min-height: 28px; }
+.subsystemName.withOwner { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.15; font-size: 11px !important; }
+.subsystemName.withOwner i { display: block; font-size: 10px; }
+
+/* Vehicle/System: one part, 360° turntable + description */
+.partInspect { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: rgba(48, 32, 28, .34); backdrop-filter: blur(3px); }
+.partInspect article { position: relative; width: min(980px, calc(100vw - 48px)); height: min(560px, calc(100vh - 80px)); display: grid; grid-template-columns: 1.15fr 1fr; background: #fffaf6; border-radius: 6px; box-shadow: 0 2px 4px #4a2e2733, 0 18px 40px #4a2e2740; overflow: hidden; }
+.partInspect .piStage { position: relative; background: #f6efe9; border-right: 1px solid #ead8d1; }
+.partInspect .piStage canvas { cursor: grab; }
+.partInspect .piTools { position: absolute; left: 14px; top: 14px; display: flex; gap: 6px; }
+.partInspect .piTools button { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 6px; border: 1px solid #d9c3bd; background: #fffaf6; color: #6e4a44; font: 500 12.5px Pretendard, sans-serif; cursor: pointer; }
+.partInspect .piTools button.on { background: #9b6b64; color: #fff; border-color: #9b6b64; }
+.partInspect .piTools svg { width: 14px; height: 14px; }
+.partInspect .piHint { position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; font-size: 12px; color: #8a6e67; }
+.partInspect .piText { position: relative; padding: 26px 26px 20px; overflow: auto; color: #3f2c28; }
+.partInspect .piClose { position: absolute; right: 12px; top: 10px; width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; font-size: 22px; color: #8a6e67; cursor: pointer; }
+.partInspect .piText > small { display: block; font-size: 12px; color: #9b6b64; font-weight: 500; padding-right: 30px; }
+.partInspect h2 { margin: 6px 0 4px; font-size: 24px; font-weight: 700; }
+.partInspect .piName { margin: 0 0 8px; font-size: 13.5px; color: #6e4a44; }
+.partInspect .piName em { font-style: normal; opacity: .6; margin-left: 4px; }
+.partInspect .piRole { margin: 8px 0 14px; font-size: 14px; line-height: 1.5; }
+.partInspect .piRole b { display: inline-block; margin-right: 8px; padding: 2px 8px; border-radius: 6px; background: #f3e2dd; color: #7a4f48; font-size: 12.5px; font-weight: 600; }
+.partInspect dl { margin: 0; display: grid; gap: 8px; }
+.partInspect dl > div { display: grid; grid-template-columns: 84px 1fr; gap: 10px; padding-bottom: 8px; border-bottom: 1px dashed #ead8d1; }
+.partInspect dt { font-size: 12.5px; color: #8a6e67; font-weight: 500; }
+.partInspect dd { margin: 0; font-size: 13.5px; line-height: 1.45; }
+.partInspect dd em { font-style: normal; color: #7a4f48; font-weight: 600; }
+.partInspect .piPorts { display: flex; flex-wrap: wrap; gap: 5px; }
+.partInspect .piPorts em { padding: 2px 8px; border-radius: 6px; background: #f6efe9; font-weight: 500; font-size: 12.5px; }
+.partInspect .piPorts em.out { background: #f3e2dd; }
+.partInspect .piPorts em i { font-style: normal; opacity: .65; }
+.partInspect .piNote { margin: 14px 0 0; font-size: 12px; color: #8a6e67; }
+/* history buttons never grow wide (old min-width 112px pushed "다음 단계" over the garage domain tabs) */
+.stageHistoryNav { gap: 6px !important; }
+.stageHistoryNav .stageBackButton, .stageHistoryNav .stageForwardButton { min-width: 0 !important; width: auto !important; white-space: nowrap; }
+/* garage: back + forward stack inside the left column so they never reach the domain tabs */
+.garageV2 + .stageHistoryNav:has(.stageForwardButton) { flex-direction: row; max-width: calc(var(--garage-left, 236px) - 4px); }
+.garageV2 + .stageHistoryNav { gap: 4px !important; }
+.garageV2 + .stageHistoryNav button { height: 34px !important; padding: 3px 9px !important; font-size: 12px !important; }
+.stageHistoryNav .stageBackButton, .stageHistoryNav .stageForwardButton { min-height: 0 !important; }
+/* race: regression drive after a repair */
+.raceFeed .regressionCard { display: flex; gap: 10px; align-items: center; padding: 9px 12px; border-radius: 6px; background: var(--np-paper, #fffdf6); border: 1.5px solid #8fbf9e; box-shadow: 0 2px 0 #8fbf9e, 0 6px 12px rgba(30,15,5,.18); color: #2f3b33; animation: npPop .25s ease-out; }
+.raceFeed .regressionCard.no { border-color: #d9a093; box-shadow: 0 2px 0 #d9a093, 0 6px 12px rgba(30,15,5,.18); }
+.raceFeed .regressionCard i { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 6px; background: #3f8a5c; color: #fff; }
+.raceFeed .regressionCard.no i { background: #c0574a; }
+.raceFeed .regressionCard i svg { width: 17px; height: 17px; }
+.raceFeed .regressionCard span { display: grid; gap: 1px; }
+.raceFeed .regressionCard small { font: 600 10px Pretendard, sans-serif; letter-spacing: .04em; color: #6c7d70; }
+.raceFeed .regressionCard b { font: 600 13.5px Pretendard, sans-serif; }
+.raceFeed .regressionCard em { font: 500 12.5px Pretendard, sans-serif; font-style: normal; }
+@keyframes npPop { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* race key bar: keys on the top row, meaning on the bottom row */
+.raceV2 .raceControls.keyBar { gap: 16px !important; align-items: flex-start !important; }
+.keyBar .keyItem { display: flex !important; flex-direction: column; align-items: center; gap: 3px; }
+.keyBar .keyItem > i { display: flex; align-items: center; gap: 3px; font-style: normal; }
+.keyBar .keyItem > i small { font-size: 11px; opacity: .7; }
+.keyBar .keyItem > em { margin: 0 !important; font: 500 11.5px Pretendard, sans-serif !important; white-space: nowrap; }
