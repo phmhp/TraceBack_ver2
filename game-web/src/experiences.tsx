@@ -202,6 +202,7 @@ export const partModelFor = (domain: DomainId, label: string): string | undefine
     : /^CAN/.test(label) ? "can_harness"
     : /3상 전력/.test(label) ? "hv_cable"
     : /압력 명령/.test(label) ? "hydraulic_modulator"
+    : /조향각|핸들각/.test(label) ? "steering_angle_sensor"
     : /^토크 센서/.test(label) ? "steering_torque_sensor"
     : /조향축/.test(label) ? "steering_column"
     : /모터 인버터/.test(label) ? "eps_power_pack"
@@ -222,6 +223,7 @@ export const partModelFor = (domain: DomainId, label: string): string | undefine
     : /ADAS ECU/.test(label) ? "adas_ecu"
     : /텔레매틱스 제어기/.test(label) ? "tcu"
     : /Lock Actuator|잠금 액추에이터/.test(label) ? "park_lock_actuator"
+    : /Park Pawl|park pawl|파킹 ?폴/.test(label) ? "park_pawl"
     : /Position Sensor/.test(label) ? "park_position_sensor"
     : /Height Sensor|높이 센서/.test(label) ? "ride_height_sensor"
     : /RPM Feedback/.test(label) ? "cooling_fan"
@@ -241,6 +243,7 @@ export const partModelFor = (domain: DomainId, label: string): string | undefine
     // no independent authored sensor exists yet, so do not mis-map it.
     : /휠속|Wheel Sensor|속도센서/.test(label) ? "wheel_speed_sensor"
     : /리졸버/.test(label) ? "rotor_position_sensor"
+    : /냉각수 온도/.test(label) ? "coolant_temperature_sensor"
     : /NTC/.test(label) ? "motor_temp_sensor"
     : /^BMS/.test(label) ? "bms"
     : /^VCU/.test(label) ? "vcu"
@@ -639,7 +642,14 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
     const photo = (index: number) => { const id = partModelFor(domain, chain[index]); return id ? (PART_THUMBS.has(id) ? `/assets/ending-thumbs/${id}.png` : `/assets/intake/images/${getPartModel(id).ref}`) : undefined; };
     const pickNode = (index: number) => {
       onPick?.(index);
-      if (eeLayer === "part") { play("pop"); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: { domain, feature, index } })); return; }
+      if (eeLayer === "part") {
+        play("pop");
+        // The clicked architecture node and the inspector must use the same
+        // resolved model id.  Re-resolving only from the label used to fall
+        // back to an older generic visual when a layer label differed.
+        dispatchEvent(new CustomEvent("tb-part-inspect", { detail: { domain, feature, index, partId: partModelFor(domain, chain[index]), label: chain[index] } }));
+        return;
+      }
       setInspect(previous => previous === index ? null : index); play("pop");
     };
     const inspector = inspect === null || inspect >= chain.length ? null : { index: inspect, tag: ROLE_TEXT[roles[inspect]].tag, input: inspect === 0 ? "운전자 조작 또는 센서가 재는 물리량" : signals[inspect - 1], does: ROLE_DOES[roles[inspect]](signals[inspect]), output: signals[inspect] };
@@ -820,7 +830,7 @@ function PartInspector() {
           <hemisphereLight intensity={2} color="#fff8e5" groundColor="#8a6f66" />
           <directionalLight position={[3, 5, 4]} intensity={2.6} />
           <directionalLight position={[-3, 2, -3]} intensity={.9} />
-          {partId ? <FittedPart id={partId} size={1.5} demo={moving} castShadow={false} /> : <div />}
+          {partId ? <FittedPart id={partId} size={1.5} demo={moving} castShadow={false} /> : <MissingGaragePart kind={kind} />}
           <OrbitControls makeDefault autoRotate={spin} autoRotateSpeed={2.2} enablePan={false} minDistance={1.4} maxDistance={6} target={[0, 0, 0]} />
         </Canvas>
         <div className="piTools">

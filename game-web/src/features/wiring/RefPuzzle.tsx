@@ -680,14 +680,21 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const nearestGap = (px: number, py: number) => { let best: number | null = null, dist = PIECE * .95; ref.gaps.forEach(g => { const d = Math.hypot(px + PIECE / 2 - (slotX(g) + PIECE / 2), py + PIECE / 2 - (MAIN_Y + PIECE / 2)); if (d < dist) { dist = d; best = g; } }); return best; };
   const onDown = (event: React.PointerEvent, id: string) => {
     if (event.button !== 0 || check?.status === "running") return;
-    const p = world(event.clientX, event.clientY); const slot = inSlot(id); const home = slot !== null ? { x: slotX(slot), y: MAIN_Y } : spareHome(id);
-    const next = { id, x: home.x, y: home.y, dx: p.x - home.x, dy: p.y - home.y, moved: false };
+    const p = world(event.clientX, event.clientY); const slot = inSlot(id);
+    // A tray piece is not a child of .rpWorld.  Using its tray coordinates as
+    // if they were world coordinates caused the first pointer move to teleport
+    // the piece across the board.  Start the drag at the actual pointer in the
+    // world and keep the pointer anchored to the piece centre; subsequent
+    // moves then form one continuous tray → board drag.
+    const home = slot !== null ? { x: slotX(slot), y: MAIN_Y } : { x: p.x - PIECE / 2, y: p.y - PIECE / 2 };
+    const next = { id, x: home.x, y: home.y, dx: slot !== null ? p.x - home.x : PIECE / 2, dy: slot !== null ? p.y - home.y : PIECE / 2, moved: false };
     dragRef.current = next;
     setDrag(next);
     // Do not capture on the tray button or the stage. The source is outside
     // the board, so the drag is completed by the document-level listeners
     // below even after the pointer crosses the board boundary.
     event.preventDefault();
+    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
   };
   const onMove = (event: React.PointerEvent) => { if (!drag) return; const p = world(event.clientX, event.clientY); const nx = p.x - drag.dx, ny = p.y - drag.dy; setDrag({ ...drag, x: nx, y: ny, moved: drag.moved || Math.hypot(nx - drag.x, ny - drag.y) > 4 }); };
   const onUp = (event: React.PointerEvent) => {

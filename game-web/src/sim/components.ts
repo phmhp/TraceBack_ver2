@@ -22,6 +22,8 @@ export const COMPONENTS: ComponentDef[] = [
   part({ id: "steering_wheel", name: "Steering Wheel & Angle Sensor", nameKo: "스티어링 휠·조향각 센서", domainId: "driver", categories: ["driver_input", "sensor"],
     ports: [p("angle_out", "out", "analog", "deg", "Steering_Angle"), p("column_out", "out", "mechanical_torque", "Nm", "Driver_Torque")],
     relatedEcu: "eps_ecu", animation: { type: "rotate", driver: "Steering_Angle" } }),
+  part({ id: "steering_angle_sensor", name: "Steering Angle Sensor", nameKo: "조향각 센서", domainId: "steer", categories: ["sensor"],
+    ports: [p("angle_in", "in", "mechanical_torque", "deg"), p("angle_out", "out", "analog", "deg", "Steering_Angle")], relatedEcu: "eps_ecu" }),
   part({ id: "gear_selector", name: "Gear Selector", nameKo: "기어 셀렉터", domainId: "driver", categories: ["driver_input"],
     ports: [p("gear_out", "out", "digital", "enum", "Gear_Request")], relatedEcu: "vcu" }),
   part({ id: "start_button", name: "Start/Stop Button", nameKo: "시동 버튼", domainId: "driver", categories: ["driver_input"],
@@ -59,6 +61,10 @@ export const COMPONENTS: ComponentDef[] = [
     ports: [p("rotation_in", "in", "rotational_speed", "rpm"), p("angle_out", "out", "analog", "deg", "Rotor_Position")], relatedEcu: "mcu" }),
   part({ id: "motor_temp_sensor", name: "Motor Temperature Sensor (NTC)", nameKo: "모터 온도 센서(NTC)", domainId: "thermal", categories: ["sensor"],
     ports: [p("heat_in", "in", "thermal", "°C"), p("temp_out", "out", "analog", "°C", "Motor_Temperature")], relatedEcu: "thermal_ecu" }),
+  part({ id: "coolant_temperature_sensor", name: "Coolant Temperature Sensor", nameKo: "냉각수 온도 센서", domainId: "thermal", categories: ["sensor"],
+    ports: [p("coolant_in", "in", "thermal", "°C"), p("temp_out", "out", "analog", "°C", "Coolant_Temperature")], relatedEcu: "thermal_ecu" }),
+  part({ id: "park_pawl", name: "E-axle Park Pawl", nameKo: "전륜 e-axle 파킹 폴", domainId: "gear", categories: ["actuator"],
+    ports: [p("lock_in", "in", "mechanical_torque", "Nm"), p("lock_out", "out", "mechanical_torque", "Nm")] }),
 
   // ── Energy & power conversion ──
   part({ id: "hv_battery", name: "HV Battery Pack", nameKo: "고전압 배터리 팩", domainId: "power", categories: ["energy"],
@@ -152,6 +158,8 @@ export const CONNECTIONS: Connection[] = [
   c("str.column", "steering_wheel.column_out", "steering_rack.pinion_in", "mechanical_torque"),
   c("str.assist", "eps_motor.assist_out", "steering_rack.assist_in", "mechanical_torque"),
   c("str.tie_rod", "steering_rack.tie_rod_out", "wheel.steer_force_in", "mechanical_torque"),
+  c("str.angle", "steering_angle_sensor.angle_out", "eps_ecu.angle_in", "analog"),
+  c("thermal.coolant_temp", "coolant_temperature_sensor.temp_out", "thermal_ecu.temp_in", "analog"),
 ];
 
 export const ECUS: EcuDef[] = [

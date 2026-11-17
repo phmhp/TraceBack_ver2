@@ -968,6 +968,23 @@ const DEFS: Record<string, Def> = {
       anchors: { in: [-.08, 0, 0], out: [0, .058, 0] },
     }),
   },
+  // Steering-angle sensor: a contactless encoder ring mounted concentrically on
+  // the column.  It is intentionally separate from the torque sensor and wheel
+  // so the garage can show the measured angle as its own physical instance.
+  steering_angle_sensor: {
+    ref: "sensors/steering_angle_sensor__REF.png",
+    build: () => ({
+      statics: [
+        S("gunmetal", cylX(.014, .16, 24)),
+        S("plastic", torusX(.052, .012, 32)),
+        S("castAl", cylX(.062, .012, 32), [-.035, 0, 0]),
+        S("castAl", cylX(.062, .012, 32), [.035, 0, 0]),
+        S("plastic", rbox(.032, .025, .018, .004), [0, .058, 0]),
+        ...within(connector(.022, .016, .016, 4, 1), [0, .07, 0], [-Math.PI / 2, 0, 0]),
+      ],
+      anchors: { in: [-.09, 0, 0], out: [.0, .085, 0] },
+    }),
+  },
   // Steering column: tilted tube with a universal joint at the bottom.
   steering_column: {
     ref: "HMI/steering_column__REF.png",
@@ -1556,6 +1573,40 @@ const DEFS: Record<string, Def> = {
     }),
   },
 
+  // Coolant temperature sensor: threaded probe in the coolant passage with a
+  // sealed two-pin connector.  This is the thermal input, not the motor NTC.
+  coolant_temperature_sensor: {
+    ref: "sensors/coolant_temp_sensor__REF.png",
+    build: () => ({
+      statics: [
+        S("castAl", cylX(.018, .055, 20), [-.045, 0, 0]),
+        S("steel", cylX(.009, .09, 16), [.028, 0, 0]),
+        S("steel", rbox(.026, .022, .022, .004), [.08, 0, 0]),
+        S("plastic", rbox(.042, .028, .032, .006), [.11, 0, 0]),
+        ...within(connector(.022, .016, .016, 2, 1), [.14, 0, 0], [0, Math.PI / 2, 0]),
+      ],
+      anchors: { in: [-.085, 0, 0], out: [.165, 0, 0] },
+    }),
+  },
+
+  // Integrated front e-axle park pawl.  The pawl is a fixed stamped steel
+  // locking member; the actuator/shaft is represented by park_lock_actuator.
+  park_pawl: {
+    ref: "adas/park_pawl__REF.png",
+    build: () => {
+      const pivot: V3 = [-.05, .015, 0];
+      return {
+        statics: [
+          S("steel", rbox(.18, .018, .055, .008), [.03, .015, 0], [0, 0, -.16]),
+          S("steel", cylZ(.018, .065, 20), pivot),
+          S("castAl", rbox(.045, .035, .07, .008), [-.11, .015, 0]),
+          S("steel", cylZ(.009, .072, 16), [.13, .01, 0]),
+        ],
+        anchors: { in: [-.12, .015, 0], out: [.16, .01, 0] },
+      };
+    },
+  },
+
   // Body corner: a piece of floor pan and sill where the suspension pushes on the body.
   body_shell: {
     ref: "steering-suspension/strut_assembly__REF.png",
@@ -1574,7 +1625,7 @@ const DEFS: Record<string, Def> = {
 /** Parts modelled so far, in build order. */
 export const PART_MODEL_IDS = Object.keys(DEFS);
 /** Garage-only parts (not simulation components). Their anchors are "in" / "out". */
-export const VISUAL_ONLY_IDS = ["can_harness", "hv_cable", "steering_torque_sensor", "steering_column", "imu_sensor", "cell_monitor_board", "hv_junction_box", "charging_port", "obc", "dcdc_converter", "lv_battery", "instrument_cluster", "generic_ecu", "park_lock_actuator", "position_sensor", "height_sensor", "coolant_valve", "radiator", "coil_spring", "damper", "air_spring", "air_compressor", "body_shell", "isolation_monitor", "park_ecu", "chassis_ecu", "park_position_sensor", "ride_height_sensor", "cdc_damper", "eps_power_pack", "brake_line", "evcc", "charge_lock_actuator", "ac_compressor", "ptc_heater", "eev", "adas_camera", "adas_radar", "adas_ecu", "tcu"];
+export const VISUAL_ONLY_IDS = ["can_harness", "hv_cable", "steering_torque_sensor", "steering_angle_sensor", "steering_column", "imu_sensor", "cell_monitor_board", "hv_junction_box", "charging_port", "obc", "dcdc_converter", "lv_battery", "instrument_cluster", "generic_ecu", "park_lock_actuator", "park_pawl", "position_sensor", "height_sensor", "coolant_valve", "radiator", "coil_spring", "damper", "air_spring", "air_compressor", "body_shell", "isolation_monitor", "park_ecu", "chassis_ecu", "park_position_sensor", "ride_height_sensor", "cdc_damper", "eps_power_pack", "brake_line", "evcc", "charge_lock_actuator", "ac_compressor", "ptc_heater", "eev", "adas_camera", "adas_radar", "adas_ecu", "tcu", "coolant_temperature_sensor"];
 
 const cache = new Map<string, PartModel>();
 

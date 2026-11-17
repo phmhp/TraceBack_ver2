@@ -209,7 +209,7 @@ export const PHASE0_VEHICLE_SPEC: VehicleSpec = {
     known("eps_motor", "eps_motor", "eps_motor", "PLACE.eps_motor", { mountAnchor: "assist_out" }),
     known("eps_ecu", "eps_ecu", "eps_ecu", "PLACE.eps_ecu"),
     known("steering_rack", "steering_rack", "steering_rack", "PLACE.steering_rack", { mountAnchor: "pinion_in" }),
-    { instanceId: "steering_angle_sensor", componentId: "steering_angle_sensor", geometryMode: "integrated", assetStatus: "missing-required", placementKey: "VehicleSpec pending anchor audit", placementStatus: "missing", note: "Current label mapping can reuse steering_wheel; separate sensor model/anchor is not confirmed." },
+    { instanceId: "steering_angle_sensor", componentId: "steering_angle_sensor", modelId: "steering_angle_sensor", geometryMode: "integrated", assetStatus: "present", placementKey: "VehicleSpec pending anchor audit", placementStatus: "unverified", note: "Dedicated sensor model and reference asset are connected; authored column anchor still requires vehicle-layout QA." },
     known("brake_ecu", "brake_ecu", "brake_ecu", "PLACE.brake_ecu"),
     known("hydraulic_modulator", "hydraulic_modulator", "hydraulic_modulator", "PLACE.hydraulic_modulator"),
     known("hv_battery", "hv_battery", "hv_battery", "PLACE.hv_battery"),
@@ -220,7 +220,7 @@ export const PHASE0_VEHICLE_SPEC: VehicleSpec = {
     known("chassis_ecu", "chassis_ecu", "chassis_ecu", "PLACE.chassis_ecu"),
     known("hv_junction_box", "hv_junction_box", "hv_junction_box", "PLACE.hv_junction_box"),
     known("motor_temp_sensor", "motor_temp_sensor", "motor_temp_sensor", "PLACE.motor_temp_sensor"),
-    { instanceId: "coolant_temperature_sensor", componentId: "coolant_temperature_sensor", geometryMode: "standalone", assetStatus: "missing-required", placementStatus: "missing", note: "evData.ts names this sensor; current part model mapping is not confirmed." },
+    { instanceId: "coolant_temperature_sensor", componentId: "coolant_temperature_sensor", modelId: "coolant_temperature_sensor", geometryMode: "standalone", assetStatus: "present", placementKey: "VehicleSpec pending anchor audit", placementStatus: "unverified", note: "Dedicated coolant-temperature sensor model and reference asset are connected; thermal mount anchor still requires layout QA." },
     known("cooling_pump", "cooling_pump", "cooling_pump", "PLACE.cooling_pump"),
     known("cooling_fan", "cooling_fan", "cooling_fan", "PLACE.cooling_fan"),
     known("thermal_ecu", "thermal_ecu", "thermal_ecu", "PLACE.thermal_ecu"),
@@ -233,7 +233,7 @@ export const PHASE0_VEHICLE_SPEC: VehicleSpec = {
     known("park_ecu", "park_ecu", "park_ecu", "PLACE.park_ecu", { assemblyId: "front_eaxle_assembly", note: "ECU is body-mounted; assembly relationship is logical, not co-located geometry." }),
     known("park_lock_actuator", "park_lock_actuator", "park_lock_actuator", "PLACE.park_lock_actuator", { assemblyId: "front_eaxle_assembly", placementStatus: "unverified" }),
     known("park_position_sensor", "park_position_sensor", "park_position_sensor", "PLACE.park_position_sensor", { assemblyId: "front_eaxle_assembly", placementStatus: "unverified" }),
-    { instanceId: "park_pawl", componentId: "park_pawl", geometryMode: "integrated", assetStatus: "missing-required", assemblyId: "front_eaxle_assembly", placementStatus: "missing", note: "Mechanical locking target is not represented by a confirmed current model." },
+    { instanceId: "park_pawl", componentId: "park_pawl", modelId: "park_pawl", geometryMode: "integrated", assetStatus: "missing-required", assemblyId: "front_eaxle_assembly", placementKey: "VehicleSpec pending anchor audit", placementStatus: "unverified", note: "A provisional visual/reference is connected, but the internal pawl engagement position is not confirmed and must not be presented as an engineering-complete assembly." },
     known("instrument_cluster", "instrument_cluster", "instrument_cluster", "PLACE.instrument_cluster"),
     { instanceId: "external_evse", componentId: "external_evse", geometryMode: "external", assetStatus: "signal-only", placementStatus: "missing", note: "External equipment is represented as a signal/external view in Phase 0." },
     { instanceId: "wheel_acceleration_sensor.fl", componentId: "wheel_acceleration_sensor", corner: "fl", geometryMode: "standalone", assetStatus: "missing-optional", placementStatus: "missing", requiredProfiles: ["cdc_full_corner_option"], note: "Optional full-corner CDC measurement." },
@@ -380,7 +380,9 @@ export function validateVehicleSpec(spec: VehicleSpec): ValidationResult {
     }
 
     const requiresModel = instance.assetStatus === "missing-required" || (instance.geometryMode === "standalone" && instance.assetStatus !== "signal-only");
-    if (requiresModel && !instance.modelId) {
+    if (instance.assetStatus === "missing-required") {
+      errors.push({ severity: "error", code: "MISSING_MODEL", subject: instance.instanceId, message: `${instance.instanceId} remains an unresolved required asset/placement; any connected model is provisional until the mount and engagement audit is complete.` });
+    } else if (requiresModel && !instance.modelId) {
       const code = instance.assetStatus === "missing-optional" ? "MISSING_MODEL" : "MISSING_MODEL";
       const target = instance.requiredProfiles?.join(", ") ?? "base";
       const issue = { severity: instance.assetStatus === "missing-optional" ? "warning" : "error", code, subject: instance.instanceId, message: `No model is resolved for ${instance.instanceId} (required profile: ${target}).` } as ValidationIssue;

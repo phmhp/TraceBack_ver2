@@ -56,6 +56,11 @@ export const PARTS = [
     evid: { scene: "A thermistor probe inserted into the end winding area of an electric motor on a workbench", ok: "probe seated firmly, sleeve intact", fault: "probe pulled halfway out, heat-shrink sleeve discolored and cracked" } },
   { domain: "02-sensors", id: "coolant_temp_sensor", ko: "냉각수 온도 센서", method: "직접", styles: ["REF", "CUT"],
     subject: "Coolant temperature sensor with a brass threaded body, hex nut, metal probe tip and a black two-pin connector" },
+  // VehicleSpec uses the explicit semantic ID while the legacy prompt/asset
+  // filename stays coolant_temp_sensor. Keep both IDs in the prompt registry
+  // so the new registry component cannot silently lose image coverage.
+  { domain: "02-sensors", id: "coolant_temperature_sensor", ko: "냉각수 온도 센서(명시 ID)", method: "직접", styles: ["REF", "CUT"],
+    subject: "The same coolant temperature sensor asset: brass threaded body, hex nut, metal probe tip and sealed black two-pin connector" },
   { domain: "02-sensors", id: "steering_angle_sensor", ko: "조향각 센서", method: "직접", styles: ["REF", "CUT"],
     subject: "Ring-shaped steering angle sensor module with a central opening for the column shaft, black plastic housing and a multi-pin connector" },
   { domain: "02-sensors", id: "steering_torque_sensor", ko: "조향 토크 센서", method: "직접", styles: ["REF", "EXPL"],
@@ -225,6 +230,8 @@ export const PARTS = [
     subject: "Compact parking-lock control unit in a black plastic housing with an aluminum base plate, two mounting ears and one multi-pin connector" },
   { domain: "13-garage-additions", id: "park_lock_actuator", ko: "파킹 락 액추에이터", method: "직접", styles: ["REF", "CUT"],
     subject: "Electric parking-lock actuator for an EV reduction gearbox: a small cylindrical motor on a cast gear housing with an output shaft and a lever, sealed connector on top" },
+  { domain: "13-garage-additions", id: "park_pawl", ko: "전륜 e-axle 파킹 폴", method: "직접", styles: ["REF", "EXPL", "CUT"],
+    subject: "Forged steel park pawl inside a generic front electric vehicle e-axle, with a pivot hole, locking tooth, reinforced body, pivot pin and actuator contact; show both an isolated part and a mechanically plausible cutaway reference" },
   { domain: "13-garage-additions", id: "park_position_sensor", ko: "파킹 위치 센서", method: "직접", styles: ["REF", "CUT"],
     subject: "Small Hall-effect position sensor with a round plastic body, one mounting ear and a short pigtail cable ending in a three-pin connector" },
   { domain: "13-garage-additions", id: "chassis_ecu", ko: "전자제어 현가 제어기(Chassis ECU)", method: "직접", styles: ["REF", "CUT"],

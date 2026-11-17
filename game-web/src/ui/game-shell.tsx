@@ -1,7 +1,7 @@
 import "./pursuit-hud.css";
 import "./buttons-unified.css";
 import "./race-impact.css";
-import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Icon } from "./Icon";
 import { TRACK_LENGTH } from "../game/traffic";
 import { STEP_ROADMAP, useSubStep, type RoadmapStepId } from "./stepRoadmap";
@@ -27,8 +27,14 @@ export function JourneyNavigationProvider({
 type ActionTone = "primary" | "neutral" | "danger" | "honey";
 
 export function GameStage({ children }: { children: ReactNode }) {
+  const [scale, setScale] = useState(() => Math.min(window.innerWidth / 1600, window.innerHeight / 900));
+  useEffect(() => {
+    const resize = () => setScale(Math.min(window.innerWidth / 1600, window.innerHeight / 900));
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
   return (
-    <div className="gameViewport">
+    <div className="gameViewport" style={{ width: 1600, height: 900, transform: `translate(-50%, -50%) scale(${scale})`, transformOrigin: "center center" }}>
       <div className="gameStage">{children}</div>
     </div>
   );

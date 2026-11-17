@@ -161,6 +161,10 @@
 .eeTrace .etChoices button > kbd { position: absolute; top: 4px; left: 6px; }
 .eeTrace .etInside { flex: none; padding: 6px 12px; border-radius: 10px; border: 2px solid #c9a39c; background: #fffaf5; font: 700 12.5px Pretendard, system-ui; color: #6b4a44; cursor: pointer; }
 .eeTrace .etInside { white-space: nowrap; }
+/* This is a hint, not another answer choice. Keep it in the dock's upper-right
+   corner so the actual choices retain one stable row and width. */
+.eeTrace .etDockSection { position: relative; padding-top: 42px !important; }
+.eeTrace .etDockSection .etInside { position: absolute; top: 0; right: 0; }
 .eeTrace .etTag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 999px; font: 700 11px/1.4 Pretendard, system-ui; background: #efe3dc; color: #6b4a44; vertical-align: 1px; }
 .eeTrace .etTag[data-tag="HW"] { background: #f3dcd6; color: #8a2f25; }
 .eeTrace .etTag[data-tag="센서"] { background: #dfeaf3; color: #2f5273; }

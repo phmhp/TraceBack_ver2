@@ -35,6 +35,7 @@ const PLACE: Record<string, Place> = {
   // sideways in the garage view.
   steering_wheel: { p: [-.31, .86, -.17], r: STEERING_COLUMN_ROT, target: .38 },
   steering_torque_sensor: { p: [-.31, .78, -.34], r: STEERING_COLUMN_ROT, target: .14 },
+  steering_angle_sensor: { p: [-.31, .80, -.24], r: STEERING_COLUMN_ROT, target: .14 },
   steering_column: { p: [-.31, .72, -.52], r: STEERING_COLUMN_ROT, target: .32 },
   // The authored start-button face is local +Z.  The driver is on the -X
   // side but looks toward the dashboard from +Z, so the face stays unrotated;
@@ -54,8 +55,10 @@ const PLACE: Record<string, Place> = {
   mcu: { p: [-.58, .78, -.62], target: .24 },
   rotor_position_sensor: { p: [-.2, .52, -.98], r: [0, H, 0], target: .1 },
   motor_temp_sensor: { p: [-.42, .58, -.98], target: .1 },
+  coolant_temperature_sensor: { p: [-.28, .58, -.88], r: [0, H, 0], target: .14 },
   park_lock_actuator: { p: [.18, .42, -1.18], target: .18 },
   park_position_sensor: { p: [.18, .38, -1.18], target: .1 },
+  park_pawl: { p: [0, .36, -1.18], target: .22 },
   park_ecu: { p: [-.32, .62, .72], target: .24 },
   // brakes
   brake_ecu: { p: [-.46, .82, -.58], r: [0, H, 0], target: .24 },
@@ -140,7 +143,7 @@ export const FLOW_INFO: Record<string, { label: string; color: string; r: number
   air: { label: "압축 공기", color: "#a9c7d6", r: .009 },
 };
 
-type Node = { index: number; id: string; place: Place; copy: number };
+type Node = { index: number; id: string; place: Place; copy: number; inspectDomain?: DomainId; inspectFeature?: number; label?: string };
 export type Segment = { from: Node; to: Node; flow: string; fromPort?: string; toPort?: string };
 
 /** The layout table stores one authored template for corner parts.  Rendering
@@ -197,8 +200,13 @@ export function layoutOf(domain: DomainId, feature: number) {
     if (!id) return;
     if (NETWORK.has(id)) { pending.push(id); return; }
     const copy = seen[id] = (seen[id] ?? -1) + 1;
-    const place = PLACE[id] ?? { p: [-0.9 + index * .25, .5, -.5] };
-    nodes.push({ index, id, place, copy });
+    // An unresolved authored placement is not a valid physical position. Keep
+    // it out of the rendered topology until the mount anchor is confirmed;
+    // silently placing it by chain index makes a component look installed in
+    // a technically arbitrary location.
+    const place = PLACE[id];
+    if (!place) return;
+    nodes.push({ index, id, place, copy, inspectDomain: domain, inspectFeature: feature, label });
     if (nodes.length > 1) between.push(pending);
     pending = [];
   });
@@ -262,7 +270,9 @@ function PlacedPart({ node, arrived, isInput, domain, feature, selected, onSelec
   const mode = model.moving[0]?.mode;
   const input = arrived ? (mode === "spin" ? 9 : mode === "rotate" ? .45 : 1) : 0;
   const [hovered, setHovered] = useState(false);
-  const label = getFeatureLayer(domain, feature, 1)[node.index] ?? node.id;
+  const label = node.label ?? getFeatureLayer(domain, feature, 1)[node.index] ?? node.id;
+  const inspectDomain = node.inspectDomain ?? domain;
+  const inspectFeature = node.inspectFeature ?? feature;
   const press = (action: "start" | "end") => dispatchEvent(new CustomEvent("tb-garage-input", { detail: { action, index: node.index } }));
   return <group position={offsetOf(node)} rotation={node.place.r ?? [0, 0, 0]}
     onPointerDown={isInput ? event => { event.stopPropagation(); press("start"); } : undefined}
@@ -270,7 +280,7 @@ function PlacedPart({ node, arrived, isInput, domain, feature, selected, onSelec
     onPointerOut={() => { setHovered(false); if (isInput) press("end"); document.body.style.cursor = ""; }}
     onPointerOver={event => { event.stopPropagation(); setHovered(true); document.body.style.cursor = isInput ? "pointer" : "help"; }}
     onClick={!isInput ? event => { if ((event as any).delta > 6) return; event.stopPropagation(); onSelect?.(node.index); dispatchEvent(new CustomEvent("tb-garage-step", { detail: { index: node.index } })); } : undefined}
-    onDoubleClick={event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: { domain, feature, index: node.index, partId: inspectId ?? node.id, label: inspectId ?? node.id } })); }}>
+    onDoubleClick={event => { event.stopPropagation(); dispatchEvent(new CustomEvent("tb-part-inspect", { detail: { domain: inspectDomain, feature: inspectFeature, index: node.index, partId: node.id, label } })); }}>
     <PartModel id={node.id} scale={modelScale(node)} input={input} castShadow={false} />
     {selected && <mesh scale={.34 * U}><sphereGeometry args={[1, 18, 14]} /><meshBasicMaterial color="#e09b35" transparent opacity={.18} depthWrite={false} /></mesh>}
     {(hovered || selected) && <Html center position={[0, .32 * U, 0]} distanceFactor={3.35} zIndexRange={[21, 0]}><span className={`garageVehiclePartLabel ${selected ? "selected" : ""}`}>{label}</span></Html>}
@@ -326,18 +336,12 @@ function SteeringTopology({ active }: { active: boolean }) {
   const rackRight = vehiclePoint([.46, .38, -1.18]);
   const frontLeftHub = vehiclePoint([-.745, .34, -1.18]);
   const frontRightHub = vehiclePoint([.745, .34, -1.18]);
-  const sensor = vehiclePoint([-.31, .80, -.24]);
   return <group>
     <MechanicalLink from={wheel} to={column} active={active} color="#8d75b6" radius={.018} />
     <MechanicalLink from={column} to={eps} active={active} color="#8d75b6" radius={.014} />
     <MechanicalLink from={eps} to={pinion} active={active} color="#8d75b6" radius={.014} />
     <MechanicalLink from={rackLeft} to={frontLeftHub} active={active} color="#8d75b6" radius={.012} />
     <MechanicalLink from={rackRight} to={frontRightHub} active={active} color="#8d75b6" radius={.012} />
-    <mesh position={sensor} rotation={[0, Math.PI / 2, 0]}>
-      <torusGeometry args={[.055 * U, .008 * U, 10, 24]} />
-      <meshStandardMaterial color="#a98ad0" emissive={active ? "#8d75b6" : "#000"} emissiveIntensity={active ? 1.2 : 0} />
-    </mesh>
-    <Html center position={[sensor.x, sensor.y + .12 * U, sensor.z]} distanceFactor={3.2} zIndexRange={[20, 0]}><span className="cableTag" style={{ borderColor: "#8d75b6" }}><i style={{ background: "#8d75b6" }} />조향각 센서 · B3 preview</span></Html>
   </group>;
 }
 
@@ -402,6 +406,7 @@ export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell, 
     {context && <CarContext strong={shell} wheelActive={wheelActive} wheelSteer={steeringPreview} showBody={!hasBody} showWheels />}
     {domain === "steer" && <SteeringTopology active={inputOn} />}
     {domain === "drive" && <DrivelineTopology active={inputOn} />}
+    {domain === "gear" && feature === 2 && <SupportPart node={{ index: -20, id: "park_pawl", place: PLACE.park_pawl, copy: 0 }} active={inputOn} />}
     {drivePower && <>
       <SupportPart node={drivePower.battery} active={inputOn} />
       <SupportPart node={drivePower.contactor} active={inputOn} />

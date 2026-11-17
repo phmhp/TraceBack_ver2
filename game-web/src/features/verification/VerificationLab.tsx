@@ -1605,7 +1605,9 @@ const ANSWER_KO: Record<Answer, string> = { supported: "원인으로 보여요",
 export function TwinBenchQAV1({ state, send }: { state: Campaign; send: Send }) {
   const caseId = state.caseId;
   const meta = SCENARIO_META[caseId];
-  const questions = QUESTIONS[caseId];
+  // Keep the learning path bounded: the lab can present at most two
+  // hypotheses, while preserving the scenario's original ordering.
+  const questions = QUESTIONS[caseId].slice(0, 2);
   const expect = (() => { try { return sessionStorage.getItem(`tb-expect-${caseId}`) ?? ""; } catch { return ""; } })();
   const regression: string[] = (() => { try { const fromBoard = JSON.parse(sessionStorage.getItem(`tb-impact-${caseId}`) ?? "null"); return Array.isArray(fromBoard) && fromBoard.length ? fromBoard : regressionTests[caseId]; } catch { return regressionTests[caseId]; } })();
   const [qi, setQi] = useState(0);
@@ -1875,7 +1877,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     else if (index === 2) setPhase(cause ? "ab" : "report");
     else setPhase(cause ? "ab" : "report");
   } });
-  const [panelTab, setPanelTab] = useState<"cond" | "result" | "mat">("mat");
+  const [panelTab, setPanelTab] = useState<"cond" | "result" | "mat">("cond");
   const [reviewTab, setReviewTab] = useState<"domino" | "sheet">("domino");
   const [matTab, setMatTab] = useState<"tc" | "log">("tc");
   const [docOpen, setDocOpen] = useState<"tc" | "log" | null>(null);
@@ -2234,9 +2236,9 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       </section>
       <aside className="b4Panel" aria-label="시험 조건과 결과">
         <header><nav role="tablist" aria-label="패널 보기">
+          <button role="tab" aria-selected={panelTab === "cond"} className={panelTab === "cond" ? "on" : ""} disabled={phase === "pick" || phase === "report"} onClick={() => setPanelTab("cond")}>시험 설계 조건</button>
           <button role="tab" aria-selected={panelTab === "mat"} className={panelTab === "mat" ? "on" : ""} onClick={() => setPanelTab("mat")}>가설 테스트 결과</button>
           <button role="tab" aria-selected={panelTab === "result"} className={panelTab === "result" ? "on" : ""} onClick={() => setPanelTab("result")}>시험 결과</button>
-          <button role="tab" aria-selected={panelTab === "cond"} className={panelTab === "cond" ? "on" : ""} disabled={phase === "pick" || phase === "report"} onClick={() => setPanelTab("cond")}>시험 조건</button>
         </nav>{phase === "done" && <button className="stageReplayBtn" onClick={() => setReplayOpen(true)}>다시 풀기</button>}</header>
         <div className="b4DocBtns"><button onClick={() => { setDocOpen("tc"); setSeen(prev => ({ ...prev, tc: true })); }}><Icon name="clipboard" /> 시험 설계서 열기</button><button onClick={() => { setDocOpen("log"); setSeen(prev => ({ ...prev, log: true })); }}><Icon name="search" /> 고장 기록 열기</button></div>
         <div className="b4PanelBody">
@@ -2253,14 +2255,14 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
             <p><b>다음</b><span>최종 고장 원인 선택</span></p>
           </section> : <>
           {judgeNote && <aside className="b4WhyLevel" aria-label="이 시험 수준의 판단 가능 여부"><small>이 시험 수준으로 이 가설을 판단할 수 있나요?</small><b className={judgeNote.can ? "can" : "cannot"}>{judgeNote.can ? "판단할 수 있어요" : "판단할 수 없어요"}</b><p>{judgeNote.text}</p></aside>}
-          {panelTab === "cond" && (phase === "ab" ? <aside className="qaSetupPanel" aria-label="동일 시험 조건">
+          {panelTab === "cond" && (phase === "ab" ? <aside className="qaSetupPanel" aria-label="시험 설계 조건">
               <header><small>01 · 동일 조건</small><b>{activeContract.stimulus.label}</b><span>두 모델에 같은 초기 상태·입력·시간축을 적용</span></header>
               <section className="qaConditionBlock"><h3>초기 상태</h3><table><thead><tr><th>신호</th><th>설정값</th><th>단위</th></tr></thead><tbody>{initialConditionRows.map(item => <tr key={item.label}><td>{item.label}</td><td><code>{item.value}</code></td><td>{item.unit}</td></tr>)}</tbody></table></section>
               <section className="qaConditionBlock"><h3>시험 입력</h3><p className="qaPickedInput"><small>입력 조건</small><b>{numify(tech.input)}</b></p><table><thead><tr><th>항목</th><th>설정값</th><th>단위</th></tr></thead><tbody>{stimulusRows.map(item => <tr key={item.label}><td>{item.label}</td><td><code>{item.value}</code></td><td>{item.unit}</td></tr>)}</tbody></table></section>
               <p className="qaSetupNote"><b>실행 시간</b>{numify(`${abSim.seconds} ${abSim.timeUnit} · 동일 시간축`)}</p>
             </aside>
- : <aside className="qaSetupPanel" aria-label="시험 계약 조건">
-              <header><small>01 · 시험 계약</small><b>{contract.stimulus.label}</b><span>{phase === "lab" ? `현재 확인: ${hypothesisGoal}` : "원인 제거 확인 후 수리 적용"}</span></header>
+ : <aside className="qaSetupPanel" aria-label="시험 설계 조건">
+              <header><small>01 · 시험 설계 조건</small><b>{contract.stimulus.label}</b><span>{phase === "lab" ? `현재 확인: ${hypothesisGoal}` : "원인 제거 확인 후 수리 적용"}</span></header>
               <section className="qaConditionBlock">
                 <h3>초기 상태</h3>
                 <table><thead><tr><th>신호</th><th>설정값</th><th>단위</th></tr></thead><tbody>{initialConditionRows.map(item => <tr key={item.label}><td>{item.label}</td><td><code>{item.value}</code></td><td>{item.unit}</td></tr>)}</tbody></table>

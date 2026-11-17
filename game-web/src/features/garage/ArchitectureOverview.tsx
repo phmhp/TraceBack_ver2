@@ -40,7 +40,10 @@ export function ArchitectureOverview({ icons, onPick, onShow3d, focusGroup = nul
     }));
   }, [signal, open]);
   const pickGroup = (group: DomainGroup | null) => { setSignal(null); setOpen(group); };
-  const openSignal = (index: number) => { const group = EV_DOMAINS[COORD_SIGNALS[index].from].group; setOpen(group); setSignal(index); };
+  // A coordination signal is an overlay on the current architecture view.
+  // Do not navigate away from the overview when it is selected: the player
+  // must be able to compare the signal with all three domain cards.
+  const openSignal = (index: number) => { setOpen(null); setSignal(index); };
 
   const active = signal === null ? null : COORD_SIGNALS[signal];
   const involved = new Set<DomainId>(active ? [active.from, ...active.to] : []);
@@ -63,6 +66,12 @@ export function ArchitectureOverview({ icons, onPick, onShow3d, focusGroup = nul
     <section className="archCoordPreview" aria-label="도메인 협조 신호 미리보기">
       <header><b><Icon name="signal" /> 도메인 협조 신호</b><small>각 영역은 네트워크로 한계를 주고받으며 함께 차량을 제어합니다.</small></header>
       <div>{COORD_SIGNALS.slice(0, 6).map((item, index) => <button key={item.name} onClick={() => openSignal(index)}><strong>{EV_DOMAINS[item.from].label}</strong><i>→</i><strong>{item.to.map(id => EV_DOMAINS[id].label).join(" · ")}</strong><span>{item.name}</span></button>)}</div>
+      {active && <article className="archSignalDetail" aria-live="polite">
+        <header><span className="archSignalKicker">협조 신호 선택됨</span><b>{active.name}</b><button type="button" aria-label="협조 신호 닫기" onClick={() => setSignal(null)}>×</button></header>
+        <div className="archSignalRoute"><strong>{EV_DOMAINS[active.from].label}</strong><i>→</i>{active.to.map(id => <React.Fragment key={id}><strong>{EV_DOMAINS[id].label}</strong>{id !== active.to.at(-1) && <i>→</i>}</React.Fragment>)}</div>
+        <p>{active.purpose}</p>
+        <small>입력·한계 신호가 네트워크를 통해 다음 도메인의 제어 판단으로 전달됩니다.</small>
+      </article>}
     </section>
   </div>;
 
