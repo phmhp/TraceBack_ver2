@@ -127,7 +127,8 @@ body :is(.eeTrace, .refPuzzle.v2, .vbBench.bench4.qa2) :is(
 /* Polaroid image windows are always square. */
 body :is(.eeTrace, .vbBench.bench4.qa2, .refPuzzle.v2) :is(
   .polPhoto, .polPhoto.big, .etCardPol .polPhoto, .dtPolPic,
-  .b4ChoicePhoto, .b4LevelPhoto, .hypPhotoWin, .causePhotoWin) {
+  .b4ChoicePhoto, .b4LevelPhoto, .hypPhotoWin, .causePhotoWin,
+  .etHypGraphic, .reportPolaroidWin) {
   aspect-ratio: 1 / 1 !important;
   height: auto !important;
   min-height: 0 !important;
@@ -135,12 +136,14 @@ body :is(.eeTrace, .vbBench.bench4.qa2, .refPuzzle.v2) :is(
 }
 body :is(.eeTrace, .vbBench.bench4.qa2, .refPuzzle.v2) :is(
   .polPhoto img, .polPhoto.big img, .etCardPol img,
-  .b4ChoicePhoto img, .b4LevelPhoto img, .hypPhotoWin img, .causePhotoWin img) {
+  .b4ChoicePhoto img, .b4LevelPhoto img, .hypPhotoWin img, .causePhotoWin img,
+  .etHypGraphic img, .reportPolaroidWin img) {
   width: 100% !important;
   height: 100% !important;
   object-fit: contain !important;
   display: block !important;
 }
+.eeTrace .etHypGraphic { width: 44px !important; height: 44px !important; }
 
 /* The old intro card rendered a role icon even when a real authored part
    model existed. Keep the card's hit area fixed, but make its preview use the

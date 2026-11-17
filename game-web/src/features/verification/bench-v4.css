@@ -141,6 +141,15 @@
 /* ===== 2026-11-15 bench v8: hypothesis cards, persistent visualisation + monitor with ruler, dock cards, document popup ===== */
 .vbBench.bench4.qa2 .b4Stage { display: flex; flex-direction: column; overflow: hidden; }
 .b4Pick { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px; padding: 14px; }
+.b4ReportEvidence { display: flex; align-items: center; gap: 14px; min-height: 92px; padding: 10px 12px; border: 2px solid #d8c89e; border-radius: 14px; background: #fffdf4; box-shadow: 0 3px 0 rgba(126, 101, 57, .12); }
+.b4ReportEvidence { grid-column: 1 / -1; }
+.reportPolaroid { flex: none; position: relative; display: block; width: 82px; padding: 7px 7px 12px; border-radius: 5px; background: #fff; box-shadow: 0 3px 9px rgba(72, 50, 38, .18); }
+.reportPolaroidWin { display: block; width: 100%; aspect-ratio: 1 / 1; overflow: hidden; background: #efe5d8; }
+.reportPolaroidWin img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.b4ReportEvidence > div { min-width: 0; }
+.b4ReportEvidence small { display: block; margin-bottom: 4px; color: #7a5a53; font: 800 12px/1.1 Pretendard, system-ui; }
+.b4ReportEvidence h3 { margin: 0 0 5px; color: #3f302c; font: 800 17px/1.2 Pretendard, system-ui; }
+.b4ReportEvidence p { margin: 0; color: #6b5651; font: 600 12px/1.35 Pretendard, system-ui; word-break: keep-all; }
 .b4HypList { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-rows: minmax(0, 1fr); gap: 8px; min-height: 0; }
 .b4HypList li { display: grid; grid-template-columns: 34px auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 0 14px; border-radius: 14px; border: 2px solid #dccbc2; background: #fffaf4; min-height: 0; }
 .b4HypList li.now { border-color: #9b6b64; background: #fff1ea; box-shadow: 0 0 0 3px rgba(155, 107, 100, .18); }

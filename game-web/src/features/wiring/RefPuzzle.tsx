@@ -333,7 +333,17 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
   const inSlot = (id: string) => { const g = ref.gaps.find(k => place[k] === id); return g === undefined ? null : g; };
   const pieceAt = (slot: number) => ref.gaps.includes(slot) ? place[slot] : ref.board[slot];
   const filled = ref.gaps.every(g => place[g]);
-  const world = (cx: number, cy: number) => { const r = stage.current!.querySelector(".rpWorld")!.getBoundingClientRect(); return { x: (cx - r.left) / scale, y: (cy - r.top) / scale }; };
+  // Use the rendered world transform rather than React state for hit testing.
+  // The game is hosted in a fixed 1600×900 iframe which can itself be scaled
+  // by the outer window. `getBoundingClientRect()` already contains both
+  // scales, so deriving the factor from the rendered width keeps tray→board
+  // dragging aligned at every host viewport size.
+  const world = (cx: number, cy: number) => {
+    const element = stage.current!.querySelector(".rpWorld") as HTMLElement;
+    const r = element.getBoundingClientRect();
+    const renderedScale = r.width / W;
+    return { x: (cx - r.left) / renderedScale, y: (cy - r.top) / renderedScale };
+  };
 
   const putIn = (id: string, slot: number | null) => {
     setPlace(prev => {
@@ -655,7 +665,17 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const stepNow = confirmed || sheetStep ? 2 : connected ? 1 : 0;
   useReportSubStep("puzzle", viewStep ?? stepNow, { max: stepNow, goTo: index => { setViewStep(index === stepNow ? null : index); setPanelTab(index === 2 ? "sheet" : "req"); } });
   useEffect(() => { setViewStep(null); setPanelTab(stepNow === 2 ? "sheet" : "req"); }, [stepNow]);
-  const world = (cx: number, cy: number) => { const r = stage.current!.querySelector(".rpWorld")!.getBoundingClientRect(); return { x: (cx - r.left) / scale, y: (cy - r.top) / scale }; };
+  const world = (cx: number, cy: number) => {
+    const el = stage.current!.querySelector(".rpWorld") as HTMLElement;
+    const r = el.getBoundingClientRect();
+    // The game surface is authored at 1600×900 and may be transformed by the
+    // fixed player viewport.  React state `scale` is only the board zoom; it
+    // does not include the browser/viewport transform.  Derive the rendered
+    // scale from the actual DOM rect so drag coordinates remain correct when
+    // the window is smaller than the authored surface.
+    const renderedScale = r.width / W;
+    return { x: (cx - r.left) / renderedScale, y: (cy - r.top) / renderedScale };
+  };
   const putIn = (id: string, slot: number | null) => {
     setPlace(prev => { const next = { ...prev }; ref.gaps.forEach(g => { if (next[g] === id) next[g] = null; }); if (slot !== null) next[slot] = id; return next; });
     setCheck(null); setConfirmed(false); setSheetStep(false); setContract(null);
@@ -663,8 +683,8 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   };
   // snap by piece centre → slot centre, within about one piece width
   const nearestGap = (px: number, py: number) => { let best: number | null = null, dist = PIECE * .95; ref.gaps.forEach(g => { const d = Math.hypot(px + PIECE / 2 - (slotX(g) + PIECE / 2), py + PIECE / 2 - (MAIN_Y + PIECE / 2)); if (d < dist) { dist = d; best = g; } }); return best; };
-  const onDown = (event: React.PointerEvent, id: string) => {
-    if (event.button !== 0 || check?.status === "running") return;
+  const onDown = (event: React.PointerEvent | React.MouseEvent, id: string) => {
+    if ((event.button !== 0 && event.button !== -1) || check?.status === "running") return;
     const p = world(event.clientX, event.clientY); const slot = inSlot(id);
     // A tray piece is not a child of .rpWorld.  Using its tray coordinates as
     // if they were world coordinates caused the first pointer move to teleport
@@ -677,9 +697,9 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     setDrag(next);
     // Do not capture on the tray button or the stage. The source is outside
     // the board, so the drag is completed by the document-level listeners
-    // below even after the pointer crosses the board boundary.
+    // below even after the pointer crosses the board boundary. Pointer capture
+    // also reports transformed iframe coordinates inconsistently in Chromium.
     event.preventDefault();
-    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
   };
   const onMove = (event: React.PointerEvent) => { if (!drag) return; const p = world(event.clientX, event.clientY); const nx = p.x - drag.dx, ny = p.y - drag.dy; setDrag({ ...drag, x: nx, y: ny, moved: drag.moved || Math.hypot(nx - drag.x, ny - drag.y) > 4 }); };
   const onUp = (event: React.PointerEvent) => {
@@ -697,7 +717,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   // pointer crosses the stage boundary.
   useEffect(() => {
     if (!drag) return;
-    const move = (event: PointerEvent) => {
+    const move = (event: PointerEvent | MouseEvent) => {
       const active = dragRef.current; if (!active) return;
       const p = world(event.clientX, event.clientY);
       const nx = p.x - active.dx, ny = p.y - active.dy;
@@ -705,7 +725,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       dragRef.current = next;
       setDrag(next);
     };
-    const finish = (event: PointerEvent) => {
+    const finish = (event: PointerEvent | MouseEvent) => {
       const active = dragRef.current; if (!active) return;
       const p = world(event.clientX, event.clientY), ux = p.x - active.dx, uy = p.y - active.dy;
       const moved = active.moved || Math.hypot(ux - active.x, uy - active.y) > 4;
@@ -722,13 +742,22 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       event.preventDefault();
     };
     const cancel = () => { dragRef.current = null; setDrag(null); };
+    const moveMouse = (event: MouseEvent) => move(event);
+    const finishMouse = (event: MouseEvent) => finish(event);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", finish);
+    // Chromium can expose transformed fixed surfaces as mouse events without
+    // delivering the matching pointer lifecycle. Keep mouse fallbacks on the
+    // same ref-backed state so the fallback is harmless when both fire.
+    window.addEventListener("mousemove", moveMouse);
+    window.addEventListener("mouseup", finishMouse);
     window.addEventListener("pointercancel", cancel);
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", finish);
       window.removeEventListener("pointercancel", cancel);
+      window.removeEventListener("mousemove", moveMouse);
+      window.removeEventListener("mouseup", finishMouse);
     };
   }, [drag?.id]);
   const clickGap = (g: number) => { if (picked) { putIn(picked, g); setPicked(null); play("squish"); } };
@@ -894,7 +923,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
             <small>선지 · 조각을 위 빈칸까지 끌어 놓기</small>
             <div style={{ "--piece-count": ref.spares.length } as React.CSSProperties}>{ref.spares.map(id => { const b = ref.blocks[id]; return inSlot(id) !== null
               ? <span key={id} className="rpChoicePlaceholder" aria-hidden="true" />
-              : <button type="button" key={id} className={`rpChoicePiece ${b.kind === "hw" ? "hw" : "sw"} ${picked === id ? "picked" : ""}`} style={{ transform: `scale(${scale})` }} aria-pressed={picked === id} title={`${b.label} · 드래그해서 빈칸에 놓기`} onPointerDown={event => onDown(event, id)}><PieceFace b={b} /></button>; })}</div>
+              : <button type="button" key={id} className={`rpChoicePiece ${b.kind === "hw" ? "hw" : "sw"} ${picked === id ? "picked" : ""}`} style={{ transform: `scale(${scale})` }} aria-pressed={picked === id} title={`${b.label} · 드래그해서 빈칸에 놓기`} onPointerDown={event => onDown(event, id)} onMouseDown={event => { if (!dragRef.current) onDown(event, id); }}><PieceFace b={b} /></button>; })}</div>
           </div>}
           <div className="rpPuzzleAction">
             {confirmed ? <button className="rpExpect" onClick={() => setSheetOpen(true)}><small><Icon name="clipboard" /> 시험 설계서 보기</small><b>{spec.expect}</b></button>

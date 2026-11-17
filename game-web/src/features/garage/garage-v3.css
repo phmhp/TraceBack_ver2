@@ -21,6 +21,8 @@
 .garageV2 .gv3Work .garageBreadcrumb b, .garageV2 .gv3Work .garageBreadcrumb strong { font: 800 14px/1 Pretendard, system-ui; white-space: nowrap; }
 .garageV2 .gv3Work .garageBreadcrumb strong { color: #9b6b64; }
 .garageV2 .gv3Work .garageBreadcrumb .changeDomain { margin-left: auto; }
+.garageV2 .gv3Work .garageDomainSwitch { display: inline-flex; align-items: center; gap: 5px; min-width: 0; color: #9b6b64; font: 800 11px/1 Pretendard, system-ui; white-space: nowrap; }
+.garageV2 .gv3Work .garageDomainSwitch select { min-height: 28px; max-width: 126px; padding: 0 24px 0 8px; border: 1px solid rgba(155, 107, 100, .34); border-radius: 999px; background: rgba(255, 248, 242, .96); color: #7a5a53; font: 800 11px/1 Pretendard, system-ui; }
 .garageV2 .gv3Work .garageLayerNav { grid-area: rail; display: flex !important; flex-direction: column; gap: 0; padding: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; }
 .garageV2 .gv3Work .garageMechanismCard { grid-area: stage; position: relative !important; min-height: 0; overflow: hidden; }
 .garageV2 .gv3Work .domainFunctionShelf { grid-area: side; overflow: auto; min-height: 0; }

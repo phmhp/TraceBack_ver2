@@ -1085,6 +1085,11 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       {chosen && <nav className="garageBreadcrumb" aria-label="현재 정비소 위치">
         <button onClick={showAllDomains}><Icon name="car" /> 차량 전체</button><span>›</span>
         <b>{content.group}</b><span>›</span><strong>{content.label}</strong>
+        <label className="garageDomainSwitch">다른 도메인
+          <select value={domain} onChange={event => setDomain(event.target.value as DomainId)} aria-label="다른 도메인으로 바로 이동">
+            {DOMAIN_ORDER.map(id => <option key={id} value={id}>{domainContent[id].label}</option>)}
+          </select>
+        </label>
         <button className="changeDomain" onClick={showAllDomains}>영역 바꾸기</button>
       </nav>}
       <section className="garageMechanismCard">

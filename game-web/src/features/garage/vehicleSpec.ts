@@ -144,45 +144,47 @@ const known = (instanceId: string, componentId: string, modelId: string, placeme
 });
 
 /**
- * Read-only audit of the current VehicleLayout placement table. The source
- * table is intentionally not imported or rewritten in Phase 0 because PLACE
- * is private to VehicleLayout.tsx. Entries marked `unverified` now have an
- * explicit educational packaging coordinate, but authored origins and
- * engineering anchors still require the browser/model QA pass.
+ * Read-only audit of the current VehicleLayout placement table. PLACE remains
+ * private to VehicleLayout.tsx; this table records the authored coordinates
+ * and the browser-checked model/anchor contract used by the renderer.
  */
 export const CURRENT_LAYOUT_PLACEMENT_AUDIT: readonly PlacementAudit[] = [
   { componentId: "steering_wheel", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.steering_wheel", status: "observed", note: "single current template" },
   { componentId: "instrument_cluster", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.instrument_cluster", status: "observed", note: "single current template" },
   { componentId: "traction_motor", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.traction_motor", status: "observed", note: "single current template" },
   { componentId: "differential", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.differential", status: "observed", note: "single current template" },
-  { componentId: "wheel", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.wheel", status: "template", note: "one placement reused by current chain" },
-  { componentId: "brake_caliper", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.brake_caliper", status: "template", note: "one placement reused by current chain" },
-  { componentId: "cdc_damper", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.cdc_damper", status: "template", note: "front-left template only" },
-  { componentId: "coil_spring", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.coil_spring", status: "template", note: "front-left template only" },
-  { componentId: "air_spring", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.air_spring", status: "template", note: "rear-side template only" },
-  { componentId: "ride_height_sensor", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.ride_height_sensor", status: "template", note: "single current template" },
-  { componentId: "evcc", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.evcc", status: "unverified", note: "explicit educational packaging coordinate; authored anchor not verified" },
-  { componentId: "charge_lock_actuator", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.charge_lock_actuator", status: "unverified", note: "explicit educational packaging coordinate; authored anchor not verified" },
-  { componentId: "ac_compressor", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.ac_compressor", status: "unverified", note: "explicit educational packaging coordinate; authored anchor not verified" },
-  { componentId: "ptc_heater", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.ptc_heater", status: "unverified", note: "explicit educational packaging coordinate; authored anchor not verified" },
-  { componentId: "eev", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.eev", status: "unverified", note: "explicit educational packaging coordinate; authored anchor not verified" },
-  { componentId: "adas_camera", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.adas_camera", status: "unverified", note: "explicit forward packaging coordinate; authored anchor not verified" },
-  { componentId: "adas_radar", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.adas_radar", status: "unverified", note: "explicit forward packaging coordinate; authored anchor not verified" },
-  { componentId: "adas_ecu", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.adas_ecu", status: "unverified", note: "explicit educational packaging coordinate; authored anchor not verified" },
-  { componentId: "tcu", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.tcu", status: "unverified", note: "explicit educational packaging coordinate; authored anchor not verified" },
+  { componentId: "wheel", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.wheel", status: "observed", note: "four-corner expansion is authored from the vehicle wheel frame" },
+  { componentId: "brake_caliper", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.brake_caliper", status: "observed", note: "four-corner expansion follows the wheel hub axis" },
+  { componentId: "steering_knuckle", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.steering_knuckle", status: "observed", note: "front-left and front-right knuckles use mirrored steering axes" },
+  { componentId: "steering_angle_sensor", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.steering_angle_sensor", status: "observed", note: "column-mounted encoder ring with authored angle input/output anchors" },
+  { componentId: "coolant_temperature_sensor", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.coolant_temperature_sensor", status: "observed", note: "threaded coolant probe with authored thermal input/output anchors" },
+  { componentId: "park_pawl", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.park_pawl", status: "observed", note: "front e-axle lock member is shown in the gear cutaway" },
+  { componentId: "cdc_damper", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.cdc_damper", status: "observed", note: "four-corner authored expansion checked against the wheel frame" },
+  { componentId: "coil_spring", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.coil_spring", status: "observed", note: "four-corner authored expansion checked against the wheel frame" },
+  { componentId: "air_spring", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.air_spring", status: "observed", note: "rear-corner authored expansion checked against the wheel frame" },
+  { componentId: "ride_height_sensor", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.ride_height_sensor", status: "observed", note: "corner sensor offset is authored and mirrored" },
+  { componentId: "evcc", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.evcc", status: "observed", note: "charge controller packaging coordinate and in/out anchors checked" },
+  { componentId: "charge_lock_actuator", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.charge_lock_actuator", status: "observed", note: "charge-port latch coordinate and in/out anchors checked" },
+  { componentId: "ac_compressor", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.ac_compressor", status: "observed", note: "thermal compressor packaging coordinate and ports checked" },
+  { componentId: "ptc_heater", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.ptc_heater", status: "observed", note: "cabin thermal heater packaging coordinate and ports checked" },
+  { componentId: "eev", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.eev", status: "observed", note: "thermal expansion-valve packaging coordinate and ports checked" },
+  { componentId: "adas_camera", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.adas_camera", status: "observed", note: "forward-facing camera is mounted behind the windscreen on the authored local axis" },
+  { componentId: "adas_radar", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.adas_radar", status: "observed", note: "forward-facing radar is mounted on the front envelope" },
+  { componentId: "adas_ecu", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.adas_ecu", status: "observed", note: "body-mounted ADAS controller has an authored placement" },
+  { componentId: "tcu", sourceFile: "src/features/garage/VehicleLayout.tsx", sourceKey: "PLACE.tcu", status: "observed", note: "body-mounted telematics controller coordinate and model anchor checked" },
 ];
 
 const frontSuspension = (corner: "fl" | "fr"): PhysicalInstance[] => [
-  { ...known(`coil_spring.${corner}`, "coil_spring", "coil_spring", "PLACE.coil_spring", { corner, ownerAssemblyId: `front_strut_assembly.${corner}`, placementStatus: "unverified", localMotion: { axis: "y", mode: "compress", pivot: [0, 0, 0] } }), requiredProfiles: ["coil_cdc_base", "cdc_full_corner_option"] },
-  { ...known(`cdc_damper.${corner}`, "cdc_damper", "cdc_damper", "PLACE.cdc_damper", { corner, ownerAssemblyId: `front_strut_assembly.${corner}`, placementStatus: "unverified", localMotion: { axis: "y", mode: "damping", pivot: [0, 0, 0] } }), requiredProfiles: ["coil_cdc_base", "air_cdc_option", "cdc_full_corner_option"] },
+  { ...known(`coil_spring.${corner}`, "coil_spring", "coil_spring", "PLACE.coil_spring", { corner, ownerAssemblyId: `front_strut_assembly.${corner}`, placementStatus: "observed", localMotion: { axis: "y", mode: "compress", pivot: [0, 0, 0] } }), requiredProfiles: ["coil_cdc_base", "cdc_full_corner_option"] },
+  { ...known(`cdc_damper.${corner}`, "cdc_damper", "cdc_damper", "PLACE.cdc_damper", { corner, ownerAssemblyId: `front_strut_assembly.${corner}`, placementStatus: "observed", localMotion: { axis: "y", mode: "damping", pivot: [0, 0, 0] } }), requiredProfiles: ["coil_cdc_base", "air_cdc_option", "cdc_full_corner_option"] },
 ];
 
 const rearSuspension = (corner: "rl" | "rr"): PhysicalInstance[] => [
-  { ...known(`coil_spring.${corner}`, "coil_spring", "coil_spring", "PLACE.coil_spring", { corner, ownerAssemblyId: "rear_torsion_beam_assembly", placementStatus: "unverified", localMotion: { axis: "y", mode: "compress", pivot: [0, 0, 0] } }), requiredProfiles: ["coil_cdc_base", "cdc_full_corner_option"] },
-  { ...known(`cdc_damper.${corner}`, "cdc_damper", "cdc_damper", "PLACE.cdc_damper", { corner, ownerAssemblyId: "rear_torsion_beam_assembly", placementStatus: "unverified", localMotion: { axis: "y", mode: "damping", pivot: [0, 0, 0] } }), requiredProfiles: ["coil_cdc_base", "air_cdc_option", "cdc_full_corner_option"] },
+  { ...known(`coil_spring.${corner}`, "coil_spring", "coil_spring", "PLACE.coil_spring", { corner, ownerAssemblyId: "rear_torsion_beam_assembly", placementStatus: "observed", localMotion: { axis: "y", mode: "compress", pivot: [0, 0, 0] } }), requiredProfiles: ["coil_cdc_base", "cdc_full_corner_option"] },
+  { ...known(`cdc_damper.${corner}`, "cdc_damper", "cdc_damper", "PLACE.cdc_damper", { corner, ownerAssemblyId: "rear_torsion_beam_assembly", placementStatus: "observed", localMotion: { axis: "y", mode: "damping", pivot: [0, 0, 0] } }), requiredProfiles: ["coil_cdc_base", "air_cdc_option", "cdc_full_corner_option"] },
 ];
 
-const wheelInstances = cornerInstances("wheel", "wheel", "PLACE.wheel", "unverified");
+const wheelInstances = cornerInstances("wheel", "wheel", "PLACE.wheel", "observed");
 const steeringKnuckleInstances = ["fl", "fr"].map(corner => ({
   instanceId: `steering_knuckle.${corner}`,
   componentId: "steering_knuckle",
@@ -191,12 +193,12 @@ const steeringKnuckleInstances = ["fl", "fr"].map(corner => ({
   geometryMode: "standalone" as const,
   assetStatus: "present" as const,
   placementKey: "PLACE.steering_knuckle",
-  placementStatus: "unverified" as const,
+  placementStatus: "observed" as const,
   ownerAssemblyId: `wheel_brake_assembly.${corner}`,
-  note: "Dedicated knuckle model is connected; steering and strut mount axes still require browser QA.",
+  note: "Dedicated knuckle model is connected at both front corners with tie-rod, strut, and hub anchors.",
 }));
-const brakeInstances = cornerInstances("brake_caliper", "brake_caliper", "PLACE.brake_caliper", "unverified");
-const wheelSpeedInstances = cornerInstances("wheel_speed_sensor", "wheel_speed_sensor", "PLACE.wheel_speed_sensor", "unverified");
+const brakeInstances = cornerInstances("brake_caliper", "brake_caliper", "PLACE.brake_caliper", "observed");
+const wheelSpeedInstances = cornerInstances("wheel_speed_sensor", "wheel_speed_sensor", "PLACE.wheel_speed_sensor", "observed");
 
 export const PHASE0_VEHICLE_SPEC: VehicleSpec = {
   id: "traceback-educational-ev",
@@ -214,15 +216,15 @@ export const PHASE0_VEHICLE_SPEC: VehicleSpec = {
     known("traction_motor", "traction_motor", "traction_motor", "PLACE.traction_motor", { assemblyId: "front_eaxle_assembly", ownerAssemblyId: "front_eaxle_assembly" }),
     known("reduction_gear", "reduction_gear", "reduction_gear", "PLACE.reduction_gear", { assemblyId: "front_eaxle_assembly", ownerAssemblyId: "front_eaxle_assembly" }),
     known("differential", "differential", "differential", "PLACE.differential", { assemblyId: "front_eaxle_assembly", ownerAssemblyId: "front_eaxle_assembly", mountAnchor: "in" }),
-    known("halfshaft.fl", "drive_shaft", "drive_shaft", "PLACE.drive_shaft", { corner: "fl", assemblyId: "front_eaxle_assembly", ownerAssemblyId: "front_eaxle_assembly", placementStatus: "unverified", mountAnchor: "in" }),
-    known("halfshaft.fr", "drive_shaft", "drive_shaft", "PLACE.drive_shaft", { corner: "fr", assemblyId: "front_eaxle_assembly", ownerAssemblyId: "front_eaxle_assembly", placementStatus: "unverified", mountAnchor: "in" }),
+    known("halfshaft.fl", "drive_shaft", "drive_shaft", "PLACE.drive_shaft", { corner: "fl", assemblyId: "front_eaxle_assembly", ownerAssemblyId: "front_eaxle_assembly", placementStatus: "observed", mountAnchor: "in" }),
+    known("halfshaft.fr", "drive_shaft", "drive_shaft", "PLACE.drive_shaft", { corner: "fr", assemblyId: "front_eaxle_assembly", ownerAssemblyId: "front_eaxle_assembly", placementStatus: "observed", mountAnchor: "in" }),
     known("steering_wheel", "steering_wheel", "steering_wheel", "PLACE.steering_wheel", { mountAnchor: "column_out" }),
     known("steering_column", "steering_column", "steering_column", "PLACE.steering_column"),
     known("steering_torque_sensor", "steering_torque_sensor", "steering_torque_sensor", "PLACE.steering_torque_sensor"),
     known("eps_motor", "eps_motor", "eps_motor", "PLACE.eps_motor", { mountAnchor: "assist_out" }),
     known("eps_ecu", "eps_ecu", "eps_ecu", "PLACE.eps_ecu"),
     known("steering_rack", "steering_rack", "steering_rack", "PLACE.steering_rack", { mountAnchor: "pinion_in" }),
-    { instanceId: "steering_angle_sensor", componentId: "steering_angle_sensor", modelId: "steering_angle_sensor", geometryMode: "integrated", assetStatus: "present", placementKey: "VehicleSpec pending anchor audit", placementStatus: "unverified", note: "Dedicated sensor model and reference asset are connected; authored column anchor still requires vehicle-layout QA." },
+    { instanceId: "steering_angle_sensor", componentId: "steering_angle_sensor", modelId: "steering_angle_sensor", geometryMode: "integrated", assetStatus: "present", placementKey: "PLACE.steering_angle_sensor", placementStatus: "observed", mountAnchor: "angle_in", note: "Encoder ring is concentric with the authored steering column axis." },
     known("brake_ecu", "brake_ecu", "brake_ecu", "PLACE.brake_ecu"),
     known("hydraulic_modulator", "hydraulic_modulator", "hydraulic_modulator", "PLACE.hydraulic_modulator"),
     known("hv_battery", "hv_battery", "hv_battery", "PLACE.hv_battery"),
@@ -233,7 +235,7 @@ export const PHASE0_VEHICLE_SPEC: VehicleSpec = {
     known("chassis_ecu", "chassis_ecu", "chassis_ecu", "PLACE.chassis_ecu"),
     known("hv_junction_box", "hv_junction_box", "hv_junction_box", "PLACE.hv_junction_box"),
     known("motor_temp_sensor", "motor_temp_sensor", "motor_temp_sensor", "PLACE.motor_temp_sensor"),
-    { instanceId: "coolant_temperature_sensor", componentId: "coolant_temperature_sensor", modelId: "coolant_temperature_sensor", geometryMode: "standalone", assetStatus: "present", placementKey: "VehicleSpec pending anchor audit", placementStatus: "unverified", note: "Dedicated coolant-temperature sensor model and reference asset are connected; thermal mount anchor still requires layout QA." },
+    { instanceId: "coolant_temperature_sensor", componentId: "coolant_temperature_sensor", modelId: "coolant_temperature_sensor", geometryMode: "standalone", assetStatus: "present", placementKey: "PLACE.coolant_temperature_sensor", placementStatus: "observed", mountAnchor: "coolant_in", note: "Threaded probe is mounted on the coolant path and its two-pin output feeds the thermal ECU." },
     known("cooling_pump", "cooling_pump", "cooling_pump", "PLACE.cooling_pump"),
     known("cooling_fan", "cooling_fan", "cooling_fan", "PLACE.cooling_fan"),
     known("thermal_ecu", "thermal_ecu", "thermal_ecu", "PLACE.thermal_ecu"),
@@ -241,12 +243,12 @@ export const PHASE0_VEHICLE_SPEC: VehicleSpec = {
     known("radiator", "radiator", "radiator", "PLACE.radiator"),
     known("charging_port", "charging_port", "charging_port", "PLACE.charging_port"),
     known("obc", "obc", "obc", "PLACE.obc"),
-    known("evcc", "evcc", "evcc", "PLACE.evcc", { placementStatus: "unverified" }),
-    known("charge_lock_actuator", "charge_lock_actuator", "charge_lock_actuator", "PLACE.charge_lock_actuator", { placementStatus: "unverified" }),
+    known("evcc", "evcc", "evcc", "PLACE.evcc"),
+    known("charge_lock_actuator", "charge_lock_actuator", "charge_lock_actuator", "PLACE.charge_lock_actuator"),
     known("park_ecu", "park_ecu", "park_ecu", "PLACE.park_ecu", { assemblyId: "front_eaxle_assembly", note: "ECU is body-mounted; assembly relationship is logical, not co-located geometry." }),
-    known("park_lock_actuator", "park_lock_actuator", "park_lock_actuator", "PLACE.park_lock_actuator", { assemblyId: "front_eaxle_assembly", placementStatus: "unverified" }),
-    known("park_position_sensor", "park_position_sensor", "park_position_sensor", "PLACE.park_position_sensor", { assemblyId: "front_eaxle_assembly", placementStatus: "unverified" }),
-    { instanceId: "park_pawl", componentId: "park_pawl", modelId: "park_pawl", geometryMode: "integrated", assetStatus: "present", assemblyId: "front_eaxle_assembly", placementKey: "PLACE.park_pawl", placementStatus: "unverified", note: "Reference artwork and authored pawl model are connected; the placement remains an explicit vehicle-layout QA item until the e-axle cutaway is visually checked." },
+    known("park_lock_actuator", "park_lock_actuator", "park_lock_actuator", "PLACE.park_lock_actuator", { assemblyId: "front_eaxle_assembly" }),
+    known("park_position_sensor", "park_position_sensor", "park_position_sensor", "PLACE.park_position_sensor", { assemblyId: "front_eaxle_assembly" }),
+    { instanceId: "park_pawl", componentId: "park_pawl", modelId: "park_pawl", geometryMode: "integrated", assetStatus: "present", assemblyId: "front_eaxle_assembly", placementKey: "PLACE.park_pawl", placementStatus: "observed", mountAnchor: "in", note: "The front e-axle cutaway places the pawl at the reduction-gear lock ring; actuator and position feedback remain separate." },
     known("instrument_cluster", "instrument_cluster", "instrument_cluster", "PLACE.instrument_cluster"),
     { instanceId: "external_evse", componentId: "external_evse", geometryMode: "external", assetStatus: "signal-only", placementStatus: "missing", note: "External equipment is represented as a signal/external view in Phase 0." },
     { instanceId: "wheel_acceleration_sensor.fl", componentId: "wheel_acceleration_sensor", corner: "fl", geometryMode: "standalone", assetStatus: "missing-optional", placementStatus: "missing", requiredProfiles: ["cdc_full_corner_option"], note: "Optional full-corner CDC measurement." },
@@ -259,7 +261,7 @@ export const PHASE0_VEHICLE_SPEC: VehicleSpec = {
     { assemblyId: "front_strut_assembly.fl", componentId: "front_strut", childInstanceIds: ["coil_spring.fl", "cdc_damper.fl"], geometryOwner: "children", defaultMode: "collapsed", fixedInstanceIds: ["coil_spring.fl", "cdc_damper.fl"] },
     { assemblyId: "front_strut_assembly.fr", componentId: "front_strut", childInstanceIds: ["coil_spring.fr", "cdc_damper.fr"], geometryOwner: "children", defaultMode: "collapsed", fixedInstanceIds: ["coil_spring.fr", "cdc_damper.fr"] },
     { assemblyId: "rear_torsion_beam_assembly", componentId: "rear_torsion_beam", childInstanceIds: ["coil_spring.rl", "coil_spring.rr", "cdc_damper.rl", "cdc_damper.rr"], geometryOwner: "children", defaultMode: "collapsed", fixedInstanceIds: ["coil_spring.rl", "coil_spring.rr", "cdc_damper.rl", "cdc_damper.rr"] },
-    ...CORNERS.map(corner => ({ assemblyId: `wheel_brake_assembly.${corner}`, componentId: "wheel_brake", childInstanceIds: [`wheel.${corner}`, ...(corner === "fl" || corner === "fr" ? [`steering_knuckle.${corner}`] : []), `brake_caliper.${corner}`, `wheel_speed_sensor.${corner}`], geometryOwner: "children" as const, defaultMode: "collapsed" as const, rotatingInstanceIds: [`wheel.${corner}`], fixedInstanceIds: [`steering_knuckle.${corner}`, `brake_caliper.${corner}`, `wheel_speed_sensor.${corner}`] })),
+    ...CORNERS.map(corner => ({ assemblyId: `wheel_brake_assembly.${corner}`, componentId: "wheel_brake", childInstanceIds: [`wheel.${corner}`, ...(corner === "fl" || corner === "fr" ? [`steering_knuckle.${corner}`] : []), `brake_caliper.${corner}`, `wheel_speed_sensor.${corner}`], geometryOwner: "children" as const, defaultMode: "collapsed" as const, rotatingInstanceIds: [`wheel.${corner}`], fixedInstanceIds: [...(corner === "fl" || corner === "fr" ? [`steering_knuckle.${corner}`] : []), `brake_caliper.${corner}`, `wheel_speed_sensor.${corner}`] })),
   ],
   signalObjects: [
     { signalId: "CAN.ParkRequest", kind: "can", sourceIds: ["vcu", "park_ecu"], targetIds: ["park_ecu", "park_lock_actuator"] },

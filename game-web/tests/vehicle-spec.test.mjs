@@ -48,11 +48,31 @@ test("reverse audit covers all 11 domains and four functions without hiding unre
 
 test("Phase 0 audit preserves unresolved findings while removing index fallback", () => {
   const result = validateVehicleSpec(PHASE0_VEHICLE_SPEC);
-  assert.equal(result.ok, false, "unresolved Phase 0 findings must not be reported as clean");
-  assert.ok([...result.errors, ...result.warnings].some(issue => issue.code === "MISSING_MODEL"));
-  assert.ok(result.warnings.some(issue => issue.code === "UNVERIFIED_PLACEMENT"));
+  assert.equal(result.ok, true, "all authored base vehicle placements must validate cleanly");
+  assert.equal(result.errors.some(issue => issue.code === "MISSING_MODEL"), false);
+  assert.ok(result.warnings.every(issue => issue.subject.startsWith("wheel_acceleration_sensor.")));
+  assert.equal(result.warnings.some(issue => issue.code === "UNVERIFIED_PLACEMENT"), false);
   assert.equal(result.errors.some(issue => issue.code === "FALLBACK_PLACEMENT"), false);
-  assert.ok(CURRENT_LAYOUT_PLACEMENT_AUDIT.some(item => item.componentId === "evcc" && item.status === "unverified"));
+  assert.ok(CURRENT_LAYOUT_PLACEMENT_AUDIT.every(item => item.status === "observed"));
+});
+
+test("critical EV additions are authored, mounted, and represented by the same model used by the inspector", () => {
+  const byId = new Map(PHASE0_VEHICLE_SPEC.physicalInstances.map(instance => [instance.instanceId, instance]));
+  for (const id of ["steering_angle_sensor", "coolant_temperature_sensor", "park_pawl"]) {
+    const instance = byId.get(id);
+    assert.ok(instance, `${id} is declared`);
+    assert.equal(instance?.modelId, id, `${id} inspector uses its own model`);
+    assert.equal(instance?.placementStatus, "observed", `${id} has an authored placement`);
+    assert.ok(instance?.placementKey?.startsWith("PLACE."), `${id} has a placement key`);
+  }
+  assert.deepEqual(
+    PHASE0_VEHICLE_SPEC.physicalInstances.filter(instance => instance.componentId === "wheel").map(instance => instance.corner).sort(),
+    ["fl", "fr", "rl", "rr"],
+  );
+  assert.deepEqual(
+    PHASE0_VEHICLE_SPEC.physicalInstances.filter(instance => instance.componentId === "steering_knuckle").map(instance => instance.corner).sort(),
+    ["fl", "fr"],
+  );
 });
 
 test("front e-axle park pawl uses the supplied authored asset and placement key", () => {

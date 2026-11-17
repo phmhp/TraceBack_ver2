@@ -1994,6 +1994,10 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   // hypothesis number = which hypothesis is being verified; its own runs, input pick and judgement stay separate
   const selectHypothesis = (k: number) => {
     if (running || (phase !== "lab" && phase !== "pick") || (k === qi && !(phase === "pick" && pickStage === "hyp"))) return;
+    // A hypothesis is a one-pass investigation. Once it has a recorded answer,
+    // selecting it again would silently overwrite the evidence and make the
+    // two-candidate roadmap non-deterministic.
+    if (answers[questions[k]?.hyp ?? ""]) return;
     setQi(k); setPickedDeriv(null); setFeedback(null); setU(runs[runKey(false, level, questions[k].hyp)] ? 1 : 0); if (phase === "pick") setPickStage("level"); play("pop");
     setBubble(`가설 ${k + 1}을 검증해요. 이 가설에 맞는 시험 수준과 입력 조건을 골라 직접 실행해야 판정할 수 있어요.`);
   };
@@ -2146,7 +2150,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const b4Mission = stepIdx === 0 ? { action: pickStage === "hyp" ? "유력한 가설 고르기" : "가설을 검토할 시험 수준 고르기", question: pickStage === "hyp" ? "유력한 가설은 뭔가요?" : "이 가설을 검토하기에 적절한 시험 수준은 무엇일까?" }
     : stepIdx === 1 ? { action: shown ? "시험 결과 보고 판단하기" : "시험 실행하고 정상과 비교하기", question: "이 결과를 보면 이 가설이 원인 같을까?" }
       : { action: phase === "report" ? "최종 고장 원인 고르기" : "원인을 없앤 모델 확인하기", question: "원인을 없애면 정상으로 돌아올까?" };
-  const hypStrip = <div className="b4Hyps" role="group" aria-label="검증할 고장 원인 가설">{questions.map((item, k) => { const a = answers[item.hyp]; const label = meta.hypotheses.find(h => h.id === item.hyp)?.label ?? item.ask; const status = a ? ANSWER_KO[a.answer] : held[item.hyp]?.length ? "아직 몰라요" : "아직 안 봄"; return <button key={item.hyp} type="button" disabled={running || (phase !== "lab" && phase !== "pick")} aria-pressed={k === qi} className={`${a ? `a-${a.answer}` : held[item.hyp]?.length ? "a-open" : ""} ${k === qi ? "now" : ""}`} onClick={() => selectHypothesis(k)}><i>{k + 1}</i><b>{label}</b><small>{status}</small></button>; })}</div>;
+  const hypStrip = <div className="b4Hyps" role="group" aria-label="검증할 고장 원인 가설">{questions.map((item, k) => { const a = answers[item.hyp]; const label = meta.hypotheses.find(h => h.id === item.hyp)?.label ?? item.ask; const status = a ? ANSWER_KO[a.answer] : held[item.hyp]?.length ? "아직 몰라요" : "아직 안 봄"; return <button key={item.hyp} type="button" disabled={running || Boolean(a) || (phase !== "lab" && phase !== "pick")} aria-pressed={k === qi} className={`${a ? `a-${a.answer}` : held[item.hyp]?.length ? "a-open" : ""} ${k === qi ? "now" : ""}`} onClick={() => selectHypothesis(k)}><i>{k + 1}</i><b>{label}</b><small>{status}</small></button>; })}</div>;
   const selectedCause = q ? CAUSES[caseId].find(item => item.hyp === q.hyp) : undefined;
   const firstTrace = step02.chain.length ? step02.chain[step02.chain.length - 1] : undefined;
   // spoken direction (what was just done / what happens now / how to do it)
@@ -2204,6 +2208,10 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
             <p className="b4Hint2">{pickStage === "hyp" ? "도미노에서 좁힌 후보 중 가장 유력한 하나를 고르면, 다음 화면에서 시험 수준을 정합니다." : "시험 수준에 따라 볼 수 있는 신호와 판단 가능한 경계가 달라요."}</p></section>
         </div>
         : phase === "report" ? <div className="b4Pick b4Report">
+          <section className="b4ReportEvidence" aria-label="최종 원인 선택 근거">
+            <span className="reportPolaroid"><i className="pin" /><span className="reportPolaroidWin"><img src={(CAUSES[caseId].find(item => item.hyp === questions.find(qItem => answers[qItem.hyp]?.answer === "supported")?.hyp) ?? CAUSES[caseId][0]).img} alt="" /></span></span>
+            <div><small>시험 결과로 좁힌 후보</small><h3><mark>{meta.hypotheses.find(item => item.id === questions.find(qItem => answers[qItem.hyp]?.answer === "supported")?.hyp)?.label ?? "가설 후보를 비교하세요"}</mark></h3><p>정상 기준과의 차이, 관찰한 신호, 재현 여부를 아래 후보와 대조해 최종 원인을 선택하세요.</p></div>
+          </section>
           <ol className="b4HypList" aria-label="가설 확인 결과">{questions.map(item => { const a = answers[item.hyp]; const h = meta.hypotheses.find(x => x.id === item.hyp); return <li key={item.hyp} className={a ? `a-${a.answer}` : "a-skip"}><i>{a ? (a.answer === "supported" ? "●" : "○") : "–"}</i><span className="etTag" data-tag={HYP_TAG[item.hyp]}>{HYP_TAG[item.hyp]}</span><b>{h?.label ?? item.ask}</b><em>{a ? ANSWER_KO[a.answer] : "시험 안 함"}</em></li>; })}</ol>
           <section className="b4HypDetail"><small>가설 확인을 마쳤어요</small><h3>원인이 하나로 좁혀졌어요</h3><div className="b4Criteria"><small><Icon name="target" /> 근거</small><ul>{questions.map(item => { const a = answers[item.hyp]; return a ? <li key={item.hyp}>{numify(a.why)}</li> : null; })}</ul></div></section>
         </div>

@@ -220,24 +220,34 @@ export function layoutOf(domain: DomainId, feature: number) {
   const segments: Segment[] = nodes.slice(1).map((to, k) => {
     const from = nodes[k];
     const via = between[k] ?? [];
-    if (via.includes("can_harness")) return { from, to, flow: "can_message" };
-    if (via.includes("hv_cable")) return { from, to, flow: "electrical_power" };
+    const fromPort = portFor(from, "out");
+    const toPort = portFor(to, "in");
+    if (via.includes("can_harness")) return { from, to, flow: "can_message", fromPort, toPort };
+    if (via.includes("hv_cable")) return { from, to, flow: "electrical_power", fromPort, toPort };
     const c = CONNECTIONS.find(item => item.from.split(".")[0] === from.id && item.to.split(".")[0] === to.id);
     if (c) return { from, to, flow: c.flow, fromPort: c.from.split(".")[1], toPort: c.to.split(".")[1] };
-    return { from, to, flow: inferFlow(from.id, to.id) };
+    return { from, to, flow: inferFlow(from.id, to.id), fromPort, toPort };
   });
   return { chain, nodes, segments };
 }
 
 const euler = new THREE.Euler();
-/** World position (scene units) of one anchor of a placed part. */
-function anchorWorld(node: Node, side: "in" | "out", port?: string): THREE.Vector3 {
+/** Resolve the exact model anchor used by both segment metadata and geometry. */
+function portFor(node: Node, side: "in" | "out", preferred?: string): string | undefined {
   const model = getPartModel(node.id);
   const names = Object.keys(model.anchors);
   const ports = getComponent(node.id)?.ports;
-  const pick = port && model.anchors[port] ? port
+  return preferred && model.anchors[preferred]
+    ? preferred
     : ports?.find(item => item.direction === side && names.includes(item.id))?.id
       ?? (model.anchors[side] ? side : names[side === "in" ? 0 : names.length - 1]);
+}
+
+/** World position (scene units) of one anchor of a placed part. */
+function anchorWorld(node: Node, side: "in" | "out", port?: string): THREE.Vector3 {
+  const model = getPartModel(node.id);
+  const pick = portFor(node, side, port);
+  if (!pick) return new THREE.Vector3(...offsetOf(node));
   const a = model.anchors[pick];
   const s = modelScale(node);
   euler.set(...(node.place.r ?? [0, 0, 0]));
@@ -405,6 +415,19 @@ function CarContext({ strong, wheelActive = false, wheelSteer = 0, showBody = tr
         <mesh><sphereGeometry args={[1, 40, 24]} /><meshStandardMaterial color="#d94e45" transparent opacity={strong ? .22 : .08} depthWrite={false} side={THREE.DoubleSide} /></mesh>
         <mesh position={[0, -.72, .04]} scale={[.92, .16, .88]}><sphereGeometry args={[1, 32, 18]} /><meshStandardMaterial color="#a93632" transparent opacity={strong ? .24 : .08} depthWrite={false} side={THREE.DoubleSide} /></mesh>
       </group>
+      {/* Front hood/cowl: a low, continuous curved panel bridges the fenders
+       * and gives the forward ADAS camera a real mounting surface.  It is a
+       * rounded surface, never a floating rectangular proxy. */}
+      <mesh position={[0, .82 * U, -1.48 * U]} scale={[.78 * U, .14 * U, .52 * U]}>
+        <sphereGeometry args={[1, 40, 22]} />
+        <meshPhysicalMaterial color="#d94e45" transparent opacity={strong ? .28 : .1} roughness={.32} clearcoat={.45} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Tinted windscreen/cowl bridge behind the hood; this is the surface
+       * the forward camera is mounted to rather than an isolated sensor. */}
+      <mesh position={[0, .98 * U, -.75 * U]} scale={[.63 * U, .12 * U, .34 * U]} rotation={[0, 0, 0.04]}>
+        <sphereGeometry args={[1, 36, 20]} />
+        <meshPhysicalMaterial color="#53656a" transparent opacity={strong ? .22 : .08} roughness={.2} clearcoat={.6} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
       <mesh position={[0, 1.03 * U, -.55 * U]} rotation={[0, 0, 0]} scale={[.66 * U, .24 * U, .42 * U]}>
         <sphereGeometry args={[1, 36, 20]} />
         <meshPhysicalMaterial color="#d94e45" transparent opacity={strong ? .15 : .05} roughness={.28} clearcoat={.7} depthWrite={false} side={THREE.DoubleSide} />
@@ -448,14 +471,14 @@ export function VehicleLayoutRig({ domain, feature, activeStep, inputOn, shell, 
     {drivePower && <>
       <SupportPart node={drivePower.battery} active={inputOn} />
       <SupportPart node={drivePower.contactor} active={inputOn} />
-      {showCables && <><FlowCable a={anchorWorld(drivePower.battery, "out", "dc_out")} b={anchorWorld(drivePower.contactor, "in", "hv_in")} flow="electrical_power" on={inputOn} />
-        <FlowCable a={anchorWorld(drivePower.contactor, "out", "hv_out")} b={anchorWorld(drivePower.inverter, "in", "dc_in")} flow="electrical_power" on={inputOn} tag={inputOn ? "고전압 전력 · 구동 에너지" : undefined} /></>}
+      {showCables && <><FlowCable a={anchorWorld(drivePower.battery, "out", "dc_out")} b={anchorWorld(drivePower.contactor, "in", "hv_in")} flow="electrical_power" on={inputOn} staticColor />
+        <FlowCable a={anchorWorld(drivePower.contactor, "out", "hv_out")} b={anchorWorld(drivePower.inverter, "in", "dc_in")} flow="electrical_power" on={inputOn} staticColor tag={inputOn ? "고전압 전력 · 구동 에너지" : undefined} /></>}
     </>}
     {expandCornerNodes(visibleNodes).map(node => <PlacedPart key={`${node.id}-${node.copy}`} node={node} arrived={arrived(node.index)} isInput={node.index === 0} domain={domain} feature={feature} selected={selectedIndex === node.index} onSelect={onSelect} />)}
     {showCables && segments.map((seg, k) => {
       const on = inputOn && energizedStep > seg.from.index;
       const newest = on && energizedStep <= seg.to.index && energizedStep > seg.from.index;
-      return <FlowCable key={k} a={anchorWorld(seg.from, "out", seg.fromPort)} b={anchorWorld(seg.to, "in", seg.toPort)} flow={seg.flow} on={on}
+      return <FlowCable key={k} a={anchorWorld(seg.from, "out", seg.fromPort)} b={anchorWorld(seg.to, "in", seg.toPort)} flow={seg.flow} on={on} staticColor
         tag={newest ? `${(FLOW_INFO[seg.flow] ?? FLOW_INFO.digital).label} · ${signalAt(seg.to.index)}` : undefined} />;
     })}
     {showBadges && nodes.map(node => <Html key={`b-${node.id}-${node.copy}`} center position={[offsetOf(node)[0], offsetOf(node)[1] + .26, offsetOf(node)[2]]} distanceFactor={3.2} zIndexRange={[19, 0]}>
@@ -486,7 +509,10 @@ export function VehiclePlatformOverview({ showWiring = false, showBody = true }:
     }
     // The overview is a vehicle architecture view, so retain the physical
     // parts that can disappear when a domain's first feature is signal-only.
-    for (const id of ["hv_battery", "bms", "inverter", "traction_motor", "steering_rack", "coil_spring", "damper", "charging_port", "obc", "dcdc_converter"]) {
+    for (const id of [
+      "hv_battery", "bms", "inverter", "traction_motor", "steering_rack", "coil_spring", "damper", "charging_port", "obc", "dcdc_converter",
+      "steering_angle_sensor", "coolant_temperature_sensor", "park_lock_actuator", "park_position_sensor", "park_pawl", "steering_knuckle", "wheel_speed_sensor", "brake_caliper",
+    ]) {
       const place = PLACE[id];
       if (!place) continue;
       const key = `${id}:${place.p.map(value => value.toFixed(3)).join(",")}`;
