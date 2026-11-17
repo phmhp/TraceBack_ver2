@@ -2234,13 +2234,24 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       </section>
       <aside className="b4Panel" aria-label="시험 조건과 결과">
         <header><nav role="tablist" aria-label="패널 보기">
-          <button role="tab" aria-selected={panelTab === "result" || panelTab === "mat"} className={panelTab !== "cond" ? "on" : ""} onClick={() => setPanelTab("result")}>결과</button>
+          <button role="tab" aria-selected={panelTab === "mat"} className={panelTab === "mat" ? "on" : ""} onClick={() => setPanelTab("mat")}>가설 테스트 결과</button>
+          <button role="tab" aria-selected={panelTab === "result"} className={panelTab === "result" ? "on" : ""} onClick={() => setPanelTab("result")}>시험 결과</button>
           <button role="tab" aria-selected={panelTab === "cond"} className={panelTab === "cond" ? "on" : ""} disabled={phase === "pick" || phase === "report"} onClick={() => setPanelTab("cond")}>시험 조건</button>
         </nav>{phase === "done" && <button className="stageReplayBtn" onClick={() => setReplayOpen(true)}>다시 풀기</button>}</header>
         <div className="b4DocBtns"><button onClick={() => { setDocOpen("tc"); setSeen(prev => ({ ...prev, tc: true })); }}><Icon name="clipboard" /> 시험 설계서 열기</button><button onClick={() => { setDocOpen("log"); setSeen(prev => ({ ...prev, log: true })); }}><Icon name="search" /> 고장 기록 열기</button></div>
         <div className="b4PanelBody">
           {!contractReady && <aside className="qaCriteria big" role="alert"><small><Icon name="clipboard" /> 테스트 설계서 오류</small><p>{contractErrors.join(" ")}</p><button onClick={() => send({ type: "OPEN_WIRING" })}>STEP03에서 테스트 설계서 다시 발급</button></aside>}
-          {phase === "pick" || phase === "report" ? <div className="b4Mat"><p className="qaChipEmpty">시험을 실행하면 결과가 여기에 쌓여요. 시험 설계서와 고장 기록은 위 버튼으로 문서처럼 크게 열어 볼 수 있어요.</p></div> : <>
+          {phase === "pick" ? <section className="b4PickGuide" aria-label="가설 선택 기준">
+            <header><small>이번 단계의 기준</small><h3>{pickStage === "hyp" ? "먼저 시험할 가설을 고르는 이유" : "시험 수준을 고르는 이유"}</h3></header>
+            <ol>
+              {pickStage === "hyp" ? <><li>도미노에서 좁힌 후보 중 하나를 먼저 선택해요.</li><li>가설이 맞다면 달라질 신호를 확인해요.</li><li>선택 후에는 시험 수준과 입력을 정해요.</li></> : <><li>가설을 가를 신호가 보이는 수준을 골라요.</li><li>관찰 가능한 출력과 판단 기준을 확인해요.</li><li>다음 단계에서 같은 조건으로 실행해요.</li></>}
+            </ol>
+            <p><b>현재 선택</b><span>{pickStage === "hyp" ? "가설 후보 2개" : hypothesisGoal}</span></p>
+          </section> : phase === "report" ? <section className="b4PickGuide" aria-label="가설 결과 요약">
+            <header><small>시험 결과 정리</small><h3>확인한 결과를 비교해요</h3></header>
+            <ol><li>각 가설의 시험 결과를 확인해요.</li><li><mark>정상 기준과 달라진 신호</mark>를 근거로 봐요.</li><li>마지막에 원인 제거 시험으로 다시 확인해요.</li></ol>
+            <p><b>다음</b><span>최종 고장 원인 선택</span></p>
+          </section> : <>
           {judgeNote && <aside className="b4WhyLevel" aria-label="이 시험 수준의 판단 가능 여부"><small>이 시험 수준으로 이 가설을 판단할 수 있나요?</small><b className={judgeNote.can ? "can" : "cannot"}>{judgeNote.can ? "판단할 수 있어요" : "판단할 수 없어요"}</b><p>{judgeNote.text}</p></aside>}
           {panelTab === "cond" && (phase === "ab" ? <aside className="qaSetupPanel" aria-label="동일 시험 조건">
               <header><small>01 · 동일 조건</small><b>{activeContract.stimulus.label}</b><span>두 모델에 같은 초기 상태·입력·시간축을 적용</span></header>

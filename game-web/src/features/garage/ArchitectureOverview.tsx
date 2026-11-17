@@ -66,6 +66,21 @@ export function ArchitectureOverview({ icons, onPick, onShow3d, focusGroup = nul
     </section>
   </div>;
 
+  const treePanel = <aside className="archTreePanel" aria-label="차량 아키텍처 탐색">
+    <header><Icon name="layers" /><b>아키텍처 탐색</b><small>현재 위치에서 바로 이동</small></header>
+    <button className={open === null ? "on" : ""} onClick={() => pickGroup(null)}><span>차량 전체</span><small>3D · E/E 구조</small></button>
+    <div className="archTreeGroups">
+      {DOMAIN_GROUPS.map(group => {
+        const ids = DOMAIN_ORDER.filter(id => EV_DOMAINS[id].group === group);
+        return <section key={group} className={open === group ? "on" : ""}>
+          <button className="archTreeGroup" onClick={() => pickGroup(group)}><b>{group}</b><small>{ids.length}개 도메인</small></button>
+          {open === group && <div className="archTreeDomains">{ids.map(id => <button key={id} onClick={() => onPick(id)}><Icon name={icons[id]} /><span>{EV_DOMAINS[id].label}</span><small>기능 {EV_DOMAINS[id].features.length}개</small></button>)}</div>}
+        </section>;
+      })}
+    </div>
+    <button className="archTree3d" onClick={onShow3d}><Icon name="car" /> 차량 3D 보기</button>
+  </aside>;
+
   return <div className="mechanismViewer archView" ref={root}>
     {open === null ? groupCards : <>
     <nav className="archCrumb" aria-label="현재 위치"><button onClick={() => pickGroup(null)}>전체 영역</button><span>›</span>{DOMAIN_GROUPS.map(group => <button key={group} className={group === open ? "on" : ""} onClick={() => pickGroup(group)}>{group}</button>)}<small>도메인을 누르면 기능을 볼 수 있어요</small></nav>
@@ -96,6 +111,7 @@ export function ArchitectureOverview({ icons, onPick, onShow3d, focusGroup = nul
       {COORD_SIGNALS.map((item, index) => <button key={item.name} className={signal === index ? "on" : ""} onClick={() => setSignal(signal === index ? null : index)}>{item.name}</button>)}
       <button className="arch3d" onClick={onShow3d}><Icon name="car" /> 3D 차량</button>
     </div>}
+    {treePanel}
     <p className="archNote">{active ? `${EV_DOMAINS[active.from].label} → ${active.to.map(id => EV_DOMAINS[id].label).join("·")} · ${active.purpose}` : open === null ? "" : "아래 협조 신호를 누르면 도메인 사이 신호가 보여요."}</p>
   </div>;
 }

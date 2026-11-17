@@ -158,7 +158,7 @@
   padding: 10px !important;
 }
 .eeTrace .etCand .etCardPol { width: 92px; min-width: 92px; aspect-ratio: 88 / 107; padding: 6px 6px 10px; box-sizing: border-box; position: relative; background: #fffefa; border-radius: 4px; box-shadow: 0 2px 2px rgba(0,0,0,.12), 0 5px 10px rgba(60,40,20,.14); }
-.eeTrace .etCand .etCardPol .polPhoto { display: grid; place-items: center; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; background: #efe7da; }
+.eeTrace .etCand .etCardPol .polPhoto { display: grid; place-items: center; width: 100%; aspect-ratio: 1 / 1; overflow: hidden; background: #efe7da; }
 .eeTrace .etCand .etCardPol .polPhoto .dtPhoto,
 .eeTrace .etCand .etCardPol .polPhoto .dtPhoto img { width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; }
 .eeTrace .etCandText { min-width: 0; display: grid; gap: 4px; overflow: hidden; }
@@ -185,13 +185,13 @@
 .eeTrace .etEvidence .polBoard { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; grid-auto-rows: minmax(0, auto) !important; align-content: start; overflow-y: auto !important; }
 .eeTrace .etEvidence .pol { min-width: 0; width: 100%; overflow: hidden !important; }
 .eeTrace .etEvidence .polPhoto,
-.eeTrace .etEvidence .polPhoto .dtPhoto { width: 100% !important; aspect-ratio: 4 / 3 !important; height: auto !important; min-height: 0; display: grid !important; place-items: center; overflow: hidden !important; }
+.eeTrace .etEvidence .polPhoto .dtPhoto { width: 100% !important; aspect-ratio: 1 / 1 !important; height: auto !important; min-height: 0; display: grid !important; place-items: center; overflow: hidden !important; }
 .eeTrace .etEvidence .polPhoto img,
 .eeTrace .etEvidence .polPhoto .dtPhoto img { width: 100% !important; height: 100% !important; object-fit: contain !important; }
 .eeTrace .polZoom { z-index: 1200 !important; padding: 22px; box-sizing: border-box; }
 .eeTrace .polBig { width: min(430px, 88vw) !important; max-height: 88vh; overflow: auto; box-sizing: border-box; }
 .eeTrace .polBig .polPhoto.big,
-.eeTrace .polBig .polPhoto.big .dtPhoto { width: 100% !important; height: auto !important; aspect-ratio: 4 / 3 !important; max-height: 58vh; display: grid !important; place-items: center; overflow: hidden !important; }
+.eeTrace .polBig .polPhoto.big .dtPhoto { width: 100% !important; height: auto !important; aspect-ratio: 1 / 1 !important; max-height: 58vh; display: grid !important; place-items: center; overflow: hidden !important; }
 .eeTrace .polBig .polPhoto.big img,
 .eeTrace .polBig .polPhoto.big .dtPhoto img { width: 100% !important; height: 100% !important; object-fit: contain !important; }
 .eeTrace .polCaption { min-width: 0; overflow-wrap: anywhere; }
@@ -393,11 +393,9 @@ body :is(
 
 /* The architecture cards contain role, input, output, and domain chips. Keep
    that information inside the card even when the 1600x900 layout is dense. */
-.garageV2 .archView .archGroupCards { overflow: auto !important; padding-bottom: 2px; }
+.garageV2 .archView .archGroupCards { overflow: hidden !important; padding-bottom: 2px; }
 .garageV2 .archView .archGroupCard {
-  overflow: auto !important;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(155,107,100,.45) transparent;
+  overflow: hidden !important;
 }
 .garageV2 .archView .archGroupCard h3 { font-size: 19px !important; }
 .garageV2 .archView .archGroupCard .agPurpose { margin: 0 0 2px !important; line-height: 1.25 !important; }
@@ -449,7 +447,7 @@ body :is(
   display: grid;
   place-items: center;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   background: #efe7da;
 }
@@ -918,6 +916,77 @@ body .gameStage :is(
 .garageV2 .garageCoordOverlay article i { color: #c4553a; font: 900 14px/1 Pretendard, system-ui; text-align: center; }
 .garageV2 .garageCoordOverlay article small { grid-column: 1 / -1; color: #8a6a63; font: 700 10px/1.2 Pretendard, system-ui; }
 
+/* Final garage fit contract: the architecture surface owns its measured
+   height.  Older stage rules left a few pixels outside the grid, which became
+   a hidden internal scrollbar in the domain view. */
+.garageV2 .gv3Work .domainFunctionShelf.withPedalLab,
+.garageV2 .gv3Work .domainFunctionShelf { min-height: 0 !important; max-height: 100% !important; overflow: hidden !important; box-sizing: border-box !important; }
+.garageV2 .gv3Work .domainFunctionShelf.withPedalLab { gap: 4px !important; padding: 8px !important; }
+.garageV2 .gv3Work .domainFunctionShelf.withPedalLab > button { min-height: 0 !important; padding: 8px !important; }
+.garageV2 .gv3Work .garageStudio,
+.garageV2 .gv3Work .garageStudio > *,
+.garageV2 .gv3Work .garageMechanismCard,
+.garageV2 .gv3Work .garageMechanismCard > .mechanismViewer { min-height: 0 !important; box-sizing: border-box !important; }
+.garageV2 .gv3Work[data-mode="architecture"] .archView,
+.garageV2 .gv3Work[data-mode="architecture"] .archView .archGroupPick,
+.garageV2 .gv3Work[data-mode="architecture"] .archView .archCols { min-height: 0 !important; overflow: hidden !important; }
+.garageV2 .gv3Work[data-mode="architecture"] .archView .archCoordPreview { flex: 0 0 auto !important; }
+.garageV2 .gv3Work[data-mode="architecture"] .archView .archCoordPreview > div { min-height: 0 !important; }
+
+/* The architecture screen is a control surface: every visual card is a
+   stable, equally inset button and never a slanted/overflowing label. */
+.garageV2 .archView :is(.archGroupCard, .archCoordPreview, .archCoordPreview button, .archCrumb button, .archSignals button) {
+  box-sizing: border-box !important;
+  transform: none !important;
+  rotate: none !important;
+}
+.garageV2 .archView .archCoordPreview button { min-height: 58px !important; padding: 10px !important; }
+.garageV2 .archView .archCoordPreview button :is(strong, span) { white-space: normal !important; overflow-wrap: anywhere !important; overflow: hidden !important; }
+
+/* Restored architecture tree: structural navigation is separate from the
+   3D-view toggle, so learners can move vehicle → area → domain without
+   guessing which pill changes the camera. */
+.garageV2 .archView { padding-right: 236px !important; }
+.garageV2 .archView > .archGroupPick,
+.garageV2 .archView > .archCols,
+.garageV2 .archView > .archCrumb,
+.garageV2 .archView > .archSignals,
+.garageV2 .archView > .archNote { margin-right: 220px !important; }
+.garageV2 .archView .archTreePanel {
+  position: absolute; z-index: 8; top: 44px; right: 14px; bottom: 10px; width: 204px;
+  min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 10px !important;
+  box-sizing: border-box; overflow: hidden; border: 2px solid #d9c5ad; border-radius: 12px;
+  background: rgba(255,253,246,.92); box-shadow: 0 5px 14px rgba(70,45,28,.12);
+}
+.garageV2 .archView .archTreePanel > header { display: grid; grid-template-columns: 20px minmax(0,1fr); gap: 2px 6px; align-items: center; padding-bottom: 6px; border-bottom: 1px solid #ead9c7; }
+.garageV2 .archView .archTreePanel > header svg { grid-row: 1 / 3; color: #9b6b64; }
+.garageV2 .archView .archTreePanel > header b { min-width: 0; color: #4b3833; font: 900 13px/1.15 Pretendard, system-ui; }
+.garageV2 .archView .archTreePanel > header small { color: #8a6a63; font: 700 10px/1.2 Pretendard, system-ui; }
+.garageV2 .archView .archTreePanel > button,
+.garageV2 .archView .archTreeGroup,
+.garageV2 .archView .archTreeDomains button {
+  min-width: 0; box-sizing: border-box; display: flex; align-items: center; gap: 6px;
+  padding: 8px !important; border: 1px solid #e1cdb9; border-radius: 8px;
+  background: #fffaf3; color: #5a4440; font: 800 11px/1.2 Pretendard, system-ui; text-align: left; cursor: pointer;
+}
+.garageV2 .archView .archTreePanel > button.on,
+.garageV2 .archView .archTreeGroup:hover,
+.garageV2 .archView .archTreePanel > button:hover { background: #f7e8d8; border-color: #c4553a; }
+.garageV2 .archView .archTreePanel > button span,
+.garageV2 .archView .archTreeGroup b,
+.garageV2 .archView .archTreeDomains span { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+.garageV2 .archView .archTreePanel > button small,
+.garageV2 .archView .archTreeGroup small,
+.garageV2 .archView .archTreeDomains small { color: #98776b; font: 700 10px/1.1 Pretendard, system-ui; white-space: nowrap; }
+.garageV2 .archView .archTreeGroups { min-height: 0; flex: 1 1 auto; display: grid; align-content: start; gap: 5px; overflow: hidden; }
+.garageV2 .archView .archTreeGroups > section { min-width: 0; display: grid; gap: 4px; }
+.garageV2 .archView .archTreeGroups > section.on > .archTreeGroup { background: #9b6b64; border-color: #9b6b64; color: #fff8f2; }
+.garageV2 .archView .archTreeGroups > section.on > .archTreeGroup small { color: #fff8f2; opacity: .85; }
+.garageV2 .archView .archTreeDomains { display: grid; gap: 3px; padding-left: 12px; }
+.garageV2 .archView .archTreeDomains button { padding: 6px !important; font-size: 10px; }
+.garageV2 .archView .archTreeDomains button svg { flex: none; color: #9b6b64; }
+.garageV2 .archView .archTree3d { margin-top: auto; justify-content: center; background: #9b6b64 !important; border-color: #9b6b64 !important; color: #fff8f2 !important; }
+
 /* Architecture cards are a fixed play surface.  Their content must fit in
    the card; an inner scrollbar is not an acceptable fallback for the game. */
 .garageV2 .archView .archGroupCards { overflow: visible !important; height: auto !important; min-height: 0 !important; }
@@ -964,3 +1033,24 @@ body .gameStage :is(
 /* No decorative scrollbars in the player surface.  The paper document is
    fitted to the viewport; its content is shortened by the owning layout. */
 body .gameStage :is(.eeTrace .etEvidence, .eeTrace .etEvidenceContent, .eeTrace .etEvidence .polBoard) { overflow: hidden !important; }
+
+/* The hypothesis-selection side rail must explain the decision instead of
+   becoming an empty result panel before a test exists.  Keep it compact and
+   fully inside the measured rail so the player gets a visual checklist, not
+   another scroll area. */
+.vbBench.bench4.qa2 .b4PickGuide {
+  min-width: 0; min-height: 0; height: 100%; display: grid; align-content: start;
+  gap: 12px; padding: 14px !important; box-sizing: border-box; overflow: hidden;
+  border: 1px solid #ead9c7; border-radius: 12px; background: #fffaf1;
+}
+.vbBench.bench4.qa2 .b4PickGuide header { display: grid; gap: 4px; }
+.vbBench.bench4.qa2 .b4PickGuide header small { color: #9b6b64; font: 800 11px/1.1 Pretendard, system-ui; }
+.vbBench.bench4.qa2 .b4PickGuide h3 { margin: 0; color: #493830; font: 900 17px/1.25 Pretendard, system-ui; overflow-wrap: anywhere; }
+.vbBench.bench4.qa2 .b4PickGuide ol { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; counter-reset: guide; }
+.vbBench.bench4.qa2 .b4PickGuide li { counter-increment: guide; display: grid; grid-template-columns: 24px minmax(0,1fr); gap: 8px; align-items: start; min-width: 0; color: #604d44; font: 700 12px/1.35 Pretendard, system-ui; }
+.vbBench.bench4.qa2 .b4PickGuide li::before { content: counter(guide); display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #dfeee1; color: #3f7a55; font: 900 11px/1 Pretendard, system-ui; }
+.vbBench.bench4.qa2 .b4PickGuide p { display: grid; gap: 4px; margin: auto 0 0; padding: 10px; border-radius: 9px; background: #eef5e9; color: #345f48; font: 700 12px/1.3 Pretendard, system-ui; }
+.vbBench.bench4.qa2 .b4PickGuide p b { color: #7a5a53; font-size: 10px; }
+.vbBench.bench4.qa2 .b4PickGuide p span { overflow-wrap: anywhere; }
+.vbBench.bench4.qa2 .b4PickGuide mark { padding: 1px 3px; border-radius: 3px; background: #ffe56d; color: #493830; }
+.vbBench.bench4.qa2 .b4Panel > header nav button { min-width: 0 !important; padding: 8px !important; white-space: normal !important; line-height: 1.1 !important; }

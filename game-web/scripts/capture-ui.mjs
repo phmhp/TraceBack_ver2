@@ -27,6 +27,9 @@ const seedBenchContract = process.env.TRACEBACK_CAPTURE_BENCH_CONTRACT === "1";
 const driveBench = process.env.TRACEBACK_CAPTURE_BENCH_DRIVE === "1";
 const dragPuzzle = process.env.TRACEBACK_CAPTURE_DRAG_TEST === "1";
 const auditLayout = process.env.TRACEBACK_CAPTURE_LAYOUT_AUDIT === "1";
+const auditGarageInteractions = process.env.TRACEBACK_CAPTURE_GARAGE_INTERACTIONS === "1";
+const clickGarageArchitecture = process.env.TRACEBACK_CAPTURE_GARAGE_ARCHITECTURE_CLICK === "1";
+const clickGarageTreeDomain = process.env.TRACEBACK_CAPTURE_GARAGE_TREE_DOMAIN === "1";
 
 const screens = [
   { name: "00_title.png", url: "/?new=1", wait: 1200 },
@@ -250,6 +253,36 @@ async function main() {
           expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); for (;;) { const next = [...document.querySelectorAll(".conditionCtl")].find(button => !button.disabled && !button.classList.contains("on")); if (!next) break; next.click(); await wait(120); } const input = document.querySelector(".mainCtl"); input?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "mouse", isPrimary: true })); })()`,
           awaitPromise: true,
         });
+      }
+      if (auditGarageInteractions && screen.name.includes("01c_garage_architecture")) {
+        const result = await page.send("Runtime.evaluate", {
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); const root = document.querySelector('.scaleFrame')?.contentDocument ?? document; const button = [...root.querySelectorAll('button')].find(item => item.textContent?.includes('협조 신호 보기')); button?.click(); await wait(180); return JSON.stringify({ clicked: Boolean(button), overlay: Boolean(root.querySelector('.garageCoordOverlay')) }); })()`,
+          awaitPromise: true,
+          returnByValue: true,
+        });
+        const state = JSON.parse(result.result?.value ?? "{}");
+        process.stdout.write(`[garage-interaction] ${screen.name} ${JSON.stringify(state)}\n`);
+        if (!state.clicked || !state.overlay) throw new Error(`Garage cooperation signal control did not open its panel: ${JSON.stringify(state)}`);
+      }
+      if (auditGarageInteractions && screen.url.includes("domain=drive") && screen.name.includes("02_garage_drive_system")) {
+        const result = await page.send("Runtime.evaluate", {
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); const root = document.querySelector('.scaleFrame')?.contentDocument ?? document; const button = [...root.querySelectorAll('button')].find(item => item.textContent?.includes('배선 보기')); button?.click(); await wait(120); return JSON.stringify({ clicked: Boolean(button), on: Boolean(button?.classList.contains('on')) }); })()`,
+          awaitPromise: true,
+          returnByValue: true,
+        });
+        const state = JSON.parse(result.result?.value ?? "{}");
+        process.stdout.write(`[garage-interaction] ${screen.name} ${JSON.stringify(state)}\n`);
+        if (!state.clicked || !state.on) throw new Error(`Garage wiring control did not activate: ${JSON.stringify(state)}`);
+      }
+      if (clickGarageArchitecture && screen.name.includes("01c_garage_architecture")) {
+        const result = await page.send("Runtime.evaluate", {
+          expression: `(async () => { const wait = ms => new Promise(resolve => setTimeout(resolve, ms)); await wait(700); const root = document.querySelector('.scaleFrame')?.contentDocument ?? document; const button = [...root.querySelectorAll('button')].find(item => item.textContent?.includes('아키텍처')); button?.click(); await wait(360); const arch = Boolean(root.querySelector('.archView')); let domain = false; if (${clickGarageTreeDomain ? "true" : "false"}) { const group = [...root.querySelectorAll('.archTreeGroup')].find(item => item.textContent?.includes('파워트레인')); group?.click(); await wait(220); const item = [...root.querySelectorAll('.archTreeDomains button')].find(button => button.textContent?.includes('구동')); item?.click(); await wait(360); domain = Boolean(root.querySelector('.garageBreadcrumb')) || Boolean(root.querySelector('.domainFunctionShelf')); } return JSON.stringify({ arch, domain }); })()`,
+          awaitPromise: true,
+          returnByValue: true,
+        });
+        const state = JSON.parse(result.result?.value ?? "{}");
+        process.stdout.write(`[garage-navigation] ${screen.name} ${JSON.stringify(state)}\n`);
+        if (!state.arch || (clickGarageTreeDomain && !state.domain)) throw new Error(`Garage architecture navigation did not reach the requested view: ${JSON.stringify(state)}`);
       }
       if (screen.url.includes("qa=BOARD") && solveBoard) {
         await page.send("Runtime.evaluate", { expression: "document.querySelector('.secretSolve')?.click()" });

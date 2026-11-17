@@ -298,9 +298,12 @@ function portPoint(domain: DomainId, label: string, position: [number, number, n
   return [position[0] + local.x, position[1] + local.y, position[2] + local.z];
 }
 
-function HardwarePart({ kind, active = true, running = true, partId }: { kind: HardwareKind; active?: boolean; running?: boolean; partId?: string }) {
+function HardwarePart({ kind, active = true, running = true, partId, allowPrimitive = false }: { kind: HardwareKind; active?: boolean; running?: boolean; partId?: string; allowPrimitive?: boolean }) {
   if (partId) return <group rotation={[0, HARDWARE_TURN, 0]}><FittedPart id={partId} size={HARDWARE_SIZE} demo={active && running} /></group>;
-  return <PrimitiveHardwarePart kind={kind} active={active} running={running} />;
+  // In the player-facing garage, a missing asset must remain visible as a
+  // missing-asset state.  Falling back to the old colourful primitive made an
+  // unverified placeholder look like a real vehicle component.
+  return allowPrimitive ? <PrimitiveHardwarePart kind={kind} active={active} running={running} /> : <MissingGaragePart kind={kind} />;
 }
 
 function PrimitiveHardwarePart({ kind, active = true, running = true }: { kind: HardwareKind; active?: boolean; running?: boolean }) {
@@ -2228,7 +2231,20 @@ const raceKey = (event: KeyboardEvent) => {
   return code ? code.toLowerCase() : event.key.toLowerCase();
 };
 // Minimap path sampled from the same track function the car uses (markers always sit on it).
-const MINIMAP_PATH = Array.from({ length: 51 }, (_, i) => { const progress = i * 2; const d = progress / 100 * TRACK_LENGTH; return `${i ? "L" : "M"}${(45 + trackFrame(d).x * 3.4).toFixed(1)} ${(94 - progress * .86).toFixed(1)}`; }).join(" ");
+const MINIMAP_POINTS = Array.from({ length: 51 }, (_, i) => { const progress = i * 2; const d = progress / 100 * TRACK_LENGTH; return { x: 45 + trackFrame(d).x * 3.4, y: 94 - progress * .86 }; });
+/* Use the same sampled route as the 3D world, but round the joins so the
+   minimap reads as a road rather than a sharp polyline. */
+const MINIMAP_PATH = (() => {
+  const first = MINIMAP_POINTS[0];
+  let path = `M${first.x.toFixed(1)} ${first.y.toFixed(1)}`;
+  for (let i = 1; i < MINIMAP_POINTS.length - 1; i += 1) {
+    const point = MINIMAP_POINTS[i], next = MINIMAP_POINTS[i + 1];
+    const midX = (point.x + next.x) / 2, midY = (point.y + next.y) / 2;
+    path += ` Q${point.x.toFixed(1)} ${point.y.toFixed(1)} ${midX.toFixed(1)} ${midY.toFixed(1)}`;
+  }
+  const last = MINIMAP_POINTS.at(-1)!;
+  return `${path} Q${last.x.toFixed(1)} ${last.y.toFixed(1)} ${last.x.toFixed(1)} ${last.y.toFixed(1)}`;
+})();
 // Driving zones on the existing course where each fault shows up [start, fallback trigger] in metres.
 /** Dev switch `?faultdemo=release|stationary|prestart` runs one generic fault spec from src/game/faultSchedule.ts on top of the level (see docs/fault-cases/RACING_FAULT_MODEL.md). */
 /** `?faultdemo=release|stationary|prestart|reverse|limit` */
