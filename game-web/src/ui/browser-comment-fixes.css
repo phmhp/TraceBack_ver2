@@ -1970,6 +1970,77 @@ html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4ReviewFacts .b4R
 html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4ReviewFacts .b4RecordPair section {
   height: 100% !important; min-height: 60px !important; box-sizing: border-box !important;
 }
+
+/* Keep the evidence route evenly spaced through the available card height. */
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4ReviewFacts.dominoRecordFacts .b4RecordPath {
+  min-height: 0 !important; height: 100% !important; box-sizing: border-box !important;
+  padding: 10px 12px !important; gap: 8px !important;
+}
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4ReviewFacts.dominoRecordFacts .b4RecordPath ol {
+  flex: 1 1 0 !important; display: grid !important; grid-template-rows: repeat(4, minmax(0, 1fr)) !important;
+  align-content: stretch !important; gap: 8px !important; overflow: visible !important;
+}
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4ReviewFacts.dominoRecordFacts .b4RecordPath li {
+  height: 100% !important; min-height: 0 !important; box-sizing: border-box !important;
+}
+
+/* Match trace-card photos to the square image inside a portrait evidence polaroid. */
+html body #root .gameViewport .gameStage .eeTrace .etDockTrace .etCand .etCardPol {
+  flex: 0 0 64px !important; width: 64px !important; height: 78px !important;
+  box-sizing: border-box !important; padding: 5px 5px 10px !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etDockTrace .etCand .etCardPol .polPhoto {
+  display: block !important; width: 100% !important; aspect-ratio: 1 / 1 !important; height: auto !important; overflow: hidden !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etDockTrace .etCand .etCardPol .polPhoto img {
+  display: block !important; width: 100% !important; height: 100% !important; object-fit: cover !important;
+}
+
+/* Put the candidate at left and use the familiar stacked influence buttons at right. */
+html body #root .gameViewport .gameStage .eeTrace .etDockHypothesis {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr) !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etDockHypothesis > .etCand { grid-column: 1 !important; grid-row: 1 !important; }
+html body #root .gameViewport .gameStage .eeTrace .etDockHypothesis > .etHypDecision {
+  grid-column: 2 !important; grid-row: 1 !important; grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important; gap: 6px !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etDockHypothesis > .etHypDecision button {
+  width: 100% !important; height: 100% !important; min-height: 0 !important; box-sizing: border-box !important;
+  border: 2px solid #5b9a76 !important; border-radius: 10px !important; background: #e8eddf !important;
+  color: #315b43 !important; font: 800 12px/1.15 Pretendard, system-ui !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etDockHypothesis > .etHypDecision button.no {
+  border-color: #b9675c !important; background: #f6e3dd !important; color: #814338 !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etDockHypothesis .etHypDecision kbd {
+  display: grid !important; place-items: center !important; flex: 0 0 22px !important; width: 22px !important; height: 22px !important;
+  border: 1px solid #dcc7b8 !important; border-radius: 6px !important; background: #fffaf4 !important; font: 800 13px/1 ui-monospace, monospace !important;
+}
+
+/* Lift the whole puzzle block so its help control cannot be covered by a neighbor. */
+html body #root .gameViewport .gameStage .refPuzzle.v2 .rpWorld .rpPiece:has(.rpHelp) { z-index: 80 !important; }
+html body #root .gameViewport .gameStage .refPuzzle.v2 .rpWorld .rpPiece:has(.rpHelp:hover),
+html body #root .gameViewport .gameStage .refPuzzle.v2 .rpWorld .rpPiece:has(.rpHelp:focus-visible),
+html body #root .gameViewport .gameStage .refPuzzle.v2 .rpWorld .rpPiece:has(.rpHelp:active) { z-index: 90 !important; }
+
+/* A two-page A4 folder is just wider than the side-by-side page spread. */
+html body #root .gameViewport .gameStage .verificationContractModal > article.b4SpecSheet {
+  width: min(1240px, 92vw) !important; max-width: none !important; aspect-ratio: 1.52 / 1 !important;
+  max-height: min(88vh, 820px) !important; height: auto !important;
+}
+html body #root .gameViewport .gameStage .verificationContractModal .b4DocSheetPaper {
+  top: 7% !important; bottom: 7% !important; right: 5.5% !important; width: 46.5% !important;
+  aspect-ratio: auto !important; padding: 6% 8% !important; box-sizing: border-box !important;
+}
+html body #root .gameViewport .gameStage .verificationContractModal .b4DocSheetPaper .specSheetDocTabs { margin: 0 0 4px !important; }
+html body #root .gameViewport .gameStage .verificationContractModal .b4DocSheetPaper .b4DocCols { flex: 1 1 0 !important; min-height: 0 !important; }
+html body #root .gameViewport .gameStage .refPuzzle.v2 .b4DocSheetPaper > .rpSheetConfirm {
+  display: grid !important; place-items: center !important; flex: 0 0 34px !important; align-self: stretch !important;
+  width: 100% !important; min-height: 34px !important; margin: auto 0 0 !important; padding: 7px 10px !important;
+  box-sizing: border-box !important; border: 0 !important; border-radius: 6px !important;
+  background: #9b6b64 !important; color: #fffaf4 !important; font: 800 11px/1.1 Pretendard, system-ui !important;
+}
 html body #root .gameViewport .gameStage .garageV2 .garageBreadcrumb .garageGroupCrumb {
   appearance: none !important; border: 0 !important; padding: 0 !important; background: transparent !important;
   color: inherit !important; font: inherit !important; cursor: pointer !important;

@@ -975,9 +975,9 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
             <button className={sheetTab === "req" ? "on" : ""} onClick={() => setSheetTab("req")}>요구사항</button>
           </nav>
           {sheetTab === "tc" ? <>
-            <small>시험 설계서 · STEP04로 넘어가는 기준 · {RIG_GOAL[caseId]}</small>
+            <small>STEP04 진입 기준 · 정상 시나리오 설계</small>
             <h2>{contract.stimulus.label}</h2>
-            <p className="ssPurpose"><span>시험 목적</span><b>{SHEET_PURPOSE[caseId]}</b></p>
+            <p className="ssPurpose"><span>검증 목표</span><b>{SHEET_PURPOSE[caseId]}</b></p>
             <div className="b4DocCols">
             <section><h3>입력 조건</h3><table><tbody>
               {contract.execution.initial.map(item => <tr key={item.signalId}><td>{contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code></td><td>{item.unit}</td></tr>)}
@@ -988,7 +988,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
               {contract.execution.expectedOutputs.map((item, index) => <tr key={item.signalId}><td>{index === 0 ? contract.expected.signal : contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code></td><td><code>±{item.tolerance}</code></td><td>{item.unit}</td></tr>)}
             </tbody></table></section>
             </div>
-            <button className="rpSheetConfirm" onClick={commit}>설계서 확인 · 기준 확정</button>
+            <button className="rpSheetConfirm" onClick={commit}>설계서 확인 · 정상 기준 확정</button>
           </> : <>
             <small>STEP03 · 정상 요구사항</small>
             <h2>요구사항 · 정상이면 이렇게</h2>
