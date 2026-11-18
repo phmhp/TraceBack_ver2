@@ -266,12 +266,18 @@ function FlowCable({ a, b, flow, on, tag, staticColor = false }: { a: THREE.Vect
     // lateral runs so the cowl can close over it and the components remain
     // readable from the three-quarter camera.
     if (staticColor) {
-      const routeY = Math.max(.11 * U, Math.min(a.y, b.y) - .24 * U);
+      // Keep the harness above the floor plane and inside the sill corridor.
+      // A former route used the wheel-side x coordinates as its trunk path;
+      // in the overview that made the cable appear to run underneath the
+      // tyres. The end segment still terminates at the authored port, while
+      // the shared run stays between the wheels and below the mounted parts.
+      const corridorX = (value: number) => THREE.MathUtils.clamp(value, -.52 * U, .52 * U);
+      const routeY = Math.max(.27 * U, Math.min(a.y, b.y) - .12 * U);
       return new THREE.CatmullRomCurve3([
         a,
-        new THREE.Vector3(a.x, routeY, a.z),
-        new THREE.Vector3(a.x, routeY, b.z),
-        new THREE.Vector3(b.x, routeY, b.z),
+        new THREE.Vector3(corridorX(a.x), routeY, a.z),
+        new THREE.Vector3(corridorX(a.x), routeY, b.z),
+        new THREE.Vector3(corridorX(b.x), routeY, b.z),
         b,
       ], false, "centripetal", .18);
     }
@@ -294,6 +300,46 @@ function FlowCable({ a, b, flow, on, tag, staticColor = false }: { a: THREE.Vect
     {[0, 1, 2].map(k => <mesh key={k} visible={false} ref={el => { if (el) pulses.current[k] = el; }}><sphereGeometry args={[radius * 2.1, 12, 8]} /><meshStandardMaterial color="#fffbe0" emissive={info.color} emissiveIntensity={2.2} /></mesh>)}
     {tag && <Html center position={[mid.x, mid.y + .12, mid.z]} distanceFactor={3.6} zIndexRange={[20, 0]}><span className="cableTag" style={{ borderColor: info.color }}><i style={{ background: info.color }} />{tag}</span></Html>}
   </group>;
+}
+
+/** A continuous hood/cowl surface for the opened EV body.
+ *
+ * The body shell intentionally remains transparent so the player can inspect
+ * the architecture. This surface supplies the missing upper cowl with a
+ * tapered front, a shallow centre crown, and a higher windscreen edge. It is
+ * a curved surface rather than stacked spheres or a rectangular proxy, so
+ * the ADAS camera has a believable mounting envelope.
+ */
+let cowlGeometry: THREE.BufferGeometry | undefined;
+function getCowlGeometry() {
+  if (cowlGeometry) return cowlGeometry;
+  const cols = 24, rows = 18;
+  const positions: number[] = [], indices: number[] = [];
+  for (let row = 0; row < rows; row++) {
+    const t = row / (rows - 1);
+    const z = -1.92 + t * 1.18;
+    const half = .63 + .15 * t;
+    const rise = .58 + .3 * Math.pow(t, .82);
+    for (let col = 0; col < cols; col++) {
+      const u = col / (cols - 1) * 2 - 1;
+      const edge = 1 - .08 * Math.abs(u) ** 3;
+      const x = u * half * edge;
+      const shoulder = .045 * (1 - u * u);
+      const y = rise + shoulder + .025 * Math.sin(Math.PI * t);
+      positions.push(x, y, z);
+    }
+  }
+  for (let row = 0; row < rows - 1; row++) for (let col = 0; col < cols - 1; col++) {
+    const a = row * cols + col, b = a + 1, c = a + cols, d = c + 1;
+    indices.push(a, c, b, b, c, d);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  cowlGeometry = geometry;
+  return geometry;
 }
 
 function PlacedPart({ node, arrived, isInput, domain, feature, selected, onSelect, inspectId }: { node: Node; arrived: boolean; isInput: boolean; domain: DomainId; feature: number; selected: boolean; onSelect?: (index: number) => void; inspectId?: string }) {
@@ -405,32 +451,23 @@ function DrivelineTopology({ active }: { active: boolean }) {
 /** Faint car around the parts: body outline, floor and four tyres at the real wheel positions. */
 function CarContext({ strong, wheelActive = false, wheelSteer = 0, showBody = true, showWheels = true }: { strong: boolean; wheelActive?: boolean; wheelSteer?: number; showBody?: boolean; showWheels?: boolean }) {
   const body = useMemo(() => getBodyGeometry().clone(), []);
+  const cowl = useMemo(() => getCowlGeometry(), []);
   // The authored body mesh is an open-cockpit shell so the architecture stays
   // inspectable. Add the missing curved hood/cowl as a separate body panel;
   // it is deliberately a rounded surface, not the old rectangular placeholder.
   return <group>
     {showBody && <>
       <mesh geometry={body} scale={U}><meshStandardMaterial color="#d94e45" transparent opacity={strong ? .18 : .06} depthWrite={false} side={THREE.DoubleSide} /></mesh>
-      <group position={[0, .93 * U, -1.27 * U]} scale={[.86 * U, .22 * U, .78 * U]}>
-        <mesh><sphereGeometry args={[1, 40, 24]} /><meshStandardMaterial color="#d94e45" transparent opacity={strong ? .22 : .08} depthWrite={false} side={THREE.DoubleSide} /></mesh>
-        <mesh position={[0, -.72, .04]} scale={[.92, .16, .88]}><sphereGeometry args={[1, 32, 18]} /><meshStandardMaterial color="#a93632" transparent opacity={strong ? .24 : .08} depthWrite={false} side={THREE.DoubleSide} /></mesh>
-      </group>
       {/* Front hood/cowl: a low, continuous curved panel bridges the fenders
        * and gives the forward ADAS camera a real mounting surface.  It is a
        * rounded surface, never a floating rectangular proxy. */}
-      <mesh position={[0, .82 * U, -1.48 * U]} scale={[.78 * U, .14 * U, .52 * U]}>
-        <sphereGeometry args={[1, 40, 22]} />
-        <meshPhysicalMaterial color="#d94e45" transparent opacity={strong ? .28 : .1} roughness={.32} clearcoat={.45} depthWrite={false} side={THREE.DoubleSide} />
+      <mesh geometry={cowl} scale={U}>
+        <meshPhysicalMaterial color="#d94e45" transparent opacity={strong ? .32 : .1} roughness={.3} clearcoat={.55} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
-      {/* Tinted windscreen/cowl bridge behind the hood; this is the surface
-       * the forward camera is mounted to rather than an isolated sensor. */}
-      <mesh position={[0, .98 * U, -.75 * U]} scale={[.63 * U, .12 * U, .34 * U]} rotation={[0, 0, 0.04]}>
-        <sphereGeometry args={[1, 36, 20]} />
-        <meshPhysicalMaterial color="#53656a" transparent opacity={strong ? .22 : .08} roughness={.2} clearcoat={.6} depthWrite={false} side={THREE.DoubleSide} />
-      </mesh>
-      <mesh position={[0, 1.03 * U, -.55 * U]} rotation={[0, 0, 0]} scale={[.66 * U, .24 * U, .42 * U]}>
-        <sphereGeometry args={[1, 36, 20]} />
-        <meshPhysicalMaterial color="#d94e45" transparent opacity={strong ? .15 : .05} roughness={.28} clearcoat={.7} depthWrite={false} side={THREE.DoubleSide} />
+      {/* A restrained glass strip marks the windscreen edge without making a
+       * second floating red cap around the camera. */}
+      <mesh position={[0, 1.01 * U, -.68 * U]} scale={[.65 * U, .035 * U, .08 * U]}>
+        <meshStandardMaterial color="#4e646b" transparent opacity={strong ? .34 : .12} roughness={.2} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
     </>}
     <mesh position={[0, .05 * U, 0]}><boxGeometry args={[CAR_DIMENSIONS.width * U, .02 * U, CAR_DIMENSIONS.length * U]} /><meshStandardMaterial color="#8d9a95" transparent opacity={.25} depthWrite={false} /></mesh>

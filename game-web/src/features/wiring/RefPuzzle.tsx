@@ -22,7 +22,6 @@ import { Canvas } from "@react-three/fiber";
 import { PartModel } from "../parts/PartModel";
 import { SCENARIOS, SCENARIO_META } from "../../game/scenarios";
 import { buildVerificationContract, contractSignalLabel, contractStorageKey, type VerificationContract } from "../../game/verificationContract";
-import { ReplayConfirm } from "../../ui/ReplayConfirm";
 import { MissionBar } from "../../ui/MissionBar";
 import { NutGuide } from "../../ui/NutGuide";
 import "./puzzle-v3.css";
@@ -305,7 +304,10 @@ export function RefPuzzleV1({ state, send }: { state: Campaign; send: Send }) {
   const ref = REF[state.caseId];
   const n = ref.board.length;
   const boardW = PAD * 2 + (n - 1) * PITCH + PIECE, spareGap = 156;
-  const W = Math.max(boardW, ref.spares.length * spareGap + PAD * 2 + 10), H = SPARE_Y + 170;
+  // Spare pieces live in the lower choice tray now. Keep only the main
+  // logic lane and the side-input branch in the board's measured height so
+  // the board uses the available stage instead of reserving a dead tray row.
+  const W = Math.max(boardW, ref.spares.length * spareGap + PAD * 2 + 10), H = SIDE_Y + PIECE + 10;
   const ox = (W - boardW) / 2; // centre a short board above a wide spare tray
   const slotX = (i: number) => ox + PAD + i * PITCH;
   const sideStart = ref.side.into - (ref.side.pieces.length - 1);
@@ -622,7 +624,10 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const ref = REF[caseId], spec = SPEC[caseId];
   const n = ref.board.length;
   const boardW = PAD * 2 + (n - 1) * PITCH + PIECE, spareGap = 156;
-  const W = Math.max(boardW, ref.spares.length * spareGap + PAD * 2 + 10), H = SPARE_Y + 170;
+  // Spare pieces live in the fixed lower choice tray. The board viewport must
+  // measure only the actual main lane and side branch; reserving the old tray
+  // row here shrinks the rendered board and leaves a large dead area below it.
+  const W = Math.max(boardW, ref.spares.length * spareGap + PAD * 2 + 10), H = SIDE_Y + PIECE + 10;
   const ox = (W - boardW) / 2;
   const progressKey = `tb-step03-progress-${caseId}`;
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem(progressKey) ?? "null") ?? {}; } catch { return {}; } })();
@@ -647,13 +652,31 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const [sheetStep, setSheetStep] = useState(Boolean(saved.sheetStep));   // step 3: the test-design draft is open
   const [panelTab, setPanelTab] = useState<"req" | "sheet">(saved.sheetStep ? "sheet" : "req");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetTab, setSheetTab] = useState<"tc" | "req">("tc");
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setSheetOpen(false); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [sheetOpen]);
   const [viewStep, setViewStep] = useState<number | null>(null);          // roadmap chip pointing back; null = follow progress
-  const [replayOpen, setReplayOpen] = useState(false);
   const [scale, setScale] = useState(.8);
   const section = (() => { try { return sessionStorage.getItem(`tb-section-${caseId}`) ?? ref.ecu; } catch { return ref.ecu; } })();
   useEffect(() => { try { sessionStorage.setItem(progressKey, JSON.stringify({ place, picked, check: check?.status === "running" ? null : check, x, confirmed, msg, contract, sheetStep })); } catch { /* ignore */ } }, [place, picked, check, x, confirmed, msg, contract, sheetStep, progressKey]);
   // the board keeps a compact toolbar strip on top, so the puzzle fits into the space below it
-  const fitStage = () => { const r = stage.current?.getBoundingClientRect(); if (r && r.width) setScale(Math.min(r.width / W, (r.height - 44) / H, 1.1)); };
+  const fitStage = () => {
+    const element = stage.current;
+    if (!element) return;
+    // `getBoundingClientRect()` includes the fixed 16:9 player viewport's CSS
+    // scale, while W/H are authored puzzle pixels. Mixing those coordinate
+    // spaces shrank the board to roughly half size on a 1029px viewport.
+    const availableWidth = element.clientWidth;
+    const availableHeight = element.clientHeight;
+    const toolbar = element.querySelector<HTMLElement>(".rpStageBar");
+    const boardTop = toolbar ? toolbar.offsetTop + toolbar.offsetHeight + 14 : 68;
+    element.style.setProperty("--rp-board-center-offset", `${boardTop / 2}px`);
+    if (availableWidth && availableHeight > boardTop + 24) setScale(Math.min(availableWidth / W, (availableHeight - boardTop - 24) / H, 1.1));
+  };
   useLayoutEffect(() => {
     fitStage(); const ob = new ResizeObserver(fitStage); if (stage.current) ob.observe(stage.current); return () => ob.disconnect();
   }, [W, H]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -744,20 +767,23 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
     const cancel = () => { dragRef.current = null; setDrag(null); };
     const moveMouse = (event: MouseEvent) => move(event);
     const finishMouse = (event: MouseEvent) => finish(event);
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointermove", move, true);
+    // Capture the release before transformed/fixed layers can stop bubbling.
+    // This keeps a tray → board drag continuous when the pointer leaves the
+    // source button and crosses the board boundary.
+    document.addEventListener("pointerup", finish, true);
     // Chromium can expose transformed fixed surfaces as mouse events without
     // delivering the matching pointer lifecycle. Keep mouse fallbacks on the
     // same ref-backed state so the fallback is harmless when both fire.
     window.addEventListener("mousemove", moveMouse);
-    window.addEventListener("mouseup", finishMouse);
+    document.addEventListener("mouseup", finishMouse, true);
     window.addEventListener("pointercancel", cancel);
     return () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointermove", move, true);
+      document.removeEventListener("pointerup", finish, true);
       window.removeEventListener("pointercancel", cancel);
       window.removeEventListener("mousemove", moveMouse);
-      window.removeEventListener("mouseup", finishMouse);
+      document.removeEventListener("mouseup", finishMouse, true);
     };
   }, [drag?.id]);
   const clickGap = (g: number) => { if (picked) { putIn(picked, g); setPicked(null); play("squish"); } };
@@ -814,6 +840,7 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const commit = () => {
     if (!contract) return;
     setConfirmed(true); showVerdict(true, "기준 확정"); play("success"); window.setTimeout(() => play("stamp"), 240);
+    setSheetOpen(false);
     try {
       sessionStorage.setItem(`tb-expect-${caseId}`, spec.expect);
       sessionStorage.setItem(contractStorageKey(caseId), JSON.stringify(contract));
@@ -824,6 +851,16 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
   const reset = () => { setPlace(Object.fromEntries(ref.gaps.map(g => [g, null]))); setCheck(null); setConfirmed(false); setPicked(null); setContract(null); setSheetStep(false); setX(spec.input?.min ?? 0); setMsg("초기화했어요."); try { sessionStorage.removeItem(contractStorageKey(caseId)); sessionStorage.removeItem(`tb-expect-${caseId}`); sessionStorage.removeItem(`tb-step04-progress-${caseId}`); } catch { /* ignore */ } play("squish"); };
   // the 설계서 확정 button and the footer button both go straight to STEP04 (no machine-part animation step)
   const goBench = () => { send({ type: "COMPILE", program: ref.program }); send({ type: "OPEN_BENCH" }); };
+  const advancePuzzle = () => {
+    if (confirmed) { goBench(); return; }
+    if (sheetStep) { setSheetOpen(true); return; }
+    if (connected) { confirm(); return; }
+    startCheck();
+  };
+  const advancePuzzleLabel = confirmed ? "다음 단계 →"
+    : sheetStep ? "시험 설계서 확인"
+      : connected ? "기준 확정"
+        : check?.status === "running" ? "연결 확인 중…" : "연결 확인";
   const coach = state.completedCases.length ? "" : !filled ? "gaps" : !connected ? "check" : !confirmed ? "confirm" : "next";
   const sideLit = connected;
   const pathMode = ref.ui === "path";   // signal path (E/E structure) instead of logic blocks
@@ -863,12 +900,11 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       { icon: "clipboard", text: "시험 설계서를 확인하고 '기준 확정'" },
     ]} />
     <div className="rp3Work">
-      <MissionBar action={mission.action} question={mission.question} progress={{ now: (viewStep ?? stepNow) + 1, total: 3 }} />
+      <MissionBar action={mission.action} question={mission.question} progress={{ now: (viewStep ?? stepNow) + 1, total: 3 }}><button className="missionHelpButton" onClick={() => window.dispatchEvent(new CustomEvent("tb-nutguide-reopen", { detail: `rp-${caseId}-${dirStep}` }))}>푸는 방법 다시 보기</button></MissionBar>
       <section className="rpStage" ref={stage} onPointerCancel={() => { dragRef.current = null; setDrag(null); }} onLostPointerCapture={() => { dragRef.current = null; setDrag(null); }}>
         <div className="rpStageBar" onPointerDown={event => event.stopPropagation()}>
           <nav className="rpLevels" aria-label="이 퍼즐의 아키텍처 수준">{([["시스템", "차량 시스템"], ["E/E 아키텍처", ref.ecu.split(" → ")[0]], ["도메인", ref.domain], ["기능", ref.feature]] as const).map(([level, value], index, all) => <React.Fragment key={level}><span className={index === all.length - 1 ? "on" : ""} aria-current={index === all.length - 1 ? "location" : undefined}><small>{level}</small><b>{value}</b></span>{index < all.length - 1 && <i aria-hidden="true">›</i>}</React.Fragment>)}</nav>
           <div className="rpTools">
-            {confirmed && <button className="stageReplayBtn" onClick={() => setReplayOpen(true)}>다시 풀기</button>}
           </div>
         </div>
         <div className="rpBoardZoom rpZoomTools" role="group" aria-label="퍼즐 확대 축소" onPointerDown={event => event.stopPropagation()}><button aria-label="퍼즐 축소" onClick={() => setScale(value => Math.max(.45, value - .1))}>−</button><button aria-label="퍼즐 확대" onClick={() => setScale(value => Math.min(1.25, value + .1))}>+</button></div>
@@ -911,52 +947,56 @@ export function RefPuzzle({ state, send }: { state: Campaign; send: Send }) {
       <aside className="rpPanel">
         <header><nav role="tablist" aria-label="요구사항"><button role="tab" aria-selected="true" className="on">요구사항</button></nav></header>
         <div className="rpReq" role="tabpanel" aria-label="요구사항">
-          <div className="rpReqHead"><small>요구사항 · 정상이면 이렇게</small>{contract && !confirmed && <button className="rpFolderOpen" onClick={() => setSheetOpen(true)}><Icon name="clipboard" /> 시험 설계서 보기</button>}</div>
+          <div className="rpReqHead"><small>요구사항 · 정상이면 이렇게</small></div>
         {ref.req.map((r, k) => <div key={r.text} className={`${ref.gaps.includes(r.slot) ? "gap" : ""} ${confirmed ? "done" : ""}`}><i>{confirmed ? "✓" : k + 1}</i><span>{numify(r.text)}</span></div>)}
           <p className="rpWhy"><b>왜 필요한가</b> {WHY[caseId]}</p>
         </div>
       </aside>
       <footer className="rpFoot">
-        <NutGuide id={`rp-${caseId}-${dirStep}`} who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={dirLines} ask={dirLines[dirLines.length - 1]} note={numify(msg) as unknown as string} />
+        <NutGuide id={`rp-${caseId}-${dirStep}`} who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={dirLines} ask={dirLines[dirLines.length - 1]} note={numify(msg) as unknown as string} showAgain={false} />
         <div className="rpDockRow">
           {dirStep === 0 && !connected && !sheetStep && <div className="rpChoiceTray" aria-label="퍼즐 조각 선지">
             <small>선지 · 조각을 위 빈칸까지 끌어 놓기</small>
             <div style={{ "--piece-count": ref.spares.length } as React.CSSProperties}>{ref.spares.map(id => { const b = ref.blocks[id]; return inSlot(id) !== null
               ? <span key={id} className="rpChoicePlaceholder" aria-hidden="true" />
-              : <button type="button" key={id} className={`rpChoicePiece ${b.kind === "hw" ? "hw" : "sw"} ${picked === id ? "picked" : ""}`} style={{ transform: `scale(${scale})` }} aria-pressed={picked === id} title={`${b.label} · 드래그해서 빈칸에 놓기`} onPointerDown={event => onDown(event, id)} onMouseDown={event => { if (!dragRef.current) onDown(event, id); }}><PieceFace b={b} /></button>; })}</div>
+              : <button type="button" key={id} className={`rpChoicePiece ${b.kind === "hw" ? "hw" : "sw"} ${picked === id ? "picked" : ""}`} aria-pressed={picked === id} title={`${b.label} · 드래그해서 빈칸에 놓기`} onPointerDown={event => onDown(event, id)} onMouseDown={event => { if (!dragRef.current) onDown(event, id); }}><PieceFace b={b} /></button>; })}</div>
           </div>}
-          <div className="rpPuzzleAction">
-            {confirmed ? <button className="rpExpect" onClick={() => setSheetOpen(true)}><small><Icon name="clipboard" /> 시험 설계서 보기</small><b>{spec.expect}</b></button>
-              : sheetStep ? <button className="rpRun" onClick={commit}>이 기준으로 확정</button>
-                : connected ? <button className="rpRun" onClick={confirm}>요구사항과 같아요 · 설계서 작성</button>
-                  : <button className="rpRun" disabled={!filled || check?.status === "running"} onClick={startCheck}>{!filled ? `빈칸 ${ref.gaps.filter(g => !place[g]).length}개 남음` : check?.status === "running" ? "확인 중…" : "연결 확인"}</button>}
-          </div>
           {connected && spec.input && !sheetStep && <div className="rpInputCard"><div><b>예시 입력을 움직여 출력 흐름 확인</b><small>입력값을 잠깐 찍는 대신, 유지 구간의 정상 기준과 비교해요.</small></div><label className="rpSlider"><span>{spec.input.label}</span><input type="range" min={spec.input.min} max={spec.input.max} value={x} onChange={event => setX(Number(event.target.value))} /><b>{x}{spec.input.unit}</b></label></div>}
         </div>
       </footer>
-      <div className="rpNextCell"><button className="rpNext stageProgressAction" disabled={!confirmed} onClick={goBench}>다음 →</button></div>
+      <div className="rpNextCell"><button className="rpNext stageProgressAction" disabled={(!confirmed && !filled) || check?.status === "running"} onClick={advancePuzzle}>{advancePuzzleLabel}</button></div>
     </div>
-    {sheetOpen && contract && <div className="rpFolderBack" role="dialog" aria-modal="true" aria-label="시험 설계서 폴더" onClick={() => setSheetOpen(false)}>
-      <div className="rpFolder" onClick={event => event.stopPropagation()}>
-        <div className="rpFolderTabs"><span className="on">시험 설계서</span><span>요구사항</span><button aria-label="닫기" onClick={() => setSheetOpen(false)}>×</button></div>
-        <div className="rpFolderPaper">
-          <small>시험 설계서 · STEP04로 넘어가는 기준 · {RIG_GOAL[caseId]}</small>
-          <h3>{contract.stimulus.label}</h3>
-          <p className="ssPurpose"><span>시험 목적</span><b>{SHEET_PURPOSE[caseId]}</b></p>
-          <div className="rpFolderCols">
-            <div><h4>입력 조건</h4><table><tbody>
+    {sheetOpen && contract && <div className="verificationContractModal b4SpecSheetBackdrop" role="dialog" aria-modal="true" aria-label="시험 설계서" onClick={() => setSheetOpen(false)}>
+      <article className="receiptPrinting specSheet b4SpecSheet" onClick={event => event.stopPropagation()}>
+        <button className="contractClose" aria-label="시험 자료 닫기" onClick={() => setSheetOpen(false)}>×</button>
+        <div className="specSheetPaper b4DocSheetPaper">
+          <nav className="specSheetDocTabs" aria-label="시험 자료 종류">
+            <button className={sheetTab === "tc" ? "on" : ""} onClick={() => setSheetTab("tc")}>시험 설계서</button>
+            <button className={sheetTab === "req" ? "on" : ""} onClick={() => setSheetTab("req")}>요구사항</button>
+          </nav>
+          {sheetTab === "tc" ? <>
+            <small>시험 설계서 · STEP04로 넘어가는 기준 · {RIG_GOAL[caseId]}</small>
+            <h2>{contract.stimulus.label}</h2>
+            <p className="ssPurpose"><span>시험 목적</span><b>{SHEET_PURPOSE[caseId]}</b></p>
+            <div className="b4DocCols">
+            <section><h3>입력 조건</h3><table><tbody>
               {contract.execution.initial.map(item => <tr key={item.signalId}><td>{contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code></td><td>{item.unit}</td></tr>)}
               <tr className="ssInput"><td>{contractSignalLabel(contract.execution.stimulus.signalId)} (입력)</td><td><code>{contract.execution.stimulus.startValue} → {contract.execution.stimulus.endValue}</code></td><td>{contract.execution.stimulus.unit}</td></tr>
               <tr className="ssInput"><td>변화 · 유지</td><td><code>{contract.execution.stimulus.rampSeconds} · {contract.execution.stimulus.holdSeconds}</code></td><td>s</td></tr>
-            </tbody></table></div>
-            <div><h4>예상 출력 조건</h4><table><tbody>
+            </tbody></table></section>
+            <section><h3>예상 출력 조건</h3><table><tbody>
               {contract.execution.expectedOutputs.map((item, index) => <tr key={item.signalId}><td>{index === 0 ? contract.expected.signal : contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code></td><td><code>±{item.tolerance}</code></td><td>{item.unit}</td></tr>)}
-            </tbody></table></div>
-          </div>
+            </tbody></table></section>
+            </div>
+            <button className="rpSheetConfirm" onClick={commit}>설계서 확인 · 기준 확정</button>
+          </> : <>
+            <small>STEP03 · 정상 요구사항</small>
+            <h2>요구사항 · 정상이면 이렇게</h2>
+            <ul className="b4DocRequirementList">{ref.req.map((item, index) => <li key={`${item.slot}-${index}`}>{item.text}</li>)}</ul>
+          </>}
         </div>
-      </div>
+      </article>
     </div>}
-    {replayOpen && <ReplayConfirm impact="기존 시험 계약과 STEP04의 실행 기록·판정도 함께 초기화됩니다." onCancel={() => setReplayOpen(false)} onConfirm={() => { setReplayOpen(false); reset(); }} />}
   </div>;
 }
 
@@ -975,7 +1015,7 @@ export function RefPuzzleTrack({ caseId, progress, fixed, running, mode = "swint
   const box = useRef<HTMLDivElement>(null);
   const [view, setView] = useState({ s: .6, x: 0, y: 0 });
   const [pan, setPan] = useState<{ x: number; y: number; ox: number; oy: number } | null>(null);
-  const fit = () => { const r = box.current?.getBoundingClientRect(); if (!r?.width) return; const s = Math.min(r.width / W, r.height / H, 1); setView({ s, x: (r.width - W * s) / 2, y: (r.height - H * s) / 2 }); };
+  const fit = () => { const element = box.current; if (!element) return; const width = element.clientWidth, height = element.clientHeight; if (!width || !height) return; const s = Math.min(width / W, height / H, 1); setView({ s, x: (width - W * s) / 2, y: (height - H * s) / 2 }); };
   useLayoutEffect(() => { fit(); const ob = new ResizeObserver(fit); if (box.current) ob.observe(box.current); return () => ob.disconnect(); }, [W, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   const zoom = (event: React.WheelEvent) => {
     event.preventDefault();

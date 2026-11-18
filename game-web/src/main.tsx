@@ -65,6 +65,7 @@ import "./features/garage/garage-v3.css";
 import "./ui/common-layout.css";
 import "./p5-ui-fixes.css";
 import "./ui/final-qa.css";
+import "./ui/browser-comment-fixes.css";
 const DevMenu = import.meta.env.DEV ? lazy(() => import("./ui/dev/DevMenu").then(m => ({ default: m.DevMenu }))) : null;
 import { BustedEnding, WantedEnding } from "./ui/CaseFileEnding";
 import { SoundToggle } from "./ui/ComicBurst";
@@ -1513,7 +1514,8 @@ function App() {
   const canGoBack = ["GARAGE_L1", "GARAGE_L2", "GARAGE_L3", "GARAGE_L4", "DRIVE_BRIEFING", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR"].includes(state.scene);
   // STEP01~04 always show both history buttons in the same slot; unavailable moves are disabled, never hidden.
   const stageNav = state.scene.startsWith("GARAGE") || ["BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL"].includes(state.scene);
-  const frame = (view: React.ReactNode) => <JourneyNavigationProvider campaign={state} navigate={stage => send({ type: "NAV_STAGE", stage })}>{view}{(stageNav || canGoBack || state.forwardScene) && <nav className="stageHistoryNav" aria-label="단계 이동">{(stageNav || canGoBack) && <button className="stageBackButton" disabled={!canGoBack && !(subStep.nav && subStep.index > 0)} onClick={() => subStep.nav && subStep.index > 0 ? subStep.nav.goTo(subStep.index - 1) : state.scene.startsWith("GARAGE") ? dispatchEvent(new CustomEvent("tb-garage-back")) : send({ type: "NAV_BACK" })}><i>←</i><span>{subStep.nav && subStep.index > 0 ? "이전 세부 단계" : "이전 단계"}</span></button>}{(stageNav || state.forwardScene) && <button className="stageForwardButton" disabled={Boolean(subStep.nav && subStep.index >= subStep.nav.max) && !state.forwardScene} onClick={() => subStep.nav && subStep.index < subStep.nav.max ? subStep.nav.goTo(subStep.index + 1) : send({ type: "NAV_FORWARD" })}><span>{subStep.nav && subStep.index < subStep.nav.max ? "다음 세부 단계" : "다음 단계"}</span><i>→</i></button>}</nav>}<VerdictLayer />{DevMenu && <Suspense fallback={null}><DevMenu scene={state.scene} /></Suspense>}</JourneyNavigationProvider>;
+  const showStageHistory = state.scene !== "PROLOGUE" && (stageNav || canGoBack || state.forwardScene);
+  const frame = (view: React.ReactNode) => <JourneyNavigationProvider campaign={state} navigate={stage => send({ type: "NAV_STAGE", stage })}>{view}{showStageHistory && <nav className="stageHistoryNav" aria-label="단계 이동">{(stageNav || canGoBack) && <button className="stageBackButton" disabled={!canGoBack && !(subStep.nav && subStep.index > 0)} onClick={() => subStep.nav && subStep.index > 0 ? subStep.nav.goTo(subStep.index - 1) : state.scene.startsWith("GARAGE") ? dispatchEvent(new CustomEvent("tb-garage-back")) : send({ type: "NAV_BACK" })}><i>←</i><span>이전 단계</span></button>}{(stageNav || state.forwardScene) && <button className="stageForwardButton" disabled={Boolean(subStep.nav && subStep.index >= subStep.nav.max) && !state.forwardScene} onClick={() => subStep.nav && subStep.index < subStep.nav.max ? subStep.nav.goTo(subStep.index + 1) : send({ type: "NAV_FORWARD" })}><span>다음 단계</span><i>→</i></button>}</nav>}<VerdictLayer />{DevMenu && <Suspense fallback={null}><DevMenu scene={state.scene} /></Suspense>}</JourneyNavigationProvider>;
   if (state.scene === "TITLE") return <Title state={state} send={send} />;
   if (state.scene === "PROLOGUE") return frame(<Prologue send={send} />);
   if (state.scene.startsWith("GARAGE"))

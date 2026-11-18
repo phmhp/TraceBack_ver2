@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, RoundedBox, useTexture } from "@react-three/drei";
@@ -23,7 +23,7 @@ import { EeBlueprint, type EeLayer } from "./features/garage/EeBlueprint";
 import { VehicleLayoutRig, VehiclePlatformOverview, flowLegend } from "./features/garage/VehicleLayout";
 import { DRIVER, DUO, ENGINEER } from "./game/cast";
 import { Icon, type IconName } from "./ui/Icon";
-import { ArchitectureOverview } from "./features/garage/ArchitectureOverview";
+import { ArchitectureOverview, ArchitectureTreePanel } from "./features/garage/ArchitectureOverview";
 import { COORD_SIGNALS, DOMAIN_ORDER, DOMAIN_GROUPS, EV_DOMAINS, type DomainGroup, type DomainId } from "./features/garage/evData";
 import { CAR_CONTACT, TRACK_LENGTH, TRAFFIC_COUNT, resetTrafficStall, stallTraffic, trafficHitVisual, trafficStateFor } from "./game/traffic";
 import { impactEffect, speedAfterImpact, type ImpactLevel } from "./game/collision";
@@ -504,7 +504,7 @@ function VehiclePlatformShell({ active }: { active: boolean }) {
 
 function FullVehicleSystem({ domain, feature, activeStep, shell = false, inputOn = false, selectedIndex = null, onSelect, showCables = true }: { domain: DomainId; feature: number; activeStep: number; removed?: number | null; shell?: boolean; inputOn?: boolean; selectedIndex?: number | null; onSelect?: (index: number) => void; showCables?: boolean }) {
   // real positions, real sizes, port-to-port cables (src/features/garage/VehicleLayout.tsx)
-  return <VehicleLayoutRig domain={domain} feature={feature} activeStep={activeStep} inputOn={inputOn} shell={shell} showCables={showCables} selectedIndex={selectedIndex} onSelect={onSelect} />;
+  return <VehicleLayoutRig domain={domain} feature={feature} activeStep={activeStep} inputOn={inputOn} shell={shell} showCables={showCables} showBadges={false} selectedIndex={selectedIndex} onSelect={onSelect} />;
 }
 
 // Whole vehicle: every domain's chain side by side (selected domain runs, others idle)
@@ -621,6 +621,22 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
   const [localOverview3d, setLocalOverview3d] = useState(noDomain && level === 0);
   const overview3d = overview3dMode ?? localOverview3d;
   const setOverview3d = (show: boolean) => { setLocalOverview3d(show); onOverview3dChange?.(show); };
+  const [architectureMount, setArchitectureMount] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setArchitectureMount(noDomain && level === 0
+      ? document.querySelector<HTMLElement>(".garageV2 .garageArchitectureSideMount")
+      : null);
+  }, [noDomain, level, overview3d]);
+  const architectureTree = noDomain && level === 0
+    ? <ArchitectureTreePanel
+        icons={DOMAIN_ICON}
+        activeGroup={overview3d ? null : overviewGroup}
+        onGroup={group => { setOverview3d(false); onArea?.(group); }}
+        onDomain={id => onDomain?.(id)}
+        onShow3d={() => setOverview3d(true)}
+      />
+    : null;
+  const architecturePortal = architectureTree && architectureMount ? createPortal(architectureTree, architectureMount) : null;
   const [inspect, setInspect] = useState<number | null>(null);
   useEffect(() => setInspect(null), [domain, feature, level]);
   const allDomains = view3d !== "one";
@@ -630,7 +646,7 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
   const vehicleSelection = level === 0 && !allDomains && selectedVehiclePart !== null && vehicleChain[selectedVehiclePart]
     ? { index: selectedVehiclePart, label: vehicleChain[selectedVehiclePart], role: partRole(vehicleChain[selectedVehiclePart], selectedVehiclePart, vehicleChain.length), input: selectedVehiclePart === 0 ? "운전자 조작 또는 센서가 재는 물리량" : vehicleSignals[selectedVehiclePart - 1], output: vehicleSignals[selectedVehiclePart] }
     : null;
-  if (noDomain && level === 0 && !overview3d) return <ArchitectureOverview icons={DOMAIN_ICON} focusGroup={overviewGroup} onPick={id => onDomain?.(id)} onShow3d={() => setOverview3d(true)} />;
+  if (noDomain && level === 0 && !overview3d) return <><ArchitectureOverview icons={DOMAIN_ICON} focusGroup={overviewGroup} onPick={id => onDomain?.(id)} onShow3d={() => setOverview3d(true)} onGroupChange={group => { setOverview3d(false); onArea?.(group ?? "coord"); }} />{architecturePortal}</>;
   if (level === 1) {
     const chain = getFeatureLayer(domain, feature, 1);
     const roles = chain.map((label, index) => partRole(label, index, chain.length));
@@ -657,7 +673,8 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
   }
   if (level === 2) return <SwcView domain={domain} feature={feature} activeStep={inputOn ? activeStep : -1} onPick={onPick} />;
   if (level >= 3) return <div className="mechanismViewer softwareView"><SimulinkFlow domain={domain} feature={feature} level={sourceLevel} activeStep={inputOn ? activeStep : -1} onJump={onJump} /><span className="liveBadge"><i /> 실제 입력 → 핵심 제어 로직 → 출력 액추에이터</span></div>;
-  return <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
+  return <>
+  <div className={`mechanismViewer ${level === 0 ? "xrayView" : "eeView"}`}>
     <Canvas key={`${domain}-${view3d}`} shadows={!allDomains} camera={{ position: view3d === "grid" ? [7.2, 7.4, 9.4] : view3d === "overlay" ? [6.4, 4.6, 7.6] : (domain === "power" || domain === "suspension" ? [4.6, 2.9, 5.2] : [2.9, 1.9, 3.3]), fov: 38 }} dpr={allDomains ? [1, 1] : [1, 1.3]} gl={{ antialias: !allDomains, powerPreference: "high-performance" }}>
       {import.meta.env.DEV && <DevRenderProbe name="garage" />}
       <color attach="background" args={["#eef5ef"]} />
@@ -671,7 +688,7 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
     {level === 0 && !allDomains && !noDomain && <div className="flowLegend" aria-label="배선이 전달하는 것"><b>전달하는 것</b>{flowLegend(domain, feature).map(item => <span key={item.flow}><i style={{ background: item.color }} />{item.label}</span>)}</div>}
     {vehicleSelection && <aside className="vehiclePartInfo" aria-live="polite"><small>{vehicleSelection.role === "input" ? "입력·센서" : vehicleSelection.role === "control" ? "제어기(ECU)" : vehicleSelection.role === "network" ? "통신" : vehicleSelection.role === "actuator" ? "액추에이터·부품" : "차량 반응"}</small><b>{vehicleSelection.label}</b>{vehicleSelection.role === "input" && <strong className={inputOn ? "inputActive" : "inputIdle"}>{inputOn ? "입력이 선택됨 · 다음 스텝으로 신호를 관찰하세요" : "길게 눌러 입력을 선택하세요"}</strong>}<span><em>받는 신호</em>{vehicleSelection.input}</span><span><em>보내는 신호</em>{vehicleSelection.output}</span><p>드래그로 카메라를 움직일 때는 선택되지 않아요.</p></aside>}
     {noDomain && level === 0 && <div className="garageAreaPicker" role="group" aria-label="차량 영역 선택">
-      <p><b>차량 전체 3D 보기</b><span>살펴볼 영역을 고르면 해당 영역의 도메인과 기능으로 들어갑니다.</span></p>
+      <p><b>차량 전체 3D 보기</b></p>
       <div>{DOMAIN_GROUPS.map((group, index) => <button key={group} className={`area-${index}`} onClick={() => { setOverview3d(false); onArea?.(group); }}><Icon name={group === "파워트레인" ? "gear" : group === "섀시" ? "wheel" : "chip"} /><b>{group}</b><small>{DOMAIN_ORDER.filter(id => EV_DOMAINS[id].group === group).length}개 도메인</small></button>)}<button className="area-coord" onClick={() => { setOverview3d(false); onArea?.("coord"); }}><Icon name="signal" /><b>도메인 협조제어</b><small>영역 사이 협조 신호</small></button></div>
     </div>}
     <div className="viewToggles">
@@ -687,7 +704,9 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
       <p>한 도메인의 한계·상태가 다른 도메인의 제어 입력으로 전달됩니다.</p>
       <div>{COORD_SIGNALS.slice(0, 6).map(item => <article key={item.name}><strong>{EV_DOMAINS[item.from].label}</strong><i>→</i><strong>{item.to.map(id => EV_DOMAINS[id].label).join(" · ")}</strong><small>{item.name}</small></article>)}</div>
     </section>}
-  </div>;
+  </div>
+  {architecturePortal}
+  </>;
 }
 
 // ── "빼 보기" experiment: what breaks when one part of the chain is missing ──
@@ -922,7 +941,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   const [chosen, setChosen] = useState(Boolean(requestedDomain && requestedDomain in domainContent));
   const [overviewGroup, setOverviewGroup] = useState<DomainGroup | null>(null);
   const [overview3d, setOverview3d] = useState(!requestedDomain && routeLevel === 0);
-  const [pickNotice, setPickNotice] = useState(false);
+  const [, setPickNotice] = useState(false);
   useReportSubStep("garage", chosen ? 1 + Math.min(3, routeLevel) : 0, { max: chosen ? 4 : 0, goTo: index => { if (index === 0) showAllDomains(); else selectLevel(index - 1); } });
   const setDomain = (id: DomainId) => { setDomainRaw(id); setChosen(true); setPickNotice(false); };
   const showAllDomains = () => { setChosen(false); setPickNotice(false); setOverviewGroup(null); setOverview3d(true); setRouteLevel(0); };
@@ -948,7 +967,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       if (feature > 0) { setFeature(value => Math.max(0, value - 1)); return; }
       if (chosen && routeLevel > 0) { setRouteLevel(value => Math.max(0, value - 1)); return; }
       if (chosen) { showAllDomains(); return; }
-      send({ type: "NAV_BACK" });
+      if (window.confirm("프롤로그로 되돌아갈까요?")) send({ type: "NAV_BACK" });
     };
     addEventListener("tb-garage-back", onGarageBack);
     return () => removeEventListener("tb-garage-back", onGarageBack);
@@ -1060,7 +1079,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
   return <div className="garageV2">
     <SceneBackdrop image={`${A}stitch23/investigation-lab.png`} position="center" shade="soft" />
     <GameHeader chapter="정비소" title="차량 도메인 동작 원리" progressScene={state.scene} onPause={() => send({ type: "PAUSE" })} />
-    <StageFolderSubtitle step="garage" className="garageStageFolder" action="차량 기능이 어떤 부품과 신호를 거쳐 동작하는지 확인하세요." detail={<>학습 대상: {chosen ? content.label : "전체 도메인"} <i>|</i> Vehicle/System · E/E · Control SW</>} />
+    <StageFolderSubtitle step="garage" className="garageStageFolder" action="차량 기능이 어떤 부품과 신호를 거쳐 동작하는지 확인하세요." detail={<>학습 대상: {chosen ? content.label : "전체 도메인"}</>} />
     <StageIntro id="garage" stage="STEP 01" title="정비소" goal="차량 기능이 부품·신호·SW를 거쳐 어떻게 동작하는지 이해하기" steps={[
       { icon: "car", text: chosen ? "위 탭에서 도메인, 오른쪽에서 기능을 고르기" : "전체보기에서 파워트레인·섀시·차량 제어와 협조 신호를 먼저 살펴보기" },
       { icon: "layers", text: "왼쪽 세 관점으로 같은 기능을 비교하기 (부품 · E/E 연결 · Control SW)" },
@@ -1084,7 +1103,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       </nav>}
       {chosen && <nav className="garageBreadcrumb" aria-label="현재 정비소 위치">
         <button onClick={showAllDomains}><Icon name="car" /> 차량 전체</button><span>›</span>
-        <b>{content.group}</b><span>›</span><strong>{content.label}</strong>
+        <button className="garageGroupCrumb" onClick={() => chooseOverviewArea(content.group)}>{content.group}</button><span>›</span><strong>{content.label}</strong>
         <label className="garageDomainSwitch">다른 도메인
           <select value={domain} onChange={event => setDomain(event.target.value as DomainId)} aria-label="다른 도메인으로 바로 이동">
             {DOMAIN_ORDER.map(id => <option key={id} value={id}>{domainContent[id].label}</option>)}
@@ -1093,8 +1112,7 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
         <button className="changeDomain" onClick={showAllDomains}>영역 바꾸기</button>
       </nav>}
       <section className="garageMechanismCard">
-        {chosen ? <header className="garageVizTag"><small>{learningLayers[routeLevel].name} › {content.label} › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>
-          : <header className="garageVizTag"><small>{learningLayers[routeLevel].name} › 전체 도메인</small><h1>{learningLayers[routeLevel].name}</h1><p>{pickNotice ? "부품·E/E와 SW 층은 도메인을 먼저 골라야 볼 수 있어요. 위에서 도메인을 고르세요." : "1단계: 위에서 도메인을 고르세요 → 2단계: 오른쪽에서 기능을 고르세요 → 3단계: 왼쪽 레일로 같은 기능을 더 깊게 봅니다."}</p></header>}
+        {chosen && <header className="garageVizTag"><small>{learningLayers[routeLevel].name} › {content.label} › {content.functions[feature]}</small><h1>{learningLayers[routeLevel].name}</h1><p>{content.purpose}</p></header>}
         <MechanismViewer key={`${chosen ? "domain" : "all"}-${overviewGroup ?? "all"}`} inputOn={signalVisible} eeLayer={eeLayer} onEeLayerChange={layer => { setEeLayer(layer); play("pop"); }} noDomain={!chosen} overviewGroup={overviewGroup} overview3dMode={!chosen && overview3d} onOverview3dChange={setOverview3d} onArea={chooseOverviewArea} onDomain={id => setDomain(id)} domain={domain} level={routeLevel} feature={feature} activeStep={activeStep} removed={removed} selectedVehiclePart={selectedVehiclePart} onVehiclePartSelect={index => { setSelectedVehiclePart(index); setActiveStep(index); play("pop"); }} onJump={(level, step) => { selectLevel(level); window.setTimeout(() => setActiveStep(step), 0); }} onPick={index => { setActiveStep(index); if (labMode === "intro") setEcuCard(ecuCard === index ? null : index); else if (labMode === "pull") setRemoved(removed === index ? null : index); }} />
         <div className="mechanismLegend"><span>주황 · 현재 선택 단계</span><span>파랑 · 입력/센서</span><span>보라 · ECU/SW</span></div>
         {chosen && <div className="inputBar" aria-label="입력 넣기">
@@ -1147,7 +1165,9 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
           </div>;
         })()}
       </section>
-      {!chosen && <aside className="domainFunctionShelf"><small>주요 기능</small><h2>도메인을 골라 보세요</h2><div className="functionNote"><b>주요 기능</b><p>위 탭에서 도메인을 고르면 그 도메인의 주요 기능과 신호 흐름이 여기에 나와요.</p></div></aside>}
+      {!chosen && <aside className="domainFunctionShelf garageArchitectureShelf">
+        <div className="garageArchitectureSideMount" aria-label="차량 아키텍처 탐색" />
+      </aside>}
       {!chosen && <div className="garageFooterRow"><section className="garageFlowPanel garageFlowEmpty"><small>신호 흐름</small><b className="flowRelationship">도메인과 기능을 고르면 입력 → ECU → 출력 순서가 여기에 나와요.</b><div /></section><button className="garageProceed primary stageProgressAction" onClick={() => send({ type: "OPEN_LEVELS" })}>다음 →</button></div>}
       {chosen && <aside className={`domainFunctionShelf ${domain === "drive" && feature === 0 ? "withPedalLab" : ""}`}>
         <small>주요 기능</small><h2>{content.label}의 주요 기능</h2>

@@ -4,8 +4,49 @@ import { COORD_SIGNALS, DOMAIN_GROUPS, DOMAIN_ORDER, EV_DOMAINS, GROUP_ROLE, OVE
 
 type Line = { key: string; d: string };
 
+type ArchitectureTreePanelProps = {
+  icons: Record<DomainId, IconName>;
+  activeGroup?: DomainGroup | null;
+  onGroup: (group: DomainGroup) => void;
+  onDomain: (id: DomainId) => void;
+  onShow3d: () => void;
+};
+
+/**
+ * One shared tree for every STEP01 view.
+ *
+ * The 3D overview used to have a second, slightly different tree markup. That
+ * made its position, width, hover behavior, and hierarchy drift from the
+ * architecture screen. Keep one component and one visual contract instead:
+ * vehicle → area → domain, with every area visibly grouped at the same time.
+ */
+export function ArchitectureTreePanel({ icons, activeGroup = null, onGroup, onDomain, onShow3d }: ArchitectureTreePanelProps) {
+  return <aside className="garageArchitectureTree" aria-label="차량 아키텍처 탐색">
+    <header><Icon name="layers" /><div><b>아키텍처 탐색</b><small>차량 전체 › 영역 › 도메인</small></div></header>
+    <button className={`garageTreeVehicle ${activeGroup === null ? "on" : ""}`} onClick={onShow3d}>
+      <Icon name="car" /><span>차량 전체</span><small>3D 보기</small>
+    </button>
+    <div className="garageTreeGroups">
+      {DOMAIN_GROUPS.map((group, groupIndex) => {
+        const ids = DOMAIN_ORDER.filter(id => EV_DOMAINS[id].group === group);
+        return <section key={group} className={`garageTreeSection g-${groupIndex} ${activeGroup === group ? "on" : ""}`}>
+          <button className="garageTreeGroup" onClick={() => onGroup(group)}>
+            <b>{group}</b><small>{ids.length}개 도메인</small>
+          </button>
+          <div className="garageTreeDomains">
+            {ids.map(id => <button key={id} onClick={() => onDomain(id)} title={`${group} · ${EV_DOMAINS[id].label}`}>
+              <Icon name={icons[id]} /><span>{EV_DOMAINS[id].label}</span><small>기능 {EV_DOMAINS[id].features.length}개</small>
+            </button>)}
+          </div>
+        </section>;
+      })}
+    </div>
+    <button className="garageTree3d" onClick={onShow3d}><Icon name="car" /> 차량 3D 보기</button>
+  </aside>;
+}
+
 /** Whole-vehicle system view: inputs on the left, outputs on the right, domains grouped in the middle on one network. */
-export function ArchitectureOverview({ icons, onPick, onShow3d, focusGroup = null }: { icons: Record<DomainId, IconName>; onPick: (id: DomainId) => void; onShow3d: () => void; focusGroup?: DomainGroup | null }) {
+export function ArchitectureOverview({ icons, onPick, onShow3d, onGroupChange, focusGroup = null }: { icons: Record<DomainId, IconName>; onPick: (id: DomainId) => void; onShow3d: () => void; onGroupChange?: (group: DomainGroup | null) => void; focusGroup?: DomainGroup | null }) {
   const root = useRef<HTMLDivElement>(null);
   const buttons = useRef<Partial<Record<DomainId, HTMLButtonElement | null>>>({});
   const [signal, setSignal] = useState<number | null>(null);
@@ -39,7 +80,7 @@ export function ArchitectureOverview({ icons, onPick, onShow3d, focusGroup = nul
       return [{ key: `${COORD_SIGNALS[signal].name}-${target}`, d: `M${from.x} ${y1}${bend} L${to.x} ${y2}` }];
     }));
   }, [signal, open]);
-  const pickGroup = (group: DomainGroup | null) => { setSignal(null); setOpen(group); };
+  const pickGroup = (group: DomainGroup | null) => { setSignal(null); setOpen(group); onGroupChange?.(group); };
   // A coordination signal is an overlay on the current architecture view.
   // Do not navigate away from the overview when it is selected: the player
   // must be able to compare the signal with all three domain cards.
@@ -75,21 +116,6 @@ export function ArchitectureOverview({ icons, onPick, onShow3d, focusGroup = nul
     </section>
   </div>;
 
-  const treePanel = <aside className="archTreePanel" aria-label="차량 아키텍처 탐색">
-    <header><Icon name="layers" /><b>아키텍처 탐색</b><small>현재 위치에서 바로 이동</small></header>
-    <button className={open === null ? "on" : ""} onClick={() => pickGroup(null)}><span>차량 전체</span><small>3D · E/E 구조</small></button>
-    <div className="archTreeGroups">
-      {DOMAIN_GROUPS.map(group => {
-        const ids = DOMAIN_ORDER.filter(id => EV_DOMAINS[id].group === group);
-        return <section key={group} className={open === group ? "on" : ""}>
-          <button className="archTreeGroup" onClick={() => pickGroup(group)}><b>{group}</b><small>{ids.length}개 도메인</small></button>
-          {open === group && <div className="archTreeDomains">{ids.map(id => <button key={id} onClick={() => onPick(id)}><Icon name={icons[id]} /><span>{EV_DOMAINS[id].label}</span><small>기능 {EV_DOMAINS[id].features.length}개</small></button>)}</div>}
-        </section>;
-      })}
-    </div>
-    <button className="archTree3d" onClick={onShow3d}><Icon name="car" /> 차량 3D 보기</button>
-  </aside>;
-
   return <div className="mechanismViewer archView" ref={root}>
     {open === null ? groupCards : <>
     <nav className="archCrumb" aria-label="현재 위치"><button onClick={() => pickGroup(null)}>전체 영역</button><span>›</span>{DOMAIN_GROUPS.map(group => <button key={group} className={group === open ? "on" : ""} onClick={() => pickGroup(group)}>{group}</button>)}<small>도메인을 누르면 기능을 볼 수 있어요</small></nav>
@@ -120,7 +146,6 @@ export function ArchitectureOverview({ icons, onPick, onShow3d, focusGroup = nul
       {COORD_SIGNALS.map((item, index) => <button key={item.name} className={signal === index ? "on" : ""} onClick={() => setSignal(signal === index ? null : index)}>{item.name}</button>)}
       <button className="arch3d" onClick={onShow3d}><Icon name="car" /> 3D 차량</button>
     </div>}
-    {treePanel}
     <p className="archNote">{active ? `${EV_DOMAINS[active.from].label} → ${active.to.map(id => EV_DOMAINS[id].label).join("·")} · ${active.purpose}` : open === null ? "" : "아래 협조 신호를 누르면 도메인 사이 신호가 보여요."}</p>
   </div>;
 }

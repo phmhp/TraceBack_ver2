@@ -929,36 +929,36 @@ const INPUT_INFO: Record<CaseId, Partial<Record<Deriv, { tag: string; purpose: s
   propulsion: {
     reqa: { tag: "대표 요구사항 시험", purpose: "정상 요구사항의 대표 입력에서 기대 출력이 나오는지 확인" },
     bound: { tag: "경계값 시험 · 입력 상한", purpose: "입력 범위 끝에서 출력 제한이 지켜지는지 확인" },
-    usecase: { tag: "고장 상황 재현 시험", purpose: "고장 당시 기록을 바탕으로 재구성한 조작으로 같은 출력 저하가 다시 나타나는지 확인" },
+    usecase: { tag: "고장 상황 재현 시험", purpose: "기록된 운전·환경 조건을 재현하고 시험 대상의 출력이 요구 기준을 만족하는지 확인" },
     equiv: { tag: "다른 입력 구간 시험", purpose: "입력이 없는 구간에서 출력이 정상 기준과 같은지 확인" },
   },
   thermal: {
     reqa: { tag: "대표 요구사항 시험", purpose: "켜짐 기준을 지날 때 팬이 켜지고 목표 회전으로 제어되는지 확인" },
-    usecase: { tag: "고장 상황 재현 시험", purpose: "고장 당시 장거리 고속 열부하를 재구성해 팬이 돌지 않는 현상이 다시 나타나는지 확인" },
+    usecase: { tag: "고장 상황 재현 시험", purpose: "기록된 운전·환경 조건을 재현하고 시험 대상의 출력이 요구 기준을 만족하는지 확인" },
     equiv: { tag: "다른 입력 구간 시험", purpose: "켜짐 기준 아래 구간에서 팬 출력이 정상 기준과 같은지 확인" },
   },
   brake: {
-    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "기록된 제동 조작에서 요구 감속이 나오는지 확인" },
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "선택한 시험 입력에서 시스템 응답이 요구 기준을 만족하는지 확인" },
     bound: { tag: "경계 조건 시험 · 회생 0", purpose: "회생이 없는 경계에서 마찰 제동만으로 요구 감속을 채우는지 확인" },
     equiv: { tag: "다른 입력 구간 시험", purpose: "약한 제동 구간의 감속과 제동 배분이 정상 기준과 같은지 확인" },
   },
   regen: {
-    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "기록된 회생 요청에서 토크 지령이 정상 방향으로 나오는지 확인" },
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "선택한 시험 입력에서 시스템 응답이 요구 기준을 만족하는지 확인" },
     bound: { tag: "경계 조건 시험 · 최대 회생", purpose: "회생 요청 −80 Nm에서도 토크 지령이 같은 방향으로 나오는지 확인" },
     equiv: { tag: "다른 입력 구간 시험 · 회생 없음", purpose: "회생 요청이 없는 구간에서 지령이 정상 기준과 같은지 확인" },
   },
   ready: {
-    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "기록된 시동 요청에서 주 접촉기가 안전하게 닫히고 READY가 되는지 확인" },
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "선택한 시험 입력에서 시스템 응답이 요구 기준을 만족하는지 확인" },
     bound: { tag: "경계 조건 시험 · 저온 시동", purpose: "충전이 느린 경계에서도 대기 시간이 충분한지 확인" },
     equiv: { tag: "다른 입력 구간 시험 · 시동 요청 없음", purpose: "시동 요청이 없을 때 접촉기가 열려 있는지 확인" },
   },
   cold: {
-    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "기록된 저온 조건에서 한계 전달과 회생 출력이 일치하는지 확인" },
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "선택한 시험 입력에서 시스템 응답이 요구 기준을 만족하는지 확인" },
     bound: { tag: "경계 조건 시험 · 배터리 저온", purpose: "더 낮은 온도에서도 제동 도메인이 받은 한계를 따르는지 확인" },
     equiv: { tag: "다른 입력 구간 시험 · 배터리 상온", purpose: "상온 구간에서 회생 출력이 정상 기준과 같은지 확인" },
   },
   gear: {
-    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "기록된 변속·통신 조건에서 안전 값과 구동 지령을 확인" },
+    reqa: { tag: "고장 상황 재현 · 대표 요구사항 시험", purpose: "선택한 시험 입력에서 시스템 응답이 요구 기준을 만족하는지 확인" },
     bound: { tag: "경계 조건 시험 · 통신 부하", purpose: "통신 부하 경계에서 타임아웃 뒤 안전 값이 선택되는지 확인" },
     equiv: { tag: "다른 입력 구간 시험 · 정상 통신", purpose: "정상 통신 구간에서 변속 수신과 구동 지령이 기준과 같은지 확인" },
   },
@@ -1871,6 +1871,14 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
   const [reviewTab, setReviewTab] = useState<"domino" | "sheet">("domino");
   const [matTab, setMatTab] = useState<"tc" | "log">("tc");
   const [docOpen, setDocOpen] = useState<"tc" | "log" | null>(null);
+  useEffect(() => {
+    if (!docOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); setDocOpen(null); }
+    };
+    window.addEventListener("keydown", closeOnEscape, true);
+    return () => window.removeEventListener("keydown", closeOnEscape, true);
+  }, [docOpen]);
   const [judged, setJudged] = useState(false);   // the current hypothesis was answered: the dock offers "next hypothesis / other level"
   // final cause chosen after the report, and the A/B comparison run (normal model vs. cause-removed model)
   const [cause, setCause] = useState<string | null>(savedProgress.cause ?? null);
@@ -2170,8 +2178,8 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
     : ["원인을 없애도 정상과 달라요.", "고른 원인이 실제 원인이 아니라는 뜻이에요.", "최종 원인을 다시 골라요."];
   const levelCard = (lv: Lv) => <button key={lv} className="b4Card levelChoice" onClick={() => pickTest(lv)}><span className="b4ChoicePhoto"><i className="pin" /><img src={TEST_ART[lv]} alt="" /></span><b>{TEST_CARD[lv].name}</b><small>{LEVEL_SUB[lv]}</small></button>;
   const dockChoices: React.ReactNode = !contractReady ? <p className="b4DockMsg">시험 설계서를 불러오지 못했어요. STEP03에서 다시 발급해 주세요.</p>
-    : phase === "pick" ? pickStage === "hyp" ? <div className="b4Cards b4HypChoices">{questions.map((item, index) => { const h = meta.hypotheses.find(x => x.id === item.hyp); const art = CAUSES[caseId].find(x => x.hyp === item.hyp)?.img; return <button key={item.hyp} className={`b4Card hypothesis ${index === qi ? "selected" : ""}`} onClick={() => selectHypothesis(index)}><span className="hypPhoto"><i className="pin" /><span className="hypPhotoWin">{art && <img src={art} alt="" />}</span><b>{index + 1}</b></span><em className="etTag" data-tag={HYP_TAG[item.hyp]}>{HYP_TAG[item.hyp]}</em><b>{h?.label ?? item.ask}</b><small>도미노에서 정리한 원인 후보</small></button>; })}</div> : <div className="b4Cards">{QA_LEVELS.map(levelCard)}</div>
-    : phase === "report" ? <div className="b4Cards">{CAUSES[caseId].map(item => <button key={item.hyp} className={`b4Card cause ${cause === item.hyp ? causeOk ? "right" : "wrong" : ""}`} onClick={() => pickCause(item.hyp)}><span className="causePhoto"><i className="pin" /><span className="causePhotoWin"><img src={item.img} alt="" /></span></span><span className="etTag" data-tag={HYP_TAG[item.hyp]}>{HYP_TAG[item.hyp]}</span><b>{item.name}</b><span className="causeType">{item.type}</span></button>)}</div>
+    : phase === "pick" ? pickStage === "hyp" ? <div className="b4Cards b4HypChoices">{questions.map((item, index) => { const h = meta.hypotheses.find(x => x.id === item.hyp); const art = CAUSES[caseId].find(x => x.hyp === item.hyp)?.img; return <button key={item.hyp} className="b4Card hypothesis" onClick={() => selectHypothesis(index)}><span className="hypPhoto"><i className="pin" /><span className="hypPhotoWin">{art && <img src={art} alt="" />}</span><b>{index + 1}</b></span><em className="etTag" data-tag={HYP_TAG[item.hyp]}>{HYP_TAG[item.hyp]}</em><b>{h?.label ?? item.ask}</b><small>도미노에서 정리한 원인 후보</small></button>; })}</div> : <div className="b4Cards">{QA_LEVELS.map(levelCard)}</div>
+    : phase === "report" ? <div className="b4Cards b4CauseChoices">{CAUSES[caseId].map(item => <button key={item.hyp} className={`b4Card cause ${cause === item.hyp ? causeOk ? "right" : "wrong" : ""}`} onClick={() => pickCause(item.hyp)}><span className="causePhoto"><i className="pin" /><span className="causePhotoWin"><img src={item.img} alt="" /></span></span><span className="etTag" data-tag={HYP_TAG[item.hyp]}>{HYP_TAG[item.hyp]}</span><b>{item.name}</b><span className="causeType">{item.type}</span></button>)}</div>
     : phase === "ab" ? <div className="b4Cards">{!abDone ? <button className="b4Card run" disabled={running} onClick={runAb}><b>▶ 두 모델 동시 실행</b><small>정상 모델과 원인을 없앤 모델</small></button>
         : causeOk ? <p className="b4DockMsg">원인을 없앤 모델이 정상 모델과 같아졌어요. 오른쪽 아래 버튼으로 수리를 적용해요.</p>
           : <button className="b4Card" onClick={() => { setPhase("report"); setCause(null); setAbDone(false); setMistakes(n => n + 1); play("pop"); }}><b>최종 원인 다시 고르기</b><small>정상과 달라요</small></button>}</div>
@@ -2181,7 +2189,7 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         {(hypDone || unansweredOthers >= 0) && <button className="b4Card run" onClick={goNextHypothesis}><i><Icon name="search" /></i><b>{answers[q?.hyp ?? ""]?.answer === "supported" || unansweredOthers < 0 ? "최종 원인 고르러 가기" : "다음 가설 검증하러 가기"}</b><small>{answers[q?.hyp ?? ""]?.answer === "supported" || unansweredOthers < 0 ? "가설 확인 결과를 보고 원인을 정해요" : `가설 ${unansweredOthers + 1}/${questions.length}을 이어서 확인해요`}</small></button>}
       </div>
     : shown ? <div className="b4Cards">{(["supported", "refuted", "open"] as Answer[]).map(a => <button key={a} className={`b4Card ans-${a}`} onClick={() => answer(a)}><b>{ANSWER_BTN[a][0]}</b><small>{ANSWER_BTN[a][1]}</small></button>)}</div>
-    : needsInputPick ? <div className="b4Cards">{CASE_DERIVS[caseId].map(d => { const info = INPUT_INFO[caseId][d.id]; return <button key={d.id} className="b4Card input" onClick={() => { setPickedDeriv(d.id); play("pop"); }}><em>{info?.tag ?? "시험 입력"}</em><b>{info?.purpose ?? d.input}</b><small>입력 · <code>{inputSequenceText(contractForInput(caseId, contract, d.id, d.tech).execution, contract.execution)}</code></small></button>; })}</div>
+    : needsInputPick ? <div className="b4Cards">{CASE_DERIVS[caseId].map(d => { const info = INPUT_INFO[caseId][d.id]; return <button key={d.id} className="b4Card input" title={inputSequenceText(contractForInput(caseId, contract, d.id, d.tech).execution, contract.execution)} onClick={() => { setPickedDeriv(d.id); play("pop"); }}><em>{info?.tag ?? "시험 입력"}</em><b>{info?.purpose ?? d.input}</b></button>; })}</div>
     : <div className="b4Cards"><button className="b4Card run" disabled={!contractReady} onClick={run}><b>▶ 시험 실행</b><small><code>{numify(tech.input)}</code></small></button>{CASE_DERIVS[caseId].length > 1 && <button className="b4Card" onClick={() => { setPickedDeriv(null); play("pop"); }}><b>입력 조건 바꾸기</b><small>다른 시험 입력 고르기</small></button>}</div>;
   const coach = state.completedCases.length ? "" : phase === "lab" && !shown ? "run" : phase === "lab" ? "answer" : "";
   return <div className="vbBench v7 qa qa2 bench4" data-coach={coach}>
@@ -2195,17 +2203,15 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
       { icon: "search", text: "최종 원인을 고르면, 그 원인을 없앤 모델이 정상과 같아지는지 확인하고 수리를 적용해 주행으로 돌아가요." },
     ]} />
     <div className="b4Work">
-      <MissionBar action={b4Mission.action} question={b4Mission.question} progress={{ now: stepIdx + 1, total: 3 }} />
+      <MissionBar action={b4Mission.action} question={b4Mission.question} progress={{ now: stepIdx + 1, total: 3 }}><button className="missionHelpButton" onClick={() => window.dispatchEvent(new CustomEvent("tb-nutguide-reopen", { detail: `b4-${caseId}-${phase}-${qi}-${judged ? "j" : shown ? "r" : running ? "x" : needsInputPick ? "i" : "m"}` }))}>푸는 방법 다시 보기</button></MissionBar>
       <section className="b4Stage">
         {phase === "pick" ? <div className={`b4Pick ${pickStage === "hyp" ? "hypReviewPick" : ""}`}>
-          {pickStage === "hyp" ? <section className="b4Review"><nav role="tablist" aria-label="이전 단계 자료"><button role="tab" aria-selected={reviewTab === "domino"} className={reviewTab === "domino" ? "on" : ""} onClick={() => setReviewTab("domino")}>STEP02 · 도미노 기록</button><button role="tab" aria-selected={reviewTab === "sheet"} className={reviewTab === "sheet" ? "on" : ""} onClick={() => setReviewTab("sheet")}>STEP03 · 시험 설계서</button></nav>{reviewTab === "domino" ? <div className="b4ReviewPaper"><small>의심 구간</small><h3>{step02.section ?? "기록 없음"}</h3><p>{logSummary}</p><p>{step02.chain.length ? `확인한 경로 ${step02.chain.map(item => item.label).join(" → ")}` : "도미노에서 확인한 경로가 아직 없어요."}</p></div> : <div className="b4ReviewPaper"><small>정상 기준</small><h3>{contract.stimulus.label}</h3><p>{contract.objective}</p><p>입력과 기대 출력은 오른쪽의 시험 설계서에서 확인할 수 있어요.</p></div>}</section> : <section className="b4SelectedHypothesis" aria-label="선택한 가설의 근거 요약">
+          {pickStage === "hyp" ? <section className="b4Review"><nav role="tablist" aria-label="이전 단계 자료"><button role="tab" aria-selected={reviewTab === "domino"} className={reviewTab === "domino" ? "on" : ""} onClick={() => setReviewTab("domino")}>STEP02 · 도미노 기록</button><button role="tab" aria-selected={reviewTab === "sheet"} className={reviewTab === "sheet" ? "on" : ""} onClick={() => setReviewTab("sheet")}>STEP03 · 시험 설계서</button></nav>{reviewTab === "domino" ? <div className="b4ReviewPaper"><span className="b4ReviewPolaroid b4NeutralEvidence"><i className="pin" /><span><Icon name="search" /></span></span><div className="b4ReviewFacts dominoRecordFacts"><small>도미노 추적 기록 · 공통 근거</small><div className="b4RecordPair"><section><small>최초 편차</small><b>{step02.linked && step02.chain.length ? step02.chain[step02.chain.length - 1].label : "기록 없음"}</b></section><section><small>의심 구간</small><b>{step02.section ?? "아직 선택 전"}</b></section></div><section className="b4RecordPath"><small>확인한 경로</small>{step02.chain.length ? <ol>{[...step02.chain].reverse().map((item, index) => <li key={`${item.id}-${index}`}><i>{index + 1}</i><b>{item.label}</b></li>)}</ol> : <p>도미노에서 확인한 경로가 아직 없어요.</p>}</section></div></div> : <div className="b4ReviewPaper"><span className="b4ReviewPolaroid b4NeutralEvidence"><i className="pin" /><span><Icon name="clipboard" /></span></span><div className="b4ReviewFacts"><small>시험 설계서 · 공통 정상 기준</small><h3>{contract.stimulus.label}</h3><p>{contract.objective}</p><p>입력 조건과 기대 출력은 선택한 시험 수준에서 확인해요.</p></div></div>}</section> : <section className="b4SelectedHypothesis" aria-label="선택한 가설의 근거 요약">
             <header className="b4SelectedHypHero">{selectedCause?.img && <img src={selectedCause.img} alt="" />}<div><small>선택한 가설</small><h3>{selectedCause?.name ?? hypothesisGoal}</h3><p>{selectedCause?.type ?? HYP_TAG[q?.hyp ?? ""]}</p></div></header>
             <div className="b4SelectedHypFacts"><article><small>역추적 경로</small><b>{step02.chain.length ? step02.chain.map(item => item.label).join(" → ") : "기록 없음"}</b></article><article><small>의심 구간</small><b>{step02.section ?? selectedCause?.where ?? "기록 없음"}</b></article><article><small>첫 편차</small><b>{firstTrace?.label ?? "기록 없음"}</b><span>{firstTrace ? `${firstTrace.ref} ${firstTrace.unit} → ${firstTrace.run} ${firstTrace.unit}` : "STEP02 저장 기록 없음"}</span></article></div>
             <div className="b4SelectedHypPrediction"><small>이 가설이 맞다면</small><p>{numify(PREDICT[q?.hyp ?? ""] ?? selectedCause?.desc ?? "시험에서 관련 신호가 달라지는지 확인합니다.")}</p></div>
           </section>}
-          <section className="b4HypDetail"><small>{pickStage === "hyp" ? "가설 선택" : `지금 확인할 가설 ${qi + 1}/${questions.length}`}</small><h3>{pickStage === "hyp" ? "유력한 가설은 뭔가요?" : q.ask}</h3>
-            <div className="b4Criteria"><small><Icon name="target" /> 이 가설이 원인이라면</small><p>{numify(PREDICT[q.hyp])}</p></div>
-            <p className="b4Hint2">{pickStage === "hyp" ? "도미노에서 좁힌 후보 중 가장 유력한 하나를 고르면, 다음 화면에서 시험 수준을 정합니다." : "시험 수준에 따라 볼 수 있는 신호와 판단 가능한 경계가 달라요."}</p></section>
+          <section className="b4HypDetail"><small>{pickStage === "hyp" ? "가설 선택" : `지금 확인할 가설 ${qi + 1}/${questions.length}`}</small><h3>{pickStage === "hyp" ? "유력한 가설은 뭔가요?" : q.ask}</h3>{pickStage === "hyp" ? <><p className="b4Hint2">고장 원인 후보 가운데, 관찰한 증상과 도미노 기록을 가장 잘 설명하는 후보를 고르는 단계예요. 아직 선택 전이므로 특정 후보의 시험 결과나 부품을 기준으로 보여주지 않아요.</p><ol className="b4HypFlow" aria-label="실험대 단계 흐름"><li><b>가설 선택</b><span>후보와 관찰 기록 대조</span></li><li><b>시험 설계</b><span>수준과 입력 조건 선택</span></li><li><b>실행·판정</b><span>정상 기준과 신호 비교</span></li><li><b>원인 제거 확인</b><span>수리 전후 모델 비교</span></li></ol><p className="b4Hint2">후보를 고르면 그 가설에 해당하는 시험 근거가 여기에 표시됩니다.</p></> : <><p className="b4HypothesisName"><mark>{meta.hypotheses.find(item => item.id === q.hyp)?.label ?? hypothesisGoal}</mark></p><div className="b4Criteria"><small><Icon name="target" /> 이 가설이 원인이라면</small><p>{numify(PREDICT[q.hyp])}</p></div><p className="b4Hint2">시험 수준에 따라 볼 수 있는 신호와 판단 가능한 경계가 달라요.</p></>}</section>
         </div>
         : phase === "report" ? <div className="b4Pick b4Report">
           <section className="b4ReportEvidence" aria-label="최종 원인 선택 근거">
@@ -2246,10 +2252,10 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
             <ol>
               {pickStage === "hyp" ? <><li>도미노에서 좁힌 후보 중 하나를 먼저 선택해요.</li><li>가설이 맞다면 달라질 신호를 확인해요.</li><li>선택 후에는 시험 수준과 입력을 정해요.</li></> : <><li>가설을 가를 신호가 보이는 수준을 골라요.</li><li>관찰 가능한 출력과 판단 기준을 확인해요.</li><li>다음 단계에서 같은 조건으로 실행해요.</li></>}
             </ol>
-            <p><b>현재 선택</b><span>{pickStage === "hyp" ? "가설 후보 2개" : hypothesisGoal}</span></p>
+            <p><b>현재 선택</b><span>{pickStage === "hyp" ? `아직 미선택 · 후보 ${questions.length}개` : hypothesisGoal}</span></p>
           </section> : phase === "report" ? <section className="b4PickGuide" aria-label="가설 결과 요약">
             <header><small>시험 결과 정리</small><h3>확인한 결과를 비교해요</h3></header>
-            <ol><li>각 가설의 시험 결과를 확인해요.</li><li><mark>정상 기준과 달라진 신호</mark>를 근거로 봐요.</li><li>마지막에 원인 제거 시험으로 다시 확인해요.</li></ol>
+            <ol><li>각 가설의 시험 결과를 확인해요.</li><li>정상 기준과 다른 신호를 근거로 봐요.</li><li>마지막에 원인 제거 시험으로 다시 확인해요.</li></ol>
             <p><b>다음</b><span>최종 고장 원인 선택</span></p>
           </section> : <>
           {judgeNote && <aside className="b4WhyLevel" aria-label="이 시험 수준의 판단 가능 여부"><small>이 시험 수준으로 이 가설을 판단할 수 있나요?</small><b className={judgeNote.can ? "can" : "cannot"}><mark>{judgeNote.can ? "판단할 수 있어요" : "판단할 수 없어요"}</mark></b><p>{judgeNote.text}</p></aside>}
@@ -2315,31 +2321,35 @@ export function TwinBenchExperience({ state, send }: { state: Campaign; send: Se
         </div>
       </aside>
       <footer className="b4Dock" aria-live="polite">
-        <NutGuide id={`b4-${caseId}-${phase}-${qi}-${judged ? "j" : shown ? "r" : running ? "x" : needsInputPick ? "i" : "m"}`} who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={b4Lines} ask={b4Lines[b4Lines.length - 1]} note={feedback?.text ?? ""} bad={feedback ? !feedback.ok : false} />
+        <NutGuide id={`b4-${caseId}-${phase}-${qi}-${judged ? "j" : shown ? "r" : running ? "x" : needsInputPick ? "i" : "m"}`} who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={b4Lines} ask={b4Lines[b4Lines.length - 1]} note={feedback?.text ?? ""} bad={feedback ? !feedback.ok : false} showAgain={false} />
         <div className="b4Choices" role="group" aria-label="선택지">{dockChoices}</div>
       </footer>
-      {docOpen && <div className="rpFolderBack" role="dialog" aria-modal="true" aria-label="시험 자료" onClick={() => setDocOpen(null)}>
-        <div className="rpFolder" onClick={event => event.stopPropagation()}>
-          <div className="rpFolderTabs"><button className={`tab ${docOpen === "tc" ? "on" : ""}`} onClick={() => setDocOpen("tc")}>시험 설계서</button><button className={`tab ${docOpen === "log" ? "on" : ""}`} onClick={() => setDocOpen("log")}>고장 기록</button><button aria-label="닫기" onClick={() => setDocOpen(null)}>×</button></div>
-          <div className="rpFolderPaper b4Doc">
+      {docOpen && <div className="verificationContractModal b4SpecSheetBackdrop" role="dialog" aria-modal="true" aria-label={docOpen === "tc" ? "시험 설계서" : "고장 기록"} onClick={() => setDocOpen(null)}>
+        <article className="receiptPrinting specSheet b4SpecSheet" onClick={event => event.stopPropagation()}>
+          <button className="contractClose" aria-label="시험 자료 닫기" onClick={() => setDocOpen(null)}>×</button>
+          <div className="specSheetPaper b4DocSheetPaper">
+            <nav className="specSheetDocTabs" aria-label="시험 자료 종류">
+              <button className={docOpen === "tc" ? "on" : ""} onClick={() => setDocOpen("tc")}>시험 설계서</button>
+              <button className={docOpen === "log" ? "on" : ""} onClick={() => setDocOpen("log")}>고장 기록</button>
+            </nav>
             {docOpen === "tc" ? <>
-              <small>STEP03 시험 설계서 · 정상일 때 어떤 입력에서 어떤 출력이 나와야 하는지</small>
-              <h3>{contract.stimulus.label}</h3>
-              <p className="ssPurpose"><span>검증 목적</span><b>{contract.objective}</b></p>
+              <small>STEP03 · 정상 기준</small>
+              <h2>{contract.stimulus.label}</h2>
+              <p className="ssPurpose"><span>시험 목적</span><b>{contract.objective}</b></p>
               <div className="b4DocCols">
-                <div><h4>정상 시나리오</h4><ul>{normalScenarioLines(caseId).map(line => <li key={line}>{line}</li>)}</ul>
-                  <h4>이번 시험 입력</h4><p>{pickedDeriv ? numify(tech.input) : "시험 입력은 시험 실행 단계에서 골라요."}</p></div>
-                <div><h4>정상일 때 기대 출력</h4><table><thead><tr><th>신호</th><th>기대값</th><th>허용 오차</th></tr></thead><tbody>{contract.execution.expectedOutputs.map((item, index) => <tr key={item.signalId}><td>{index === 0 ? contract.expected.signal : contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code> {item.unit}</td><td><code>±{item.tolerance}</code></td></tr>)}</tbody></table>
-                  <h4>관찰 신호</h4><p>{contract.observations.map(item => item.label).join(" · ")}</p></div>
-              </div></> : <>
-              <small>STEP02 고장 기록 · 실제 고장 때 신호가 정상과 얼마나 달랐는지</small>
-              <h3>{step02.linked ? "도미노 결과" : "기록 없음"}</h3>
-              {step02.linked ? <><p className="ssPurpose"><span>처음 달라진 신호</span><b>{step02.chain.length ? step02.chain[step02.chain.length - 1].label : "기록 없음"}</b></p>
-                <p className="ssPurpose"><span>의심 구간</span><b>{step02.section ?? "고르지 않음"}</b></p>
-                {step02.chain.length > 0 && <table><thead><tr><th>핵심 신호</th><th>정상</th><th>고장</th></tr></thead><tbody>{[...step02.chain].reverse().map(item => <tr key={item.id}><td>{item.label}</td><td><code>{item.ref}</code> {item.unit}</td><td><code>{item.run}</code> {item.unit}</td></tr>)}</tbody></table>}</>
-                : <p>이 세션에는 도미노 단계 기록이 없어요. 값을 임의로 채우지 않고 기록 없음으로 보여요.</p>}</>}
+                <section><h3>정상 시나리오</h3><ul>{normalScenarioLines(caseId).map(line => <li key={line}>{line}</li>)}</ul><h3>시험 입력</h3><p>{pickedDeriv ? numify(tech.input) : "대표 입력을 시험 단계에서 선택"}</p></section>
+                <section><h3>기대 출력</h3><table><thead><tr><th>신호</th><th>기대값</th><th>허용 오차</th></tr></thead><tbody>{contract.execution.expectedOutputs.map((item, index) => <tr key={item.signalId}><td>{index === 0 ? contract.expected.signal : contractSignalLabel(item.signalId)}</td><td><code>{item.value}</code> {item.unit}</td><td><code>±{item.tolerance}</code></td></tr>)}</tbody></table><h3>관찰 신호</h3><p>{contract.observations.map(item => item.label).join(" · ")}</p></section>
+              </div>
+            </> : <>
+              <small>STEP02 · 실제 고장 기록</small>
+              <h2>{step02.linked ? "도미노 추적 결과" : "고장 기록 없음"}</h2>
+              {step02.linked ? <>
+                <div className="b4LogFacts"><p><span>첫 편차</span><b>{step02.chain.length ? step02.chain[step02.chain.length - 1].label : "기록 없음"}</b></p><p><span>의심 구간</span><b>{step02.section ?? "미선택"}</b></p><p><span>추적 경로</span><b>{step02.chain.map(item => item.label).join(" → ") || "기록 없음"}</b></p></div>
+                {step02.chain.length > 0 && <table><thead><tr><th>신호</th><th>정상</th><th>고장</th></tr></thead><tbody>{[...step02.chain].reverse().map(item => <tr key={item.id}><td>{item.label}</td><td><code>{item.ref}</code> {item.unit}</td><td><code>{item.run}</code> {item.unit}</td></tr>)}</tbody></table>}
+              </> : <p className="b4LogEmpty">이 세션에는 도미노 기록이 없어요.</p>}
+            </>}
           </div>
-        </div>
+        </article>
       </div>}
       <div className="b4NextCell"><button className="qaFinishBtn stageProgressAction" disabled={!canApply} onClick={finish}>{canApply ? "수리 적용 · 주행 복귀 →" : "다음 →"}</button></div>
     </div>
