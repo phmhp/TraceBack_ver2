@@ -1505,8 +1505,125 @@ html body #root .gameViewport .gameStage .eeTrace .etLayout > .etMugs.stableDock
 }
 html body #root .gameViewport .gameStage .eeTrace .etDockSection .etChoices {
   width: min(100%, 760px) !important; height: 100% !important; justify-self: start !important;
-  align-content: start !important; justify-content: start !important;
+  align-content: center !important; justify-content: center !important; margin-inline: auto !important;
 }
+
+/* Domino decision dock: full-width prompt, then choices beside their explanation. */
+html body #root .gameViewport .gameStage .eeTrace .etMugs.hypothesisDock {
+  display: grid !important; grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: 54px minmax(0, 1fr) !important; align-content: stretch !important;
+  gap: 7px !important; padding: 9px 14px !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etMugs.hypothesisDock > .nutGuide {
+  grid-column: 1 !important; grid-row: 1 !important; width: 100% !important; max-width: none !important;
+  min-width: 0 !important; height: 54px !important; min-height: 54px !important; max-height: 54px !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etMugs.hypothesisDock > .etDock {
+  grid-column: 1 !important; grid-row: 2 !important; min-width: 0 !important; min-height: 0 !important;
+  width: 100% !important; display: grid !important; grid-template-columns: minmax(0, .82fr) minmax(0, 1fr) !important;
+  align-items: stretch !important; justify-content: stretch !important; gap: 10px !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etDockHypothesis .etHypDecision,
+html body #root .gameViewport .gameStage .eeTrace .etDockCarry > :is(.etChoices, .etCarryActions) {
+  min-width: 0 !important; min-height: 0 !important; display: grid !important; grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  align-content: stretch !important; gap: 6px !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etDockHypothesis .etHypDecision button {
+  min-width: 0 !important; min-height: 0 !important; display: flex !important; align-items: center !important;
+  justify-content: flex-start !important; gap: 8px !important; padding: 6px 10px !important; white-space: normal !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etDockHypothesis .etCand,
+html body #root .gameViewport .gameStage .eeTrace .etDockCarry .etCand,
+html body #root .gameViewport .gameStage .eeTrace .etDockExplanation {
+  min-width: 0 !important; min-height: 0 !important; height: 100% !important; box-sizing: border-box !important;
+  display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 10px !important;
+  padding: 7px 10px !important; overflow: hidden !important; border: 1px solid #d9c3ba !important;
+  border-radius: 10px !important; background: #fffaf2 !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etDockExplanation { flex-direction: column !important; align-items: flex-start !important; justify-content: center !important; }
+html body #root .gameViewport .gameStage .eeTrace .etDockExplanation b { color: #704b43 !important; font-size: 13px !important; }
+html body #root .gameViewport .gameStage .eeTrace .etDockExplanation p { margin: 0 !important; font-size: 11px !important; line-height: 1.35 !important; }
+html body #root .gameViewport .gameStage .eeTrace .etDockHypothesis .etCandText,
+html body #root .gameViewport .gameStage .eeTrace .etDockCarry .etCandText { min-width: 0 !important; }
+html body #root .gameViewport .gameStage .eeTrace .etHypGraphic .polPhoto img,
+html body #root .gameViewport .gameStage .eeTrace .etDockHypothesis .etCardPol .polPhoto img,
+html body #root .gameViewport .gameStage .eeTrace .etDockCarry .etCardPol .polPhoto img {
+  display: block !important; width: 100% !important; height: 100% !important; object-fit: cover !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etDockHypothesis .etCardPol,
+html body #root .gameViewport .gameStage .eeTrace .etDockCarry .etCardPol {
+  width: 62px !important; height: 74px !important; flex: 0 0 62px !important; overflow: visible !important;
+}
+html body #root .gameViewport .gameStage .eeTrace .etDockCarry .etChoices { grid-template-columns: 1fr !important; grid-template-rows: repeat(2, minmax(0, 1fr)) !important; }
+html body #root .gameViewport .gameStage .eeTrace .etDockCarry .etChoices button { min-width: 0 !important; min-height: 0 !important; padding: 4px 8px !important; }
+html body #root .gameViewport .gameStage .eeTrace .etDockCarry .etCarryActions { align-content: center !important; }
+html body #root .gameViewport .gameStage .eeTrace .etDockCarry .etCarryActions > b { font-size: 13px !important; }
+
+/* Bench hypothesis picker: prompt spans the dock; left choices and right rationale use the reverse-trace proportions. */
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4Dock.b4HypPickDock {
+  display: grid !important; grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: 42px minmax(0, 1fr) !important; gap: 6px !important; padding: 8px 12px !important;
+}
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickDock > .nutGuide {
+  grid-column: 1 !important; grid-row: 1 !important; width: 100% !important; min-height: 0 !important; height: 42px !important; max-height: 42px !important;
+}
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickDock > .b4Choices {
+  grid-column: 1 !important; grid-row: 2 !important; display: block !important; min-height: 0 !important; height: 100% !important;
+}
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickLayout {
+  width: 100% !important; height: 100% !important; min-height: 0 !important; display: grid !important;
+  grid-template-columns: minmax(0, .82fr) minmax(0, 1fr) !important; gap: 10px !important;
+}
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickLayout > .b4HypChoices {
+  min-width: 0 !important; min-height: 0 !important; display: grid !important; grid-template-columns: 1fr !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important; gap: 5px !important; overflow: visible !important; padding: 0 4px 0 0 !important;
+}
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickLayout .b4Card.hypothesis {
+  position: relative !important; min-width: 0 !important; min-height: 0 !important; max-height: none !important;
+  display: grid !important; grid-template-columns: 50px minmax(0, 1fr) !important; grid-template-rows: 1fr !important;
+  align-items: center !important; justify-items: start !important; gap: 7px !important; padding: 4px 7px !important;
+  text-align: left !important; overflow: visible !important; border-radius: 9px !important;
+}
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickLayout .hypPhoto {
+  grid-column: 1 !important; grid-row: 1 !important; width: 46px !important; min-width: 46px !important; max-width: 46px !important;
+  height: 56px !important; min-height: 56px !important; max-height: 56px !important; flex: 0 0 46px !important; padding: 4px 4px 7px !important;
+  box-sizing: border-box !important; align-self: center !important; overflow: visible !important;
+}
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickLayout .hypPhotoWin { display: block !important; width: 100% !important; min-width: 0 !important; height: 100% !important; overflow: hidden !important; }
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickLayout .hypPhotoWin img { display: block !important; width: 100% !important; height: 100% !important; object-fit: cover !important; }
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickLayout .b4HypChoiceCopy { grid-column: 2 !important; min-width: 0 !important; display: grid !important; gap: 2px !important; }
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickLayout .b4HypChoiceCopy > b { font-size: 11px !important; line-height: 1.15 !important; }
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickLayout .b4HypChoiceCopy > small { font-size: 9px !important; line-height: 1.1 !important; }
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickLayout .b4HypChoiceCopy > .etTag { justify-self: start !important; padding: 2px 5px !important; font-size: 8px !important; }
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickExplanation {
+  min-width: 0 !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; justify-content: center !important;
+  gap: 4px !important; padding: 7px 10px !important; border: 1px solid #d8c89e !important; border-radius: 10px !important; background: #fffdf4 !important;
+}
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickExplanation > small { color: #8b6259 !important; font-size: 9px !important; font-weight: 800 !important; }
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickExplanation > b { color: #463632 !important; font-size: 11px !important; }
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickExplanation p { margin: 0 !important; color: #584944 !important; font-size: 12px !important; line-height: 1.35 !important; }
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickExplanation ol { display: grid !important; grid-template-columns: 1fr 1fr 1fr !important; gap: 3px !important; margin: 2px 0 0 !important; padding: 0 !important; list-style-position: inside !important; }
+html body #root .gameViewport .gameStage .vbBench.bench4.qa2 .b4HypPickExplanation li { padding: 4px !important; border-radius: 5px !important; background: #eef7f1 !important; color: #41624d !important; font-size: 10px !important; line-height: 1.2 !important; }
+
+/* Fit the loose tray pieces within the green docking area and keep help buttons above every piece layer. */
+html body #root .gameViewport .gameStage .refPuzzle.v2 .rp3Work .rpChoicePiece { width: 112px !important; height: 112px !important; max-width: 112px !important; }
+html body #root .gameViewport .gameStage .refPuzzle.v2 .rpWorld .rpPiece .rpHelp { position: absolute !important; z-index: 999 !important; isolation: isolate !important; }
+html body #root .gameViewport .gameStage .refPuzzle.v2 .rpWorld .rpPiece:has(.rpHelp) { isolation: isolate !important; }
+
+/* The shared spec-sheet content needs room to be legible on narrow viewports. */
+html body #root .gameViewport .gameStage .verificationContractModal > article.b4SpecSheet {
+  width: min(1240px, 172vw) !important; max-width: none !important; aspect-ratio: 2.15 / 1 !important;
+  max-height: min(88vh, 746px) !important;
+}
+html body #root .gameViewport .gameStage .verificationContractModal .b4DocSheetPaper > small { font-size: 12px !important; }
+html body #root .gameViewport .gameStage .verificationContractModal .b4DocSheetPaper > h2 { font-size: clamp(18px, 1.6vw, 24px) !important; }
+html body #root .gameViewport .gameStage .verificationContractModal .b4DocSheetPaper .ssPurpose { font-size: 12px !important; line-height: 1.35 !important; padding: 7px 9px !important; }
+html body #root .gameViewport .gameStage .verificationContractModal .b4DocSheetPaper h3 { font-size: 12px !important; }
+html body #root .gameViewport .gameStage .verificationContractModal .b4DocSheetPaper p,
+html body #root .gameViewport .gameStage .verificationContractModal .b4DocSheetPaper li { font-size: 11px !important; line-height: 1.35 !important; }
+html body #root .gameViewport .gameStage .verificationContractModal .b4DocSheetPaper td { font-size: 10px !important; line-height: 1.3 !important; padding: 4px !important; }
+html body #root .gameViewport .gameStage .verificationContractModal .b4DocSheetPaper code { font-size: 10px !important; }
+html body #root .gameViewport .gameStage .verificationContractModal .b4DocSheetPaper .specSheetDocTabs button { min-height: 30px !important; font-size: 11px !important; }
 
 /* Hypothesis photos match the pinned-photo ratio and readable size in Evidence. */
 html body #root .gameViewport .gameStage .eeTrace .etHypGraphic {

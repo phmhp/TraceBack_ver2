@@ -210,17 +210,17 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
   // automatically. Candidate navigation is kept out of the answer panel.
   useEffect(() => {
     if (!awaitingStamp) return;
-    const timer = window.setTimeout(() => advanceStamp(), 3000);
+    const timer = window.setTimeout(() => advanceStamp(), 2000);
     return () => window.clearTimeout(timer);
   }, [awaitingStamp]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!awaitingOutput) return;
-    const timer = window.setTimeout(() => advanceOutput(), 3000);
+    const timer = window.setTimeout(() => advanceOutput(), 2000);
     return () => window.clearTimeout(timer);
   }, [awaitingOutput]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!awaitingHypothesis) return;
-    const timer = window.setTimeout(() => advanceToHypothesis(), 3000);
+    const timer = window.setTimeout(() => advanceToHypothesis(), 2000);
     return () => window.clearTimeout(timer);
   }, [awaitingHypothesis]); // eslint-disable-line react-hooks/exhaustive-deps
   // 6) section inside the first deviation
@@ -480,7 +480,7 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
       </section>
 
       {/* bottom 150px: spoken direction on the left, the one thing to do on the right (all choices are made here) */}
-      <section className={`etMugs stableDock ${phase === "trace" ? "traceDock" : ""}`}>
+      <section className={`etMugs stableDock ${phase === "trace" ? "traceDock" : ""} ${phase === "hyp" && sectionDone ? "hypothesisDock" : ""}`}>
         <NutGuide id={nutId} who={ENGINEER} avatar="/assets/ASSET_003_Cat_Face_Identity_REFERENCE.png" lines={directiveLines} ask={directiveLines[directiveLines.length - 1]} note={bubble} bad={noteBad} showAgain={false} />
         {phase === "symptom" ? <div className="etDock etDockSymptom"><div className="etCards">{symptomChoices.map((d, index) => <button key={d.id} className={`etCard ${shake === d.id ? "shake" : ""}`} onClick={() => pickOutput(d.id)}>
             <kbd>{index + 1}</kbd><span className="etCardPol"><i className="pin" /><span className="polPhoto"><Photo src={d.img} /></span></span>
@@ -491,14 +491,16 @@ export function EeTraceV2({ state, send }: { state: Campaign; send: Send }) {
                 <span>{numify(`기준 ${refText(dom(cand))} · 이번 ${fmt(dom(cand).run)}${dom(cand).unit ? ` ${dom(cand).unit}` : ""}`)}</span>
                 <span>{dom(cand).status === "bad" ? numify(`달라진 시점 ${fmt(dom(cand).t!)} ${unit} (${dom(focus).label}${josa(dom(focus).label, "은", "는")} ${fmt(dom(focus).t!)} ${unit})`) : dom(cand).status === "tol" ? "허용 범위 안이에요" : "기준과 같아요 (달라지지 않음)"}</span></div>
               <div className={`etFlags ${awaitingStamp ? "hasExplanation" : ""}`}>
-                {awaitingStamp ? <p className="etStampFeedback" role="status">{bubble}</p> : <><button className="yes" onClick={() => stamp(cand, "likely")}><kbd>↑</kbd><span>영향을 줬어요</span></button><button className="no" onClick={() => stamp(cand, "refuted")}><kbd>↓</kbd><span>영향을 주지 않았어요</span></button></>}
+                {awaitingStamp ? <p className="etStampFeedback" role="status">{numify(bubble)}</p> : <><button className="yes" onClick={() => stamp(cand, "likely")}><kbd>↑</kbd><span>영향을 줬어요</span></button><button className="no" onClick={() => stamp(cand, "refuted")}><kbd>↓</kbd><span>영향을 주지 않았어요</span></button></>}
               </div>
             </article> : <span className="etAsk">다음 기준 신호로 넘어가는 중이에요…</span>}</div>
               : !sectionDone ? <div className="etDock etDockSection"><div className="etChoices">{data.section.choices.map((c, index) => <button key={c.label} className={sectionPick === c.label ? c.ok ? "right" : "wrong" : ""} onClick={() => pickSection(c.label)}><kbd>{index + 1}</kbd><span className="etSectionPol"><i className="pin" /><span className="polPhoto"><Photo src={sectionImage(c.label)} /></span></span><span className="etSectionLabel">{choiceLabel(c.label)}</span></button>)}</div></div>
-              : nextHyp ? <div className="etDock"><article className="etCand hyp"><span className="etCardPol etHypCardPol"><i className="pin" /><span className="polPhoto"><Photo src={hypImage(nextHyp)} /></span></span><div className="etCandText"><small>가설 후보 {hypNo}/{candidateHypotheses.length}</small><b><span className="etTag" data-tag={HYP_TAG[nextHyp.id]}>{HYP_TAG[nextHyp.id]}</span>{nextHyp.label}</b><span>가설 후보를 시험대에 올릴지 판단해요.</span></div>
-                  <div className="etFlags"><button className="yes" onClick={() => sortHyp(nextHyp.id, "hold")}><kbd>↑</kbd><span>후보에 올려요</span></button><button className="no" onClick={() => sortHyp(nextHyp.id, "out")}><kbd>↓</kbd><span>후보에서 빼요</span></button></div></article></div>
-                : carryPool.length > 1 && !carryId ? <div className="etDock"><div className="etChoices">{carryPool.map((id, index) => <button key={id} onClick={() => { setCarry(id); play("pop"); }}><kbd>{index + 1}</kbd><span className="etTag" data-tag={HYP_TAG[id]}>{HYP_TAG[id]}</span>{choiceLabel(candidateHypotheses.find(h => h.id === id)?.label ?? id)}</button>)}</div></div>
-                  : <div className="etDock"><article className="etCand hyp etCarrySummary"><span className="etCardPol etHypCardPol"><i className="pin" /><span className="polPhoto"><Photo src={hypImage(candidateHypotheses.find(h => h.id === carryId) ?? candidateHypotheses[0])} /></span></span><div className="etCandText"><small>먼저 시험할 가설</small><b>{candidateHypotheses.find(h => h.id === carryId)?.label ?? "없음"}</b><span>도미노에서 좁힌 후보를 먼저 시험해요.</span></div>{carryPool.length > 1 && <button className="etDockLink" onClick={() => { setCarry(""); play("pop"); }}>다시 고르기</button>}</article></div>}
+              : nextHyp ? <div className="etDock etDockHypothesis">
+                  <div className="etHypDecision" role="group" aria-label="가설 후보 판단"><button className="yes" onClick={() => sortHyp(nextHyp.id, "hold")}><kbd>↑</kbd><span>후보에 올려요</span></button><button className="no" onClick={() => sortHyp(nextHyp.id, "out")}><kbd>↓</kbd><span>후보에서 빼요</span></button></div>
+                  <article className="etCand hyp"><span className="etCardPol etHypCardPol"><i className="pin" /><span className="polPhoto"><Photo src={hypImage(nextHyp)} /></span></span><div className="etCandText"><small>가설 후보 {hypNo}/{candidateHypotheses.length}</small><b><span className="etTag" data-tag={HYP_TAG[nextHyp.id]}>{HYP_TAG[nextHyp.id]}</span>{nextHyp.label}</b><span>도미노에서 좁힌 후보가 실제 원인인지 시험대에서 확인해요.</span></div></article>
+                </div>
+                : carryPool.length > 1 && !carryId ? <div className="etDock etDockCarry"><div className="etChoices">{carryPool.map((id, index) => <button key={id} onClick={() => { setCarry(id); play("pop"); }}><kbd>{index + 1}</kbd><span className="etTag" data-tag={HYP_TAG[id]}>{HYP_TAG[id]}</span>{choiceLabel(candidateHypotheses.find(h => h.id === id)?.label ?? id)}</button>)}</div><aside className="etDockExplanation"><b>먼저 시험할 가설 선택</b><p>도미노에서 후보로 남긴 원인 중 하나를 골라 시험대에서 확인해요.</p></aside></div>
+                  : <div className="etDock etDockCarry"><div className="etCarryActions"><b>가설 등록 완료</b>{carryPool.length > 1 && <button className="etDockLink" onClick={() => { setCarry(""); play("pop"); }}>다시 고르기</button>}</div><article className="etCand hyp etCarrySummary"><span className="etCardPol etHypCardPol"><i className="pin" /><span className="polPhoto"><Photo src={hypImage(candidateHypotheses.find(h => h.id === carryId) ?? candidateHypotheses[0])} /></span></span><div className="etCandText"><small>먼저 시험할 가설</small><b>{candidateHypotheses.find(h => h.id === carryId)?.label ?? "없음"}</b><span>이 후보를 실험대에서 확인해요.</span></div></article></div>}
       </section>
       <div className="etNextCell"><button className="dtNext stageProgressAction" disabled={!(phase === "hyp" && sectionDone && allSorted && carryId)} onClick={finish}>다음 →</button></div>
     </main>
