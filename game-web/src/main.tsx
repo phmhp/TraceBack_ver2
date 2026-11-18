@@ -15,6 +15,7 @@ import {
   GarageExperience,
   InvestigationBoard,
   RaceExperience,
+  EndingCelebration,
   WiringPuzzle,
 } from "./experiences";
 import {
@@ -99,7 +100,7 @@ function useCampaign() {
     if (params.has("new"))
       return initialCampaign();
     const qaScene = params.get("qa") as Campaign["scene"] | null;
-    if (import.meta.env.DEV && qaScene && ["PROLOGUE", "GARAGE_L1", "LEVEL_SELECT", "DRIVE_BRIEFING", "CHASE_NORMAL", "FAULT_CUE", "BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR", "CHASE_RESUME", "SHIP_ESCAPE", "SHIP_BOARDING", "CAUGHT", "ENDING", "PAUSE"].includes(qaScene)) {
+    if (import.meta.env.DEV && qaScene && ["PROLOGUE", "GARAGE_L1", "LEVEL_SELECT", "DRIVE_BRIEFING", "CHASE_NORMAL", "FAULT_CUE", "BOARD", "WIRING", "TWIN_BENCH", "VERIFY_FAIL", "REPAIR", "CHASE_RESUME", "SHIP_ESCAPE", "SHIP_BOARDING", "ENDING_CELEBRATION", "CAUGHT", "ENDING", "PAUSE"].includes(qaScene)) {
       const isFinale = qaScene.startsWith("SHIP") || qaScene === "ENDING";
       const isResume = qaScene === "CHASE_RESUME";
       const requestedDistance = Number(params.get("distance"));
@@ -126,7 +127,7 @@ function useCampaign() {
     }
   });
   const send = useCallback((event: { type: string; [key: string]: unknown }) => {
-    if (event.type === "NEW_GAME") {
+    if (event.type === "NEW_GAME" || event.type === "NEW_RUN") {
       // New game is a fresh investigation session; returning to title intentionally does not do this.
       try {
         for (let index = sessionStorage.length - 1; index >= 0; index--) {
@@ -495,7 +496,7 @@ function Title({
   const saved = (() => { try { const raw = localStorage.getItem("traceback-v16-save"); return raw ? JSON.parse(raw) as Partial<Campaign> : null; } catch { return null; } })();
   const [panel, setPanel] = useState<"none" | "settings" | "keys">("none");
   const [prefs, setPrefsState] = useState(soundPrefs());
-  const STAGE_NAME: Record<string, string> = { GARAGE_L1: "정비소", LEVEL_SELECT: "레벨 선택", DRIVE_BRIEFING: "범행·도주", CHASE_NORMAL: "주행", FAULT_CUE: "주행", BOARD: "원인 역추적", WIRING: "퍼즐", TWIN_BENCH: "실험대", VERIFY_FAIL: "실험대", REPAIR: "수리", CHASE_RESUME: "주행", SHIP_ESCAPE: "해적선", SHIP_BOARDING: "해적선" };
+  const STAGE_NAME: Record<string, string> = { GARAGE_L1: "정비소", LEVEL_SELECT: "레벨 선택", DRIVE_BRIEFING: "범행·도주", CHASE_NORMAL: "주행", FAULT_CUE: "주행", BOARD: "원인 역추적", WIRING: "퍼즐", TWIN_BENCH: "실험대", VERIFY_FAIL: "실험대", REPAIR: "수리", CHASE_RESUME: "주행", SHIP_ESCAPE: "해적선", SHIP_BOARDING: "해적선", ENDING_CELEBRATION: "탈출 축하" };
   const savedLabel = saved?.scene && STAGE_NAME[saved.scene] ? `${STAGE_NAME[saved.scene]} 단계${saved.scene.startsWith("GARAGE") || saved.scene === "LEVEL_SELECT" ? "" : ` · 추격차와 ${Math.round(saved.policeGapMeters ?? 0)}m`}` : null;
   useEffect(() => {
     const key = (event: KeyboardEvent) => { if (event.key === "Enter" && panel === "none") { event.preventDefault(); if (savedLabel && saved) send({ type: "LOAD_SAVE", save: saved }); else send({ type: "NEW_GAME" }); } if (event.key === "Escape") setPanel("none"); };
@@ -1541,6 +1542,7 @@ function App() {
   if (state.scene === "REPAIR") return frame(<RepairSequence state={state} send={send} />);
   if (state.scene === "OPTIONAL_FAULT") return frame(<RaceExperience state={state} send={send} mode="ship" />);
   if (state.scene === "SHIP_BOARDING") return frame(<ShipBoardingSequence send={send} />);
+  if (state.scene === "ENDING_CELEBRATION") return <EndingCelebration state={state} send={send} />;
   if (state.scene === "ENDING") return frame(<WantedEnding state={state} send={send} />);
   if (state.scene === "CAUGHT") return frame(<BustedEnding state={state} send={send} />);
   return frame(<Overlay state={state} send={send} />);

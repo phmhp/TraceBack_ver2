@@ -24,6 +24,7 @@ export type Scene =
   | "OPTIONAL_FAULT"
   | "SHIP_ESCAPE"
   | "SHIP_BOARDING"
+  | "ENDING_CELEBRATION"
   | "CAUGHT"
   | "ENDING"
   | "PAUSE";
@@ -220,6 +221,8 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
   switch (event.type) {
     case "NEW_GAME":
       return enter(initialCampaign(), "PROLOGUE");
+    case "NEW_RUN":
+      return enter(initialCampaign(), "LEVEL_SELECT");
     case "LOAD_SAVE":
       return hydrateCampaign(event.save as Partial<Campaign>);
     case "CONTINUE_PROLOGUE":
@@ -395,11 +398,11 @@ export function dispatch(state: Campaign, event: GameEvent): Campaign {
       const finishDistance = Math.max(s.raceDistance, Number(event.distance) || 0);
       const finishGap = Math.max(10, Number.isFinite(Number(event.gap)) ? Number(event.gap) : s.policeGapMeters);
       return s.scene === "SHIP_ESCAPE" && finishDistance >= 1080
-        ? enter({ ...s, raceDistance: finishDistance, policeGapMeters: finishGap, checkpoint: "pirate_ramp" }, "ENDING")
+        ? enter({ ...s, raceDistance: finishDistance, policeGapMeters: finishGap, checkpoint: "pirate_ramp" }, "ENDING_CELEBRATION")
         : reject(s, "PIRATE_SHIP_NOT_REACHED");
     }
     case "COMPLETE_ENDING":
-      return s.scene === "SHIP_BOARDING" ? enter(s, "ENDING") : reject(s, "BOARDING_REQUIRED");
+      return s.scene === "SHIP_BOARDING" ? enter(s, "ENDING_CELEBRATION") : reject(s, "BOARDING_REQUIRED");
     case "CAUGHT":
       return enter(s, "CAUGHT");
     case "RETRY_CHECKPOINT":

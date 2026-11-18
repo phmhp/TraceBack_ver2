@@ -3284,3 +3284,60 @@ export function ShipBoardingSequence({ send }: { send: Send }) {
   const captions = ["부두 끝 · 갑판이 올라간다!", "나무 연결판이 지렛대처럼 들린다", `${DUO}의 붉은 EV, 도약`, "측면 비행 · 경찰차는 부두에 멈춤", "해적선 갑판 안착 — 탈출 성공"];
   return <div className={`shipBoarding shipJump beat-${beat}`}><Canvas shadows camera={{position:[0,3.35,12.8],fov:43}} dpr={[1,1.3]} gl={{antialias:true,powerPreference:"high-performance"}}><ShipJumpScene onBeat={setBeat} /></Canvas><div className="boardingCaption"><small>FINAL · THELMA-STYLE DOCK JUMP</small><h1>{captions[beat]}</h1><p>{beat < 4 ? "올라가는 나무 램프를 타고 해적선 갑판으로 날아갑니다." : "차량과 두 고양이가 모두 갑판에 안전하게 착지했습니다."}</p></div></div>;
 }
+
+function EndingCelebrationWorld() {
+  const car = useRef<THREE.Group>(null!);
+  const deck = useRef<THREE.Group>(null!);
+  useFrame(({ clock, camera }) => {
+    const t = clock.elapsedTime;
+    car.current.position.y = .08 + Math.sin(t * 4.2) * .035;
+    car.current.rotation.y = Math.sin(t * .8) * .07;
+    deck.current.rotation.y = Math.sin(t * .22) * .025;
+    camera.lookAt(0, 1.05, 0);
+  });
+  return <>
+    <color attach="background" args={["#efb583"]} />
+    <fog attach="fog" args={["#efb583", 25, 58]} />
+    <hemisphereLight intensity={2} color="#fff3d8" groundColor="#426c72" />
+    <directionalLight castShadow position={[-7, 11, 8]} intensity={3} color="#ffe1ae" />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.2, 0]}>
+      <planeGeometry args={[100, 100]} />
+      <meshStandardMaterial color="#438da0" roughness={.38} />
+    </mesh>
+    <group ref={deck}>
+      <RoundedBox args={[22, .55, 14]} radius={.2} position={[0, -.32, 0]} receiveShadow>
+        <meshStandardMaterial color="#8b6447" roughness={.82} />
+      </RoundedBox>
+      {Array.from({ length: 15 }, (_, index) => <mesh key={index} position={[-10.5 + index * 1.5, -.025, 0]}>
+        <boxGeometry args={[.055, .025, 13.5]} />
+        <meshStandardMaterial color="#c39a6c" roughness={.72} />
+      </mesh>)}
+      <group ref={car} position={[0, .08, 0]} scale={1.02}>
+        <HeroConvertible steer={0} spin={18} speed={0} cheer />
+      </group>
+      <group position={[8, 0, 4]}>
+        <mesh position={[0, 3.2, 0]}><cylinderGeometry args={[.12, .2, 6.4, 16]} /><meshStandardMaterial color="#3b3028" /></mesh>
+        <mesh position={[-1.3, 4.5, 0]} rotation={[0, 0, -.08]}><planeGeometry args={[3.1, 2.1]} /><meshStandardMaterial color="#b64742" side={THREE.DoubleSide} /></mesh>
+      </group>
+    </group>
+  </>;
+}
+
+export function EndingCelebration({ state, send }: { state: Campaign; send: Send }) {
+  useEffect(() => {
+    const timer = window.setTimeout(() => send({ type: state.levelFinish ? "NEXT_LEVEL" : "NEW_RUN" }), 5000);
+    return () => window.clearTimeout(timer);
+  }, [send, state.levelFinish]);
+  return <main className="endingCelebration" role="status" aria-live="polite">
+    <Canvas shadows camera={{ position: [0, 3.25, -7.2], fov: 43 }} dpr={[1, 1.2]} gl={{ antialias: true, powerPreference: "high-performance" }}>
+      <EndingCelebrationWorld />
+    </Canvas>
+    <section className="endingCelebrationCaption">
+      <small>ESCAPE COMPLETE · CASE CLOSED</small>
+      <h1>탈출 성공!</h1>
+      <p>{DUO}가 해적선 갑판에서 만세하며 작별 인사를 해요.</p>
+      <div className="endingCelebrationTimer" aria-hidden="true"><i /></div>
+      <span>레벨 선택으로 돌아갑니다</span>
+    </section>
+  </main>;
+}

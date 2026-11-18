@@ -274,3 +274,25 @@
 .cfPoster .cfEpilogue { font-size: 13px; line-height: 1.4; }
 .cfPoster .cfPhotos figure { width: 88%; margin-inline: auto; }
 .cfPoster .cfStamp { margin-top: 0; }
+
+.endingCelebration {
+  position: fixed; inset: 0; z-index: 500; overflow: hidden;
+  display: grid; place-items: center; background: #efb583;
+  font-family: "Pretendard", system-ui, sans-serif;
+}
+.endingCelebration > canvas { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; }
+.endingCelebrationCaption {
+  position: absolute; left: 50%; bottom: clamp(24px, 6vh, 68px); transform: translateX(-50%);
+  width: min(620px, calc(100vw - 32px)); padding: 18px 24px 16px; box-sizing: border-box;
+  border: 2px solid #f6dfad; border-radius: 18px; background: #fff8e9eF;
+  box-shadow: 0 12px 32px #442b2a40; text-align: center; color: #57372c;
+}
+.endingCelebrationCaption > small { color: #a35c46; font-size: 11px; font-weight: 900; letter-spacing: .16em; }
+.endingCelebrationCaption h1 { margin: 4px 0; font: 900 clamp(30px, 5vw, 52px)/1.1 "TraceRounded", Pretendard, system-ui, sans-serif; }
+.endingCelebrationCaption p { margin: 4px 0 14px; font-size: 15px; font-weight: 700; }
+.endingCelebrationCaption > span { display: block; margin-top: 8px; color: #80675a; font-size: 12px; font-weight: 750; }
+.endingCelebrationTimer { height: 6px; overflow: hidden; border-radius: 999px; background: #dbc9ac; }
+.endingCelebrationTimer i { display: block; width: 100%; height: 100%; transform-origin: left center; background: #b66c53; animation: endingCelebrateTimer 5s linear forwards; }
+@keyframes endingCelebrateTimer { to { transform: scaleX(0); } }
+@media (max-width: 600px) { .endingCelebrationCaption { padding: 14px 16px; } .endingCelebrationCaption p { font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { .endingCelebrationTimer i { animation-duration: 5s; } }
