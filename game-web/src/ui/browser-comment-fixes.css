@@ -1922,6 +1922,72 @@ html body #root .gameViewport .gameStage .garageV2 .garageArchitectureSideMount 
 }
 html body #root .gameViewport .gameStage .garageV2 .gv3Work[data-mode="architecture"] .archView { padding-right: 18px !important; }
 
+/* STEP01 architecture overview: let the architecture use the full main column;
+   the layer rail is only useful after a domain has been selected. */
+html body #root .gameViewport .gameStage .garageV2 .gv3Work[data-overview="true"] {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: 56px minmax(0, 1fr) 132px !important;
+  grid-template-areas: "mission" "stage" "flow" !important;
+}
+html body #root .gameViewport .gameStage .garageV2 .gv3Work[data-overview="true"] > .garageLayerNav { display: none !important; }
+html body #root .gameViewport .gameStage .garageV2 .gv3Work[data-overview="true"] > .garageStudio { grid-area: stage !important; min-width: 0 !important; }
+html body #root .gameViewport .gameStage .garageV2 .gv3Work[data-overview="true"] .garageMechanismCard { grid-area: stage !important; }
+html body #root .gameViewport .gameStage .garageV2 .gv3Work[data-overview="true"] .garageMechanismCard {
+  grid-row: 2 !important; grid-column: 1 !important; width: 100% !important; height: 100% !important; min-height: 0 !important;
+}
+html body #root .gameViewport .gameStage .garageV2 .gv3Work[data-overview="true"] .archView {
+  position: absolute !important; inset: 0 !important; height: 100% !important; min-height: 0 !important; padding: 12px 232px 8px 18px !important;
+}
+html body #root .gameViewport .gameStage .garageV2 .archView :is(.archGroupCard, .archGroup) { box-shadow: none !important; }
+html body #root .gameViewport .gameStage .garageV2 .gv3Work[data-overview="true"] .archGroupPick {
+  height: 100% !important; min-height: 0 !important; grid-template-rows: auto minmax(0, 1fr) 118px !important;
+}
+html body #root .gameViewport .gameStage .garageV2 .gv3Work[data-overview="true"] .archGroupCards { height: 100% !important; min-height: 0 !important; }
+
+/* Clean, explicit area and domain controls with breathing room. */
+html body #root .gameViewport .gameStage .garageV2 .archView .archAsk {
+  min-height: 34px !important; align-items: center !important; justify-content: flex-start !important;
+}
+html body #root .gameViewport .gameStage .garageV2 .archView .archAsk > span { display: grid; gap: 4px; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archAsk b { color: #4b3833; font: 900 17px/1.1 Pretendard, system-ui; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archAsk small { color: #84665f; font: 600 12px/1.2 Pretendard, system-ui; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archGroupCards { gap: 18px !important; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archGroupCard {
+  display: flex !important; flex-direction: column !important; gap: 10px !important; padding: 12px !important;
+  border-width: 1px !important; border-radius: 14px !important; background: rgba(255,253,246,.96) !important;
+}
+html body #root .gameViewport .gameStage .garageV2 .archView .archGroupHeading {
+  all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 9px; width: 100%; min-height: 42px;
+  padding: 5px 7px; border-radius: 10px; cursor: pointer;
+}
+html body #root .gameViewport .gameStage .garageV2 .archView .archGroupHeading:hover { background: rgba(111,160,140,.12); }
+html body #root .gameViewport .gameStage .garageV2 .archView .archAreaMark {
+  display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 10px;
+  color: #587e70; background: #e9f2ec;
+}
+html body #root .gameViewport .gameStage .garageV2 .archView .archGroupHeading > span:nth-child(2) { display: grid; gap: 3px; min-width: 0; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archGroupHeading b { color: #493832; font: 900 17px/1.1 Pretendard, system-ui; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archGroupHeading small { color: #80655d; font: 600 11px/1.15 Pretendard, system-ui; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archGroupHeading > i { margin-left: auto; padding: 7px 9px; border-radius: 8px; background: #f2e8dc; color: #80594e; font: 800 11px/1 Pretendard, system-ui; font-style: normal; white-space: nowrap; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archGroupVisual { margin: 0 !important; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archGroupIo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-height: 0; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archIoItems { display: grid; align-content: start; gap: 5px; min-width: 0; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archIoItems > b { color: #80655d; font: 800 10px/1 Pretendard, system-ui; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archIoItems > span { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 4px; border: 1px solid rgba(155,107,100,.18); border-radius: 8px; background: #fffaf4; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archIoItems img { width: 32px; height: 27px; flex: none; border-radius: 5px; background: white; object-fit: contain; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archIoItems i { min-width: 0; color: #55443e; font: 700 10px/1.15 Pretendard, system-ui; font-style: normal; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archDomainButtons { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; margin-top: auto; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archDomainButtons button {
+  all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 32px;
+  padding: 5px 7px; border: 1px solid color-mix(in srgb, var(--domain) 42%, white); border-radius: 8px;
+  background: color-mix(in srgb, var(--domain) 9%, white); color: #493832; cursor: pointer;
+}
+html body #root .gameViewport .gameStage .garageV2 .archView .archDomainButtons button:hover { background: color-mix(in srgb, var(--domain) 18%, white); box-shadow: 0 2px 7px rgba(62,44,35,.12); }
+html body #root .gameViewport .gameStage .garageV2 .archView .archDomainButtons button > svg { width: 15px; height: 15px; flex: none; color: var(--domain); }
+html body #root .gameViewport .gameStage .garageV2 .archView .archDomainButtons button > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 11px/1 Pretendard, system-ui; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archDomainButtons button > small { margin-left: auto; color: #84665f; font: 700 9px/1 Pretendard, system-ui; }
+html body #root .gameViewport .gameStage .garageV2 .archView .archCrumb small { font-size: 11px !important; }
+
 /* Reserve the breadcrumb row before fitting the puzzle board. */
 html body #root .gameViewport .gameStage .refPuzzle.v2 .rpSizer {
   top: calc(50% + var(--rp-board-center-offset, 39px)) !important;
@@ -2046,3 +2112,4 @@ html body #root .gameViewport .gameStage .garageV2 .garageBreadcrumb .garageGrou
   color: inherit !important; font: inherit !important; cursor: pointer !important;
 }
 html body #root .gameViewport .gameStage .garageV2 .garageBreadcrumb .garageGroupCrumb:hover { text-decoration: underline !important; }
+

@@ -688,7 +688,6 @@ function MechanismViewer({ domain, level, feature, activeStep, removed = null, o
     {level === 0 && !allDomains && !noDomain && <div className="flowLegend" aria-label="배선이 전달하는 것"><b>전달하는 것</b>{flowLegend(domain, feature).map(item => <span key={item.flow}><i style={{ background: item.color }} />{item.label}</span>)}</div>}
     {vehicleSelection && <aside className="vehiclePartInfo" aria-live="polite"><small>{vehicleSelection.role === "input" ? "입력·센서" : vehicleSelection.role === "control" ? "제어기(ECU)" : vehicleSelection.role === "network" ? "통신" : vehicleSelection.role === "actuator" ? "액추에이터·부품" : "차량 반응"}</small><b>{vehicleSelection.label}</b>{vehicleSelection.role === "input" && <strong className={inputOn ? "inputActive" : "inputIdle"}>{inputOn ? "입력이 선택됨 · 다음 스텝으로 신호를 관찰하세요" : "길게 눌러 입력을 선택하세요"}</strong>}<span><em>받는 신호</em>{vehicleSelection.input}</span><span><em>보내는 신호</em>{vehicleSelection.output}</span><p>드래그로 카메라를 움직일 때는 선택되지 않아요.</p></aside>}
     {noDomain && level === 0 && <div className="garageAreaPicker" role="group" aria-label="차량 영역 선택">
-      <p><b>차량 전체 3D 보기</b></p>
       <div>{DOMAIN_GROUPS.map((group, index) => <button key={group} className={`area-${index}`} onClick={() => { setOverview3d(false); onArea?.(group); }}><Icon name={group === "파워트레인" ? "gear" : group === "섀시" ? "wheel" : "chip"} /><b>{group}</b><small>{DOMAIN_ORDER.filter(id => EV_DOMAINS[id].group === group).length}개 도메인</small></button>)}<button className="area-coord" onClick={() => { setOverview3d(false); onArea?.("coord"); }}><Icon name="signal" /><b>도메인 협조제어</b><small>영역 사이 협조 신호</small></button></div>
     </div>}
     <div className="viewToggles">
@@ -1093,12 +1092,10 @@ export function GarageExperience({ state, send }: { state: Campaign; send: Send 
       </button>)}
     </nav>
     <main className="garageStudio">
-      {!chosen && !overview3d && <nav className={`domainTabs ${overviewGroup ? "scoped" : ""}`} aria-label="도메인 선택">
-        {overviewGroup && <button className="overviewBack" onClick={() => { setOverviewGroup(null); setOverview3d(true); }}><span aria-hidden="true">←</span> 상위 영역으로 돌아가기</button>}
-        {!overviewGroup && <button className="allDomains active" onClick={showAllDomains}><span><Icon name="car" /></span><b>전체보기</b></button>}
-        {(overviewGroup ? [overviewGroup] : DOMAIN_GROUPS).map(group => <div key={group} className="domainGroup" style={{ "--n": DOMAIN_ORDER.filter(id => domainContent[id].group === group).length } as React.CSSProperties}>
+      {!chosen && overview3d && <nav className="domainTabs" aria-label="도메인 바로가기">
+        {DOMAIN_GROUPS.map(group => <div key={group} className="domainGroup" style={{ "--n": DOMAIN_ORDER.filter(id => domainContent[id].group === group).length } as React.CSSProperties}>
           <em className="groupName">{group}</em>
-          <div className="groupBtns">{DOMAIN_ORDER.filter(id => domainContent[id].group === group).map(id => { const learned = Array.from(completedLessons).some(key => key.startsWith(`${id}-`)); return <button key={id} title={domainContent[id].label} aria-label={domainContent[id].label} className={`${chosen && domain === id ? "active" : ""} ${learned ? "learned" : ""}`} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span><Icon name={DOMAIN_ICON[id]} /></span><b>{domainContent[id].label}</b>{learned && <small>✓</small>}</button>; })}</div>
+          <div className="groupBtns">{DOMAIN_ORDER.filter(id => domainContent[id].group === group).map(id => <button key={id} title={domainContent[id].label} aria-label={domainContent[id].label} style={{ "--domain": domainContent[id].accent } as React.CSSProperties} onClick={() => setDomain(id)}><span><Icon name={DOMAIN_ICON[id]} /></span><b>{domainContent[id].label}</b></button>)}</div>
         </div>)}
       </nav>}
       {chosen && <nav className="garageBreadcrumb" aria-label="현재 정비소 위치">
